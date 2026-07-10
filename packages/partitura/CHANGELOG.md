@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0-dev.1 (in progress)
+
+- **Ties** rendered as stroked Bézier curves (`CurvePrimitive`); golden
+  scene 26, gallery entry.
+
 ## 0.2.0-dev.1
 
 - **Alto and tenor clefs** (via `partitura_core` 0.2): C-clef rendering,

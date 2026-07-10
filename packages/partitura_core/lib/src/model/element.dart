@@ -33,6 +33,11 @@ class NoteElement extends MusicElement {
   /// measure imply.
   final bool? showAccidental;
 
+  /// Ties this note/chord to the **next** note element (also across a
+  /// barline). Only pitches present identically in both elements are
+  /// tied; a tie into a rest or nothing draws no curve.
+  final bool tieToNext;
+
   /// Creates a note or chord from [pitches] and a [duration].
   ///
   /// [pitches] must be non-empty. (Not asserted: list lengths cannot be
@@ -41,6 +46,7 @@ class NoteElement extends MusicElement {
     required this.pitches,
     required super.duration,
     this.showAccidental,
+    this.tieToNext = false,
     super.id,
   });
 
@@ -49,11 +55,13 @@ class NoteElement extends MusicElement {
     Pitch pitch,
     NoteDuration duration, {
     bool? showAccidental,
+    bool tieToNext = false,
     String? id,
   }) : this(
           pitches: [pitch],
           duration: duration,
           showAccidental: showAccidental,
+          tieToNext: tieToNext,
           id: id,
         );
 
@@ -62,16 +70,18 @@ class NoteElement extends MusicElement {
       other is NoteElement &&
       other.duration == duration &&
       other.showAccidental == showAccidental &&
+      other.tieToNext == tieToNext &&
       other.id == id &&
       listEquals(other.pitches, pitches);
 
   @override
-  int get hashCode =>
-      Object.hash(duration, showAccidental, id, Object.hashAll(pitches));
+  int get hashCode => Object.hash(
+      duration, showAccidental, tieToNext, id, Object.hashAll(pitches));
 
   @override
   String toString() =>
-      'NoteElement(${pitches.join('+')}, $duration${id == null ? '' : ', id: $id'})';
+      'NoteElement(${pitches.join('+')}, $duration${tieToNext ? ', tied' : ''}'
+      '${id == null ? '' : ', id: $id'})';
 }
 
 /// A rest.

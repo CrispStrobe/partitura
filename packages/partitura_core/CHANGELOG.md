@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0-dev.1 (in progress)
+
+- **Ties**: `NoteElement.tieToNext` (DSL suffix `~`) draws tie curves to
+  identically-pitched noteheads of the next note element, also across
+  barlines; sits opposite the stem. New `CurvePrimitive` (cubic Bézier)
+  in the display list — the foundation slurs reuse.
+
 ## 0.2.0-dev.1
 
 - **Alto and tenor clefs**: `Clef.alto` (C clef on the middle line, bottom

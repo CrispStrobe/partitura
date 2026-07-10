@@ -15,7 +15,7 @@ gates green (`dart format`, analyze zero issues, all tests), push.
 
 ## v0.3 — notation depth (single staff, single voice)
 
-- [ ] 0.3.1 Ties (`tieToNext`, `CurvePrimitive` foundation, DSL `~`)
+- [x] 0.3.1 Ties (`tieToNext`, `CurvePrimitive` foundation, DSL `~`)
 - [ ] 0.3.2 Slurs (`Slur(startId, endId)` spans, curve clearance)
 - [ ] 0.3.3 Tuplets (measure-level spans, ratio bracket + digits,
       exact `Fraction` math, beaming inside)

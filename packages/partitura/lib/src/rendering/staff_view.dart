@@ -405,6 +405,23 @@ class RenderStaffView extends RenderBox {
               ..close(),
             paint,
           );
+        case CurvePrimitive():
+          // Ties/slurs are shared note ink, like beams.
+          final paint = Paint()
+            ..color = _theme.noteColor
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = primitive.thickness * _scale
+            ..strokeCap = StrokeCap.round;
+          final p0 = offset + staffToLocal(primitive.start);
+          final c1 = offset + staffToLocal(primitive.control1);
+          final c2 = offset + staffToLocal(primitive.control2);
+          final p1 = offset + staffToLocal(primitive.end);
+          canvas.drawPath(
+            Path()
+              ..moveTo(p0.dx, p0.dy)
+              ..cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, p1.dx, p1.dy),
+            paint,
+          );
       }
     }
 

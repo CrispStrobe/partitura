@@ -1,4 +1,4 @@
-# partitura — features and public API contract (v0.2)
+# partitura — features and public API contract (v0.3-dev)
 
 This document describes what partitura **does** and which API surface and
 behaviors consumers may **rely on**. It reflects the implementation as
@@ -72,8 +72,9 @@ value-based, invalid constructor arguments fail asserts in debug builds.
   (games compare it against `TimeSignature.measureCapacity`; the layout
   engine does **not** enforce it).
 - `MusicElement` (sealed) = `NoteElement` (1 pitch = note, n pitches =
-  chord; `showAccidental`: `null` auto / `true` force / `false` hide) or
-  `RestElement`. The optional `id` makes an element addressable by the
+  chord; `showAccidental`: `null` auto / `true` force / `false` hide;
+  `tieToNext` ties to the next note element — identical pitches only,
+  a tie into a rest draws nothing) or `RestElement`. The optional `id` makes an element addressable by the
   interaction layer; ids should be unique per score.
 - **Lists are treated as immutable.** Model equality is deep value
   equality over the given lists; mutating a list in place makes an "old"
@@ -89,6 +90,7 @@ rest     := 'r' (':' duration)?
 chord    := pitch ('+' pitch)* (':' duration)?
 pitch    := [a-gA-G] ('##'|'#'|'bb'|'b'|'n')? octaveInt
 duration := ('w'|'h'|'q'|'e'|'s') ('.' | '..')?
+tie      := '~' at the end of a chord token (c4:q~)
 ```
 
 Durations are sticky (initial default: quarter). `n` = explicit natural
@@ -111,7 +113,8 @@ offending token.
 - `ScoreLayout` exposes `width`, `height`, `top` (≤ 0; ink rises above
   the top staff line), `bounds`, a flat painting-ordered `primitives`
   list (`GlyphPrimitive` = SMuFL name + origin, `LinePrimitive`,
-  `BeamPrimitive` = end-edge midpoints + thickness), per-element
+  `BeamPrimitive` = end-edge midpoints + thickness,
+  `CurvePrimitive` = cubic Bézier for ties/slurs), per-element
   `regions` (hit boxes for every id-tagged element) and `measureRegions`
   (x-extents per measure; empty measures are zero-width).
 - Primitives tagged with an `elementId` are that element's ink;
@@ -142,7 +145,9 @@ third space) · chords on one shared stem with seconds flipped across it ·
 rests at conventional homes (whole hangs from line 4, half sits on
 line 3) · duration-proportional spacing
 (`spacingBase + spacingPerLog2 · (4 + log₂ duration)`, min gap enforced) ·
-thin barlines between measures, thin+thick final barline.
+thin barlines between measures, thin+thick final barline · ties on
+the notehead side away from the stem, across barlines, chords tying
+pairwise by identical pitch.
 
 **Not implemented (v0.x non-goals)**: multi-voice collision avoidance,
 slurs/ties, tuplets, grace notes, cross-staff beaming, lyrics, dynamics,

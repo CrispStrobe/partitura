@@ -49,6 +49,8 @@ class Score {
   /// - Durations are sticky: a token without `:duration` reuses the previous
   ///   token's duration (initially quarter). `w h q e s` are whole to
   ///   sixteenth; dots follow the letter (`q.` = dotted quarter).
+  /// - A trailing `~` ties the note/chord to the next note element
+  ///   (`c4:q~ c4:q`), also across a barline.
   /// - The accidental `n` parses as an explicit natural and forces the
   ///   accidental to be drawn (`showAccidental: true`).
   /// - Every element is auto-assigned the id `e0`, `e1`, … in reading order,
@@ -69,8 +71,13 @@ class Score {
     final measures = <Measure>[];
     for (final measureSource in notes.split('|')) {
       final elements = <MusicElement>[];
-      for (final token in measureSource.trim().split(RegExp(r'\s+'))) {
+      for (var token in measureSource.trim().split(RegExp(r'\s+'))) {
         if (token.isEmpty) continue;
+        var tied = false;
+        if (token.endsWith('~')) {
+          tied = true;
+          token = token.substring(0, token.length - 1);
+        }
         final parts = token.split(':');
         if (parts.length > 2) {
           throw FormatException('Invalid token: "$token"');
@@ -80,6 +87,9 @@ class Score {
         }
         final id = 'e${nextId++}';
         if (parts[0] == 'r') {
+          if (tied) {
+            throw FormatException('A rest cannot be tied: "$token~"');
+          }
           elements.add(RestElement(duration, id: id));
         } else {
           final sources = parts[0].split('+');
@@ -89,6 +99,7 @@ class Score {
             pitches: pitches,
             duration: duration,
             showAccidental: forced ? true : null,
+            tieToNext: tied,
             id: id,
           ));
         }

@@ -163,6 +163,13 @@ final List<GalleryItem> galleryItems = [
     highlightedIds: const {'e1'},
   ),
   GalleryItem(
+    'Ties (within and across measures)',
+    Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'c5:h~ c5:q a4:q~ | a4:h c4+e4:h~ | c4+e4:w~ | c4+e4:w',
+    ),
+  ),
+  GalleryItem(
     'Alto clef: viola line (F major)',
     Score.simple(
       clef: Clef.alto,

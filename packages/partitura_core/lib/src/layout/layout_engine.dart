@@ -83,6 +83,18 @@ class _BeamedNote {
   });
 }
 
+/// Rendered notehead geometry of one element, kept for the tie pass.
+/// Rests participate with an empty head list (a tie cannot cross a rest).
+class _TieInfo {
+  final NoteElement? note;
+  final bool stemsDown;
+
+  /// Per pitch: the notehead column's left/right x and its center y.
+  final List<(Pitch, double, double, double)> heads;
+
+  _TieInfo({required this.note, required this.stemsDown, required this.heads});
+}
+
 class _LayoutBuilder {
   final Score score;
   final LayoutSettings s;
@@ -91,6 +103,7 @@ class _LayoutBuilder {
   final List<LayoutPrimitive> _primitives = [];
   final Map<String, _Bounds> _elementBounds = {};
   final List<MeasureRegion> _measureRegions = [];
+  final List<_TieInfo> _tieInfos = [];
   final _Bounds _ink = _Bounds();
 
   double _x = 0;
@@ -134,6 +147,7 @@ class _LayoutBuilder {
         _addBarline();
       }
     }
+    _layoutTies();
     final width = _addFinalBarline();
 
     // Staff lines span the full width; paint them first.
@@ -193,6 +207,29 @@ class _LayoutBuilder {
       min(from.y, to.y) - h,
       max(from.x, to.x) + h,
       max(from.y, to.y) + h,
+    );
+  }
+
+  void _addCurve(
+    Point<double> start,
+    Point<double> control1,
+    Point<double> control2,
+    Point<double> end,
+    double thickness,
+  ) {
+    _primitives.add(
+      CurvePrimitive(start, control1, control2, end, thickness: thickness),
+    );
+    // The control polygon bounds the Bézier.
+    final xs = [start.x, control1.x, control2.x, end.x];
+    final ys = [start.y, control1.y, control2.y, end.y];
+    final h = thickness / 2;
+    _expand(
+      null,
+      xs.reduce(min) - h,
+      ys.reduce(min) - h,
+      xs.reduce(max) + h,
+      ys.reduce(max) + h,
     );
   }
 
@@ -427,6 +464,19 @@ class _LayoutBuilder {
     for (var i = 0; i < positions.length; i++) {
       _addGlyph(headGlyph, columnX[i], _yOf(positions[i]), elementId: id);
     }
+    _tieInfos.add(_TieInfo(
+      note: element,
+      stemsDown: stemsDown,
+      heads: [
+        for (var i = 0; i < positions.length; i++)
+          (
+            pitches[i],
+            columnX[i],
+            columnX[i] + headWidth,
+            _yOf(positions[i]),
+          ),
+      ],
+    ));
 
     // Rule 8: ledger lines.
     final minColX = columnX.reduce(min);
@@ -575,6 +625,8 @@ class _LayoutBuilder {
     };
     final id = element.id;
     _addGlyph(glyph, _x, y, elementId: id);
+    // Rests break tie chains.
+    _tieInfos.add(_TieInfo(note: null, stemsDown: false, heads: const []));
 
     var inkRight = _x + _glyphWidth(glyph);
     if (element.duration.dots > 0) {
@@ -608,6 +660,40 @@ class _LayoutBuilder {
         -duration.base.index.toDouble() + _dotLog2[duration.dots];
     final ideal = s.spacingBase + s.spacingPerLog2 * (4 + log2Duration);
     _x = max(fromX + ideal, inkRight + s.minNoteGap);
+  }
+
+  // ------------------------------------------------------------------ ties
+
+  /// v0.3.1: for every note with `tieToNext`, draw a tie curve to each
+  /// identically-pitched notehead of the immediately following note
+  /// element (also across barlines). The curve sits on the notehead side,
+  /// away from the stem: above for stems-down notes, below for stems-up.
+  /// Ties into rests or the end of the score draw nothing.
+  void _layoutTies() {
+    for (var i = 0; i < _tieInfos.length - 1; i++) {
+      final start = _tieInfos[i];
+      final note = start.note;
+      if (note == null || !note.tieToNext) continue;
+      final next = _tieInfos[i + 1];
+      if (next.note == null) continue;
+      final dir = start.stemsDown ? -1.0 : 1.0;
+      for (final (pitch, _, xRight, y) in start.heads) {
+        final matches = next.heads.where((h) => h.$1 == pitch);
+        if (matches.isEmpty) continue;
+        final x1 = xRight + 0.15;
+        final x2 = matches.first.$2 - 0.15;
+        if (x2 <= x1) continue;
+        final baseY = y + dir * 0.6;
+        final controlY = baseY + dir * (0.35 + min(0.6, (x2 - x1) * 0.06));
+        _addCurve(
+          Point(x1, baseY),
+          Point(x1 + (x2 - x1) * 0.3, controlY),
+          Point(x1 + (x2 - x1) * 0.7, controlY),
+          Point(x2, baseY),
+          0.18,
+        );
+      }
+    }
   }
 
   // -------------------------------------------------------------- barlines

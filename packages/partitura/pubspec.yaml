@@ -1,6 +1,6 @@
 name: partitura
 description: Music notation rendering for Flutter with first-class interactivity - staves, notes, chords, hit-testing, selection and drag. Bundles the Bravura SMuFL font (OFL).
-version: 0.2.0-dev.1
+version: 0.3.0-dev.1
 repository: https://github.com/CrispStrobe/partitura
 topics:
   - music
@@ -17,7 +17,7 @@ resolution: workspace
 dependencies:
   flutter:
     sdk: flutter
-  partitura_core: ^0.2.0-dev.1
+  partitura_core: ^0.3.0-dev.1
 
 dev_dependencies:
   flutter_test:

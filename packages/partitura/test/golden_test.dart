@@ -378,6 +378,17 @@ void main() {
     );
   });
 
+  testWidgets('26 ties', (tester) async {
+    await golden(
+      tester,
+      '26_ties',
+      Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'c5:h~ c5:q a4:q~ | a4:h c4+e4:h~ | c4+e4:w~ | c4+e4:w',
+      ),
+    );
+  });
+
   testWidgets('21 unmetered snippet in bass with chords', (tester) async {
     await golden(
       tester,

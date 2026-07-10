@@ -93,6 +93,42 @@ final class BeamPrimitive extends LayoutPrimitive {
       '${elementId == null ? '' : ', $elementId'})';
 }
 
+/// A cubic Bézier curve: ties (and, from v0.3.2, slurs).
+///
+/// Drawn from [start] to [end] with control points [control1] and
+/// [control2]; stroked with [thickness]. Like beams, curves are shared
+/// note ink and carry no element id.
+final class CurvePrimitive extends LayoutPrimitive {
+  /// Curve start point in staff spaces.
+  final Point<double> start;
+
+  /// First control point.
+  final Point<double> control1;
+
+  /// Second control point.
+  final Point<double> control2;
+
+  /// Curve end point in staff spaces.
+  final Point<double> end;
+
+  /// Stroke thickness in staff spaces.
+  final double thickness;
+
+  /// Creates a curve primitive.
+  const CurvePrimitive(
+    this.start,
+    this.control1,
+    this.control2,
+    this.end, {
+    required this.thickness,
+  });
+
+  @override
+  String toString() =>
+      'Curve(${start.x},${start.y} ~ ${control1.x},${control1.y} ~ '
+      '${control2.x},${control2.y} ~ ${end.x},${end.y} x$thickness)';
+}
+
 /// The hit box of one score element, tagged with its id.
 class ElementRegion {
   /// The element's id (elements without an id get no region).
