@@ -238,6 +238,19 @@ terse is fine. See HANDOVER.md §6.
   precomposed codepoint misses them — find segmented-button labels
   structurally.
 
+## v0.3 notation depth (2026-07-10)
+
+- **Curves** (ties/slurs) are `CurvePrimitive` cubic Béziers stroked with
+  round caps — not the filled variable-thickness shapes of full engraving;
+  revisit if visual polish demands it.
+- **Tuplet spacing** uses `log(normal/actual)/ln2` at layout time — the
+  only transcendental call in the engine; it is deterministic for equal
+  inputs on a given platform, which is what rule 14 needs in practice.
+- **Beams never cross tuplet boundaries** (run building and the
+  half-measure merge both check span membership). The golden corpus
+  caught the original violation: the merge welded a c5–e5 triplet to a
+  following low eighth and flipped the whole group's stems.
+
 ## Blockers
 
 (none)

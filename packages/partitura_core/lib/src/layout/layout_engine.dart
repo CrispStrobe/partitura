@@ -90,6 +90,10 @@ class _TieInfo {
   final String? id;
   final bool stemsDown;
 
+  /// Horizontal ink extent of the notehead/rest glyphs.
+  final double left;
+  final double right;
+
   /// Per pitch: the notehead column's left/right x and its center y.
   final List<(Pitch, double, double, double)> heads;
 
@@ -97,6 +101,8 @@ class _TieInfo {
     required this.note,
     required this.id,
     required this.stemsDown,
+    required this.left,
+    required this.right,
     required this.heads,
   });
 }
@@ -342,6 +348,8 @@ class _LayoutBuilder {
   // ---------------------------------------------------------------- measure
 
   void _layoutMeasure(Measure measure) {
+    _validateTuplets(measure);
+    final tieBase = _tieInfos.length;
     final groups = _computeBeamGroups(measure);
     final beamedIndex = <int, _BeamGroup>{
       for (final group in groups)
@@ -355,6 +363,7 @@ class _LayoutBuilder {
 
     for (var i = 0; i < measure.elements.length; i++) {
       final element = measure.elements[i];
+      final log2Adjust = _tupletLog2Adjust(measure, i);
       switch (element) {
         case NoteElement():
           final group = beamedIndex[i];
@@ -363,12 +372,13 @@ class _LayoutBuilder {
             written,
             stemsDownOverride: group?.stemsDown,
             deferStem: group != null,
+            log2Adjust: log2Adjust,
           );
           if (group != null && beamed != null) {
             deferred.putIfAbsent(group, () => []).add(beamed);
           }
         case RestElement():
-          _layoutRest(element);
+          _layoutRest(element, log2Adjust: log2Adjust);
       }
     }
 
@@ -376,6 +386,86 @@ class _LayoutBuilder {
       final notes = deferred[group];
       if (notes != null && notes.length >= 2) {
         _layoutBeamGroup(notes, stemsDown: group.stemsDown);
+      }
+    }
+    _layoutTuplets(measure, tieBase);
+  }
+
+  void _validateTuplets(Measure measure) {
+    final seen = <int>{};
+    for (final span in measure.tuplets) {
+      if (span.endIndex >= measure.elements.length) {
+        throw ArgumentError(
+          '$span exceeds the measure (${measure.elements.length} elements)',
+        );
+      }
+      for (var i = span.startIndex; i <= span.endIndex; i++) {
+        if (!seen.add(i)) {
+          throw ArgumentError('Tuplet spans overlap at element $i');
+        }
+      }
+    }
+  }
+
+  /// log2(normal/actual) for the element's tuplet span; spacing shrinks
+  /// tuplet members to their sounding width.
+  double _tupletLog2Adjust(Measure measure, int index) {
+    for (final span in measure.tuplets) {
+      if (span.contains(index)) {
+        return log(span.normal / span.actual) / ln2;
+      }
+    }
+    return 0;
+  }
+
+  /// v0.3.3: tuplet ratio digit with a bracket, on the stem side of the
+  /// group.
+  void _layoutTuplets(Measure measure, int tieBase) {
+    for (final span in measure.tuplets) {
+      final infos = _tieInfos.sublist(
+          tieBase + span.startIndex, tieBase + span.endIndex + 1);
+      final notes = infos.where((i) => i.note != null).toList();
+      final downCount = notes.where((i) => i.stemsDown).length;
+      final below = notes.isNotEmpty && downCount * 2 >= notes.length;
+
+      final x1 = infos.first.left - 0.2;
+      final x2 = infos.last.right + 0.2;
+      double topOf(_TieInfo info) =>
+          (info.id == null ? null : _elementBounds[info.id]?.minY) ?? -1.0;
+      double bottomOf(_TieInfo info) =>
+          (info.id == null ? null : _elementBounds[info.id]?.maxY) ?? 5.0;
+
+      final double bracketY;
+      final double hookDir;
+      if (below) {
+        bracketY = infos.map(bottomOf).reduce(max) + 0.7;
+        hookDir = -1;
+      } else {
+        bracketY = infos.map(topOf).reduce(min) - 0.7;
+        hookDir = 1;
+      }
+
+      final digits = [
+        for (final ch in span.actual.toString().split(''))
+          SmuflGlyph.tupletDigit(int.parse(ch)),
+      ];
+      final digitsWidth = digits.fold(0.0, (sum, g) => sum + _glyphWidth(g));
+      final thickness =
+          meta.engravingDefault('tupletBracketThickness', orElse: 0.16);
+      final midX = (x1 + x2) / 2;
+      final gap = digitsWidth / 2 + 0.3;
+
+      _addLine(Point(x1, bracketY), Point(midX - gap, bracketY), thickness);
+      _addLine(Point(midX + gap, bracketY), Point(x2, bracketY), thickness);
+      _addLine(
+          Point(x1, bracketY), Point(x1, bracketY + hookDir * 0.7), thickness);
+      _addLine(
+          Point(x2, bracketY), Point(x2, bracketY + hookDir * 0.7), thickness);
+
+      var digitX = midX - digitsWidth / 2;
+      for (final glyph in digits) {
+        _addGlyph(glyph, digitX - meta.bBoxOf(glyph).swX, bracketY + 0.75);
+        digitX += _glyphWidth(glyph);
       }
     }
   }
@@ -389,6 +479,7 @@ class _LayoutBuilder {
     Map<(Step, int), int> written, {
     bool? stemsDownOverride,
     bool deferStem = false,
+    double log2Adjust = 0,
   }) {
     if (element.pitches.isEmpty) {
       throw ArgumentError('NoteElement.pitches must not be empty');
@@ -475,6 +566,8 @@ class _LayoutBuilder {
       note: element,
       id: id,
       stemsDown: stemsDown,
+      left: columnX.reduce(min),
+      right: columnX.reduce(max) + headWidth,
       heads: [
         for (var i = 0; i < positions.length; i++)
           (
@@ -588,7 +681,7 @@ class _LayoutBuilder {
           s.dotSpacing;
     }
 
-    _advance(noteX, inkRight, element.duration);
+    _advance(noteX, inkRight, element.duration, log2Adjust);
     return beamed;
   }
 
@@ -621,7 +714,7 @@ class _LayoutBuilder {
   // ------------------------------------------------------------------ rests
 
   /// Rule 12: rest glyphs at their conventional vertical homes.
-  void _layoutRest(RestElement element) {
+  void _layoutRest(RestElement element, {double log2Adjust = 0}) {
     final (glyph, y) = switch (element.duration.base) {
       // The whole rest hangs from the fourth staff line (y = 1).
       DurationBase.whole => (SmuflGlyph.restWhole, 1.0),
@@ -634,8 +727,14 @@ class _LayoutBuilder {
     final id = element.id;
     _addGlyph(glyph, _x, y, elementId: id);
     // Rests break tie chains.
-    _tieInfos
-        .add(_TieInfo(note: null, id: id, stemsDown: false, heads: const []));
+    _tieInfos.add(_TieInfo(
+      note: null,
+      id: id,
+      stemsDown: false,
+      left: _x,
+      right: _x + _glyphWidth(glyph),
+      heads: const [],
+    ));
 
     var inkRight = _x + _glyphWidth(glyph);
     if (element.duration.dots > 0) {
@@ -654,7 +753,7 @@ class _LayoutBuilder {
           element.duration.dots * (dotWidth + s.dotSpacing) -
           s.dotSpacing;
     }
-    _advance(_x, inkRight, element.duration);
+    _advance(_x, inkRight, element.duration, log2Adjust);
   }
 
   // -------------------------------------------------------------- spacing
@@ -664,9 +763,14 @@ class _LayoutBuilder {
   /// staff spaces, measured from the notehead column ([fromX]); a sixteenth
   /// gets `spacingBase`. The next element never starts closer than
   /// [minNoteGap] after this element's ink ([inkRight]).
-  void _advance(double fromX, double inkRight, NoteDuration duration) {
+  void _advance(
+    double fromX,
+    double inkRight,
+    NoteDuration duration,
+    double log2Adjust,
+  ) {
     final log2Duration =
-        -duration.base.index.toDouble() + _dotLog2[duration.dots];
+        -duration.base.index.toDouble() + _dotLog2[duration.dots] + log2Adjust;
     final ideal = s.spacingBase + s.spacingPerLog2 * (4 + log2Duration);
     _x = max(fromX + ideal, inkRight + s.minNoteGap);
   }
@@ -806,11 +910,20 @@ class _LayoutBuilder {
     final span = time == null ? Fraction(1, 4) : Fraction(1, time.beatUnit);
     final halfSpan = Fraction(1, 2);
 
+    // Which tuplet span (by list index) an element belongs to, or -1.
+    int spanOf(int index) {
+      for (var t = 0; t < measure.tuplets.length; t++) {
+        if (measure.tuplets[t].contains(index)) return t;
+      }
+      return -1;
+    }
+
     var onset = Fraction.zero;
     final runs = <List<int>>[];
     final onsets = <Fraction>[];
     List<int>? current;
     int? currentWindow;
+    int? currentSpan;
 
     for (var i = 0; i < measure.elements.length; i++) {
       final element = measure.elements[i];
@@ -820,21 +933,28 @@ class _LayoutBuilder {
               element.duration.base == DurationBase.sixteenth);
       if (beamable) {
         final window = _windowIndex(onset, span);
-        if (current != null && window == currentWindow) {
+        // Beam runs never cross a tuplet boundary in either direction.
+        final tuplet = spanOf(i);
+        if (current != null &&
+            window == currentWindow &&
+            tuplet == currentSpan) {
           current.add(i);
         } else {
           current = [i];
           currentWindow = window;
+          currentSpan = tuplet;
           runs.add(current);
         }
       } else {
         current = null;
         currentWindow = null;
+        currentSpan = null;
       }
-      onset += element.duration.toFraction();
+      onset += measure.effectiveDurationAt(i);
     }
 
-    // Merge adjacent all-eighth beat groups within the same half measure.
+    // Merge adjacent all-eighth beat groups within the same half measure
+    // (tuplet groups never merge).
     if (time != null && time.beatUnit == 4 && time.beats.isEven) {
       bool allEighths(List<int> run) => run.every((i) =>
           (measure.elements[i] as NoteElement).duration.base ==
@@ -843,6 +963,8 @@ class _LayoutBuilder {
         final a = runs[i];
         final b = runs[i + 1];
         if (b.first == a.last + 1 &&
+            spanOf(a.first) == -1 &&
+            spanOf(b.first) == -1 &&
             allEighths(a) &&
             allEighths(b) &&
             _windowIndex(onsets[a.first], halfSpan) ==

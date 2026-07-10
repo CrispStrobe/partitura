@@ -88,6 +88,14 @@ abstract final class SmuflGlyph {
   /// The time signature glyph for a single [digit] (0–9).
   static String timeSigDigit(int digit) => timeSigDigits[digit];
 
+  /// The tuplet-number glyph for a single [digit] (0–9).
+  static String tupletDigit(int digit) {
+    if (digit < 0 || digit > 9) {
+      throw ArgumentError.value(digit, 'digit', 'must be 0..9');
+    }
+    return 'tuplet$digit';
+  }
+
   /// The accidental glyph for a chromatic [alter] of -2..2
   /// (double flat … double sharp).
   static String accidentalFor(int alter) => switch (alter) {

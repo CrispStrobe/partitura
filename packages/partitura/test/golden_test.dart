@@ -400,6 +400,17 @@ void main() {
     );
   });
 
+  testWidgets('28 tuplets', (tester) async {
+    await golden(
+      tester,
+      '28_tuplets',
+      Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: '3[c5:e d5 e5] 3[c4:e r e4] 5[g4:s a4 b4 c5 d5] e5:q',
+      ),
+    );
+  });
+
   testWidgets('21 unmetered snippet in bass with chords', (tester) async {
     await golden(
       tester,

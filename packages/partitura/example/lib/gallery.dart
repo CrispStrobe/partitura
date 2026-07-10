@@ -163,6 +163,13 @@ final List<GalleryItem> galleryItems = [
     highlightedIds: const {'e1'},
   ),
   GalleryItem(
+    'Tuplets (triplet, rest inside, quintuplet)',
+    Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: '3[c5:e d5 e5] 3[c4:e r e4] 5[g4:s a4 b4 c5 d5] e5:q',
+    ),
+  ),
+  GalleryItem(
     'Slurs (phrasing over any pitches)',
     Score.simple(
       timeSignature: TimeSignature.threeFour,

@@ -68,9 +68,12 @@ value-based, invalid constructor arguments fail asserts in debug builds.
 - `Score` = clef + `KeySignature` (default C) + optional `TimeSignature`
   (null = unmetered: no time signature drawn, measure sums unchecked) +
   `List<Measure>`.
-- `Measure` = ordered `List<MusicElement>`; `totalDuration` sums exactly
-  (games compare it against `TimeSignature.measureCapacity`; the layout
-  engine does **not** enforce it).
+- `Measure` = ordered `List<MusicElement>` plus non-overlapping
+  `TupletSpan`s (`actual` notes in the time of `normal` over a contiguous
+  element range; cannot cross barlines). `effectiveDurationAt(i)` and
+  `totalDuration` sum exactly with tuplet scaling — a triplet eighth
+  sounds 1/12 (games compare against `TimeSignature.measureCapacity`; the
+  layout engine does **not** enforce it).
 - `MusicElement` (sealed) = `NoteElement` (1 pitch = note, n pitches =
   chord; `showAccidental`: `null` auto / `true` force / `false` hide;
   `tieToNext` ties to the next note element — identical pitches only,
@@ -95,6 +98,9 @@ duration := ('w'|'h'|'q'|'e'|'s') ('.' | '..')?
 tie      := '~' at the end of a chord token (c4:q~)
 slur     := '(' opens / ')' closes, at the end of a chord token
             (c4:q( d4 e4)) — may cross barlines, no nesting
+tuplet   := 'actual[' or 'actual:normal[' opens, ']' closes
+            (3[c4:e d4 e4]) — within one measure, no nesting; default
+            normal = largest power of two below actual (3 for duplets)
 ```
 
 Durations are sticky (initial default: quarter). `n` = explicit natural
@@ -152,7 +158,9 @@ line 3) · duration-proportional spacing
 thin barlines between measures, thin+thick final barline · ties on
 the notehead side away from the stem, across barlines, chords tying
 pairwise by identical pitch · slurs above unless every spanned note stems
-up, arcing clear of everything in between.
+up, arcing clear of everything in between · tuplet digit + bracket on the
+group's stem side; tuplet members space at their sounding width, beam
+within their beat window and never beam across the tuplet boundary.
 
 **Not implemented (v0.x non-goals)**: multi-voice collision avoidance,
 slurs/ties, tuplets, grace notes, cross-staff beaming, lyrics, dynamics,

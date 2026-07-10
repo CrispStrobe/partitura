@@ -70,7 +70,7 @@ void main() {
       final metadata =
           SmuflMetadata.fromJson(jsonDecode(source) as Map<String, Object?>);
 
-      const drawnGlyphs = [
+      final drawnGlyphs = [
         SmuflGlyph.gClef,
         SmuflGlyph.fClef,
         SmuflGlyph.cClef,
@@ -93,6 +93,7 @@ void main() {
         SmuflGlyph.accidentalDoubleSharp,
         SmuflGlyph.augmentationDot,
         ...SmuflGlyph.timeSigDigits,
+        for (var d = 0; d <= 9; d++) SmuflGlyph.tupletDigit(d),
       ];
       for (final glyph in drawnGlyphs) {
         final box = metadata.bBoxOf(glyph); // throws if absent

@@ -17,7 +17,7 @@ gates green (`dart format`, analyze zero issues, all tests), push.
 
 - [x] 0.3.1 Ties (`tieToNext`, `CurvePrimitive` foundation, DSL `~`)
 - [x] 0.3.2 Slurs (`Slur(startId, endId)` spans, curve clearance)
-- [ ] 0.3.3 Tuplets (measure-level spans, ratio bracket + digits,
+- [x] 0.3.3 Tuplets (measure-level spans, ratio bracket + digits,
       exact `Fraction` math, beaming inside)
 - [ ] 0.3.4 Articulations (staccato, tenuto, accent, marcato, fermata)
 - [ ] 0.3.5 Dynamics (pp…ff glyphs) + hairpins (cresc/dim wedges)

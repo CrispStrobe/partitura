@@ -3,7 +3,8 @@
 ## 0.3.0-dev.1 (in progress)
 
 - **Slurs** and **ties** rendered as stroked Bézier curves (`CurvePrimitive`); golden
-  scenes 26/27, gallery entries.
+  scenes 26/27, gallery entries; **tuplets** (digit + bracket) with
+  golden scene 28.
 
 ## 0.2.0-dev.1
 

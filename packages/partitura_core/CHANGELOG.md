@@ -2,6 +2,10 @@
 
 ## 0.3.0-dev.1 (in progress)
 
+- **Tuplets**: `TupletSpan` on `Measure` (DSL `3[…]` / `5:4[…]`);
+  exact effective durations (`Measure.effectiveDurationAt`), tuplet-aware
+  spacing and beam windows (beams never cross a tuplet boundary), ratio
+  digit + bracket on the stem side.
 - **Slurs**: `Score.slurs` (`Slur(startId, endId)`, DSL `(`/`)` token
   suffixes); the curve goes above unless every spanned note stems up and
   arcs clear of the spanned elements' ink.
