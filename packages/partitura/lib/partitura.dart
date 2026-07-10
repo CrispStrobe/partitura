@@ -1,13 +1,14 @@
 /// Music notation rendering for Flutter with first-class interactivity.
 ///
-/// This is a scaffold seed: [StaffView] currently renders an empty staff with
-/// a clef, proving the bundled Bravura font pipeline. The full public API
-/// (score rendering, `InteractiveStaff`, hit-testing, drag) is specified in
-/// HANDOVER.md §4 (as amended by HANDOVER_PARTITURA.md) at the repository
-/// root.
+/// [StaffView] renders a `Score` (from `partitura_core`, re-exported here)
+/// using the bundled Bravura SMuFL font; `InteractiveStaff` adds hit
+/// testing, selection and drag. See HANDOVER.md at the repository root for
+/// the full contract.
 library;
 
 export 'package:partitura_core/partitura_core.dart';
 
+export 'src/rendering/bravura.dart';
+export 'src/rendering/smufl_glyphs.dart';
 export 'src/rendering/staff_view.dart';
 export 'src/rendering/theme.dart';

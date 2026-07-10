@@ -8,3 +8,4 @@ environment:
 workspace:
   - packages/partitura_core
   - packages/partitura
+  - packages/partitura/example
