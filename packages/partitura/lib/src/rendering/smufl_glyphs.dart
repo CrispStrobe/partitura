@@ -65,4 +65,12 @@ const Map<String, String> smuflCodepoints = {
   'dynamicMF': '\uE52D',
   'dynamicForte': '\uE522',
   'dynamicFF': '\uE52F',
+  'noteheadDoubleWhole': '\uE0A0',
+  'flag32ndUp': '\uE244',
+  'flag32ndDown': '\uE245',
+  'flag64thUp': '\uE246',
+  'flag64thDown': '\uE247',
+  'restDoubleWhole': '\uE4E2',
+  'rest32nd': '\uE4E8',
+  'rest64th': '\uE4E9',
 };

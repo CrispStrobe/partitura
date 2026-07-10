@@ -5,7 +5,8 @@
 - **Slurs** and **ties** rendered as stroked Bézier curves (`CurvePrimitive`); golden
   scenes 26/27, gallery entries; **tuplets** (digit + bracket) with
   golden scene 28; **articulations** with golden scene 29; **dynamics + hairpins** with golden scene 30;
-  **grace notes** (scaled glyph painting) with golden scene 31.
+  **grace notes** (scaled glyph painting) with golden scene 31;
+  **32nd/64th/breve durations** with golden scene 32.
 
 ## 0.2.0-dev.1
 

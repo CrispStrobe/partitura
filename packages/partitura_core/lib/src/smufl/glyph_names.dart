@@ -19,6 +19,9 @@ abstract final class SmuflGlyph {
   /// C clef (alto/tenor).
   static const String cClef = 'cClef';
 
+  /// Breve (double whole) notehead.
+  static const String noteheadDoubleWhole = 'noteheadDoubleWhole';
+
   /// Whole-note notehead.
   static const String noteheadWhole = 'noteheadWhole';
 
@@ -40,6 +43,21 @@ abstract final class SmuflGlyph {
   /// Sixteenth-note flag for a downward stem.
   static const String flag16thDown = 'flag16thDown';
 
+  /// Thirty-second-note flag for an upward stem.
+  static const String flag32ndUp = 'flag32ndUp';
+
+  /// Thirty-second-note flag for a downward stem.
+  static const String flag32ndDown = 'flag32ndDown';
+
+  /// Sixty-fourth-note flag for an upward stem.
+  static const String flag64thUp = 'flag64thUp';
+
+  /// Sixty-fourth-note flag for a downward stem.
+  static const String flag64thDown = 'flag64thDown';
+
+  /// Breve (double whole) rest.
+  static const String restDoubleWhole = 'restDoubleWhole';
+
   /// Whole rest (hangs from the fourth staff line).
   static const String restWhole = 'restWhole';
 
@@ -54,6 +72,12 @@ abstract final class SmuflGlyph {
 
   /// Sixteenth rest.
   static const String rest16th = 'rest16th';
+
+  /// Thirty-second rest.
+  static const String rest32nd = 'rest32nd';
+
+  /// Sixty-fourth rest.
+  static const String rest64th = 'rest64th';
 
   /// Double flat.
   static const String accidentalDoubleFlat = 'accidentalDoubleFlat';

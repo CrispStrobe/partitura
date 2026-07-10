@@ -52,7 +52,7 @@ Changing any of them is a breaking change:
 | `Pitch` | `midiNumber`, `diatonicIndex`, `staffPosition(clef)`, `transposeBy(interval, descending:)` (diatonic spelling; throws `ArgumentError` beyond double alterations), `isEnharmonicWith`, `Pitch.parse('f#3')` |
 | `Clef` | `treble`, `bass`, `alto`, `tenor`; `pitchAt(staffPosition)`, `bottomLineDiatonicIndex` |
 | `Interval` | quality d/m/P/M/A × number 1–8 (class-checked by assert); 15 named constants; `semitones`; order-insensitive `Interval.between(a, b)` ≤ one octave (throws if unnameable) |
-| `NoteDuration` | base whole…sixteenth × 0–2 dots; exact `(int, int) fraction` and `toFraction()` |
+| `NoteDuration` | base breve/whole…sixty-fourth × 0–2 dots; exact `(int, int) fraction` and `toFraction()` (breve = 2/1) |
 | `Fraction` | exact, always reduced, sign on the numerator; `+ − × < ≤ > ≥ compareTo toDouble`; equal values are `==` and hash equally |
 | `KeySignature` | fifths −7…7; `alteredSteps` in writing order (♯ F C G D A E B, ♭ B E A D G C F); `alterFor(step)` |
 | `TimeSignature` | beats ≥ 1 over a power-of-two unit 1…16; `measureCapacity` as reduced fraction of a whole note |
@@ -146,16 +146,17 @@ Clef anchoring (gClef on G4, fClef on F3, cClef on C4 — middle line for
 alto, fourth line for tenor) · key signatures at conventional octaves per
 clef (bass/alto = treble − 2/− 1 positions; tenor uses its own sharp
 pattern and flats one position above treble) · stacked
-time-signature digits centered on the staff · noteheads by duration ·
-stems (down iff the notehead farthest from the middle line is at
-position ≥ 4; chords by the farther extreme, ties down; default length
-3.5 spaces, extended to the middle line for far ledger notes) · flags for
-unbeamed eighths/sixteenths · beat-based beaming (windows of
+time-signature digits centered on the staff · noteheads by duration (incl. the
+stemless breve) · stems (down iff the notehead farthest from the middle
+line is at position ≥ 4; chords by the farther extreme, ties down;
+default length 3.5 spaces, extended to the middle line for far ledger
+notes and by 0.75/level for 3rd/4th beam-or-flag levels) · flags for
+unbeamed eighths…sixty-fourths · beat-based beaming (windows of
 `1/beatUnit`; adjacent all-eighth groups merge per half measure in even
 x/4 meters — 8 eighths in 4/4 = 2 beams; never across rests or windows;
 slant clamped to ±1 space; every beamed stem keeps ≥ default length; the
-beam never crosses the middle line from the stem side; secondary
-sixteenth beams and 1-space beamlets) · ledger lines with
+beam never crosses the middle line from the stem side; secondary/tertiary/quaternary
+beams per duration level and 1-space beamlets) · ledger lines with
 `legerLineExtension` on both sides spanning all chord columns ·
 accidentals with per-measure, per-(step, octave) memory
 (`showAccidental` overrides; hidden ones don't update the memory) ·

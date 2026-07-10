@@ -18,11 +18,21 @@ enum DurationBase {
   eighth,
 
   /// Sixteenth note/rest (Sechzehntelnote), 1/16.
-  sixteenth;
+  sixteenth,
+
+  /// Thirty-second note/rest (Zweiunddreißigstelnote), 1/32.
+  thirtySecond,
+
+  /// Sixty-fourth note/rest (Vierundsechzigstelnote), 1/64.
+  sixtyFourth,
+
+  /// Breve / double whole note (Brevis), worth 2 whole notes. Its
+  /// [denominator] is 1; use [NoteDuration.fraction] for the exact value.
+  breve;
 
   /// The denominator of the undotted value as a fraction of a whole note:
-  /// 1, 2, 4, 8 or 16.
-  int get denominator => 1 << index;
+  /// 1, 2, 4, 8, 16, 32 or 64 (and 1 for the breve, whose value is 2/1).
+  int get denominator => this == DurationBase.breve ? 1 : 1 << index;
 }
 
 /// A rhythmic duration: a base value plus 0–2 augmentation dots.
@@ -54,9 +64,16 @@ class NoteDuration {
   static const NoteDuration sixteenth = NoteDuration(DurationBase.sixteenth);
 
   /// This duration as an exact fraction of a whole note, fully reduced:
-  /// quarter == (1, 4), dotted quarter == (3, 8).
-  (int num, int den) get fraction =>
-      ((1 << (dots + 1)) - 1, base.denominator << dots);
+  /// quarter == (1, 4), dotted quarter == (3, 8), breve == (2, 1).
+  (int num, int den) get fraction {
+    final dotNumerator = (1 << (dots + 1)) - 1;
+    final dotDenominator = 1 << dots;
+    if (base == DurationBase.breve) {
+      final reduced = Fraction(2 * dotNumerator, dotDenominator);
+      return (reduced.numerator, reduced.denominator);
+    }
+    return (dotNumerator, base.denominator << dots);
+  }
 
   /// This duration as a [Fraction] of a whole note.
   Fraction toFraction() {

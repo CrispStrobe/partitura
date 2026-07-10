@@ -319,8 +319,10 @@ void main() {
   group('duration invariants', () {
     test('every base x dots matches the dot-factor formula', () {
       for (final base in DurationBase.values) {
-        var expected = Fraction(1, base.denominator);
-        var dotValue = Fraction(1, base.denominator * 2);
+        var expected = base == DurationBase.breve
+            ? Fraction(2, 1)
+            : Fraction(1, base.denominator);
+        var dotValue = expected * Fraction(1, 2);
         for (var dots = 0; dots <= 2; dots++) {
           final duration = NoteDuration(base, dots: dots);
           expect(duration.toFraction(), expected,

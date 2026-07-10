@@ -56,12 +56,13 @@ class Score {
   /// rest     := 'r' (':' duration)?
   /// chord    := pitch ('+' pitch)* (':' duration)?
   /// pitch    := stepLetter accidental? octaveDigit(s)     // see Pitch.parse
-  /// duration := ('w'|'h'|'q'|'e'|'s') ('.' | '..')?
+  /// duration := ('w'|'h'|'q'|'e'|'s'|'t'|'x'|'b') ('.' | '..')?
   /// ```
   ///
   /// - Durations are sticky: a token without `:duration` reuses the previous
-  ///   token's duration (initially quarter). `w h q e s` are whole to
-  ///   sixteenth; dots follow the letter (`q.` = dotted quarter).
+  ///   token's duration (initially quarter). `w h q e s t x` are whole
+  ///   down to sixty-fourth and `b` is a breve; dots follow the letter
+  ///   (`q.` = dotted quarter).
   /// - A trailing `~` ties the note/chord to the next note element
   ///   (`c4:q~ c4:q`), also across a barline.
   /// - A trailing `(` opens a slur on this note and a trailing `)` closes
@@ -264,10 +265,13 @@ class Score {
     'q': DurationBase.quarter,
     'e': DurationBase.eighth,
     's': DurationBase.sixteenth,
+    't': DurationBase.thirtySecond,
+    'x': DurationBase.sixtyFourth,
+    'b': DurationBase.breve,
   };
 
   static NoteDuration _parseDuration(String source, String token) {
-    final match = RegExp(r'^([whqes])(\.{0,2})$').firstMatch(source);
+    final match = RegExp(r'^([whqestxb])(\.{0,2})$').firstMatch(source);
     if (match == null) {
       throw FormatException('Invalid duration in token: "$token"');
     }

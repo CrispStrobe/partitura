@@ -2,6 +2,10 @@
 
 ## 0.3.0-dev.1 (in progress)
 
+- **32nd/64th notes and the breve**: new `DurationBase` values (DSL
+  letters `t`, `x`, `b`); flags to four hooks, multi-level beams with
+  per-level runs and beamlets, extended stems, breve notehead/rest,
+  exact 2/1 breve fractions.
 - **Grace notes**: `NoteElement.graceNotes` (DSL `{g4}a4:q`), rendered
   as 0.6× slashed eighths before the host; `GlyphPrimitive` gained a
   `scale` field.

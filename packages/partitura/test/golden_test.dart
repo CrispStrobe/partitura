@@ -458,6 +458,16 @@ void main() {
     );
   });
 
+  testWidgets('32 fine durations and breve', (tester) async {
+    await golden(
+      tester,
+      '32_fine_durations',
+      Score.simple(
+        notes: 'c5:t d5 e5 f5 g5:x a5 b5 c6 g5:t r:t a4:x r:x | c5:b',
+      ),
+    );
+  });
+
   testWidgets('21 unmetered snippet in bass with chords', (tester) async {
     await golden(
       tester,

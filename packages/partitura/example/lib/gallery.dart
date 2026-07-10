@@ -163,6 +163,12 @@ final List<GalleryItem> galleryItems = [
     highlightedIds: const {'e1'},
   ),
   GalleryItem(
+    '32nds, 64ths & breve',
+    Score.simple(
+      notes: 'c5:t d5 e5 f5 g5:x a5 b5 c6 g5:t r:t a4:x r:x | c5:b',
+    ),
+  ),
+  GalleryItem(
     'Grace notes (acciaccatura)',
     Score.simple(
       timeSignature: TimeSignature.threeFour,

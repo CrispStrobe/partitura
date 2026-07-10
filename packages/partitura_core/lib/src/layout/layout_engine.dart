@@ -72,14 +72,16 @@ class _BeamedNote {
 
   /// y of the outermost notehead on the beam side.
   final double refY;
-  final bool isSixteenth;
+
+  /// Beam levels this note needs (1 = eighth … 4 = sixty-fourth).
+  final int beamCount;
 
   _BeamedNote({
     required this.elementId,
     required this.stemX,
     required this.attachY,
     required this.refY,
-    required this.isSixteenth,
+    required this.beamCount,
   });
 }
 
@@ -551,12 +553,13 @@ class _LayoutBuilder {
 
     final base = element.duration.base;
     final headGlyph = switch (base) {
+      DurationBase.breve => SmuflGlyph.noteheadDoubleWhole,
       DurationBase.whole => SmuflGlyph.noteheadWhole,
       DurationBase.half => SmuflGlyph.noteheadHalf,
       _ => SmuflGlyph.noteheadBlack,
     };
     final headWidth = _glyphWidth(headGlyph);
-    final hasStem = base != DurationBase.whole;
+    final hasStem = base != DurationBase.whole && base != DurationBase.breve;
 
     // Rule 5: stem down when the notehead farthest from the middle line is
     // on or above it (chords: decided by the farther extreme; ties → down).
@@ -661,10 +664,11 @@ class _LayoutBuilder {
             stemX: stemX,
             attachY: attachY,
             refY: _yOf(bottom),
-            isSixteenth: base == DurationBase.sixteenth,
+            beamCount: _beamCountOf(base),
           );
         } else {
-          var tipY = _yOf(bottom) + s.stemLength;
+          var tipY =
+              _yOf(bottom) + s.stemLength + _stemExtension(_beamCountOf(base));
           if (tipY < 2) tipY = 2; // extend toward the middle line
           _addLine(
             Point(stemX, attachY),
@@ -684,10 +688,11 @@ class _LayoutBuilder {
             stemX: stemX,
             attachY: attachY,
             refY: _yOf(top),
-            isSixteenth: base == DurationBase.sixteenth,
+            beamCount: _beamCountOf(base),
           );
         } else {
-          var tipY = _yOf(top) - s.stemLength;
+          var tipY =
+              _yOf(top) - s.stemLength - _stemExtension(_beamCountOf(base));
           if (tipY > 2) tipY = 2; // extend toward the middle line
           _addLine(
             Point(stemX, attachY),
@@ -706,6 +711,10 @@ class _LayoutBuilder {
           stemsDown ? SmuflGlyph.flag8thDown : SmuflGlyph.flag8thUp,
         DurationBase.sixteenth =>
           stemsDown ? SmuflGlyph.flag16thDown : SmuflGlyph.flag16thUp,
+        DurationBase.thirtySecond =>
+          stemsDown ? SmuflGlyph.flag32ndDown : SmuflGlyph.flag32ndUp,
+        DurationBase.sixtyFourth =>
+          stemsDown ? SmuflGlyph.flag64thDown : SmuflGlyph.flag64thUp,
         _ => null,
       };
       if (flagGlyph != null) {
@@ -820,6 +829,9 @@ class _LayoutBuilder {
   /// Rule 12: rest glyphs at their conventional vertical homes.
   void _layoutRest(RestElement element, {double log2Adjust = 0}) {
     final (glyph, y) = switch (element.duration.base) {
+      // The breve rest fills the space between the middle and fourth
+      // staff lines.
+      DurationBase.breve => (SmuflGlyph.restDoubleWhole, 2.0),
       // The whole rest hangs from the fourth staff line (y = 1).
       DurationBase.whole => (SmuflGlyph.restWhole, 1.0),
       // The half rest sits on the middle line (y = 2).
@@ -827,6 +839,8 @@ class _LayoutBuilder {
       DurationBase.quarter => (SmuflGlyph.restQuarter, 2.0),
       DurationBase.eighth => (SmuflGlyph.rest8th, 2.0),
       DurationBase.sixteenth => (SmuflGlyph.rest16th, 2.0),
+      DurationBase.thirtySecond => (SmuflGlyph.rest32nd, 2.0),
+      DurationBase.sixtyFourth => (SmuflGlyph.rest64th, 2.0),
     };
     final id = element.id;
     _addGlyph(glyph, _x, y, elementId: id);
@@ -873,8 +887,10 @@ class _LayoutBuilder {
     NoteDuration duration,
     double log2Adjust,
   ) {
-    final log2Duration =
-        -duration.base.index.toDouble() + _dotLog2[duration.dots] + log2Adjust;
+    final baseLog2 = duration.base == DurationBase.breve
+        ? 1.0
+        : -duration.base.index.toDouble();
+    final log2Duration = baseLog2 + _dotLog2[duration.dots] + log2Adjust;
     final ideal = s.spacingBase + s.spacingPerLog2 * (4 + log2Duration);
     _x = max(fromX + ideal, inkRight + s.minNoteGap);
   }
@@ -1091,9 +1107,8 @@ class _LayoutBuilder {
     for (var i = 0; i < measure.elements.length; i++) {
       final element = measure.elements[i];
       onsets.add(onset);
-      final beamable = element is NoteElement &&
-          (element.duration.base == DurationBase.eighth ||
-              element.duration.base == DurationBase.sixteenth);
+      final beamable =
+          element is NoteElement && _beamCountOf(element.duration.base) >= 1;
       if (beamable) {
         final window = _windowIndex(onset, span);
         // Beam runs never cross a tuplet boundary in either direction.
@@ -1157,6 +1172,20 @@ class _LayoutBuilder {
     return groups;
   }
 
+  /// Beams (or flags) a duration needs: eighth 1 … sixty-fourth 4;
+  /// quarter and longer (incl. breve) 0.
+  static int _beamCountOf(DurationBase base) => switch (base) {
+        DurationBase.eighth => 1,
+        DurationBase.sixteenth => 2,
+        DurationBase.thirtySecond => 3,
+        DurationBase.sixtyFourth => 4,
+        _ => 0,
+      };
+
+  /// Extra stem length so multi-flag/multi-beam notes stay clear.
+  static double _stemExtension(int beamCount) =>
+      beamCount > 2 ? (beamCount - 2) * 0.75 : 0.0;
+
   static int _windowIndex(Fraction onset, Fraction span) =>
       (onset.numerator * span.denominator) ~/
       (onset.denominator * span.numerator);
@@ -1172,10 +1201,14 @@ class _LayoutBuilder {
     final slant = ((last.refY - first.refY) / 2).clamp(-1.0, 1.0);
     final slope = dx == 0 ? 0.0 : slant / dx;
 
+    // Multi-level groups (32nds/64ths) need longer stems so the extra
+    // beams stay clear of the noteheads.
+    final stemLength = s.stemLength +
+        _stemExtension(notes.map((n) => n.beamCount).reduce(max));
     double intercept;
     if (stemsDown) {
       intercept =
-          notes.map((n) => n.refY + s.stemLength - slope * n.stemX).reduce(max);
+          notes.map((n) => n.refY + stemLength - slope * n.stemX).reduce(max);
       // Never let a downward beam sit above the middle line.
       for (final n in notes) {
         final y = slope * n.stemX + intercept;
@@ -1183,7 +1216,7 @@ class _LayoutBuilder {
       }
     } else {
       intercept =
-          notes.map((n) => n.refY - s.stemLength - slope * n.stemX).reduce(min);
+          notes.map((n) => n.refY - stemLength - slope * n.stemX).reduce(min);
       for (final n in notes) {
         final y = slope * n.stemX + intercept;
         if (y > 2) intercept -= y - 2;
@@ -1207,36 +1240,41 @@ class _LayoutBuilder {
       s.beamThickness,
     );
 
-    // Secondary (sixteenth) beams, offset toward the noteheads.
-    final offset = (s.beamThickness + s.beamSpacing) * (stemsDown ? -1 : 1);
-    var i = 0;
-    while (i < notes.length) {
-      if (!notes[i].isSixteenth) {
-        i++;
-        continue;
+    // Secondary/tertiary/quaternary beams, offset toward the noteheads.
+    final maxLevel = notes.map((n) => n.beamCount).reduce(max);
+    for (var level = 2; level <= maxLevel; level++) {
+      final offset = (s.beamThickness + s.beamSpacing) *
+          (level - 1) *
+          (stemsDown ? -1 : 1);
+      var i = 0;
+      while (i < notes.length) {
+        if (notes[i].beamCount < level) {
+          i++;
+          continue;
+        }
+        var j = i;
+        while (j + 1 < notes.length && notes[j + 1].beamCount >= level) {
+          j++;
+        }
+        if (j > i) {
+          _addBeam(
+            Point(notes[i].stemX, beamY(notes[i].stemX) + offset),
+            Point(notes[j].stemX, beamY(notes[j].stemX) + offset),
+            s.beamThickness,
+          );
+        } else {
+          // Lone short note between longer ones: a beamlet stub pointing
+          // into the group (leftward unless it is the group's first note).
+          final x = notes[i].stemX;
+          final stubX = i == 0 ? x + 1.0 : x - 1.0;
+          _addBeam(
+            Point(min(x, stubX), beamY(min(x, stubX)) + offset),
+            Point(max(x, stubX), beamY(max(x, stubX)) + offset),
+            s.beamThickness,
+          );
+        }
+        i = j + 1;
       }
-      var j = i;
-      while (j + 1 < notes.length && notes[j + 1].isSixteenth) {
-        j++;
-      }
-      if (j > i) {
-        _addBeam(
-          Point(notes[i].stemX, beamY(notes[i].stemX) + offset),
-          Point(notes[j].stemX, beamY(notes[j].stemX) + offset),
-          s.beamThickness,
-        );
-      } else {
-        // Lone sixteenth between eighths: a beamlet stub pointing into the
-        // group (leftward unless it is the group's first note).
-        final x = notes[i].stemX;
-        final stubX = i == 0 ? x + 1.0 : x - 1.0;
-        _addBeam(
-          Point(min(x, stubX), beamY(min(x, stubX)) + offset),
-          Point(max(x, stubX), beamY(max(x, stubX)) + offset),
-          s.beamThickness,
-        );
-      }
-      i = j + 1;
     }
   }
 }

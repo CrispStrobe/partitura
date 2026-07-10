@@ -112,7 +112,7 @@ void main() {
 
     test('rejects malformed input', () {
       expect(() => Score.simple(notes: 'h4:q'), throwsFormatException);
-      expect(() => Score.simple(notes: 'c4:x'), throwsFormatException);
+      expect(() => Score.simple(notes: 'c4:z'), throwsFormatException);
       expect(() => Score.simple(notes: 'c4:q:q'), throwsFormatException);
       expect(() => Score.simple(notes: 'c4:q...'), throwsFormatException);
       expect(() => Score.simple(notes: 'c+4'), throwsFormatException);
