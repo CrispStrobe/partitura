@@ -2,6 +2,9 @@
 
 ## 0.3.0-dev.1 (in progress)
 
+- **Slurs**: `Score.slurs` (`Slur(startId, endId)`, DSL `(`/`)` token
+  suffixes); the curve goes above unless every spanned note stems up and
+  arcs clear of the spanned elements' ink.
 - **Ties**: `NoteElement.tieToNext` (DSL suffix `~`) draws tie curves to
   identically-pitched noteheads of the next note element, also across
   barlines; sits opposite the stem. New `CurvePrimitive` (cubic Bézier)

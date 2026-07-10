@@ -389,6 +389,17 @@ void main() {
     );
   });
 
+  testWidgets('27 slurs', (tester) async {
+    await golden(
+      tester,
+      '27_slurs',
+      Score.simple(
+        timeSignature: TimeSignature.threeFour,
+        notes: 'c4:q( d4 e4) | g5:e( a5 g5 f5 e5 d5) | c5:q( c6 g4) ',
+      ),
+    );
+  });
+
   testWidgets('21 unmetered snippet in bass with chords', (tester) async {
     await golden(
       tester,

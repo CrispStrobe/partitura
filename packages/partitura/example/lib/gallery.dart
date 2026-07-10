@@ -163,6 +163,13 @@ final List<GalleryItem> galleryItems = [
     highlightedIds: const {'e1'},
   ),
   GalleryItem(
+    'Slurs (phrasing over any pitches)',
+    Score.simple(
+      timeSignature: TimeSignature.threeFour,
+      notes: 'c4:q( d4 e4) | g5:e( a5 g5 f5 e5 d5) | c5:q( c6 g4) ',
+    ),
+  ),
+  GalleryItem(
     'Ties (within and across measures)',
     Score.simple(
       timeSignature: TimeSignature.fourFour,

@@ -74,7 +74,9 @@ value-based, invalid constructor arguments fail asserts in debug builds.
 - `MusicElement` (sealed) = `NoteElement` (1 pitch = note, n pitches =
   chord; `showAccidental`: `null` auto / `true` force / `false` hide;
   `tieToNext` ties to the next note element — identical pitches only,
-  a tie into a rest draws nothing) or `RestElement`. The optional `id` makes an element addressable by the
+  a tie into a rest draws nothing) or `RestElement`.
+- `Score.slurs`: `Slur(startId, endId)` phrasing curves between note
+  elements; unknown or reversed ids throw at layout time. The optional `id` makes an element addressable by the
   interaction layer; ids should be unique per score.
 - **Lists are treated as immutable.** Model equality is deep value
   equality over the given lists; mutating a list in place makes an "old"
@@ -91,6 +93,8 @@ chord    := pitch ('+' pitch)* (':' duration)?
 pitch    := [a-gA-G] ('##'|'#'|'bb'|'b'|'n')? octaveInt
 duration := ('w'|'h'|'q'|'e'|'s') ('.' | '..')?
 tie      := '~' at the end of a chord token (c4:q~)
+slur     := '(' opens / ')' closes, at the end of a chord token
+            (c4:q( d4 e4)) — may cross barlines, no nesting
 ```
 
 Durations are sticky (initial default: quarter). `n` = explicit natural
@@ -147,7 +151,8 @@ line 3) · duration-proportional spacing
 (`spacingBase + spacingPerLog2 · (4 + log₂ duration)`, min gap enforced) ·
 thin barlines between measures, thin+thick final barline · ties on
 the notehead side away from the stem, across barlines, chords tying
-pairwise by identical pitch.
+pairwise by identical pitch · slurs above unless every spanned note stems
+up, arcing clear of everything in between.
 
 **Not implemented (v0.x non-goals)**: multi-voice collision avoidance,
 slurs/ties, tuplets, grace notes, cross-staff beaming, lyrics, dynamics,

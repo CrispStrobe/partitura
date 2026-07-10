@@ -25,12 +25,16 @@ class Score {
   /// The measures in order.
   final List<Measure> measures;
 
-  /// Creates a score (treat [measures] as immutable).
+  /// Slurs between note elements, referenced by element ids.
+  final List<Slur> slurs;
+
+  /// Creates a score (treat [measures] and [slurs] as immutable).
   const Score({
     required this.clef,
     this.keySignature = const KeySignature(0),
     this.timeSignature,
     required this.measures,
+    this.slurs = const [],
   });
 
   /// Builds a score from a terse note string, for tests and games.
@@ -51,6 +55,8 @@ class Score {
   ///   sixteenth; dots follow the letter (`q.` = dotted quarter).
   /// - A trailing `~` ties the note/chord to the next note element
   ///   (`c4:q~ c4:q`), also across a barline.
+  /// - A trailing `(` opens a slur on this note and a trailing `)` closes
+  ///   it (`c4:q( d4 e4)`); slurs may cross barlines but not nest.
   /// - The accidental `n` parses as an explicit natural and forces the
   ///   accidental to be drawn (`showAccidental: true`).
   /// - Every element is auto-assigned the id `e0`, `e1`, … in reading order,
@@ -69,14 +75,30 @@ class Score {
     var duration = NoteDuration.quarter;
     var nextId = 0;
     final measures = <Measure>[];
+    final slurs = <Slur>[];
+    String? openSlurStart;
     for (final measureSource in notes.split('|')) {
       final elements = <MusicElement>[];
       for (var token in measureSource.trim().split(RegExp(r'\s+'))) {
         if (token.isEmpty) continue;
         var tied = false;
-        if (token.endsWith('~')) {
-          tied = true;
-          token = token.substring(0, token.length - 1);
+        var opensSlur = false;
+        var closesSlur = false;
+        var stripping = true;
+        while (stripping && token.isNotEmpty) {
+          switch (token[token.length - 1]) {
+            case '~':
+              tied = true;
+              token = token.substring(0, token.length - 1);
+            case '(':
+              opensSlur = true;
+              token = token.substring(0, token.length - 1);
+            case ')':
+              closesSlur = true;
+              token = token.substring(0, token.length - 1);
+            default:
+              stripping = false;
+          }
         }
         final parts = token.split(':');
         if (parts.length > 2) {
@@ -90,6 +112,9 @@ class Score {
           if (tied) {
             throw FormatException('A rest cannot be tied: "$token~"');
           }
+          if (opensSlur || closesSlur) {
+            throw FormatException('A rest cannot carry a slur: "$token"');
+          }
           elements.add(RestElement(duration, id: id));
         } else {
           final sources = parts[0].split('+');
@@ -102,15 +127,32 @@ class Score {
             tieToNext: tied,
             id: id,
           ));
+          if (closesSlur) {
+            if (openSlurStart == null) {
+              throw FormatException('")" without an open slur: "$token)"');
+            }
+            slurs.add(Slur(openSlurStart, id));
+            openSlurStart = null;
+          }
+          if (opensSlur) {
+            if (openSlurStart != null) {
+              throw const FormatException('Slurs cannot nest');
+            }
+            openSlurStart = id;
+          }
         }
       }
       measures.add(Measure(elements));
+    }
+    if (openSlurStart != null) {
+      throw const FormatException('Unclosed slur "("');
     }
     return Score(
       clef: clef,
       keySignature: keySignature,
       timeSignature: timeSignature,
       measures: measures,
+      slurs: slurs,
     );
   }
 
@@ -142,7 +184,8 @@ class Score {
       other.clef == clef &&
       other.keySignature == keySignature &&
       other.timeSignature == timeSignature &&
-      listEquals(other.measures, measures);
+      listEquals(other.measures, measures) &&
+      listEquals(other.slurs, slurs);
 
   @override
   int get hashCode => Object.hash(
@@ -150,6 +193,7 @@ class Score {
         keySignature,
         timeSignature,
         Object.hashAll(measures),
+        Object.hashAll(slurs),
       );
 
   @override

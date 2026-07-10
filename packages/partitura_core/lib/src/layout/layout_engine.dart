@@ -87,12 +87,18 @@ class _BeamedNote {
 /// Rests participate with an empty head list (a tie cannot cross a rest).
 class _TieInfo {
   final NoteElement? note;
+  final String? id;
   final bool stemsDown;
 
   /// Per pitch: the notehead column's left/right x and its center y.
   final List<(Pitch, double, double, double)> heads;
 
-  _TieInfo({required this.note, required this.stemsDown, required this.heads});
+  _TieInfo({
+    required this.note,
+    required this.id,
+    required this.stemsDown,
+    required this.heads,
+  });
 }
 
 class _LayoutBuilder {
@@ -148,6 +154,7 @@ class _LayoutBuilder {
       }
     }
     _layoutTies();
+    _layoutSlurs();
     final width = _addFinalBarline();
 
     // Staff lines span the full width; paint them first.
@@ -466,6 +473,7 @@ class _LayoutBuilder {
     }
     _tieInfos.add(_TieInfo(
       note: element,
+      id: id,
       stemsDown: stemsDown,
       heads: [
         for (var i = 0; i < positions.length; i++)
@@ -626,7 +634,8 @@ class _LayoutBuilder {
     final id = element.id;
     _addGlyph(glyph, _x, y, elementId: id);
     // Rests break tie chains.
-    _tieInfos.add(_TieInfo(note: null, stemsDown: false, heads: const []));
+    _tieInfos
+        .add(_TieInfo(note: null, id: id, stemsDown: false, heads: const []));
 
     var inkRight = _x + _glyphWidth(glyph);
     if (element.duration.dots > 0) {
@@ -693,6 +702,72 @@ class _LayoutBuilder {
           0.18,
         );
       }
+    }
+  }
+
+  /// v0.3.2: slurs between note elements referenced by id. The curve goes
+  /// above unless every spanned note stems up; endpoints anchor just
+  /// outside each end element's ink, and the arc clears everything in
+  /// between.
+  void _layoutSlurs() {
+    for (final slur in score.slurs) {
+      final startIndex =
+          _tieInfos.indexWhere((i) => i.note != null && i.id == slur.startId);
+      final endIndex =
+          _tieInfos.indexWhere((i) => i.note != null && i.id == slur.endId);
+      if (startIndex < 0 || endIndex < 0) {
+        throw ArgumentError('$slur references an unknown note element id');
+      }
+      if (endIndex <= startIndex) {
+        throw ArgumentError('$slur must run forward in reading order');
+      }
+      final spanned = _tieInfos.sublist(startIndex, endIndex + 1);
+      final notes = spanned.where((i) => i.note != null);
+      final above = !notes.every((i) => !i.stemsDown);
+
+      double headCenterX(_TieInfo info) =>
+          (info.heads.first.$2 + info.heads.first.$3) / 2;
+      double? topOf(_TieInfo info) {
+        final bounds = info.id == null ? null : _elementBounds[info.id];
+        if (bounds != null) return bounds.minY;
+        if (info.heads.isEmpty) return null;
+        return info.heads.map((h) => h.$4).reduce(min) - 0.5;
+      }
+
+      double? bottomOf(_TieInfo info) {
+        final bounds = info.id == null ? null : _elementBounds[info.id];
+        if (bounds != null) return bounds.maxY;
+        if (info.heads.isEmpty) return null;
+        return info.heads.map((h) => h.$4).reduce(max) + 0.5;
+      }
+
+      final x1 = headCenterX(spanned.first);
+      final x2 = headCenterX(spanned.last);
+      final double y1;
+      final double y2;
+      final double controlY;
+      if (above) {
+        y1 = topOf(spanned.first)! - 0.35;
+        y2 = topOf(spanned.last)! - 0.35;
+        final clearance =
+            spanned.map(topOf).whereType<double>().reduce(min) - 0.4;
+        controlY =
+            min(min(y1, y2), clearance) - (0.5 + min(1.5, (x2 - x1) * 0.06));
+      } else {
+        y1 = bottomOf(spanned.first)! + 0.35;
+        y2 = bottomOf(spanned.last)! + 0.35;
+        final clearance =
+            spanned.map(bottomOf).whereType<double>().reduce(max) + 0.4;
+        controlY =
+            max(max(y1, y2), clearance) + (0.5 + min(1.5, (x2 - x1) * 0.06));
+      }
+      _addCurve(
+        Point(x1, y1),
+        Point(x1 + (x2 - x1) * 0.3, controlY),
+        Point(x1 + (x2 - x1) * 0.7, controlY),
+        Point(x2, y2),
+        0.2,
+      );
     }
   }
 

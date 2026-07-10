@@ -84,6 +84,33 @@ class NoteElement extends MusicElement {
       '${id == null ? '' : ', id: $id'})';
 }
 
+/// A slur between two note elements, referenced by their ids.
+///
+/// The start element must come before the end element in reading order;
+/// both ids must exist in the score (the layout engine throws an
+/// [ArgumentError] otherwise). Use ties ([NoteElement.tieToNext]) for
+/// same-pitch connections; slurs are phrasing marks over any pitches.
+class Slur {
+  /// Id of the note element the slur starts on.
+  final String startId;
+
+  /// Id of the note element the slur ends on.
+  final String endId;
+
+  /// Creates a slur from [startId] to [endId].
+  const Slur(this.startId, this.endId);
+
+  @override
+  bool operator ==(Object other) =>
+      other is Slur && other.startId == startId && other.endId == endId;
+
+  @override
+  int get hashCode => Object.hash(startId, endId);
+
+  @override
+  String toString() => 'Slur($startId -> $endId)';
+}
+
 /// A rest.
 class RestElement extends MusicElement {
   /// Creates a rest of [duration].

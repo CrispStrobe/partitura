@@ -2,8 +2,8 @@
 
 ## 0.3.0-dev.1 (in progress)
 
-- **Ties** rendered as stroked Bézier curves (`CurvePrimitive`); golden
-  scene 26, gallery entry.
+- **Slurs** and **ties** rendered as stroked Bézier curves (`CurvePrimitive`); golden
+  scenes 26/27, gallery entries.
 
 ## 0.2.0-dev.1
 
