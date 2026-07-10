@@ -21,7 +21,7 @@ gates green (`dart format`, analyze zero issues, all tests), push.
       exact `Fraction` math, beaming inside)
 - [x] 0.3.4 Articulations (staccato, tenuto, accent, marcato, fermata)
 - [x] 0.3.5 Dynamics (pp…ff glyphs) + hairpins (cresc/dim wedges)
-- [ ] 0.3.6 Grace notes (scaled glyphs, acciaccatura slash)
+- [x] 0.3.6 Grace notes (scaled glyphs, acciaccatura slash)
 - [ ] 0.3.7 32nd/64th notes + breve (flags, multi-level beams, DSL
       letters `t`, `x`, `b`)
 - [ ] 0.3.8 Mid-score clef/key/time changes (courtesy naturals),

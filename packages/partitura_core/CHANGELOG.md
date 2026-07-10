@@ -2,6 +2,9 @@
 
 ## 0.3.0-dev.1 (in progress)
 
+- **Grace notes**: `NoteElement.graceNotes` (DSL `{g4}a4:q`), rendered
+  as 0.6× slashed eighths before the host; `GlyphPrimitive` gained a
+  `scale` field.
 - **Dynamics & hairpins**: `Score.dynamics` (pp…ff SMuFL glyphs
   centered under their element) and `Score.hairpins`
   (crescendo/diminuendo wedges), on a shared dynamics line below the

@@ -78,7 +78,8 @@ value-based, invalid constructor arguments fail asserts in debug builds.
   chord; `showAccidental`: `null` auto / `true` force / `false` hide;
   `tieToNext` ties to the next note element — identical pitches only,
   a tie into a rest draws nothing; `articulations`: staccato, tenuto,
-  accent, marcato, fermata) or `RestElement`.
+  accent, marcato, fermata; `graceNotes`: an acciaccatura group drawn as
+  small slashed eighths before the element) or `RestElement`.
 - `Score.slurs`: `Slur(startId, endId)` phrasing curves between note
   elements; unknown or reversed ids throw at layout time.
 - `Score.dynamics` (`DynamicMarking(elementId, pp…ff)`) and
@@ -108,6 +109,7 @@ tuplet   := 'actual[' or 'actual:normal[' opens, ']' closes
             normal = largest power of two below actual (3 for duplets)
 artic    := trailing markers: ' staccato, _ tenuto, > accent,
             ^ marcato, @ fermata (combinable: c4:q>')
+grace    := '{pitch,pitch}' prefix before the chord ({g4}a4:q)
 ```
 
 Durations are sticky (initial default: quarter). `n` = explicit natural
@@ -171,7 +173,9 @@ within their beat window and never beam across the tuplet boundary ·
 articulations on the notehead side (opposite the stem), stacked outward
 in enum order; fermatas always above and outside the staff · dynamics
 glyphs centered under their element; hairpin wedges between element
-centers on the same dynamics line.
+centers on the same dynamics line · grace notes as 0.6× glyphs
+(`GlyphPrimitive.scale`), stems always up, slash on the first stem,
+small ledger lines.
 
 **Not implemented (v0.x non-goals)**: multi-voice collision avoidance,
 slurs/ties, tuplets, grace notes, cross-staff beaming, lyrics, dynamics,

@@ -163,6 +163,13 @@ final List<GalleryItem> galleryItems = [
     highlightedIds: const {'e1'},
   ),
   GalleryItem(
+    'Grace notes (acciaccatura)',
+    Score.simple(
+      timeSignature: TimeSignature.threeFour,
+      notes: '{g4}a4:q {f4,g4}a4:q {b4}c5:q | {c4}g4:h.',
+    ),
+  ),
+  GalleryItem(
     'Dynamics & hairpins',
     () {
       final base = Score.simple(

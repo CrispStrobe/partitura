@@ -447,6 +447,17 @@ void main() {
     );
   });
 
+  testWidgets('31 grace notes', (tester) async {
+    await golden(
+      tester,
+      '31_grace_notes',
+      Score.simple(
+        timeSignature: TimeSignature.threeFour,
+        notes: '{g4}a4:q {f4,g4}a4:q {b4}c5:q | {c4}g4:h.',
+      ),
+    );
+  });
+
   testWidgets('21 unmetered snippet in bass with chords', (tester) async {
     await golden(
       tester,

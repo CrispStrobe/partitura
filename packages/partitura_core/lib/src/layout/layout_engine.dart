@@ -198,11 +198,25 @@ class _LayoutBuilder {
 
   // ---------------------------------------------------------------- helpers
 
-  void _addGlyph(String name, double x, double y, {String? elementId}) {
-    _primitives.add(GlyphPrimitive(name, Point(x, y), elementId: elementId));
+  void _addGlyph(
+    String name,
+    double x,
+    double y, {
+    String? elementId,
+    double scale = 1.0,
+  }) {
+    _primitives.add(
+      GlyphPrimitive(name, Point(x, y), scale: scale, elementId: elementId),
+    );
     final box = meta.bBoxOf(name);
     // SMuFL bounding boxes are y-up relative to the origin; flip.
-    _expand(elementId, x + box.swX, y - box.neY, x + box.neX, y - box.swY);
+    _expand(
+      elementId,
+      x + box.swX * scale,
+      y - box.neY * scale,
+      x + box.neX * scale,
+      y - box.swY * scale,
+    );
   }
 
   void _addLine(
@@ -533,6 +547,8 @@ class _LayoutBuilder {
     final bottom = positions.first;
     final top = positions.last;
 
+    _layoutGraceNotes(element, id);
+
     final base = element.duration.base;
     final headGlyph = switch (base) {
       DurationBase.whole => SmuflGlyph.noteheadWhole,
@@ -722,6 +738,55 @@ class _LayoutBuilder {
 
     _advance(noteX, inkRight, element.duration, log2Adjust);
     return beamed;
+  }
+
+  /// v0.3.6: grace notes — an acciaccatura group of small (0.6×) eighths
+  /// before the host element, stems always up, slash on the first stem.
+  void _layoutGraceNotes(NoteElement element, String? id) {
+    if (element.graceNotes.isEmpty) return;
+    const graceScale = 0.6;
+    final headBox = meta.bBoxOf(SmuflGlyph.noteheadBlack);
+    final graceHeadWidth = headBox.width * graceScale;
+    final anchor = meta.anchorsOf(SmuflGlyph.noteheadBlack).stemUpSE ??
+        Point(headBox.width, 0.0);
+    var isFirst = true;
+    for (final pitch in element.graceNotes) {
+      final position = pitch.staffPosition(score.clef);
+      final y = _yOf(position);
+      _addGlyph(SmuflGlyph.noteheadBlack, _x, y,
+          scale: graceScale, elementId: id);
+      final stemX = _x + anchor.x * graceScale - s.stemThickness / 2;
+      final tipY = y - 2.2;
+      _addLine(
+        Point(stemX, y - anchor.y * graceScale),
+        Point(stemX, tipY),
+        s.stemThickness,
+        elementId: id,
+      );
+      _addGlyph(SmuflGlyph.flag8thUp, stemX - s.stemThickness / 2, tipY,
+          scale: graceScale, elementId: id);
+      if (isFirst) {
+        _addLine(
+          Point(stemX - 0.55, tipY + 1.5),
+          Point(stemX + 0.65, tipY + 0.6),
+          0.12,
+          elementId: id,
+        );
+        isFirst = false;
+      }
+      for (var q = -2; q >= position; q -= 2) {
+        _addLine(Point(_x - 0.25, _yOf(q)),
+            Point(_x + graceHeadWidth + 0.25, _yOf(q)), s.legerLineThickness,
+            elementId: id);
+      }
+      for (var q = 10; q <= position; q += 2) {
+        _addLine(Point(_x - 0.25, _yOf(q)),
+            Point(_x + graceHeadWidth + 0.25, _yOf(q)), s.legerLineThickness,
+            elementId: id);
+      }
+      _x += graceHeadWidth + 0.5;
+    }
+    _x += 0.3;
   }
 
   /// Rule 8 helper: ledger lines at even positions outside the staff.

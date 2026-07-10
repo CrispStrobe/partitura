@@ -66,6 +66,8 @@ class Score {
   ///   (`c4:q~ c4:q`), also across a barline.
   /// - A trailing `(` opens a slur on this note and a trailing `)` closes
   ///   it (`c4:q( d4 e4)`); slurs may cross barlines but not nest.
+  /// - A `{pitch,pitch}` prefix attaches grace notes (acciaccatura),
+  ///   e.g. `{g4}a4:q` or `{f4,g4}a4:q`.
   /// - Articulation markers at the end of a note token: `'` staccato,
   ///   `_` tenuto, `>` accent, `^` marcato, `@` fermata (combinable, e.g.
   ///   `c4:q>'`).
@@ -160,6 +162,18 @@ class Score {
               stripping = false;
           }
         }
+        var graceNotes = const <Pitch>[];
+        final graceMatch = RegExp(r'^\{([^}]*)\}').firstMatch(token);
+        if (graceMatch != null) {
+          final inner = graceMatch[1]!.trim();
+          if (inner.isEmpty) {
+            throw FormatException('Empty grace group: "$token"');
+          }
+          graceNotes = [
+            for (final source in inner.split(',')) Pitch.parse(source.trim()),
+          ];
+          token = token.substring(graceMatch[0]!.length);
+        }
         final parts = token.split(':');
         if (parts.length > 2) {
           throw FormatException('Invalid token: "$token"');
@@ -179,6 +193,9 @@ class Score {
             throw FormatException(
                 'A rest cannot carry articulations: "$token"');
           }
+          if (graceNotes.isNotEmpty) {
+            throw FormatException('A rest cannot carry grace notes: "$token"');
+          }
           elements.add(RestElement(duration, id: id));
         } else {
           final sources = parts[0].split('+');
@@ -190,6 +207,7 @@ class Score {
             showAccidental: forced ? true : null,
             tieToNext: tied,
             articulations: articulations,
+            graceNotes: graceNotes,
             id: id,
           ));
           if (closesSlur) {

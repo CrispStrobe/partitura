@@ -60,6 +60,10 @@ class NoteElement extends MusicElement {
   /// stacked outward in enum order; a fermata always goes above.
   final Set<Articulation> articulations;
 
+  /// Grace notes (acciaccatura group) played before this element, drawn
+  /// as small slashed eighths to its left.
+  final List<Pitch> graceNotes;
+
   /// Creates a note or chord from [pitches] and a [duration].
   ///
   /// [pitches] must be non-empty. (Not asserted: list lengths cannot be
@@ -70,6 +74,7 @@ class NoteElement extends MusicElement {
     this.showAccidental,
     this.tieToNext = false,
     this.articulations = const {},
+    this.graceNotes = const [],
     super.id,
   });
 
@@ -80,6 +85,7 @@ class NoteElement extends MusicElement {
     bool? showAccidental,
     bool tieToNext = false,
     Set<Articulation> articulations = const {},
+    List<Pitch> graceNotes = const [],
     String? id,
   }) : this(
           pitches: [pitch],
@@ -87,6 +93,7 @@ class NoteElement extends MusicElement {
           showAccidental: showAccidental,
           tieToNext: tieToNext,
           articulations: articulations,
+          graceNotes: graceNotes,
           id: id,
         );
 
@@ -98,16 +105,24 @@ class NoteElement extends MusicElement {
       other.tieToNext == tieToNext &&
       other.id == id &&
       listEquals(other.pitches, pitches) &&
-      setEquals(other.articulations, articulations);
+      setEquals(other.articulations, articulations) &&
+      listEquals(other.graceNotes, graceNotes);
 
   @override
-  int get hashCode => Object.hash(duration, showAccidental, tieToNext, id,
-      Object.hashAll(pitches), Object.hashAllUnordered(articulations));
+  int get hashCode => Object.hash(
+      duration,
+      showAccidental,
+      tieToNext,
+      id,
+      Object.hashAll(pitches),
+      Object.hashAllUnordered(articulations),
+      Object.hashAll(graceNotes));
 
   @override
   String toString() =>
       'NoteElement(${pitches.join('+')}, $duration${tieToNext ? ', tied' : ''}'
       '${articulations.isEmpty ? '' : ', ${articulations.map((a) => a.name).join('+')}'}'
+      '${graceNotes.isEmpty ? '' : ', grace: ${graceNotes.join('+')}'}'
       '${id == null ? '' : ', id: $id'})';
 }
 

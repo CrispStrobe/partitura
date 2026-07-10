@@ -30,11 +30,20 @@ final class GlyphPrimitive extends LayoutPrimitive {
   /// Glyph origin in staff spaces.
   final Point<double> position;
 
+  /// Size multiplier: 1.0 = normal; grace notes use a reduced scale.
+  final double scale;
+
   /// Creates a glyph primitive.
-  const GlyphPrimitive(this.smuflName, this.position, {super.elementId});
+  const GlyphPrimitive(
+    this.smuflName,
+    this.position, {
+    this.scale = 1.0,
+    super.elementId,
+  });
 
   @override
   String toString() => 'Glyph($smuflName @ ${position.x},${position.y}'
+      '${scale == 1.0 ? '' : ' x$scale'}'
       '${elementId == null ? '' : ', $elementId'})';
 }
 

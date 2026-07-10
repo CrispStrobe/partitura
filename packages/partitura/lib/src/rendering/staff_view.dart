@@ -344,8 +344,8 @@ class RenderStaffView extends RenderBox {
     return _theme.elementColors[elementId] ?? _theme.noteColor;
   }
 
-  TextPainter _glyphPainter(String smuflName, Color color) {
-    final key = '$smuflName|${color.toARGB32()}';
+  TextPainter _glyphPainter(String smuflName, Color color, double scale) {
+    final key = '$smuflName|${color.toARGB32()}|$scale';
     return _glyphCache.putIfAbsent(key, () {
       final character = smuflCodepoints[smuflName];
       assert(character != null, 'No codepoint for SMuFL glyph $smuflName');
@@ -356,7 +356,7 @@ class RenderStaffView extends RenderBox {
             fontFamily: 'Bravura',
             package: 'partitura',
             // SMuFL convention: font size = 4 x staff space.
-            fontSize: 4 * _scale,
+            fontSize: 4 * _scale * scale,
             color: color,
           ),
         ),
@@ -380,6 +380,7 @@ class RenderStaffView extends RenderBox {
             primitive.smuflName,
             primitive.position,
             _colorFor(primitive.elementId),
+            glyphScale: primitive.scale,
           );
         case LinePrimitive():
           final paint = Paint()
@@ -480,9 +481,10 @@ class RenderStaffView extends RenderBox {
     Offset offset,
     String smuflName,
     math.Point<double> position,
-    Color color,
-  ) {
-    final painter = _glyphPainter(smuflName, color);
+    Color color, {
+    double glyphScale = 1.0,
+  }) {
+    final painter = _glyphPainter(smuflName, color, glyphScale);
     final baseline =
         painter.computeDistanceToActualBaseline(TextBaseline.alphabetic);
     final local = staffToLocal(position);
