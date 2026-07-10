@@ -38,4 +38,11 @@ abstract final class Bravura {
   static void debugOverrideMetadata(SmuflMetadata metadata) {
     _metadata = metadata;
   }
+
+  /// Clears the cache so the next [load] hits the asset bundle again
+  /// (tests only).
+  static void debugReset() {
+    _metadata = null;
+    _pending = null;
+  }
 }

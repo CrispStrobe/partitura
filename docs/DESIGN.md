@@ -170,6 +170,55 @@ terse is fine. See HANDOVER.md §6.
 - **Not done deliberately**: publishing (maintainer does that, per
   contract), git tags, CI config (no CI requirements in the contract).
 
+## Test expansion (2026-07-10, post-M5)
+
+- **Property sweeps** (`theory_property_test.dart`): instead of more
+  hand-picked cases, invariants over the whole game-relevant input space —
+  transposition semitone/spelling/round-trip/`Interval.between` agreement
+  across ~1575 pitch×interval combos, scale patterns + key-signature
+  agreement for every buildable tonic, triad structure for all roots and
+  qualities, fraction algebra laws.
+- **Layout edge suite** (`layout_edge_test.dart`): stem-direction sweep
+  over all 21 staff positions × both clefs, beaming edge cases (beamlets,
+  beat boundaries, 2/4 merge, x/8 flags-only fallback, 5/4, unmetered),
+  accidental bookkeeping incl. `showAccidental: false` state semantics,
+  chord clusters/whole-note seconds/ledger spans, spacing monotonicity,
+  barline/measure-region counts, per-corpus determinism.
+- **Live paint tests** (`render_pixel_test.dart`): render to image and
+  count pixels of the expected color inside notehead boxes (single-point
+  sampling fails: whole/half noteheads are hollow and staff lines cross
+  every box). Verifies element colors, highlight precedence, ghost-note
+  appearance/disappearance and kid-mode line boldness on actual pixels.
+- **Asset-path tests** (`bravura_test.dart`): `Bravura.load()` against a
+  mocked asset bundle (with `rootBundle.evict` — the bundle caches
+  strings), single-flight caching, and the StaffView "empty first frame →
+  self-heal after load" behavior. Added `Bravura.debugReset()` for this.
+- **Mini game-loop test** (`interaction_edge_test.dart`): a stateful
+  place-a-note widget driving the same tap→mutate→rebuild cycle the real
+  minigames use. Gotcha encoded in the tests: empty measures are
+  zero-width, so tap targets must be computed from the live layout.
+- **Example integration test** (`example/integration_test/app_test.dart`):
+  boots the real app on a device (`flutter test integration_test -d
+  macos`), scrolls the gallery, places/selects a note, toggles kid mode.
+  The machine's CocoaPods install is broken (Homebrew Ruby mismatch), so
+  Swift Package Manager was enabled (`flutter config
+  --enable-swift-package-manager`) and the example's macOS runner has no
+  Podfile — plugin integration goes through SPM. `flutter create`
+  regenerated an ios/Podfile; harmless, used only if CocoaPods works.
+- The example's interactive screen now uses a fixed `staffSpace: 16` —
+  fit-to-width made an empty two-measure staff comically large (and
+  taller than small windows).
+- **Bug the live tests caught**: the example mutated a measure's element
+  list in place and rebuilt `Score` around the *same* list, so old and new
+  scores compared equal and `StaffView` skipped the relayout. Consumers
+  must copy lists per rebuild (`Measure(List.of(elements))`); the model
+  docs say "treat lists as immutable" and the integration + widget tests
+  now guard the pattern. Two test-infra gotchas worth remembering:
+  `rootBundle.loadString` decodes large assets on a background isolate, so
+  anything that triggers `Bravura.load()` in a widget test must run inside
+  `tester.runAsync`; and `Center`ed staffs move when the score grows, so
+  tests must re-read the widget origin before every tap.
+
 ## Blockers
 
 (none)

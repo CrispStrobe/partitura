@@ -23,10 +23,13 @@ class _InteractiveScreenState extends State<InteractiveScreen> {
   ];
   var _nextId = 0;
 
+  // Copy each measure's list: Score/Measure are value types over their
+  // lists, so mutating a list in place would make the "new" score compare
+  // equal to the old one and StaffView would skip the relayout.
   Score get _score => Score(
         clef: _clef,
         timeSignature: TimeSignature.fourFour,
-        measures: [for (final elements in _placed) Measure(elements)],
+        measures: [for (final elements in _placed) Measure(List.of(elements))],
       );
 
   void _placeNote(StaffTarget target) {
@@ -60,6 +63,9 @@ class _InteractiveScreenState extends State<InteractiveScreen> {
             child: InteractiveStaff(
               score: _score,
               theme: theme,
+              // Fixed scale: an empty measure fit to the card width would
+              // blow the staff up comically large.
+              staffSpace: 16,
               highlightedIds: _selected,
               ghostDuration: _duration,
               onStaffTap: _placeNote,
