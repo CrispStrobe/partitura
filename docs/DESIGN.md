@@ -202,9 +202,10 @@ terse is fine. See HANDOVER.md §6.
   macos`), scrolls the gallery, places/selects a note, toggles kid mode.
   The machine's CocoaPods install is broken (Homebrew Ruby mismatch), so
   Swift Package Manager was enabled (`flutter config
-  --enable-swift-package-manager`) and the example's macOS runner has no
-  Podfile — plugin integration goes through SPM. `flutter create`
-  regenerated an ios/Podfile; harmless, used only if CocoaPods works.
+  --enable-swift-package-manager`) and the example ships **no Podfile**
+  for macOS or iOS — plugin integration goes through SPM on both (a
+  present Podfile forces the CocoaPods path and fails on this machine).
+  All three targets (macOS, web, iOS simulator) build under this setup.
 - The example's interactive screen now uses a fixed `staffSpace: 16` —
   fit-to-width made an empty two-measure staff comically large (and
   taller than small windows).
@@ -218,6 +219,24 @@ terse is fine. See HANDOVER.md §6.
   anything that triggers `Bravura.load()` in a widget test must run inside
   `tester.runAsync`; and `Center`ed staffs move when the score grows, so
   tests must re-read the widget origin before every tap.
+
+## Test expansion round 2 + contract doc (2026-07-10)
+
+- Added constructor-validation and engraving-quality suites (core 233
+  tests), theme/geometry/gesture contracts and two new goldens (partitura
+  64 tests), example control-flow tests and an extended on-device
+  integration run. Full inventory in docs/CONTRACT.md §9.
+- **Library fix found by the retry test**: `Bravura.load()` cached a
+  *failed* future forever — one flaky asset read would have blanked every
+  StaffView until restart. Failures now clear the pending future so the
+  next call retries.
+- **docs/CONTRACT.md** is the consumer-facing description of features and
+  API guarantees (HANDOVER.md stays the historical build brief). Keep it
+  in sync when the public surface changes; READMEs link to it.
+- Unicode gotcha for UI tests: musical-symbol labels like the half note
+  are decomposed sequences (U+1D157 + U+1D165), so `find.text` with the
+  precomposed codepoint misses them — find segmented-button labels
+  structurally.
 
 ## Blockers
 

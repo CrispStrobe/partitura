@@ -13,6 +13,8 @@ Initial release.
   tap/drop → quantized `StaffTarget` (staff position + measure index,
   `pitchFor(clef)`), ghost-note drag preview with ledger-line hints.
 - **Assets**: Bravura font + SMuFL metadata bundled; `Bravura.load()`
-  caches parsed metadata.
-- **Example**: gallery of the 21-scene golden corpus + interactive
-  place-a-note demo (macOS, web, iOS).
+  caches parsed metadata (single-flight; failed loads are not cached and
+  retry on the next call).
+- **Example**: gallery of the 23-scene golden corpus + interactive
+  place-a-note demo (macOS, web, iOS) with an end-to-end integration
+  test (`flutter test integration_test -d macos`).
