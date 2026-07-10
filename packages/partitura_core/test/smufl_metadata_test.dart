@@ -98,6 +98,7 @@ void main() {
           SmuflGlyph.articulationGlyph(a, above: true),
           SmuflGlyph.articulationGlyph(a, above: false),
         ],
+        for (final d in DynamicLevel.values) SmuflGlyph.dynamicGlyph(d),
       ];
       for (final glyph in drawnGlyphs) {
         final box = metadata.bBoxOf(glyph); // throws if absent

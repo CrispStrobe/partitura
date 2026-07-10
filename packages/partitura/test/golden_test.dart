@@ -422,6 +422,31 @@ void main() {
     );
   });
 
+  testWidgets('30 dynamics and hairpins', (tester) async {
+    final base = Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'c5:q d5 e5 f5 | g5:h e5:h',
+    );
+    await golden(
+      tester,
+      '30_dynamics',
+      Score(
+        clef: base.clef,
+        timeSignature: base.timeSignature,
+        measures: base.measures,
+        dynamics: const [
+          DynamicMarking('e0', DynamicLevel.p),
+          DynamicMarking('e4', DynamicLevel.ff),
+          DynamicMarking('e5', DynamicLevel.mp),
+        ],
+        hairpins: const [
+          Hairpin('e0', 'e3', HairpinType.crescendo),
+          Hairpin('e4', 'e5', HairpinType.diminuendo),
+        ],
+      ),
+    );
+  });
+
   testWidgets('21 unmetered snippet in bass with chords', (tester) async {
     await golden(
       tester,

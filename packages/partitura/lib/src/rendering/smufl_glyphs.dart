@@ -59,4 +59,10 @@ const Map<String, String> smuflCodepoints = {
   'articMarcatoBelow': '\uE4AD',
   'fermataAbove': '\uE4C0',
   'fermataBelow': '\uE4C1',
+  'dynamicPP': '\uE52B',
+  'dynamicPiano': '\uE520',
+  'dynamicMP': '\uE52C',
+  'dynamicMF': '\uE52D',
+  'dynamicForte': '\uE522',
+  'dynamicFF': '\uE52F',
 };

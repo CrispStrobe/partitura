@@ -2,6 +2,10 @@
 
 ## 0.3.0-dev.1 (in progress)
 
+- **Dynamics & hairpins**: `Score.dynamics` (pp…ff SMuFL glyphs
+  centered under their element) and `Score.hairpins`
+  (crescendo/diminuendo wedges), on a shared dynamics line below the
+  staff.
 - **Articulations**: `NoteElement.articulations` (staccato, tenuto,
   accent, marcato, fermata; DSL markers `' _ > ^ @`), drawn on the
   notehead side opposite the stem, stacked outward; fermatas always

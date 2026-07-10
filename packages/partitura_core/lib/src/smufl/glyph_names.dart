@@ -73,6 +73,16 @@ abstract final class SmuflGlyph {
   /// Augmentation dot.
   static const String augmentationDot = 'augmentationDot';
 
+  /// The glyph for a [DynamicLevel].
+  static String dynamicGlyph(DynamicLevel level) => switch (level) {
+        DynamicLevel.pp => 'dynamicPP',
+        DynamicLevel.p => 'dynamicPiano',
+        DynamicLevel.mp => 'dynamicMP',
+        DynamicLevel.mf => 'dynamicMF',
+        DynamicLevel.f => 'dynamicForte',
+        DynamicLevel.ff => 'dynamicFF',
+      };
+
   /// The articulation glyph for [articulation], in its above/below variant.
   static String articulationGlyph(
     Articulation articulation, {

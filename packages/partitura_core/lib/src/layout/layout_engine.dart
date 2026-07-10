@@ -161,6 +161,7 @@ class _LayoutBuilder {
     }
     _layoutTies();
     _layoutSlurs();
+    _layoutDynamics();
     final width = _addFinalBarline();
 
     // Staff lines span the full width; paint them first.
@@ -910,6 +911,65 @@ class _LayoutBuilder {
         Point(x2, y2),
         0.2,
       );
+    }
+  }
+
+  /// v0.3.5: dynamic markings centered below their element and hairpin
+  /// wedges between two elements, both on the dynamics line under the
+  /// staff (pushed lower by any element ink reaching below it).
+  void _layoutDynamics() {
+    _TieInfo infoOf(String id, String what) {
+      final index = _tieInfos.indexWhere((i) => i.note != null && i.id == id);
+      if (index < 0) {
+        throw ArgumentError('$what references an unknown note element id');
+      }
+      return _tieInfos[index];
+    }
+
+    double lineFor(Iterable<_TieInfo> infos) {
+      var y = 6.2;
+      for (final info in infos) {
+        final bounds = info.id == null ? null : _elementBounds[info.id];
+        if (bounds != null) y = max(y, bounds.maxY + 1.0);
+      }
+      return y;
+    }
+
+    for (final marking in score.dynamics) {
+      final info = infoOf(marking.elementId, '$marking');
+      final glyph = SmuflGlyph.dynamicGlyph(marking.level);
+      final box = meta.bBoxOf(glyph);
+      final centerX = (info.left + info.right) / 2;
+      // Dynamics glyphs sit on their text baseline; center their ink.
+      _addGlyph(
+        glyph,
+        centerX - box.swX - box.width / 2,
+        lineFor([info]) + 0.6,
+        elementId: marking.elementId,
+      );
+    }
+
+    for (final hairpin in score.hairpins) {
+      final start = infoOf(hairpin.startId, '$hairpin');
+      final endIndex =
+          _tieInfos.indexWhere((i) => i.note != null && i.id == hairpin.endId);
+      if (endIndex < 0) {
+        throw ArgumentError('$hairpin references an unknown note element id');
+      }
+      final startIndex = _tieInfos.indexOf(start);
+      if (endIndex <= startIndex) {
+        throw ArgumentError('$hairpin must run forward in reading order');
+      }
+      final end = _tieInfos[endIndex];
+      final x1 = (start.left + start.right) / 2;
+      final x2 = (end.left + end.right) / 2;
+      final midY = lineFor(_tieInfos.sublist(startIndex, endIndex + 1)) + 0.55;
+      final thickness = meta.engravingDefault('hairpinThickness', orElse: 0.16);
+      const halfOpening = 0.55;
+      final openX = hairpin.type == HairpinType.crescendo ? x2 : x1;
+      final tipX = hairpin.type == HairpinType.crescendo ? x1 : x2;
+      _addLine(Point(tipX, midY), Point(openX, midY - halfOpening), thickness);
+      _addLine(Point(tipX, midY), Point(openX, midY + halfOpening), thickness);
     }
   }
 

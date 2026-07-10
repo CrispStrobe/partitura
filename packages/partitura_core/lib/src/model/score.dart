@@ -28,13 +28,22 @@ class Score {
   /// Slurs between note elements, referenced by element ids.
   final List<Slur> slurs;
 
-  /// Creates a score (treat [measures] and [slurs] as immutable).
+  /// Dynamic markings attached to note elements (model-only; the DSL has
+  /// no shorthand for them).
+  final List<DynamicMarking> dynamics;
+
+  /// Crescendo/diminuendo wedges between note elements (model-only).
+  final List<Hairpin> hairpins;
+
+  /// Creates a score (treat the lists as immutable).
   const Score({
     required this.clef,
     this.keySignature = const KeySignature(0),
     this.timeSignature,
     required this.measures,
     this.slurs = const [],
+    this.dynamics = const [],
+    this.hairpins = const [],
   });
 
   /// Builds a score from a terse note string, for tests and games.
@@ -257,7 +266,9 @@ class Score {
       other.keySignature == keySignature &&
       other.timeSignature == timeSignature &&
       listEquals(other.measures, measures) &&
-      listEquals(other.slurs, slurs);
+      listEquals(other.slurs, slurs) &&
+      listEquals(other.dynamics, dynamics) &&
+      listEquals(other.hairpins, hairpins);
 
   @override
   int get hashCode => Object.hash(
@@ -266,6 +277,8 @@ class Score {
         timeSignature,
         Object.hashAll(measures),
         Object.hashAll(slurs),
+        Object.hashAll(dynamics),
+        Object.hashAll(hairpins),
       );
 
   @override

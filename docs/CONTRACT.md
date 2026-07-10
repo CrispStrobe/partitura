@@ -80,7 +80,11 @@ value-based, invalid constructor arguments fail asserts in debug builds.
   a tie into a rest draws nothing; `articulations`: staccato, tenuto,
   accent, marcato, fermata) or `RestElement`.
 - `Score.slurs`: `Slur(startId, endId)` phrasing curves between note
-  elements; unknown or reversed ids throw at layout time. The optional `id` makes an element addressable by the
+  elements; unknown or reversed ids throw at layout time.
+- `Score.dynamics` (`DynamicMarking(elementId, pp…ff)`) and
+  `Score.hairpins` (`Hairpin(startId, endId, crescendo|diminuendo)`) —
+  model-only (no DSL shorthand); drawn on a dynamics line below the
+  staff that drops beneath any low element ink. The optional `id` makes an element addressable by the
   interaction layer; ids should be unique per score.
 - **Lists are treated as immutable.** Model equality is deep value
   equality over the given lists; mutating a list in place makes an "old"
@@ -165,7 +169,9 @@ up, arcing clear of everything in between · tuplet digit + bracket on the
 group's stem side; tuplet members space at their sounding width, beam
 within their beat window and never beam across the tuplet boundary ·
 articulations on the notehead side (opposite the stem), stacked outward
-in enum order; fermatas always above and outside the staff.
+in enum order; fermatas always above and outside the staff · dynamics
+glyphs centered under their element; hairpin wedges between element
+centers on the same dynamics line.
 
 **Not implemented (v0.x non-goals)**: multi-voice collision avoidance,
 slurs/ties, tuplets, grace notes, cross-staff beaming, lyrics, dynamics,

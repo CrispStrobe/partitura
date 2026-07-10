@@ -154,3 +154,87 @@ class RestElement extends MusicElement {
   @override
   String toString() => 'RestElement($duration${id == null ? '' : ', id: $id'})';
 }
+
+/// Dynamic levels supported in v0.3.
+enum DynamicLevel {
+  /// Pianissimo.
+  pp,
+
+  /// Piano.
+  p,
+
+  /// Mezzo-piano.
+  mp,
+
+  /// Mezzo-forte.
+  mf,
+
+  /// Forte.
+  f,
+
+  /// Fortissimo.
+  ff,
+}
+
+/// A dynamic marking attached to a note element (drawn centered below it,
+/// under the staff).
+class DynamicMarking {
+  /// Id of the note element the marking belongs to.
+  final String elementId;
+
+  /// The dynamic level.
+  final DynamicLevel level;
+
+  /// Creates a dynamic marking.
+  const DynamicMarking(this.elementId, this.level);
+
+  @override
+  bool operator ==(Object other) =>
+      other is DynamicMarking &&
+      other.elementId == elementId &&
+      other.level == level;
+
+  @override
+  int get hashCode => Object.hash(elementId, level);
+
+  @override
+  String toString() => 'DynamicMarking($elementId: ${level.name})';
+}
+
+/// Direction of a [Hairpin].
+enum HairpinType {
+  /// Opening wedge (getting louder).
+  crescendo,
+
+  /// Closing wedge (getting softer).
+  diminuendo,
+}
+
+/// A crescendo/diminuendo wedge between two note elements, drawn below
+/// the staff on the dynamics line.
+class Hairpin {
+  /// Id of the note element the wedge starts on.
+  final String startId;
+
+  /// Id of the note element the wedge ends on.
+  final String endId;
+
+  /// Whether the wedge opens (crescendo) or closes (diminuendo).
+  final HairpinType type;
+
+  /// Creates a hairpin.
+  const Hairpin(this.startId, this.endId, this.type);
+
+  @override
+  bool operator ==(Object other) =>
+      other is Hairpin &&
+      other.startId == startId &&
+      other.endId == endId &&
+      other.type == type;
+
+  @override
+  int get hashCode => Object.hash(startId, endId, type);
+
+  @override
+  String toString() => 'Hairpin($startId -> $endId, ${type.name})';
+}
