@@ -69,16 +69,14 @@ void main() {
         tester.renderObject<RenderStaffView>(find.byType(StaffView));
     final region = renderObject.scoreLayout!.regions
         .firstWhere((r) => r.elementId == 'e1');
-    final center =
-        (region.bounds.topLeft + region.bounds.bottomRight) * 0.5;
+    final center = (region.bounds.topLeft + region.bounds.bottomRight) * 0.5;
     final local = renderObject.staffToLocal(center);
     final topLeft = tester.getTopLeft(find.byType(StaffView));
     await tester.tapAt(topLeft + local);
     expect(tapped, ['e1']);
   });
 
-  testWidgets('changing highlights repaints without relayout',
-      (tester) async {
+  testWidgets('changing highlights repaints without relayout', (tester) async {
     final score = Score.simple(notes: 'c4:q d4 e4 f4');
     Widget build(Set<String> highlights) => wrap(
           StaffView(score: score, staffSpace: 12, highlightedIds: highlights),

@@ -110,6 +110,49 @@ terse is fine. See HANDOVER.md §6.
   `measureRegions` (x-extents per measure) for the interaction layer's
   tap→measure mapping.
 
+## M3 — rendering (2026-07-10)
+
+- **Async metadata, sync paint**: `Bravura.load()` parses the bundled
+  metadata once and caches it; `StaffView` triggers the load on first
+  layout and paints nothing for that frame (apps `await Bravura.load()` in
+  `main()` to avoid the gap; tests inject via `debugOverrideMetadata`).
+  Chosen over a mandatory `ensureInitialized()` because a blank first
+  frame is a gentler failure mode than a crash.
+- **Glyph painting**: `TextPainter`, font size = 4 × staff space, glyph
+  origin anchored via `computeDistanceToActualBaseline` (the seed's
+  technique, kept per HANDOVER_PARTITURA §2). Painters cached per
+  (glyph, color), cache cleared on relayout/theme change.
+- **Kid mode** is implemented as data on the theme (`hitSlop`,
+  `lineBoost`) rather than behavior switches, so games can tune both
+  independently. `lineBoost` feeds the layout settings (thicker primitives
+  move ink bounds), so toggling it relayouts; pure color changes only
+  repaint.
+- **Goldens** (21 scenes) were generated on **macOS** with Flutter 3.44.4;
+  font rendering differs across platforms, so run them on macOS or
+  regenerate locally (`flutter test --update-goldens`).
+- **Example app** is a workspace member (`packages/partitura/example` in
+  the root `workspace:` list) — pub workspaces don't allow unlisted nested
+  packages.
+
+## M4 — interaction (2026-07-10)
+
+- **One geometry owner**: `RenderStaffView` is the single place that maps
+  px ↔ staff spaces. It exposes `elementIdAt`, `quantizeStaffPosition`,
+  `localToStaff`/`staffToLocal` and a `ghostNote` repaint-only field;
+  `InteractiveStaff` is thin widget glue (gestures via a `GestureDetector`
+  pan + the render object's own tap recognizer) rather than a second
+  layout consumer.
+- **Element tap beats staff tap**: a tap inside any (hit-slop-inflated)
+  element region fires `onElementTap` only; `onStaffTap` fires only on
+  empty staff. Overlapping regions resolve to the smallest one (a chord
+  notehead wins over a long-stemmed neighbor).
+- **Drag = preview + drop**: while a pan is active a quantized ghost
+  notehead (+ ledger-line preview) follows the pointer; releasing over
+  empty staff fires `onStaffTap` with the same quantization. Quantization
+  clamps to staff positions −6..14 (3 ledger lines beyond the staff).
+- **Selection is app state**: `InteractiveStaff` doesn't own a selection
+  set; games pass `highlightedIds` (repaint-only, verified by test).
+
 ## Blockers
 
 (none)

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:partitura/partitura.dart';
 
 import 'gallery.dart';
+import 'interactive.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,7 +39,7 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(title: const Text('partitura')),
       body: switch (_index) {
         0 => const GalleryScreen(),
-        _ => const Center(child: Text('Interactive demo lands with M4')),
+        _ => const InteractiveScreen(),
       },
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
