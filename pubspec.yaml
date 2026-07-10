@@ -1,10 +1,10 @@
-name: neume_workspace
-description: Workspace root for the neume music notation libraries.
+name: partitura_workspace
+description: Workspace root for the partitura music notation libraries.
 publish_to: none
 
 environment:
   sdk: ^3.5.0
 
 workspace:
-  - packages/neume_core
-  - packages/neume
+  - packages/partitura_core
+  - packages/partitura

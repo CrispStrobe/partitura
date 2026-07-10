@@ -1,20 +1,21 @@
-# neume
+# partitura
 
 Music notation rendering for Dart & Flutter, with first-class interactivity.
 
 **Status: pre-release scaffold.** The implementation contract lives in
-[HANDOVER.md](HANDOVER.md); design decisions are logged in
+[HANDOVER.md](HANDOVER.md) as amended by
+[HANDOVER_PARTITURA.md](HANDOVER_PARTITURA.md); design decisions are logged in
 [docs/DESIGN.md](docs/DESIGN.md).
 
 | Package | Contents | Depends on |
 |---|---|---|
-| [`neume_core`](packages/neume_core) | Music theory model (pitch, duration, key, scale, chord, harmonic function), score document model, deterministic layout engine. Pure Dart. | Dart SDK only |
-| [`neume`](packages/neume) | Flutter rendering (`StaffView`) and interaction (`InteractiveStaff`): hit-testing, selection, drag-to-staff. Bundles the Bravura SMuFL font. | Flutter, `neume_core` |
+| [`partitura_core`](packages/partitura_core) | Music theory model (pitch, duration, key, scale, chord, harmonic function), score document model, deterministic layout engine. Pure Dart. | Dart SDK only |
+| [`partitura`](packages/partitura) | Flutter rendering (`StaffView`) and interaction (`InteractiveStaff`): hit-testing, selection, drag-to-staff. Bundles the Bravura SMuFL font. | Flutter, `partitura_core` |
 
 ## Why another notation library?
 
 VexFlow, OpenSheetMusicDisplay and abcjs are JavaScript and render statically.
-neume targets Flutter apps that need **interactive** notation — education
+partitura targets Flutter apps that need **interactive** notation — education
 games, ear-training, theory drills — where every notehead must be tappable,
 draggable and highlightable.
 
@@ -25,7 +26,7 @@ sixteenths, dots, accidentals, key/time signatures, triads, simple beaming.
 ## License
 
 Code: [MIT](LICENSE). Bundled Bravura font: SIL OFL 1.1 (© Steinberg Media
-Technologies GmbH), see [OFL.txt](packages/neume/assets/fonts/OFL.txt).
+Technologies GmbH), see [OFL.txt](packages/partitura/assets/fonts/OFL.txt).
 
 ## Development
 
