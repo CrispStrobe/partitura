@@ -52,7 +52,7 @@ InteractiveStaff(
 
 | In (v0.1) | Out (v0.x non-goals) |
 |---|---|
-| Single staff, treble + bass clefs | Grand staff / multiple staves |
+| Single staff; treble, bass, alto, tenor clefs | Grand staff / multiple staves |
 | Notes/rests whole–16th, up to 2 dots | Tuplets, grace notes |
 | Accidentals incl. measure memory | Slurs, ties, articulations, dynamics |
 | Key signatures −7..+7, time signatures | Lyrics, multi-voice |

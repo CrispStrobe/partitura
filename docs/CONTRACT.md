@@ -1,4 +1,4 @@
-# partitura — features and public API contract (v0.1)
+# partitura — features and public API contract (v0.2)
 
 This document describes what partitura **does** and which API surface and
 behaviors consumers may **rely on**. It reflects the implementation as
@@ -31,8 +31,8 @@ Changing any of them is a breaking change:
 - **Pitch**: scientific pitch notation; middle C = **C4** = MIDI **60**;
   octaves increment at C. Alterations are integers −2…2 (𝄫…𝄪).
 - **Staff position**: `Pitch.staffPosition(clef)` → 0 = bottom staff line,
-  +1 per line/space upward. Treble: E4 = 0; bass: G2 = 0. Inverse:
-  `Clef.pitchAt(position)`.
+  +1 per line/space upward. Bottom lines: treble E4, bass G2, alto F3,
+  tenor D3. Inverse: `Clef.pitchAt(position)`.
 - **Layout space**: all layout output is in **staff spaces** (1 space =
   gap between adjacent staff lines). Origin = intersection of the staff's
   **top line** with its left edge; **y grows downward**; staff lines lie
@@ -50,7 +50,7 @@ Changing any of them is a breaking change:
 |---|---|
 | `Step` | 7 diatonic letters, `semitonesFromC` |
 | `Pitch` | `midiNumber`, `diatonicIndex`, `staffPosition(clef)`, `transposeBy(interval, descending:)` (diatonic spelling; throws `ArgumentError` beyond double alterations), `isEnharmonicWith`, `Pitch.parse('f#3')` |
-| `Clef` | `treble`, `bass`; `pitchAt(staffPosition)`, `bottomLineDiatonicIndex` |
+| `Clef` | `treble`, `bass`, `alto`, `tenor`; `pitchAt(staffPosition)`, `bottomLineDiatonicIndex` |
 | `Interval` | quality d/m/P/M/A × number 1–8 (class-checked by assert); 15 named constants; `semitones`; order-insensitive `Interval.between(a, b)` ≤ one octave (throws if unnameable) |
 | `NoteDuration` | base whole…sixteenth × 0–2 dots; exact `(int, int) fraction` and `toFraction()` |
 | `Fraction` | exact, always reduced, sign on the numerator; `+ − × < ≤ > ≥ compareTo toDouble`; equal values are `==` and hash equally |
@@ -120,8 +120,10 @@ offending token.
 
 ### Engraving rules implemented
 
-Clef anchoring (gClef on G4, fClef on F3) · key signatures at
-conventional octaves per clef (bass = treble − 2 positions) · stacked
+Clef anchoring (gClef on G4, fClef on F3, cClef on C4 — middle line for
+alto, fourth line for tenor) · key signatures at conventional octaves per
+clef (bass/alto = treble − 2/− 1 positions; tenor uses its own sharp
+pattern and flats one position above treble) · stacked
 time-signature digits centered on the staff · noteheads by duration ·
 stems (down iff the notehead farthest from the middle line is at
 position ≥ 4; chords by the farther extreme, ties down; default length
@@ -146,7 +148,7 @@ thin barlines between measures, thin+thick final barline.
 slurs/ties, tuplets, grace notes, cross-staff beaming, lyrics, dynamics,
 articulations, line breaking/justification, grand staff, MusicXML,
 audio (never), transposing instruments, tablature, compound-meter beam
-grouping (x/8 meters render flags).
+grouping (x/8 meters render flags). Alto/tenor clefs shipped in v0.2.
 
 ## 6. Rendering (`partitura`)
 
@@ -214,5 +216,5 @@ strict lints (incl. `public_member_api_docs`), all tests green:
 |---|---|
 | `partitura_core` unit tests (230+) | theory tables + property sweeps, layout rules 1–14, layout edge/quality suites, DSL, SMuFL parsing, validation |
 | `partitura` widget tests (70+) | sizing, hit testing, gestures, ghost lifecycle, repaint/relayout policy, asset loading, pixel-level paint verification |
-| Golden corpus (23 scenes + hero) | both clefs, all durations, dots, accidentals, chords, beams, rests, signatures, highlights, kid mode, ghost, fit-to-width (macOS-generated) |
+| Golden corpus (25 scenes + hero) | all four clefs, all durations, dots, accidentals, chords, beams, rests, signatures, highlights, kid mode, ghost, fit-to-width (macOS-generated) |
 | Example widget tests + integration test | real app boot, gallery scroll, place/select/clear flow, duration & clef controls — `flutter test integration_test -d macos` |

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0-dev.1
+
+- **Alto and tenor clefs** (via `partitura_core` 0.2): C-clef rendering,
+  golden scenes, gallery entries and clef options in the example's
+  interactive demo.
+
 ## 0.1.0-dev.1
 
 Initial release.

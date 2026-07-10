@@ -352,6 +352,32 @@ void main() {
     );
   });
 
+  testWidgets('24 alto clef: viola line in F major', (tester) async {
+    await golden(
+      tester,
+      '24_alto_clef',
+      Score.simple(
+        clef: Clef.alto,
+        keySignature: const KeySignature(-1),
+        timeSignature: TimeSignature.threeFour,
+        notes: 'f3:q a3 c4 | c4:e d4 e4 f4 g4:q | a4+c4:h.',
+      ),
+    );
+  });
+
+  testWidgets('25 tenor clef: cello line in D major', (tester) async {
+    await golden(
+      tester,
+      '25_tenor_clef',
+      Score.simple(
+        clef: Clef.tenor,
+        keySignature: const KeySignature(2),
+        timeSignature: TimeSignature.fourFour,
+        notes: 'd3:q f#3 a3 d4 | c#4:e b3 a3 g3 f#3:h',
+      ),
+    );
+  });
+
   testWidgets('21 unmetered snippet in bass with chords', (tester) async {
     await golden(
       tester,

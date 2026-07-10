@@ -73,6 +73,7 @@ void main() {
       const drawnGlyphs = [
         SmuflGlyph.gClef,
         SmuflGlyph.fClef,
+        SmuflGlyph.cClef,
         SmuflGlyph.noteheadWhole,
         SmuflGlyph.noteheadHalf,
         SmuflGlyph.noteheadBlack,

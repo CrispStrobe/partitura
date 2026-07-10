@@ -97,9 +97,21 @@ class _LayoutBuilder {
 
   _LayoutBuilder(this.score, this.s);
 
-  // Key signature accidental staff positions (treble); bass is 2 lower.
-  static const List<int> _sharpPositionsTreble = [8, 5, 9, 6, 3, 7, 4];
-  static const List<int> _flatPositionsTreble = [4, 7, 3, 6, 2, 5, 1];
+  // Key signature accidental staff positions per clef, in writing order.
+  // Bass/alto shift the treble pattern down 2/1 positions; the tenor sharp
+  // pattern is its own shape (F# starts low to stay inside the staff).
+  static const Map<Clef, List<int>> _sharpPositions = {
+    Clef.treble: [8, 5, 9, 6, 3, 7, 4],
+    Clef.bass: [6, 3, 7, 4, 1, 5, 2],
+    Clef.alto: [7, 4, 8, 5, 2, 6, 3],
+    Clef.tenor: [2, 6, 3, 7, 4, 8, 5],
+  };
+  static const Map<Clef, List<int>> _flatPositions = {
+    Clef.treble: [4, 7, 3, 6, 2, 5, 1],
+    Clef.bass: [2, 5, 1, 4, 0, 3, -1],
+    Clef.alto: [3, 6, 2, 5, 1, 4, 0],
+    Clef.tenor: [5, 8, 4, 7, 3, 6, 2],
+  };
 
   // log2(dot factor) for 0..2 dots: 1, 3/2, 7/4.
   static const List<double> _dotLog2 = [
@@ -219,11 +231,14 @@ class _LayoutBuilder {
 
   // ------------------------------------------------------- leading elements
 
-  /// Rule 1: clef anchored on its line (gClef on G4's line, fClef on F3's).
+  /// Rule 1: clef anchored on its reference line (gClef on G4's line,
+  /// fClef on F3's, cClef on C4's).
   void _layoutClef() {
     final (glyph, position) = switch (score.clef) {
       Clef.treble => (SmuflGlyph.gClef, 2), // G4
       Clef.bass => (SmuflGlyph.fClef, 6), // F3
+      Clef.alto => (SmuflGlyph.cClef, 4), // C4 on the middle line
+      Clef.tenor => (SmuflGlyph.cClef, 6), // C4 on the fourth line
     };
     _addGlyph(glyph, _x, _yOf(position));
     _x += _glyphWidth(glyph) + s.clefGap;
@@ -234,13 +249,13 @@ class _LayoutBuilder {
     final fifths = score.keySignature.fifths;
     if (fifths == 0) return;
     final count = fifths.abs();
-    final table = fifths > 0 ? _sharpPositionsTreble : _flatPositionsTreble;
-    final clefShift = score.clef == Clef.treble ? 0 : -2;
+    final table =
+        fifths > 0 ? _sharpPositions[score.clef]! : _flatPositions[score.clef]!;
     final glyph =
         fifths > 0 ? SmuflGlyph.accidentalSharp : SmuflGlyph.accidentalFlat;
     final width = _glyphWidth(glyph);
     for (var i = 0; i < count; i++) {
-      _addGlyph(glyph, _x, _yOf(table[i] + clefShift));
+      _addGlyph(glyph, _x, _yOf(table[i]));
       _x += width + s.keyAccidentalGap;
     }
     _x += s.signatureGap - s.keyAccidentalGap;

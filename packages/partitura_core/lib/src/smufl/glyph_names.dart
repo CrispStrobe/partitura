@@ -14,6 +14,9 @@ abstract final class SmuflGlyph {
   /// F clef (bass).
   static const String fClef = 'fClef';
 
+  /// C clef (alto/tenor).
+  static const String cClef = 'cClef';
+
   /// Whole-note notehead.
   static const String noteheadWhole = 'noteheadWhole';
 

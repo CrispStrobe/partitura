@@ -89,6 +89,8 @@ class _InteractiveScreenState extends State<InteractiveScreen> {
               segments: const [
                 ButtonSegment(value: Clef.treble, label: Text('Treble')),
                 ButtonSegment(value: Clef.bass, label: Text('Bass')),
+                ButtonSegment(value: Clef.alto, label: Text('Alto')),
+                ButtonSegment(value: Clef.tenor, label: Text('Tenor')),
               ],
               selected: {_clef},
               onSelectionChanged: (selection) =>

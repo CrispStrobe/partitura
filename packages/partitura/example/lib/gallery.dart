@@ -163,6 +163,24 @@ final List<GalleryItem> galleryItems = [
     highlightedIds: const {'e1'},
   ),
   GalleryItem(
+    'Alto clef: viola line (F major)',
+    Score.simple(
+      clef: Clef.alto,
+      keySignature: const KeySignature(-1),
+      timeSignature: TimeSignature.threeFour,
+      notes: 'f3:q a3 c4 | c4:e d4 e4 f4 g4:q | a4+c4:h.',
+    ),
+  ),
+  GalleryItem(
+    'Tenor clef: cello line (D major)',
+    Score.simple(
+      clef: Clef.tenor,
+      keySignature: const KeySignature(2),
+      timeSignature: TimeSignature.fourFour,
+      notes: 'd3:q f#3 a3 d4 | c#4:e b3 a3 g3 f#3:h',
+    ),
+  ),
+  GalleryItem(
     'Unmetered bass chords (D major)',
     Score.simple(
       clef: Clef.bass,

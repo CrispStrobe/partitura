@@ -24,7 +24,7 @@ games, ear-training, theory drills — where every notehead must be tappable,
 draggable and highlightable.
 
 Deliberately *not* a full engraver: no multi-voice collision avoidance, slurs,
-tuplets or page justification. Single staff, both clefs, notes/rests to
+tuplets or page justification. Single staff, four clefs (treble, bass, alto, tenor), notes/rests to
 sixteenths, dots, accidentals, key/time signatures, triads, simple beaming.
 
 ## License

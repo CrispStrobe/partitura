@@ -10,6 +10,7 @@ library;
 const Map<String, String> smuflCodepoints = {
   'gClef': '\uE050',
   'fClef': '\uE062',
+  'cClef': '\uE05C',
   'noteheadWhole': '\uE0A2',
   'noteheadHalf': '\uE0A3',
   'noteheadBlack': '\uE0A4',

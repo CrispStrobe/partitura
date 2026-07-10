@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0-dev.1
+
+- **Alto and tenor clefs**: `Clef.alto` (C clef on the middle line, bottom
+  line F3) and `Clef.tenor` (C clef on the fourth line, bottom line D3).
+  Staff positions, `pitchAt`, layout anchoring and per-clef key-signature
+  placement (incl. the tenor sharp pattern) are fully supported; beaming,
+  stems, accidentals and interaction generalize unchanged.
+
 ## 0.1.0-dev.1
 
 Initial release.

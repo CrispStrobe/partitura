@@ -49,7 +49,7 @@ audio.
 
 - Scientific pitch notation, middle C = C4 = MIDI 60.
 - `Pitch.staffPosition(clef)`: 0 = bottom staff line, +1 per line/space
-  upward (treble E4 = 0, bass G2 = 0).
+  upward (bottom lines: treble E4, bass G2, alto F3, tenor D3).
 - Layout coordinates in staff spaces, origin at the staff's top line ∩ left
   edge, y grows downward.
 
