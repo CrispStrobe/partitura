@@ -55,6 +55,61 @@ terse is fine. See HANDOVER.md §6.
   F𝄫 down a major third). Alternatives (silent enharmonic respell) would
   make theory answers wrong; games stay in sane ranges anyway.
 
+## M2 — layout engine (2026-07-10)
+
+- **Geometry types**: HANDOVER.md's pseudo-code uses `Offset`, but
+  `partitura_core` cannot depend on Flutter. We use `dart:math`'s
+  `Point<double>` / `Rectangle<double>` (SDK-only). Deliberately NOT a
+  custom class named `Offset`/`Rect` — that would collide with `dart:ui`
+  in every consumer that imports both Flutter and partitura.
+- **y of a staff position**: `y = (8 - p) / 2` (origin top line, y down).
+- **Metadata flow**: core cannot load assets; the consumer decodes
+  `bravura_metadata.json` and passes it via
+  `SmuflMetadata.fromJson` → `LayoutSettings(metadata: …)`. Core tests read
+  the file from `../partitura/assets/` directly. Glyph metrics (bboxes,
+  stem anchors) come from the font metadata, not hardcoded values; SMuFL
+  bbox/anchor y-up coordinates are flipped at the single point of entry.
+- **Spacing formula** (rule 13): a note/rest advances
+  `spacingBase + spacingPerLog2 · (4 + log2(duration))` staff spaces from
+  its notehead column (sixteenth = `spacingBase` = 1.8, each doubling adds
+  0.75), but never closer than `minNoteGap` after the element's ink.
+  `log2` of the dot factors is a 3-entry constant table, keeping layout
+  bit-for-bit deterministic (rule 14) without transcendental calls.
+- **Beam grouping** (rule 7): groups form per `1/beatUnit` window, never
+  across rests or windows. In even-numerator x/4 meters, adjacent
+  all-eighth groups in the same half-measure merge — this yields the
+  contract's "8 eighths in 4/4 = 2 beams" while 3/4 stays per-beat.
+  Compound 6/8 grouping (3+3) is out of scope v0.1 ("simple-meter grouping
+  only"): in x/8 meters each eighth is its own window, so eighths get
+  flags. Unmetered scores group per quarter window.
+- **Beam geometry**: slant = `clamp((refY_last − refY_first)/2, ±1)`,
+  intercept chosen so every stem keeps ≥ default length (min/max over the
+  group), then shifted so the beam never crosses the middle line from the
+  stem side. `BeamPrimitive.start/end` are the midpoints of the beam's end
+  edges; stems run to the beam's center line. Secondary (16th) beams are
+  offset `beamThickness + beamSpacing` toward the noteheads; a lone
+  sixteenth between eighths gets a 1-space beamlet stub pointing into the
+  group.
+- **Stem extension** (rule 5): default 3.5 spaces; if the default tip
+  falls short of the middle line for notes far outside the staff, the stem
+  extends to y = 2 (both directions).
+- **Accidental state** (rule 9): per measure, keyed by (step, octave) —
+  F♯4 does not imply F♯5. A hidden accidental (`showAccidental: false`)
+  does NOT update the written state (state tracks what the reader sees);
+  a forced one does.
+- **Chord seconds** (rule 11): walking from the stem's anchor end, a note
+  a second above/below an unflipped neighbor flips to the stem's other
+  side. Flipped x = one notehead width minus stem thickness.
+- **Key signature octaves** (rule 2): treble sharp positions
+  [8,5,9,6,3,7,4], flats [4,7,3,6,2,5,1] (staff positions); bass = same
+  pattern 2 positions lower (matches VexFlow/Behind Bars, incl. F♭ on the
+  ledger position −1 for 7-flat bass signatures).
+- **`ScoreLayout.top` added** beyond the contract's width/height: ink
+  extends above y = 0 (clef overshoot, high notes), so the renderer needs
+  the bounding-box top to translate correctly. Also added
+  `measureRegions` (x-extents per measure) for the interaction layer's
+  tap→measure mapping.
+
 ## Blockers
 
 (none)

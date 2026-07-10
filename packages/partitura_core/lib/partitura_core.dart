@@ -10,9 +10,14 @@
 /// in staff-space coordinates.
 library;
 
+export 'src/layout/layout_engine.dart' show LayoutEngine;
+export 'src/layout/layout_settings.dart';
+export 'src/layout/score_layout.dart';
 export 'src/model/element.dart';
 export 'src/model/measure.dart';
 export 'src/model/score.dart';
+export 'src/smufl/glyph_names.dart';
+export 'src/smufl/smufl_metadata.dart';
 export 'src/theory/clef.dart';
 export 'src/theory/duration.dart';
 export 'src/theory/fraction.dart';
