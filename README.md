@@ -1,0 +1,34 @@
+# neume
+
+Music notation rendering for Dart & Flutter, with first-class interactivity.
+
+**Status: pre-release scaffold.** The implementation contract lives in
+[HANDOVER.md](HANDOVER.md); design decisions are logged in
+[docs/DESIGN.md](docs/DESIGN.md).
+
+| Package | Contents | Depends on |
+|---|---|---|
+| [`neume_core`](packages/neume_core) | Music theory model (pitch, duration, key, scale, chord, harmonic function), score document model, deterministic layout engine. Pure Dart. | Dart SDK only |
+| [`neume`](packages/neume) | Flutter rendering (`StaffView`) and interaction (`InteractiveStaff`): hit-testing, selection, drag-to-staff. Bundles the Bravura SMuFL font. | Flutter, `neume_core` |
+
+## Why another notation library?
+
+VexFlow, OpenSheetMusicDisplay and abcjs are JavaScript and render statically.
+neume targets Flutter apps that need **interactive** notation — education
+games, ear-training, theory drills — where every notehead must be tappable,
+draggable and highlightable.
+
+Deliberately *not* a full engraver: no multi-voice collision avoidance, slurs,
+tuplets or page justification. Single staff, both clefs, notes/rests to
+sixteenths, dots, accidentals, key/time signatures, triads, simple beaming.
+
+## License
+
+Code: [MIT](LICENSE). Bundled Bravura font: SIL OFL 1.1 (© Steinberg Media
+Technologies GmbH), see [OFL.txt](packages/neume/assets/fonts/OFL.txt).
+
+## Development
+
+Pub workspace (Dart ≥ 3.5): `dart pub get` at the repo root resolves both
+packages. Gates: `dart format .`, `flutter analyze`, `flutter test` in each
+package.
