@@ -57,6 +57,9 @@ class Score {
   ///   (`c4:q~ c4:q`), also across a barline.
   /// - A trailing `(` opens a slur on this note and a trailing `)` closes
   ///   it (`c4:q( d4 e4)`); slurs may cross barlines but not nest.
+  /// - Articulation markers at the end of a note token: `'` staccato,
+  ///   `_` tenuto, `>` accent, `^` marcato, `@` fermata (combinable, e.g.
+  ///   `c4:q>'`).
   /// - `3[c4:e d4 e4]` groups a tuplet: `actual[`…`]` or `actual:normal[`
   ///   (default `normal` = the largest power of two below `actual`, and 3
   ///   for duplets). Tuplets cannot cross barlines or nest.
@@ -113,6 +116,7 @@ class Score {
         var opensSlur = false;
         var closesSlur = false;
         var closesTuplet = false;
+        final articulations = <Articulation>{};
         var stripping = true;
         while (stripping && token.isNotEmpty) {
           switch (token[token.length - 1]) {
@@ -127,6 +131,21 @@ class Score {
               token = token.substring(0, token.length - 1);
             case ']':
               closesTuplet = true;
+              token = token.substring(0, token.length - 1);
+            case "'":
+              articulations.add(Articulation.staccato);
+              token = token.substring(0, token.length - 1);
+            case '_':
+              articulations.add(Articulation.tenuto);
+              token = token.substring(0, token.length - 1);
+            case '>':
+              articulations.add(Articulation.accent);
+              token = token.substring(0, token.length - 1);
+            case '^':
+              articulations.add(Articulation.marcato);
+              token = token.substring(0, token.length - 1);
+            case '@':
+              articulations.add(Articulation.fermata);
               token = token.substring(0, token.length - 1);
             default:
               stripping = false;
@@ -147,6 +166,10 @@ class Score {
           if (opensSlur || closesSlur) {
             throw FormatException('A rest cannot carry a slur: "$token"');
           }
+          if (articulations.isNotEmpty) {
+            throw FormatException(
+                'A rest cannot carry articulations: "$token"');
+          }
           elements.add(RestElement(duration, id: id));
         } else {
           final sources = parts[0].split('+');
@@ -157,6 +180,7 @@ class Score {
             duration: duration,
             showAccidental: forced ? true : null,
             tieToNext: tied,
+            articulations: articulations,
             id: id,
           ));
           if (closesSlur) {

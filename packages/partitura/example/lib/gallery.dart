@@ -163,6 +163,13 @@ final List<GalleryItem> galleryItems = [
     highlightedIds: const {'e1'},
   ),
   GalleryItem(
+    'Articulations & fermata',
+    Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: "c5:q' a4_ g4> c5^ | c4+e4:q' d5>' f4:h@",
+    ),
+  ),
+  GalleryItem(
     'Tuplets (triplet, rest inside, quintuplet)',
     Score.simple(
       timeSignature: TimeSignature.fourFour,

@@ -2,6 +2,10 @@
 
 ## 0.3.0-dev.1 (in progress)
 
+- **Articulations**: `NoteElement.articulations` (staccato, tenuto,
+  accent, marcato, fermata; DSL markers `' _ > ^ @`), drawn on the
+  notehead side opposite the stem, stacked outward; fermatas always
+  above and outside the staff.
 - **Tuplets**: `TupletSpan` on `Measure` (DSL `3[…]` / `5:4[…]`);
   exact effective durations (`Measure.effectiveDurationAt`), tuplet-aware
   spacing and beam windows (beams never cross a tuplet boundary), ratio

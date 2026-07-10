@@ -6,6 +6,8 @@
 /// by these names.
 library;
 
+import '../model/element.dart';
+
 /// SMuFL glyph name constants (the subset partitura uses).
 abstract final class SmuflGlyph {
   /// G clef (treble).
@@ -70,6 +72,21 @@ abstract final class SmuflGlyph {
 
   /// Augmentation dot.
   static const String augmentationDot = 'augmentationDot';
+
+  /// The articulation glyph for [articulation], in its above/below variant.
+  static String articulationGlyph(
+    Articulation articulation, {
+    required bool above,
+  }) {
+    final suffix = above ? 'Above' : 'Below';
+    return switch (articulation) {
+      Articulation.staccato => 'articStaccato$suffix',
+      Articulation.tenuto => 'articTenuto$suffix',
+      Articulation.accent => 'articAccent$suffix',
+      Articulation.marcato => 'articMarcato$suffix',
+      Articulation.fermata => 'fermata$suffix',
+    };
+  }
 
   /// Time signature digits 0–9; index with [timeSigDigit].
   static const List<String> timeSigDigits = [

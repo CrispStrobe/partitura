@@ -19,7 +19,7 @@ gates green (`dart format`, analyze zero issues, all tests), push.
 - [x] 0.3.2 Slurs (`Slur(startId, endId)` spans, curve clearance)
 - [x] 0.3.3 Tuplets (measure-level spans, ratio bracket + digits,
       exact `Fraction` math, beaming inside)
-- [ ] 0.3.4 Articulations (staccato, tenuto, accent, marcato, fermata)
+- [x] 0.3.4 Articulations (staccato, tenuto, accent, marcato, fermata)
 - [ ] 0.3.5 Dynamics (pp…ff glyphs) + hairpins (cresc/dim wedges)
 - [ ] 0.3.6 Grace notes (scaled glyphs, acciaccatura slash)
 - [ ] 0.3.7 32nd/64th notes + breve (flags, multi-level beams, DSL

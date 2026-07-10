@@ -77,7 +77,8 @@ value-based, invalid constructor arguments fail asserts in debug builds.
 - `MusicElement` (sealed) = `NoteElement` (1 pitch = note, n pitches =
   chord; `showAccidental`: `null` auto / `true` force / `false` hide;
   `tieToNext` ties to the next note element — identical pitches only,
-  a tie into a rest draws nothing) or `RestElement`.
+  a tie into a rest draws nothing; `articulations`: staccato, tenuto,
+  accent, marcato, fermata) or `RestElement`.
 - `Score.slurs`: `Slur(startId, endId)` phrasing curves between note
   elements; unknown or reversed ids throw at layout time. The optional `id` makes an element addressable by the
   interaction layer; ids should be unique per score.
@@ -101,6 +102,8 @@ slur     := '(' opens / ')' closes, at the end of a chord token
 tuplet   := 'actual[' or 'actual:normal[' opens, ']' closes
             (3[c4:e d4 e4]) — within one measure, no nesting; default
             normal = largest power of two below actual (3 for duplets)
+artic    := trailing markers: ' staccato, _ tenuto, > accent,
+            ^ marcato, @ fermata (combinable: c4:q>')
 ```
 
 Durations are sticky (initial default: quarter). `n` = explicit natural
@@ -160,7 +163,9 @@ the notehead side away from the stem, across barlines, chords tying
 pairwise by identical pitch · slurs above unless every spanned note stems
 up, arcing clear of everything in between · tuplet digit + bracket on the
 group's stem side; tuplet members space at their sounding width, beam
-within their beat window and never beam across the tuplet boundary.
+within their beat window and never beam across the tuplet boundary ·
+articulations on the notehead side (opposite the stem), stacked outward
+in enum order; fermatas always above and outside the staff.
 
 **Not implemented (v0.x non-goals)**: multi-voice collision avoidance,
 slurs/ties, tuplets, grace notes, cross-staff beaming, lyrics, dynamics,

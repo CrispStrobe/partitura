@@ -388,7 +388,45 @@ class _LayoutBuilder {
         _layoutBeamGroup(notes, stemsDown: group.stemsDown);
       }
     }
+    _layoutArticulations(measure, tieBase);
     _layoutTuplets(measure, tieBase);
+  }
+
+  /// v0.3.4: articulation marks on the notehead side (opposite the stem),
+  /// stacked outward in enum order; fermatas always go above the element
+  /// and outside the staff.
+  void _layoutArticulations(Measure measure, int tieBase) {
+    for (var i = 0; i < measure.elements.length; i++) {
+      final element = measure.elements[i];
+      if (element is! NoteElement || element.articulations.isEmpty) {
+        continue;
+      }
+      final info = _tieInfos[tieBase + i];
+      final centerX = (info.left + info.right) / 2;
+      final above = info.stemsDown; // notehead side = opposite the stem
+      final headYs = info.heads.map((h) => h.$4);
+      var y = above ? headYs.reduce(min) - 0.75 : headYs.reduce(max) + 0.75;
+      for (final articulation in Articulation.values) {
+        if (articulation == Articulation.fermata ||
+            !element.articulations.contains(articulation)) {
+          continue;
+        }
+        final glyph = SmuflGlyph.articulationGlyph(articulation, above: above);
+        final box = meta.bBoxOf(glyph);
+        _addGlyph(glyph, centerX - box.swX - box.width / 2, y,
+            elementId: element.id);
+        y += (above ? -1 : 1) * (box.height + 0.45);
+      }
+      if (element.articulations.contains(Articulation.fermata)) {
+        final bounds = element.id == null ? null : _elementBounds[element.id];
+        final top = min(bounds?.minY ?? headYs.reduce(min), -0.5);
+        final glyph =
+            SmuflGlyph.articulationGlyph(Articulation.fermata, above: true);
+        final box = meta.bBoxOf(glyph);
+        _addGlyph(glyph, centerX - box.swX - box.width / 2, top - 0.4,
+            elementId: element.id);
+      }
+    }
   }
 
   void _validateTuplets(Measure measure) {

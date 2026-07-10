@@ -10,3 +10,9 @@ bool listEquals<T>(List<T> a, List<T> b) {
   }
   return true;
 }
+
+/// Compares two sets for equality.
+bool setEquals<T>(Set<T> a, Set<T> b) {
+  if (identical(a, b)) return true;
+  return a.length == b.length && a.containsAll(b);
+}

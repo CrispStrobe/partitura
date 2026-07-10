@@ -94,6 +94,10 @@ void main() {
         SmuflGlyph.augmentationDot,
         ...SmuflGlyph.timeSigDigits,
         for (var d = 0; d <= 9; d++) SmuflGlyph.tupletDigit(d),
+        for (final a in Articulation.values) ...[
+          SmuflGlyph.articulationGlyph(a, above: true),
+          SmuflGlyph.articulationGlyph(a, above: false),
+        ],
       ];
       for (final glyph in drawnGlyphs) {
         final box = metadata.bBoxOf(glyph); // throws if absent

@@ -411,6 +411,17 @@ void main() {
     );
   });
 
+  testWidgets('29 articulations', (tester) async {
+    await golden(
+      tester,
+      '29_articulations',
+      Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: "c5:q' a4_ g4> c5^ | c4+e4:q' d5>' f4:h@",
+      ),
+    );
+  });
+
   testWidgets('21 unmetered snippet in bass with chords', (tester) async {
     await golden(
       tester,

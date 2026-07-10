@@ -5,6 +5,24 @@ import '../internal/util.dart';
 import '../theory/duration.dart';
 import '../theory/pitch.dart';
 
+/// Articulation marks attachable to a [NoteElement].
+enum Articulation {
+  /// Short, detached (dot).
+  staccato,
+
+  /// Held for full value (dash).
+  tenuto,
+
+  /// Emphasized (horizontal wedge).
+  accent,
+
+  /// Strongly emphasized (vertical wedge).
+  marcato,
+
+  /// Held beyond its value (fermata; always drawn above the element).
+  fermata,
+}
+
 /// A single rhythmic event in a measure: a note/chord or a rest.
 ///
 /// Elements are value types; treat their lists as immutable. The optional
@@ -38,6 +56,10 @@ class NoteElement extends MusicElement {
   /// tied; a tie into a rest or nothing draws no curve.
   final bool tieToNext;
 
+  /// Articulation marks: drawn on the notehead side (opposite the stem),
+  /// stacked outward in enum order; a fermata always goes above.
+  final Set<Articulation> articulations;
+
   /// Creates a note or chord from [pitches] and a [duration].
   ///
   /// [pitches] must be non-empty. (Not asserted: list lengths cannot be
@@ -47,6 +69,7 @@ class NoteElement extends MusicElement {
     required super.duration,
     this.showAccidental,
     this.tieToNext = false,
+    this.articulations = const {},
     super.id,
   });
 
@@ -56,12 +79,14 @@ class NoteElement extends MusicElement {
     NoteDuration duration, {
     bool? showAccidental,
     bool tieToNext = false,
+    Set<Articulation> articulations = const {},
     String? id,
   }) : this(
           pitches: [pitch],
           duration: duration,
           showAccidental: showAccidental,
           tieToNext: tieToNext,
+          articulations: articulations,
           id: id,
         );
 
@@ -72,15 +97,17 @@ class NoteElement extends MusicElement {
       other.showAccidental == showAccidental &&
       other.tieToNext == tieToNext &&
       other.id == id &&
-      listEquals(other.pitches, pitches);
+      listEquals(other.pitches, pitches) &&
+      setEquals(other.articulations, articulations);
 
   @override
-  int get hashCode => Object.hash(
-      duration, showAccidental, tieToNext, id, Object.hashAll(pitches));
+  int get hashCode => Object.hash(duration, showAccidental, tieToNext, id,
+      Object.hashAll(pitches), Object.hashAllUnordered(articulations));
 
   @override
   String toString() =>
       'NoteElement(${pitches.join('+')}, $duration${tieToNext ? ', tied' : ''}'
+      '${articulations.isEmpty ? '' : ', ${articulations.map((a) => a.name).join('+')}'}'
       '${id == null ? '' : ', id: $id'})';
 }
 
