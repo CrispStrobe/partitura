@@ -287,10 +287,10 @@ enum encodings so files round-trip cleanly), tiered by importance:
 - [x] **7.1 MIDI file export** — `scoreToMidi` emits a format-0 Standard MIDI
       File off the playback timeline (repeats/jumps unfolded; tempo +
       time-signature meta; voice→channel). Contract-safe (no audio).
-- [~] **7.2 Raster + vector export** — **Done:** SVG (`scoreToSvg`, own
-      pure-Dart emitter over `ScoreLayout`; serves notation and tab; optional
-      embedded font). **Left:** PNG (rides the Flutter canvas —
-      `RepaintBoundary.toImage`).
+- [x] **7.2 Raster + vector export** — SVG (`scoreToSvg`, pure-Dart emitter
+      over `ScoreLayout`; notation and tab; optional embedded font) and PNG
+      (`renderLayoutToPng` in the `partitura` package, via `dart:ui`). Both
+      serve notation and tablature.
 - [~] **7.3 Wider import** — additional interchange formats beyond MusicXML.
       **Done:** MIDI import (`scoreFromMidi` — format 0/1, lossy single-staff
       quantized reconstruction). **Left:** the common tablature file formats
@@ -305,9 +305,9 @@ enum encodings so files round-trip cleanly), tiered by importance:
       differentiator.
 - [~] **7.6 CLI tool** (`partitura_cli`) — a pure-Dart command line for
       `info` / `timeline` / `convert` (MusicXML ↔ MIDI) / `render` (SVG,
-      notation or `--tab`), with live process tests. **Left:** PNG output
-      (rides the Flutter renderer, with 7.2's raster half), and reading the
-      DSL / more input formats.
+      notation or `--tab`), with live process tests. PNG is available as the
+      `renderLayoutToPng` Flutter API (7.2). **Left:** a Flutter-backed
+      `render …png` command, and reading the DSL / more input formats.
 
 ---
 

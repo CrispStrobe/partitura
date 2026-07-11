@@ -2,6 +2,10 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **PNG export** (Phase 7.2): `renderLayoutToPng(layout, {…})` rasterizes a
+  `ScoreLayout` (notation or tab) to PNG bytes via `dart:ui` — the raster
+  counterpart to core's `scoreToSvg`. Runs inside a Flutter binding; reuses
+  the shared `LayoutPainter`.
 - **Guitar/bass tablature** (v0.8): `TabStaffView` renders a `Score` as tab
   (fret numbers on string lines, TAB clef) for a `Tuning`, with rhythm and
   playing techniques — slides, hammer-on/pull-off, bends, vibrato, palm

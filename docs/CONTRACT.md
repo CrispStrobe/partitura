@@ -387,6 +387,11 @@ export rides the Flutter renderer — see the `partitura` package.)*
 - `RenderStaffView` is public as the geometry service: `scoreLayout`,
   `scale`, `localToStaff`/`staffToLocal`, `elementIdAt`,
   `quantizeStaffPosition`, `ghostNote`.
+- `renderLayoutToPng(layout, {staffSpace, theme, highlightedIds,
+  background})` → `Future<Uint8List>` rasterizes a `ScoreLayout` (notation or
+  tab) to PNG via `dart:ui` — the raster counterpart to core's `scoreToSvg`.
+  It runs inside a Flutter binding (an app or `flutter test`) and needs the
+  engraving font registered (`Bravura.load()`).
 
 ## 7. Interaction (`partitura`)
 
