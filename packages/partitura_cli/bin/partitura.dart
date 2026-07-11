@@ -19,6 +19,7 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:partitura_cli/src/gp_container.dart';
 import 'package:partitura_core/partitura_core.dart';
 
 const _usage = '''
@@ -36,9 +37,10 @@ Commands:
                                        the Flutter SDK)
 
 Common:
-  --from <musicxml|midi|asciitab>      Force the input format (.tab/.crd/.txt
-                                       are plain-text tab)
-  --to   <musicxml|midi>               Force the convert output format
+  --from <musicxml|midi|asciitab|gp|gpif>
+                                       Force the input format (.tab/.crd/.txt
+                                       are plain-text tab; .gp is Guitar Pro 7/8)
+  --to   <musicxml|midi|gp|gpif>       Force the convert output format
 
 render options:
   --tab                                Render as guitar/bass tablature
@@ -138,6 +140,12 @@ int _convert(List<String> args) {
       File(outPath).writeAsStringSync(scoreToMusicXml(score));
     case 'midi':
       File(outPath).writeAsBytesSync(scoreToMidi(score));
+    case 'gpif':
+      File(outPath).writeAsStringSync(
+          scoreToGpif(score, tuning: _tuningOf(options['tuning'])));
+    case 'gp':
+      File(outPath).writeAsBytesSync(writeGpFromGpif(
+          scoreToGpif(score, tuning: _tuningOf(options['tuning']))));
     default:
       throw _CliError('cannot write format "$outFormat"');
   }
@@ -206,6 +214,10 @@ Score _loadScore(String path, Map<String, String> options) {
         tuning: _tuningOf(options['tuning']),
         inferRhythm: options.containsKey('infer-rhythm'),
       );
+    case 'gpif':
+      return scoreFromGpif(file.readAsStringSync());
+    case 'gp':
+      return scoreFromGpif(readGpifFromGp(file.readAsBytesSync()));
     default:
       throw _CliError('unknown input format for $path (use --from)');
   }
@@ -228,6 +240,8 @@ String _formatOf(String path) {
       lower.endsWith('.txt')) {
     return 'asciitab';
   }
+  if (lower.endsWith('.gpif')) return 'gpif';
+  if (lower.endsWith('.gp')) return 'gp';
   return 'unknown';
 }
 

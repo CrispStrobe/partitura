@@ -142,6 +142,42 @@ E|-------------|
     expect(File(mid).readAsBytesSync().sublist(0, 4), [0x4D, 0x54, 0x68, 0x64]);
   });
 
+  test('round-trips MusicXML -> .gp -> MusicXML with real files', () async {
+    // A guitar-range melody so every note frets on standard tuning.
+    final src = '${tmp.path}/song.musicxml';
+    File(src).writeAsStringSync(scoreToMusicXml(Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'e3:q g3 b3 e4 | c4:q e4 g4 c5',
+    )));
+    final gp = '${tmp.path}/song.gp';
+    final back = '${tmp.path}/from_gp.musicxml';
+    expect((await run(['convert', src, gp])).exitCode, 0);
+    // The .gp is a real ZIP archive.
+    expect(File(gp).readAsBytesSync().sublist(0, 2), [0x50, 0x4B]); // "PK"
+    expect((await run(['convert', gp, back])).exitCode, 0);
+
+    List<String> pitches(String path) =>
+        scoreFromMusicXml(File(path).readAsStringSync())
+            .measures
+            .expand((m) => m.elements)
+            .whereType<NoteElement>()
+            .expand((n) => n.pitches)
+            .map((p) => p.toString())
+            .toList();
+    expect(pitches(back), pitches(src)); // transparent for pitches
+  });
+
+  test('reads a raw .gpif and reports it', () async {
+    final gpif = '${tmp.path}/x.gpif';
+    File(gpif).writeAsStringSync(scoreToGpif(Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'e3:q g3 b3 e4',
+    )));
+    final r = await run(['info', gpif]);
+    expect(r.exitCode, 0, reason: '${r.stdout}\n${r.stderr}');
+    expect(r.stdout, contains('elements:   4'));
+  });
+
   test('a missing input file fails with a clear error', () async {
     final r = await run(['info', '${tmp.path}/nope.musicxml']);
     expect(r.exitCode, 1);

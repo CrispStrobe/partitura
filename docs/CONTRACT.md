@@ -356,6 +356,18 @@ Malformed bytes or an unsupported SMPTE division throw `FormatException`.
 
 Both are dependency-free (`dart:typed_data`) and deterministic.
 
+### Guitar Pro (GPIF) import & export
+
+`scoreToGpif(score, {tuning})` / `scoreFromGpif(gpif)` write and read the
+`score.gpif` XML at the heart of the Guitar Pro 6/7/8 formats — a **subset**
+(track tuning, master bars → bars → voices → beats → notes as string+fret, and
+rhythms; single voice/track; techniques out of scope), pure Dart. Pitches are
+fretted on the `Tuning` for export and recovered from string+fret on import,
+so pitches and rhythm round-trip. The `.gp` container is a ZIP of the gpif; the
+CLI reads/writes it (that needs `dart:io`). It round-trips partitura's own
+GPIF and follows the documented schema, but is not validated against files
+Guitar Pro itself exports. (GP6 `.gpx` uses a different container — unsupported.)
+
 ### Plain-text (ASCII) tablature import
 
 `asciiTabToScore(text, {tuning, duration})` → `Score` parses the informal

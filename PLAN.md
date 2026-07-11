@@ -297,11 +297,12 @@ enum encodings so files round-trip cleanly), tiered by importance:
       (`renderLayoutToPng` in the `partitura` package, via `dart:ui`). Both
       serve notation and tablature.
 - [~] **7.3 Wider import** — additional interchange formats beyond MusicXML.
-      **Done:** MIDI import (`scoreFromMidi` — format 0/1, lossy single-staff
-      quantized reconstruction); plain-text/ASCII tab import (`asciiTabToScore`
-      — chords, barlines, h/p/slide/bend/vibrato/dead techniques; lossy rhythm).
-      **Left:** the binary fretted-tab editor formats (the `.gp` zip-XML family
-      first — needs a ZIP reader; then the older binary versions).
+      **Done:** MIDI import (`scoreFromMidi`); plain-text/ASCII tab import
+      (`asciiTabToScore`); Guitar Pro import **and** export (`scoreFromGpif` /
+      `scoreToGpif` GPIF subset + the `.gp` ZIP container in `partitura_cli`).
+      All formats round-trip transparently through the shared `Score` model for
+      the data they share. **Left:** GP6 `.gpx` (different container), the older
+      binary `.gp3–5`/`.ptb` versions, and GP playing techniques.
 - [x] **7.4 Repeat unfolding** — `playbackTimeline` linearizes repeats /
       voltas / D.C. / D.S. / To Coda / al Fine / al Coda into performance
       order, executing the navigation jumps (one level; after a D.C./D.S.

@@ -2,6 +2,14 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Guitar Pro (GPIF) import/export** (Phase 7.3): `scoreFromGpif` /
+  `scoreToGpif` read and write the `score.gpif` XML of the Guitar Pro 6/7/8
+  formats — a subset (tuning, bars → voices → beats → string+fret notes,
+  rhythms; single track/voice), pure Dart. Pitches and rhythm round-trip. The
+  `.gp` ZIP container is handled in `partitura_cli` (needs `dart:io`), which
+  also gains `.gp`/`.gpif` input+output. Because every codec funnels through
+  the one `Score` model, formats round-trip transparently for the data they
+  share (see `interchange_transparency_test.dart`).
 - **Chord diagrams above the staff** (Phase 6.4): `Score.chordDiagrams`
   (`PlacedChordDiagram(elementId, diagram, {scale})`) places a fretboard
   diagram over a note on a shared row above the staff — the lead-sheet

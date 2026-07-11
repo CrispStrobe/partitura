@@ -10,6 +10,7 @@
 /// in staff-space coordinates.
 library;
 
+export 'src/gp/gpif.dart';
 export 'src/layout/grand_staff.dart';
 export 'src/layout/layout_engine.dart' show LayoutEngine;
 export 'src/layout/layout_settings.dart';
