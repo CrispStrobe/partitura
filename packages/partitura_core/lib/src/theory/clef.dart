@@ -18,16 +18,29 @@ enum Clef {
 
   /// C clef anchored on the fourth staff line from the bottom, C4
   /// (Tenorschlüssel).
-  tenor;
+  tenor,
+
+  /// G clef sounding an octave higher (8 above; piccolo).
+  treble8va,
+
+  /// G clef sounding an octave lower (8 below; choral tenor).
+  treble8vb,
+
+  /// F clef sounding an octave lower (8 below; double bass notation).
+  bass8vb;
 
   /// Absolute diatonic index ([Pitch.diatonicIndex]) of the natural pitch
   /// sitting on the bottom staff line: E4 (30) for treble, G2 (18) for
-  /// bass, F3 (24) for alto, D3 (22) for tenor.
+  /// bass, F3 (24) for alto, D3 (22) for tenor; octave clefs shift by
+  /// ±7 (treble8vb: E3).
   int get bottomLineDiatonicIndex => switch (this) {
         Clef.treble => 30,
         Clef.bass => 18,
         Clef.alto => 24,
         Clef.tenor => 22,
+        Clef.treble8va => 37,
+        Clef.treble8vb => 23,
+        Clef.bass8vb => 11,
       };
 
   /// The natural (unaltered) pitch at [staffPosition], where 0 is the bottom

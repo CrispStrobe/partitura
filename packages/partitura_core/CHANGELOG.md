@@ -2,6 +2,11 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Octave clefs + ottava brackets** (v0.6 polish): `Clef.treble8va`/
+  `treble8vb`/`bass8vb` (staff arithmetic, key signatures, MusicXML
+  `<clef-octave-change>`); `Ottava(startId, endId, down:)` spans draw
+  their notes an octave off sounding pitch under a dashed 8va/8vb
+  bracket, and round-trip via MusicXML `<octave-shift>`.
 - **Multi-measure rests** (v0.6 polish): `Measure.multiRest` / DSL
   `!mrest=N` — H-bar with end caps on the middle line, count in
   time-signature digits above; playback advances N bars of the current

@@ -126,6 +126,15 @@ abstract final class SmuflGlyph {
     };
   }
 
+  /// G clef sounding an octave higher.
+  static const String gClef8va = 'gClef8va';
+
+  /// G clef sounding an octave lower.
+  static const String gClef8vb = 'gClef8vb';
+
+  /// F clef sounding an octave lower.
+  static const String fClef8vb = 'fClef8vb';
+
   /// Trill ornament.
   static const String ornamentTrill = 'ornamentTrill';
 

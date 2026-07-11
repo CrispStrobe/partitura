@@ -161,6 +161,39 @@ class _LayoutBuilder {
 
   double _x = 0;
 
+  /// Staff-position shift per element id from ottava spans (v0.6.4):
+  /// −7 inside an 8va (written an octave lower), +7 inside an 8vb.
+  late final Map<String, int> _ottavaShift = _computeOttavaShifts();
+
+  Map<String, int> _computeOttavaShifts() {
+    if (score.ottavas.isEmpty) return const {};
+    final order = <String>[
+      for (final measure in score.measures) ...[
+        for (final element in measure.elements)
+          if (element.id != null) element.id!,
+        for (final element in measure.voice2)
+          if (element.id != null) element.id!,
+      ],
+    ];
+    final shifts = <String, int>{};
+    for (final ottava in score.ottavas) {
+      final start = order.indexOf(ottava.startId);
+      final end = order.indexOf(ottava.endId);
+      if (start < 0 || end < start) {
+        throw ArgumentError('$ottava does not span forward in this score');
+      }
+      for (var i = start; i <= end; i++) {
+        shifts[order[i]] = ottava.down ? 7 : -7;
+      }
+    }
+    return shifts;
+  }
+
+  /// The written staff position of [pitch] for element [id] — sounding
+  /// position adjusted by any covering ottava.
+  int _writtenPosition(Pitch pitch, String? id) =>
+      pitch.staffPosition(_clef) + (_ottavaShift[id] ?? 0);
+
   // Mid-score changes (v0.3.8) update these as measures are laid out.
   late Clef _clef = score.clef;
   late KeySignature _key = score.keySignature;
@@ -181,12 +214,19 @@ class _LayoutBuilder {
     Clef.bass: [6, 3, 7, 4, 1, 5, 2],
     Clef.alto: [7, 4, 8, 5, 2, 6, 3],
     Clef.tenor: [2, 6, 3, 7, 4, 8, 5],
+    // Octave clefs write key signatures like their base clef.
+    Clef.treble8va: [8, 5, 9, 6, 3, 7, 4],
+    Clef.treble8vb: [8, 5, 9, 6, 3, 7, 4],
+    Clef.bass8vb: [6, 3, 7, 4, 1, 5, 2],
   };
   static const Map<Clef, List<int>> _flatPositions = {
     Clef.treble: [4, 7, 3, 6, 2, 5, 1],
     Clef.bass: [2, 5, 1, 4, 0, 3, -1],
     Clef.alto: [3, 6, 2, 5, 1, 4, 0],
     Clef.tenor: [5, 8, 4, 7, 3, 6, 2],
+    Clef.treble8va: [4, 7, 3, 6, 2, 5, 1],
+    Clef.treble8vb: [4, 7, 3, 6, 2, 5, 1],
+    Clef.bass8vb: [2, 5, 1, 4, 0, 3, -1],
   };
 
   // log2(dot factor) for 0..2 dots: 1, 3/2, 7/4.
@@ -227,6 +267,7 @@ class _LayoutBuilder {
     }
     _layoutTies();
     _layoutSlurs();
+    _layoutOttavas();
     _layoutDynamics();
     _layoutLyrics();
     _layoutAnnotations();
@@ -367,15 +408,21 @@ class _LayoutBuilder {
   /// Rule 1: clef anchored on its reference line (gClef on G4's line,
   /// fClef on F3's, cClef on C4's).
   void _layoutClef() {
-    final (glyph, position) = switch (_clef) {
-      Clef.treble => (SmuflGlyph.gClef, 2), // G4
-      Clef.bass => (SmuflGlyph.fClef, 6), // F3
-      Clef.alto => (SmuflGlyph.cClef, 4), // C4 on the middle line
-      Clef.tenor => (SmuflGlyph.cClef, 6), // C4 on the fourth line
-    };
+    final (glyph, position) = _clefGlyph(_clef);
     _addGlyph(glyph, _x, _yOf(position));
     _x += _glyphWidth(glyph) + s.clefGap;
   }
+
+  /// Glyph + anchor staff position per clef (octave clefs carry the 8).
+  static (String, int) _clefGlyph(Clef clef) => switch (clef) {
+        Clef.treble => (SmuflGlyph.gClef, 2), // G4
+        Clef.bass => (SmuflGlyph.fClef, 6), // F3
+        Clef.alto => (SmuflGlyph.cClef, 4), // C4 on the middle line
+        Clef.tenor => (SmuflGlyph.cClef, 6), // C4 on the fourth line
+        Clef.treble8va => (SmuflGlyph.gClef8va, 2),
+        Clef.treble8vb => (SmuflGlyph.gClef8vb, 2),
+        Clef.bass8vb => (SmuflGlyph.fClef8vb, 6),
+      };
 
   /// Rule 2: key signature in standard order at conventional octaves.
   void _layoutKeySignature() {
@@ -568,7 +615,8 @@ class _LayoutBuilder {
         _x = columnX;
         if (v == 1 && element is NoteElement && voice1Positions.isNotEmpty) {
           final voice2Positions = [
-            for (final pitch in element.pitches) pitch.staffPosition(_clef),
+            for (final pitch in element.pitches)
+              _writtenPosition(pitch, element.id),
           ];
           final collides = voice1Positions
               .any((p1) => voice2Positions.any((p2) => (p1 - p2).abs() <= 1));
@@ -591,7 +639,8 @@ class _LayoutBuilder {
             }
             if (v == 0) {
               voice1Positions = [
-                for (final pitch in element.pitches) pitch.staffPosition(_clef),
+                for (final pitch in element.pitches)
+                  _writtenPosition(pitch, element.id),
               ];
             }
             idealEnd = max(idealEnd, result.noteX + _idealAdvance(delta));
@@ -801,7 +850,7 @@ class _LayoutBuilder {
         (a, b) => a.staffPosition(_clef) - b.staffPosition(_clef),
       );
     final positions = [
-      for (final pitch in pitches) pitch.staffPosition(_clef),
+      for (final pitch in pitches) _writtenPosition(pitch, id),
     ];
     final bottom = positions.first;
     final top = positions.last;
@@ -1362,6 +1411,54 @@ class _LayoutBuilder {
     }
   }
 
+  /// v0.6.4: ottava brackets — the "8va"/"8vb" label at the span start
+  /// with a dashed line to the span end and a small closing hook,
+  /// above (8va) or below (8vb) the spanned ink.
+  void _layoutOttavas() {
+    if (score.ottavas.isEmpty) return;
+    final infoOf = <String, _TieInfo>{
+      for (final info in _tieInfos)
+        if (info.id != null) info.id!: info,
+    };
+    for (final ottava in score.ottavas) {
+      final start = infoOf[ottava.startId];
+      final end = infoOf[ottava.endId];
+      if (start == null || end == null) {
+        throw ArgumentError('$ottava references an unknown note element id');
+      }
+      final left = start.left;
+      final right = end.right;
+      double edge = ottava.down ? 5.0 : -1.0;
+      for (final info in _tieInfos) {
+        if (info.id == null || !_ottavaShift.containsKey(info.id)) continue;
+        final bounds = _elementBounds[info.id];
+        if (bounds == null) continue;
+        edge = ottava.down
+            ? max(edge, bounds.maxY + 0.6)
+            : min(edge, bounds.minY - 0.6);
+      }
+      final y = edge;
+      _primitives.add(TextPrimitive(
+        ottava.down ? '8vb' : '8va',
+        Point(left + 0.9, y + 0.35),
+        size: 1.6,
+      ));
+      // Dashed line from after the label to the span end.
+      var x = left + 2.2;
+      while (x < right - 0.7) {
+        _addLine(Point(x, y), Point(min(x + 0.5, right), y), 0.12);
+        x += 1.0;
+      }
+      // Closing hook toward the staff.
+      _addLine(
+        Point(right, y),
+        Point(right, y + (ottava.down ? -0.75 : 0.75)),
+        0.12,
+      );
+      _ink.expand(left, y - 0.8, right, y + 0.8);
+    }
+  }
+
   /// v0.4.4: lyric syllables on a shared baseline below all other ink,
   /// centered under their note; hyphens between connected syllables,
   /// extender lines under melismas.
@@ -1495,12 +1592,7 @@ class _LayoutBuilder {
     final clefChange = measure.clefChange;
     if (clefChange != null && clefChange != _clef) {
       _clef = clefChange;
-      final (glyph, position) = switch (_clef) {
-        Clef.treble => (SmuflGlyph.gClef, 2),
-        Clef.bass => (SmuflGlyph.fClef, 6),
-        Clef.alto => (SmuflGlyph.cClef, 4),
-        Clef.tenor => (SmuflGlyph.cClef, 6),
-      };
+      final (glyph, position) = _clefGlyph(_clef);
       const changeScale = 0.8;
       _addGlyph(glyph, _x, _yOf(position), scale: changeScale);
       _x += _glyphWidth(glyph) * changeScale + s.clefGap * 0.75;

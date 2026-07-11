@@ -138,14 +138,19 @@ class _PartWriter {
       }
       final clef = index == 0 ? score.clef : measure.clefChange;
       if (clef != null) {
-        final (sign, line) = switch (clef) {
-          Clef.treble => ('G', 2),
-          Clef.bass => ('F', 4),
-          Clef.alto => ('C', 3),
-          Clef.tenor => ('C', 4),
+        final (sign, line, octave) = switch (clef) {
+          Clef.treble => ('G', 2, 0),
+          Clef.bass => ('F', 4, 0),
+          Clef.alto => ('C', 3, 0),
+          Clef.tenor => ('C', 4, 0),
+          Clef.treble8va => ('G', 2, 1),
+          Clef.treble8vb => ('G', 2, -1),
+          Clef.bass8vb => ('F', 4, -1),
         };
         out.writeln('        <clef><sign>$sign</sign>'
-            '<line>$line</line></clef>');
+            '<line>$line</line>'
+            '${octave == 0 ? '' : '<clef-octave-change>$octave</clef-octave-change>'}'
+            '</clef>');
       }
       if (measure.multiRest != null) {
         out.writeln('        <measure-style><multiple-rest>'
@@ -219,6 +224,13 @@ class _PartWriter {
                 '<wedge type="$type"/></direction-type></direction>');
           }
         }
+        for (final ottava in score.ottavas) {
+          if (ottava.startId == id) {
+            out.writeln('      <direction><direction-type>'
+                '<octave-shift type="${ottava.down ? 'up' : 'down'}" '
+                'size="8"/></direction-type></direction>');
+          }
+        }
         final annotation = _annotationsById[id];
         if (annotation != null) {
           out.writeln('      <harmony><root><root-step>'
@@ -261,13 +273,20 @@ class _PartWriter {
         }
       }
 
-      // Wedges stop right after their end note (the importer anchors a
-      // stop on the most recently read note).
+      // Wedges/ottavas stop right after their end note (the importer
+      // anchors a stop on the most recently read note).
       if (id != null) {
         for (final hairpin in score.hairpins) {
           if (hairpin.endId == id) {
             out.writeln('      <direction><direction-type>'
                 '<wedge type="stop"/></direction-type></direction>');
+          }
+        }
+        for (final ottava in score.ottavas) {
+          if (ottava.endId == id) {
+            out.writeln('      <direction><direction-type>'
+                '<octave-shift type="stop" size="8"/>'
+                '</direction-type></direction>');
           }
         }
       }

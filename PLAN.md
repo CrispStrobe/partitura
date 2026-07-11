@@ -4,11 +4,11 @@
 (grand staff), 0.4.3 (line breaking + justification), 0.4.4 (lyrics)
 and 0.4.5 (chord symbols / annotations) shipped — **v0.4 complete**;
 0.5.1/0.5.2 (MusicXML import + export), 0.5.3 (playback-cursor API)
-and 0.5.4 (Score.transposedBy) shipped — **v0.5 complete**; 0.6.1–0.6.3
-(accidental stacking, ornaments, multi-measure rests) shipped
-(versions 0.4.0-dev.1). 492 core + 116 widget + 5 example tests, 42
-golden scenes + hero, on-device integration test — all green. Next:
-0.6.4 octave clefs + ottava brackets.
+and 0.5.4 (Score.transposedBy) shipped — **v0.5 complete**; **the whole
+feature-parity plan (v0.1–v0.6) is complete** (versions 0.4.0-dev.1).
+501 core + 117 widget + 5 example tests, 43 golden scenes + hero,
+on-device integration test — all green. Remaining work is
+consumer-driven (see "Permanently out" and DESIGN.md backlog notes).
 
 Working checklist for the feature-parity plan. Analysis and per-item
 design notes live in [docs/ROADMAP.md](docs/ROADMAP.md); check items off
@@ -66,7 +66,8 @@ gates green (`dart format`, analyze zero issues, all tests), push.
       `% \$ & ?`, MusicXML round trip)
 - [x] 0.6.3 Multi-measure rests (`!mrest=N`, H-bar + count,
       playback advances N bars, MusicXML measure-style)
-- [ ] 0.6.4 Octave clefs + ottava brackets
+- [x] 0.6.4 Octave clefs (treble8va/treble8vb/bass8vb) + ottava
+      brackets (`Ottava` spans, dashed bracket, octave-shifted layout)
 
 ## Permanently out (per HANDOVER contract / until explicitly requested)
 

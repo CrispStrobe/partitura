@@ -643,4 +643,24 @@ void main() {
       ),
     );
   });
+
+  testWidgets('43 octave clefs and ottava bracket', (tester) async {
+    final base = Score.simple(
+      clef: Clef.treble8vb,
+      timeSignature: TimeSignature.fourFour,
+      notes: 'c3:q e3 g3 c4 | c6:q d6 e6 f6 | g5:w',
+    );
+    await golden(
+      tester,
+      '43_octave_clefs_ottava',
+      theme: const PartituraTheme(textFontFamily: 'Roboto'),
+      Score(
+        clef: base.clef,
+        keySignature: base.keySignature,
+        timeSignature: base.timeSignature,
+        measures: base.measures,
+        ottavas: const [Ottava('e4', 'e7')],
+      ),
+    );
+  });
 }

@@ -310,6 +310,14 @@ final List<GalleryItem> galleryItems = [
       notes: 'c4:q d4 e4 f4 | !mrest=16 | g4:w',
     ),
   ),
+  GalleryItem(
+    'Octave clef (choral tenor, treble8vb)',
+    Score.simple(
+      clef: Clef.treble8vb,
+      timeSignature: TimeSignature.fourFour,
+      notes: 'c3:q e3 g3 c4 | b3:h. r:q',
+    ),
+  ),
 ];
 
 /// Scrollable gallery of the corpus (plus grand-staff and multi-system

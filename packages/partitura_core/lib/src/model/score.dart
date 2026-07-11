@@ -44,6 +44,10 @@ class Score {
   /// tempo text (see `Score.simple`'s `annotations` parameter).
   final List<Annotation> annotations;
 
+  /// Ottava brackets (model-only; the DSL has no shorthand). Spanned
+  /// notes draw an octave off their sounding pitch.
+  final List<Ottava> ottavas;
+
   /// Creates a score (treat the lists as immutable).
   const Score({
     required this.clef,
@@ -55,6 +59,7 @@ class Score {
     this.hairpins = const [],
     this.lyrics = const [],
     this.annotations = const [],
+    this.ottavas = const [],
   });
 
   /// Builds a score from a terse note string, for tests and games.
@@ -519,6 +524,7 @@ class Score {
       hairpins: hairpins,
       lyrics: lyrics,
       annotations: annotations,
+      ottavas: ottavas,
     );
   }
 
@@ -576,7 +582,8 @@ class Score {
       listEquals(other.dynamics, dynamics) &&
       listEquals(other.hairpins, hairpins) &&
       listEquals(other.lyrics, lyrics) &&
-      listEquals(other.annotations, annotations);
+      listEquals(other.annotations, annotations) &&
+      listEquals(other.ottavas, ottavas);
 
   @override
   int get hashCode => Object.hash(
@@ -589,6 +596,7 @@ class Score {
         Object.hashAll(hairpins),
         Object.hashAll(lyrics),
         Object.hashAll(annotations),
+        Object.hashAll(ottavas),
       );
 
   @override

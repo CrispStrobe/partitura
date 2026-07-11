@@ -437,6 +437,17 @@ terse is fine. See HANDOVER.md §6.
   an imported multiple-rest is dropped as redundant.
 - The count reuses the time-signature digit glyphs at y = −1.
 
+## v0.6.4 octave clefs + ottava (2026-07-11)
+
+- Octave clefs are just three more `Clef` values: all staff arithmetic
+  flows from `bottomLineDiatonicIndex` (±7), key-signature tables copy
+  the base clef, glyphs carry the printed 8.
+- Ottavas shift **written** staff positions (±7) per spanned element
+  id (`_writtenPosition`); the model keeps sounding pitches, so
+  playback and transposition are unaffected by the bracket.
+- The bracket is a `TextPrimitive` label + dashed `LinePrimitive`s +
+  end hook, placed above/below all spanned ink.
+
 ## Blockers
 
 (none)

@@ -97,6 +97,8 @@ class _PartReader {
   // Open spans keyed by MusicXML "number" attribute.
   final _openSlurs = <String, String>{};
   final _openWedges = <String, (String, HairpinType)>{};
+  final _openOttavas = <String, (String, bool)>{};
+  final _ottavas = <Ottava>[];
 
   Score read() {
     for (final measureNode in part.childrenNamed('measure')) {
@@ -115,6 +117,7 @@ class _PartReader {
       hairpins: _hairpins,
       lyrics: _lyrics,
       annotations: _annotations,
+      ottavas: _ottavas,
     );
   }
 
@@ -206,6 +209,8 @@ class _PartReader {
           }
           final wedge = node.child('direction-type')?.child('wedge');
           if (wedge != null) _handleWedge(wedge, elements, voice2);
+          final shift = node.child('direction-type')?.child('octave-shift');
+          if (shift != null) _handleOctaveShift(shift);
         case 'harmony':
           pendingHarmony = _harmonyText(node);
         case 'note':
@@ -327,11 +332,16 @@ class _PartReader {
   static Clef _clefOf(XmlNode clefNode) {
     final sign = clefNode.childText('sign');
     final line = int.tryParse(clefNode.childText('line') ?? '');
-    return switch ((sign, line)) {
-      ('G', _) => Clef.treble,
-      ('F', _) => Clef.bass,
-      ('C', 4) => Clef.tenor,
-      ('C', _) => Clef.alto,
+    final octave =
+        int.tryParse(clefNode.childText('clef-octave-change') ?? '0') ?? 0;
+    return switch ((sign, line, octave)) {
+      ('G', _, 1) => Clef.treble8va,
+      ('G', _, -1) => Clef.treble8vb,
+      ('G', _, _) => Clef.treble,
+      ('F', _, -1) => Clef.bass8vb,
+      ('F', _, _) => Clef.bass,
+      ('C', 4, _) => Clef.tenor,
+      ('C', _, _) => Clef.alto,
       _ => throw FormatException('Unsupported clef: $sign$line'),
     };
   }
@@ -471,6 +481,26 @@ class _PartReader {
         final endId = 'e${idOffset + _nextId - 1}';
         _hairpins.add(Hairpin(open.$1, endId, open.$2));
       }
+    }
+  }
+
+  void _handleOctaveShift(XmlNode shift) {
+    final number = shift.attributes['number'] ?? '1';
+    switch (shift.attributes['type']) {
+      // MusicXML "down" writes the notes lower → 8va bracket above.
+      case 'down':
+        _openOttavas[number] = ('e${idOffset + _nextId}', false);
+      case 'up':
+        _openOttavas[number] = ('e${idOffset + _nextId}', true);
+      case 'stop':
+        final open = _openOttavas.remove(number);
+        if (open != null) {
+          _ottavas.add(Ottava(
+            open.$1,
+            'e${idOffset + _nextId - 1}',
+            down: open.$2,
+          ));
+        }
     }
   }
 

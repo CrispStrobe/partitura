@@ -339,3 +339,33 @@ class Annotation {
   @override
   String toString() => 'Annotation($elementId: "$text")';
 }
+
+/// An ottava bracket: the spanned elements are written an octave off
+/// their sounding pitch, with a dashed bracket marking the range.
+class Ottava {
+  /// Id of the first spanned note element.
+  final String startId;
+
+  /// Id of the last spanned note element (inclusive).
+  final String endId;
+
+  /// False = 8va (bracket above; written an octave lower than sounding),
+  /// true = 8vb (bracket below; written an octave higher).
+  final bool down;
+
+  /// Creates an ottava span.
+  const Ottava(this.startId, this.endId, {this.down = false});
+
+  @override
+  bool operator ==(Object other) =>
+      other is Ottava &&
+      other.startId == startId &&
+      other.endId == endId &&
+      other.down == down;
+
+  @override
+  int get hashCode => Object.hash(startId, endId, down);
+
+  @override
+  String toString() => 'Ottava($startId -> $endId, ${down ? '8vb' : '8va'})';
+}
