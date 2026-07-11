@@ -24,12 +24,9 @@ void main() {
   int markCount(Score s, TabNoteStyle style) =>
       s.tabNoteMarks.where((m) => m.style == style).length;
 
-  Score gp3(String name) =>
-      gp3ToScore(File('$dir/$name').readAsBytesSync());
-  Score gp4(String name) =>
-      gp4ToScore(File('$dir/$name').readAsBytesSync());
-  Score gp5(String name) =>
-      gp5ToScore(File('$dir/$name').readAsBytesSync());
+  Score gp3(String name) => gp3ToScore(File('$dir/$name').readAsBytesSync());
+  Score gp4(String name) => gp4ToScore(File('$dir/$name').readAsBytesSync());
+  Score gp5(String name) => gp5ToScore(File('$dir/$name').readAsBytesSync());
   Score gpx(String name) =>
       scoreFromGpif(readGpifFromGpx(File('$dir/$name').readAsBytesSync()));
   Score gp(String name) =>
@@ -151,6 +148,32 @@ void main() {
       expect(s.measures, hasLength(2));
       expect(noteCount(s), 3);
       expect(s.bends, hasLength(3));
+    });
+  });
+
+  // Effects the binary readers reach but historically discarded: vibrato
+  // (per-note in GP4/5, beat-level in GP3), and palm-mute / let-ring, which
+  // are per-note flags coalesced into labelled bracket spans.
+  group('note-effect marks (vibrato / palm mute / let ring)', () {
+    test('vibrato: all four notes vibrato in GP3/GP4/GP5 alike', () {
+      expect(gp3('vibrato.gp3').vibratos, hasLength(4));
+      expect(gp4('vibrato.gp4').vibratos, hasLength(4));
+      expect(gp5('vibrato.gp5').vibratos, hasLength(4));
+    });
+
+    test('effects bundle: GP4/GP5 agree on 2 palm-mute + 2 let-ring spans', () {
+      for (final s in [gp4('effects.gp4'), gp5('effects.gp5')]) {
+        expect(s.palmMutes, hasLength(2));
+        expect(s.letRings, hasLength(2));
+        expect(s.vibratos, hasLength(4));
+      }
+    });
+
+    test('GP3 effects: let-ring + vibrato, but no note-level palm mute', () {
+      final s = gp3('effects.gp3');
+      expect(s.letRings, hasLength(2));
+      expect(s.vibratos, hasLength(4));
+      expect(s.palmMutes, isEmpty); // GP3 has no palm-mute note effect
     });
   });
 }

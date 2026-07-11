@@ -266,18 +266,19 @@ void _readBeatGp34(
   if (flags & 0x20 != 0) r.i32(); // tuplet
   if (flags & 0x02 != 0) _readChordGp34(r, gp4: gp4);
   if (flags & 0x04 != 0) r.intByteSizeString(); // text
-  var beatHarmonic = false, beatBar = false;
+  var beatHarmonic = false, beatBar = false, beatVibrato = false;
   if (flags & 0x08 != 0) {
     final e = _readBeatEffectsGp34(r, gp4: gp4);
     beatHarmonic = e.harmonic;
     beatBar = e.bar;
+    beatVibrato = e.vibrato;
   }
   if (flags & 0x10 != 0) _readMixTableChangeGp34(r, gp4: gp4);
   // Notes: one bit per string (string 1 = bit 6 … string 7 = bit 0).
   final stringFlags = r.u8();
   final pitches = <Pitch>[];
   var dead = false, harmonic = beatHarmonic, hammer = false, slide = false;
-  var bend = false;
+  var bend = false, vibrato = beatVibrato, palmMute = false, letRing = false;
   double bendSteps = 0;
   for (var s = 1; s <= tuning.length; s++) {
     if (stringFlags & (1 << (7 - s)) == 0) continue;
@@ -291,6 +292,9 @@ void _readBeatGp34(
     harmonic = harmonic || note.harmonic;
     hammer = hammer || note.hammer;
     slide = slide || note.slide;
+    vibrato = vibrato || note.vibrato;
+    palmMute = palmMute || note.palmMute;
+    letRing = letRing || note.letRing;
     if (note.bendSteps > 0) {
       bend = true;
       bendSteps = note.bendSteps > bendSteps ? note.bendSteps : bendSteps;
@@ -310,13 +314,17 @@ void _readBeatGp34(
     slide: slide,
     bend: bend,
     bendSteps: bendSteps > 0 ? bendSteps : (bend ? 1.0 : 0),
+    vibrato: vibrato,
+    palmMute: palmMute,
+    letRing: letRing,
   );
 }
 
 class _BeatEffectsGp34 {
   final bool harmonic; // GP3 stores natural/artificial harmonic on the beat
   final bool bar; // tremolo/whammy bar
-  _BeatEffectsGp34(this.harmonic, this.bar);
+  final bool vibrato; // GP3 stores note vibrato on the beat
+  _BeatEffectsGp34(this.harmonic, this.bar, {this.vibrato = false});
 }
 
 _BeatEffectsGp34 _readBeatEffectsGp34(_Reader r, {required bool gp4}) {
@@ -330,11 +338,13 @@ _BeatEffectsGp34 _readBeatEffectsGp34(_Reader r, {required bool gp4}) {
     }
     if (f1 & 0x40 != 0) r.skip(2); // beat stroke (down/up)
     final harmonic = f1 & 0x04 != 0 || f1 & 0x08 != 0; // natural/artificial
-    return _BeatEffectsGp34(harmonic, bar);
+    final vibrato = f1 & 0x01 != 0 || f1 & 0x02 != 0; // note/wide vibrato
+    return _BeatEffectsGp34(harmonic, bar, vibrato: vibrato);
   }
   final f1 = r.i8();
   final f2 = r.i8();
   var bar = false;
+  final vibrato = f1 & 0x02 != 0; // wide vibrato (beat-level in GP4)
   if (f1 & 0x20 != 0) r.i8(); // slap effect
   if (f2 & 0x04 != 0) {
     _readBend(r); // tremolo bar (full bend envelope in GP4)
@@ -342,7 +352,8 @@ _BeatEffectsGp34 _readBeatEffectsGp34(_Reader r, {required bool gp4}) {
   }
   if (f1 & 0x40 != 0) r.skip(2); // beat stroke
   if (f2 & 0x02 != 0) r.i8(); // pick stroke
-  return _BeatEffectsGp34(false, bar); // GP4 harmonics are per-note
+  // GP4 harmonics are per-note; wide vibrato is beat-level.
+  return _BeatEffectsGp34(false, bar, vibrato: vibrato);
 }
 
 void _readMixTableChangeGp34(_Reader r, {required bool gp4}) {
@@ -376,6 +387,7 @@ _NoteData? _readNoteGp34(_Reader r, int stringNumber, List<int> tuning,
     r.i8(); // right-hand fingering
   }
   var harmonic = false, hammer = false, slide = false;
+  var vibrato = false, palmMute = false, letRing = false;
   double bendSteps = 0;
   if (flags & 0x08 != 0) {
     final e = gp4 ? _readNoteEffectsGp4(r) : _readNoteEffectsGp3(r);
@@ -383,6 +395,9 @@ _NoteData? _readNoteGp34(_Reader r, int stringNumber, List<int> tuning,
     hammer = e.hammer;
     slide = e.slide;
     bendSteps = e.bendSteps;
+    vibrato = e.vibrato;
+    palmMute = e.palmMute;
+    letRing = e.letRing;
   }
   final dead = type == 3;
   final open = stringNumber - 1 < tuning.length
@@ -394,23 +409,28 @@ _NoteData? _readNoteGp34(_Reader r, int stringNumber, List<int> tuning,
       harmonic: harmonic,
       hammer: hammer,
       slide: slide,
-      bendSteps: bendSteps);
+      bendSteps: bendSteps,
+      vibrato: vibrato,
+      palmMute: palmMute,
+      letRing: letRing);
 }
 
 _NoteEffects _readNoteEffectsGp3(_Reader r) {
   final f = r.u8();
   final hammer = f & 0x02 != 0;
+  final letRing = f & 0x08 != 0;
   double bendSteps = 0;
   if (f & 0x01 != 0) bendSteps = _readBend(r);
   if (f & 0x10 != 0) r.skip(4); // grace (fret, velocity, duration, transition)
   final slide = f & 0x04 != 0; // GP3 slide carries no extra bytes
-  return _NoteEffects(false, hammer, slide, bendSteps);
+  return _NoteEffects(false, hammer, slide, bendSteps, letRing: letRing);
 }
 
 _NoteEffects _readNoteEffectsGp4(_Reader r) {
   final f1 = r.i8();
   final f2 = r.i8();
   final hammer = f1 & 0x02 != 0;
+  final letRing = f1 & 0x08 != 0;
   double bendSteps = 0;
   if (f1 & 0x01 != 0) bendSteps = _readBend(r);
   if (f1 & 0x10 != 0) r.skip(4); // grace
@@ -423,7 +443,10 @@ _NoteEffects _readNoteEffectsGp4(_Reader r) {
     r.i8(); // harmonic type
   }
   if (f2 & 0x20 != 0) r.skip(2); // trill (fret + period)
-  return _NoteEffects(harmonic, hammer, slide, bendSteps);
+  final palmMute = f2 & 0x02 != 0;
+  final vibrato = f2 & 0x40 != 0;
+  return _NoteEffects(harmonic, hammer, slide, bendSteps,
+      vibrato: vibrato, palmMute: palmMute, letRing: letRing);
 }
 
 void _readChordGp34(_Reader r, {required bool gp4}) {
@@ -528,14 +551,18 @@ void _readBeat(
   if (flags & 0x20 != 0) r.i32(); // tuplet
   if (flags & 0x02 != 0) _readChord(r); // chord diagram
   if (flags & 0x04 != 0) r.intByteSizeString(); // text
-  var beatBend = false;
-  if (flags & 0x08 != 0) beatBend = _readBeatEffects(r);
+  var beatBend = false, beatVibrato = false;
+  if (flags & 0x08 != 0) {
+    final e = _readBeatEffects(r);
+    beatBend = e.bar;
+    beatVibrato = e.vibrato;
+  }
   if (flags & 0x10 != 0) _readMixTableChange(r, v510); // mix table
   // Notes: one bit per string (string 1 = bit 6 … string 6 = bit 1).
   final stringFlags = r.u8();
   final pitches = <Pitch>[];
   var dead = false, harmonic = false, hammer = false, slide = false;
-  var bend = false;
+  var bend = false, vibrato = beatVibrato, palmMute = false, letRing = false;
   double bendSteps = 0;
   for (var s = 1; s <= tuning.length; s++) {
     if (stringFlags & (1 << (7 - s)) == 0) continue;
@@ -549,6 +576,9 @@ void _readBeat(
     harmonic = harmonic || note.harmonic;
     hammer = hammer || note.hammer;
     slide = slide || note.slide;
+    vibrato = vibrato || note.vibrato;
+    palmMute = palmMute || note.palmMute;
+    letRing = letRing || note.letRing;
     if (note.bendSteps > 0) {
       bend = true;
       bendSteps = note.bendSteps > bendSteps ? note.bendSteps : bendSteps;
@@ -571,12 +601,16 @@ void _readBeat(
     slide: slide,
     bend: bend,
     bendSteps: bendSteps > 0 ? bendSteps : (bend ? 1.0 : 0),
+    vibrato: vibrato,
+    palmMute: palmMute,
+    letRing: letRing,
   );
 }
 
-bool _readBeatEffects(_Reader r) {
+({bool bar, bool vibrato}) _readBeatEffects(_Reader r) {
   final f1 = r.i8();
   final f2 = r.i8();
+  final vibrato = f1 & 0x02 != 0; // wide vibrato (beat-level in GP5)
   if (f1 & 0x20 != 0) r.i8(); // slap
   var bar = false;
   if (f2 & 0x04 != 0) {
@@ -585,7 +619,7 @@ bool _readBeatEffects(_Reader r) {
   }
   if (f1 & 0x40 != 0) r.skip(2); // beat stroke
   if (f2 & 0x02 != 0) r.i8(); // pick stroke
-  return bar;
+  return (bar: bar, vibrato: vibrato);
 }
 
 void _readMixTableChange(_Reader r, bool v510) {
@@ -621,12 +655,18 @@ class _NoteData {
   final bool hammer;
   final bool slide;
   final double bendSteps;
+  final bool vibrato;
+  final bool palmMute;
+  final bool letRing;
   _NoteData(this.pitch,
       {this.dead = false,
       this.harmonic = false,
       this.hammer = false,
       this.slide = false,
-      this.bendSteps = 0});
+      this.bendSteps = 0,
+      this.vibrato = false,
+      this.palmMute = false,
+      this.letRing = false});
 }
 
 _NoteData? _readNote(_Reader r, int stringNumber, List<int> tuning) {
@@ -640,6 +680,7 @@ _NoteData? _readNote(_Reader r, int stringNumber, List<int> tuning) {
   if (flags & 0x01 != 0) r.skip(8); // duration percent (f64)
   r.u8(); // flags2
   var harmonic = false, hammer = false, slide = false;
+  var vibrato = false, palmMute = false, letRing = false;
   double bendSteps = 0;
   if (flags & 0x08 != 0) {
     final e = _readNoteEffects(r);
@@ -647,6 +688,9 @@ _NoteData? _readNote(_Reader r, int stringNumber, List<int> tuning) {
     hammer = e.hammer;
     slide = e.slide;
     bendSteps = e.bendSteps;
+    vibrato = e.vibrato;
+    palmMute = e.palmMute;
+    letRing = e.letRing;
   }
   final dead = type == 3;
   final open = stringNumber - 1 < tuning.length
@@ -658,7 +702,10 @@ _NoteData? _readNote(_Reader r, int stringNumber, List<int> tuning) {
       harmonic: harmonic,
       hammer: hammer,
       slide: slide,
-      bendSteps: bendSteps);
+      bendSteps: bendSteps,
+      vibrato: vibrato,
+      palmMute: palmMute,
+      letRing: letRing);
 }
 
 class _NoteEffects {
@@ -666,13 +713,18 @@ class _NoteEffects {
   final bool hammer;
   final bool slide;
   final double bendSteps;
-  _NoteEffects(this.harmonic, this.hammer, this.slide, this.bendSteps);
+  final bool vibrato;
+  final bool palmMute;
+  final bool letRing;
+  _NoteEffects(this.harmonic, this.hammer, this.slide, this.bendSteps,
+      {this.vibrato = false, this.palmMute = false, this.letRing = false});
 }
 
 _NoteEffects _readNoteEffects(_Reader r) {
   final f1 = r.i8();
   final f2 = r.i8();
   final hammer = f1 & 0x02 != 0;
+  final letRing = f1 & 0x08 != 0;
   double bendSteps = 0;
   if (f1 & 0x01 != 0) bendSteps = _readBend(r);
   if (f1 & 0x10 != 0) r.skip(5); // grace (GP5: 5 bytes)
@@ -685,7 +737,10 @@ _NoteEffects _readNoteEffects(_Reader r) {
     _readHarmonic(r);
   }
   if (f2 & 0x20 != 0) r.skip(2); // trill
-  return _NoteEffects(harmonic, hammer, slide, bendSteps);
+  final palmMute = f2 & 0x02 != 0;
+  final vibrato = f2 & 0x40 != 0;
+  return _NoteEffects(harmonic, hammer, slide, bendSteps,
+      vibrato: vibrato, palmMute: palmMute, letRing: letRing);
 }
 
 double _readBend(_Reader r) {
@@ -766,10 +821,17 @@ class _ScoreBuilder {
   final List<Glissando> glissandos = [];
   final List<Bend> bends = [];
   final List<TabNoteMark> marks = [];
+  final List<Vibrato> vibratos = [];
+  final List<PalmMute> palmMutes = [];
+  final List<LetRing> letRings = [];
   List<MusicElement> _current = [];
   int _id = 0;
   String? _pendingHammer;
   String? _pendingSlide;
+  // Palm-mute / let-ring are per-note flags in the binary formats; consecutive
+  // flagged notes coalesce into a single labelled bracket span.
+  String? _palmStart, _palmLast;
+  String? _letStart, _letLast;
 
   void startMeasure(bool keep) {
     if (!keep) return;
@@ -789,10 +851,15 @@ class _ScoreBuilder {
     required bool slide,
     required bool bend,
     required double bendSteps,
+    bool vibrato = false,
+    bool palmMute = false,
+    bool letRing = false,
   }) {
     if (status == 0 && pitches.isEmpty && !dead) return; // empty beat
     final id = 'e${_id++}';
     if (pitches.isEmpty && !dead) {
+      // A rest breaks any open palm-mute / let-ring bracket.
+      _flushSpans();
       _current.add(RestElement(duration, id: id));
       return;
     }
@@ -816,11 +883,40 @@ class _ScoreBuilder {
       marks.add(TabNoteMark(id, TabNoteStyle.dead));
     }
     if (bend && bendSteps > 0) bends.add(Bend(id, steps: bendSteps));
+    if (vibrato) vibratos.add(Vibrato(id));
+    // Extend or (re)open the palm-mute span.
+    if (palmMute) {
+      _palmStart ??= id;
+      _palmLast = id;
+    } else if (_palmStart != null) {
+      palmMutes.add(PalmMute(_palmStart!, _palmLast!));
+      _palmStart = _palmLast = null;
+    }
+    if (letRing) {
+      _letStart ??= id;
+      _letLast = id;
+    } else if (_letStart != null) {
+      letRings.add(LetRing(_letStart!, _letLast!));
+      _letStart = _letLast = null;
+    }
     if (hammer) _pendingHammer = id;
     if (slide) _pendingSlide = id;
   }
 
+  /// Closes any open palm-mute / let-ring bracket at a rest or end of score.
+  void _flushSpans() {
+    if (_palmStart != null) {
+      palmMutes.add(PalmMute(_palmStart!, _palmLast!));
+      _palmStart = _palmLast = null;
+    }
+    if (_letStart != null) {
+      letRings.add(LetRing(_letStart!, _letLast!));
+      _letStart = _letLast = null;
+    }
+  }
+
   Score build(List<TimeSignature> timeSigs) {
+    _flushSpans();
     if (_current.isNotEmpty) measures.add(Measure(_current));
     if (measures.isEmpty) {
       measures.add(Measure([RestElement(NoteDuration.whole, id: 'e0')]));
@@ -833,6 +929,9 @@ class _ScoreBuilder {
       glissandos: glissandos,
       bends: bends,
       tabNoteMarks: marks,
+      vibratos: vibratos,
+      palmMutes: palmMutes,
+      letRings: letRings,
     );
   }
 }

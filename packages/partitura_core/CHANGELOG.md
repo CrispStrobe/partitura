@@ -2,6 +2,14 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Guitar Pro binary import — more note effects** (Phase 7.3): the GP3/4/5
+  binary readers now surface **vibrato** (`Vibrato`; note-level in GP4/5,
+  beat-level "wide" in GP3 and GP5), and **palm mute** / **let ring**
+  (per-note flags coalesced into `PalmMute` / `LetRing` bracket spans that a
+  rest closes). They already rendered in the tab engine; the readers just
+  weren't feeding them. Confirmed against the real alphaTab corpora, where all
+  three versions agree (`vibrato.*`, `effects.*` fixtures) — except GP3, which
+  has no note-level palm mute.
 - **Guitar Pro 3/4 (.gp3/.gp4) import** (Phase 7.3):
   `gp3ToScore` / `gp4ToScore` extend the GP5 binary reader with the older
   layout — one voice per measure, no RSE/page-setup, GP3's beat-level

@@ -30,6 +30,8 @@ modify a file, keep it under MPL-2.0.
 | `hammer.gp3` / `.gp4` | Guitar Pro 3 / 4 (binary) | hammer-on / pull-off (slur) |
 | `harmonics.gp3` / `.gp4` | Guitar Pro 3 / 4 (binary) | harmonics (beat-level in GP3) |
 | `dead.gp3` / `.gp4` | Guitar Pro 3 / 4 (binary) | dead (muted) notes |
+| `vibrato.gp3` / `.gp4` / `.gp5` | Guitar Pro 3 / 4 / 5 (binary) | vibrato (all three agree) |
+| `effects.gp3` / `.gp4` / `.gp5` | Guitar Pro 3 / 4 / 5 (binary) | mixed bundle: palm mute + let ring spans |
 | `chords.gp5` | Guitar Pro 5 (binary) | multi-note chords across measures |
 | `bends.gp5`  | Guitar Pro 5 (binary) | string bends |
 | `chords.gpx` | Guitar Pro 6 (BCFZ/BCFS) | chords |
