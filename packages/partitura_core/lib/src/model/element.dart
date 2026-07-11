@@ -267,6 +267,56 @@ class Vibrato {
   String toString() => 'Vibrato($noteId${wide ? ', wide' : ''})';
 }
 
+/// A palm-mute span over a run of tab notes, referenced by the first and
+/// last note's ids (a single note if [startId] == [endId]): a "P.M." label
+/// followed by a dashed bracket line above the staff. Rendered by the tab
+/// engine only; ignored by standard-notation rendering.
+class PalmMute {
+  /// Id of the first muted note.
+  final String startId;
+
+  /// Id of the last muted note.
+  final String endId;
+
+  /// Creates a palm-mute span from [startId] to [endId].
+  const PalmMute(this.startId, this.endId);
+
+  @override
+  bool operator ==(Object other) =>
+      other is PalmMute && other.startId == startId && other.endId == endId;
+
+  @override
+  int get hashCode => Object.hash(startId, endId);
+
+  @override
+  String toString() => 'PalmMute($startId -> $endId)';
+}
+
+/// A let-ring span over a run of tab notes, referenced by the first and last
+/// note's ids (a single note if [startId] == [endId]): a "let ring" label
+/// followed by a dashed bracket line above the staff. Rendered by the tab
+/// engine only; ignored by standard-notation rendering.
+class LetRing {
+  /// Id of the first note that rings.
+  final String startId;
+
+  /// Id of the last note that rings.
+  final String endId;
+
+  /// Creates a let-ring span from [startId] to [endId].
+  const LetRing(this.startId, this.endId);
+
+  @override
+  bool operator ==(Object other) =>
+      other is LetRing && other.startId == startId && other.endId == endId;
+
+  @override
+  int get hashCode => Object.hash(startId, endId);
+
+  @override
+  String toString() => 'LetRing($startId -> $endId)';
+}
+
 /// A glissando/slide: a straight line drawn from one note to a later one,
 /// referenced by their ids (like [Slur]). The start must precede the end in
 /// reading order and both ids must exist, or layout throws an

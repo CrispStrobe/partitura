@@ -944,4 +944,23 @@ void main() {
       Tuning.standardGuitar,
     );
   });
+
+  testWidgets('57 guitar tab: palm mute + let ring', (tester) async {
+    final base = Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'e2:e a2 e2 a2 | e3:q b3 g4 b3',
+    );
+    await tabGolden(
+      tester,
+      '57_tab_mute_ring',
+      Score(
+        clef: base.clef,
+        timeSignature: base.timeSignature,
+        measures: base.measures,
+        palmMutes: const [PalmMute('e0', 'e3')], // over the first measure
+        letRings: const [LetRing('e4', 'e7')], // over the second
+      ),
+      Tuning.standardGuitar,
+    );
+  });
 }

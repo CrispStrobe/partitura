@@ -184,6 +184,20 @@ class TabLayoutEngine {
       _layoutVibrato(primitives, at.$1, at.$2, vibrato.wide);
     }
 
+    // Palm mute / let ring: a labelled dashed bracket above the staff.
+    for (final pm in score.palmMutes) {
+      final a = anchor[pm.startId];
+      final b = anchor[pm.endId];
+      if (a == null || b == null) continue;
+      _layoutTextBracket(primitives, 'P.M.', a.$1, b.$1, s);
+    }
+    for (final lr in score.letRings) {
+      final a = anchor[lr.startId];
+      final b = anchor[lr.endId];
+      if (a == null || b == null) continue;
+      _layoutTextBracket(primitives, 'let ring', a.$1, b.$1, s);
+    }
+
     // Hammer-on / pull-off (reuse `Score.slurs`): a small arc above the frets.
     for (final slur in score.slurs) {
       final a = anchor[slur.startId];
@@ -251,6 +265,43 @@ class TabLayoutEngine {
       ));
       px += half;
     }
+  }
+
+  /// Draws a [label] followed by a dashed bracket line above the staff, from
+  /// [startX] to [endX], with a downward end tick. Used for palm mute and let
+  /// ring. A single-note span (start ≈ end) draws just the label and the tick.
+  void _layoutTextBracket(List<LayoutPrimitive> primitives, String label,
+      double startX, double endX, LayoutSettings s) {
+    const size = 1.1;
+    const y = -1.4; // above the top string line (y = 0)
+    // Center-baseline text: shift right so the label's left edge sits at startX.
+    final labelHalf = 0.25 * size * label.length;
+    primitives.add(TextPrimitive(
+      label,
+      Point(startX + labelHalf, y + 0.35),
+      size: size,
+    ));
+    final lineStart = startX + 2 * labelHalf + 0.3;
+    if (endX > lineStart + 0.3) {
+      // Dashed line from after the label to the end.
+      const dash = 0.4;
+      const gap = 0.28;
+      var px = lineStart;
+      while (px < endX) {
+        primitives.add(LinePrimitive(
+          Point(px, y),
+          Point(min(px + dash, endX), y),
+          thickness: s.staffLineThickness,
+        ));
+        px += dash + gap;
+      }
+    }
+    // Downward end tick.
+    primitives.add(LinePrimitive(
+      Point(endX, y),
+      Point(endX, y + 0.5),
+      thickness: s.staffLineThickness,
+    ));
   }
 
   void _layoutRhythm(

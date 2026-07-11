@@ -265,5 +265,13 @@ Score _slice(
       for (final vibrato in score.vibratos)
         if (ids.contains(vibrato.noteId)) vibrato,
     ],
+    palmMutes: [
+      for (final pm in score.palmMutes)
+        if (ids.contains(pm.startId) && ids.contains(pm.endId)) pm,
+    ],
+    letRings: [
+      for (final lr in score.letRings)
+        if (ids.contains(lr.startId) && ids.contains(lr.endId)) lr,
+    ],
   );
 }

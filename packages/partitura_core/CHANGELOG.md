@@ -9,9 +9,10 @@
   rhythm (stems, flags, per-beat beams below the staff) and playing
   techniques — slides (reuse `Score.glissandos`), hammer-on/pull-off arcs
   (reuse `Score.slurs`), string bends (`Score.bends` — `Bend(noteId,
-  {steps})`) and vibrato (`Score.vibratos` — `Vibrato(noteId, {wide})`, a
-  wavy line above the fret); more techniques land incrementally. Lifts the
-  former "tablature out" scope.
+  {steps})`), vibrato (`Score.vibratos` — `Vibrato(noteId, {wide})`, a wavy
+  line above the fret) and palm mute / let ring (`Score.palmMutes` /
+  `Score.letRings` — a labelled dashed bracket above the staff); more
+  techniques land incrementally. Lifts the former "tablature out" scope.
 - **Forced beam slant** (Phase 1.4): `Score.beamSlants`
   (`BeamSlant(startId, endId, {slant})`) — forces a note run into one beam
   group with a fixed slant (0 = horizontal). Model-only.

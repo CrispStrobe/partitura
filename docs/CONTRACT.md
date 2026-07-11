@@ -254,10 +254,13 @@ Rhythm stems/beams and playing techniques are drawn by the tab engine only
 (they are inert in standard-notation rendering) and are added incrementally.
 Supported so far: slides (reuse `Score.glissandos`), hammer-on/pull-off
 (reuse `Score.slurs`), string bends (`Score.bends` — `Bend(noteId, {steps})`,
-an upward arrow with a ½/full/1½ amount label) and vibrato (`Score.vibratos`
+an upward arrow with a ½/full/1½ amount label), vibrato (`Score.vibratos`
 — `Vibrato(noteId, {wide})`, a wavy line above the fret; `wide` enlarges the
-wave). Still to come: harmonics, palm mute, dead/ghost notes, tapping…
-*(This lifts the former "tablature out" clause — a consumer requested it.)*
+wave), and palm mute / let ring (`Score.palmMutes` / `Score.letRings` —
+`PalmMute(startId, endId)` / `LetRing(startId, endId)`, a labelled dashed
+bracket above the staff over the spanned notes). Still to come: harmonics,
+dead/ghost notes, tapping… *(This lifts the former "tablature out" clause —
+a consumer requested it.)*
 
 **Not implemented (v0.x non-goals)**: multi-voice collision avoidance,
 cross-staff beaming, audio (never),

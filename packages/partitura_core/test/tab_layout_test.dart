@@ -196,6 +196,60 @@ void main() {
     expect(span(scoreWith(true)), greaterThan(span(scoreWith(false))));
   });
 
+  test('a palm mute draws a P.M. label and a dashed bracket', () {
+    final base = Score.simple(notes: 'e2:q a2 d3 g3');
+    final score = Score(
+      clef: base.clef,
+      measures: base.measures,
+      palmMutes: const [PalmMute('e0', 'e3')],
+    );
+    final layout =
+        const TabLayoutEngine().layout(score, Tuning.standardGuitar, settings);
+    final labels =
+        layout.primitives.whereType<TextPrimitive>().map((t) => t.text);
+    expect(labels, contains('P.M.'));
+    // The bracket sits above the top string line (negative y).
+    final aboveLines = layout.primitives
+        .whereType<LinePrimitive>()
+        .where((l) => l.from.y < 0 && l.to.y < 0 && l.from.y == l.to.y);
+    expect(aboveLines, isNotEmpty); // dashed horizontal segments
+  });
+
+  test('a let ring draws a let-ring label', () {
+    final base = Score.simple(notes: 'e2:q a2');
+    final score = Score(
+      clef: base.clef,
+      measures: base.measures,
+      letRings: const [LetRing('e0', 'e1')],
+    );
+    final layout =
+        const TabLayoutEngine().layout(score, Tuning.standardGuitar, settings);
+    expect(
+      layout.primitives.whereType<TextPrimitive>().map((t) => t.text),
+      contains('let ring'),
+    );
+  });
+
+  test('a single-note palm mute draws only the label and end tick', () {
+    final base = Score.simple(notes: 'e2:q');
+    final score = Score(
+      clef: base.clef,
+      measures: base.measures,
+      palmMutes: const [PalmMute('e0', 'e0')],
+    );
+    final layout =
+        const TabLayoutEngine().layout(score, Tuning.standardGuitar, settings);
+    // No dashed horizontal segment for a zero-length span.
+    final horizontalAbove = layout.primitives
+        .whereType<LinePrimitive>()
+        .where((l) => l.from.y < 0 && l.from.y == l.to.y);
+    expect(horizontalAbove, isEmpty);
+    expect(
+      layout.primitives.whereType<TextPrimitive>().map((t) => t.text),
+      contains('P.M.'),
+    );
+  });
+
   test('deterministic', () {
     String render() => tabOf(Score.simple(notes: 'e2:q a2 d3 g3'))
         .primitives
