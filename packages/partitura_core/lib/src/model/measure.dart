@@ -91,6 +91,11 @@ class Measure {
   /// Volta (ending) number drawn as a bracket over this measure, or null.
   final int? volta;
 
+  /// Multi-measure rest: this measure stands for [multiRest] measures of
+  /// silence, drawn as an H-bar with the count above (v0.6.3). Must be
+  /// ≥ 2 and requires empty [elements]/[voice2].
+  final int? multiRest;
+
   /// Creates a measure from [elements] (treat the lists as immutable).
   const Measure(
     this.elements, {
@@ -102,7 +107,11 @@ class Measure {
     this.startRepeat = false,
     this.endRepeat = false,
     this.volta,
-  }) : assert(volta == null || volta >= 1, 'volta must be >= 1');
+    this.multiRest,
+  })  : assert(volta == null || volta >= 1, 'volta must be >= 1'),
+        assert(multiRest == null || multiRest >= 2, 'multiRest must be >= 2'),
+        assert(multiRest == null || elements.length == 0,
+            'a multi-measure rest holds no elements');
 
   /// The sounding duration of the element at [index] as an exact fraction
   /// of a whole note, scaled by its tuplet span if any: a triplet eighth
@@ -143,7 +152,8 @@ class Measure {
       other.timeChange == timeChange &&
       other.startRepeat == startRepeat &&
       other.endRepeat == endRepeat &&
-      other.volta == volta;
+      other.volta == volta &&
+      other.multiRest == multiRest;
 
   @override
   int get hashCode => Object.hash(
@@ -155,7 +165,8 @@ class Measure {
       timeChange,
       startRepeat,
       endRepeat,
-      volta);
+      volta,
+      multiRest);
 
   @override
   String toString() => 'Measure(${elements.length} elements'

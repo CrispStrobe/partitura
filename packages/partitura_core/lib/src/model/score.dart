@@ -88,7 +88,8 @@ class Score {
   ///   short trill (upper mordent), `&` mordent, `?` turn.
   /// - Measure directives (tokens starting with `!`, conventionally first
   ///   in the measure): `!clef=bass`, `!key=-2`, `!time=3/4`, `!repeat`
-  ///   (start repeat), `!endrepeat`, `!volta=1`.
+  ///   (start repeat), `!endrepeat`, `!volta=1`, `!mrest=4` (a
+  ///   multi-measure rest standing for 4 silent measures; no notes).
   /// - A `;` splits a measure into two voices (`c5:q d5 ; c4:h`): voice 1
   ///   (before, stems up) and voice 2 (after, stems down). Directives and
   ///   tuplets belong to voice 1; ids keep counting across voices.
@@ -140,6 +141,7 @@ class Score {
       var startRepeat = false;
       var endRepeat = false;
       int? volta;
+      int? multiRest;
       var voiceIndex = 0;
       for (final voiceSource in voiceSources) {
         final target = voiceIndex == 0 ? elements : voice2;
@@ -182,6 +184,11 @@ class Score {
               volta = int.tryParse(directive.substring(6));
               if (volta == null || volta < 1) {
                 throw FormatException('Invalid volta directive: "$token"');
+              }
+            } else if (directive.startsWith('mrest=')) {
+              multiRest = int.tryParse(directive.substring(6));
+              if (multiRest == null || multiRest < 2) {
+                throw FormatException('Invalid mrest directive: "$token"');
               }
             } else {
               throw FormatException('Unknown directive: "$token"');
@@ -347,6 +354,9 @@ class Score {
       if (openTuplet != null) {
         throw const FormatException('Unclosed tuplet "["');
       }
+      if (multiRest != null && elements.isNotEmpty) {
+        throw const FormatException('!mrest measures cannot hold notes');
+      }
       measures.add(Measure(
         elements,
         voice2: voice2,
@@ -357,6 +367,7 @@ class Score {
         startRepeat: startRepeat,
         endRepeat: endRepeat,
         volta: volta,
+        multiRest: multiRest,
       ));
     }
     if (openSlurStart != null) {
@@ -500,6 +511,7 @@ class Score {
             startRepeat: measure.startRepeat,
             endRepeat: measure.endRepeat,
             volta: measure.volta,
+            multiRest: measure.multiRest,
           ),
       ],
       slurs: slurs,

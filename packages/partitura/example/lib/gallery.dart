@@ -303,6 +303,13 @@ final List<GalleryItem> galleryItems = [
       notes: r'c5:q% d5$ e5& f5? | g5:h@% c6:h?',
     ),
   ),
+  GalleryItem(
+    'Multi-measure rest',
+    Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'c4:q d4 e4 f4 | !mrest=16 | g4:w',
+    ),
+  ),
 ];
 
 /// Scrollable gallery of the corpus (plus grand-staff and multi-system

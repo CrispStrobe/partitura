@@ -159,8 +159,9 @@ List<PlaybackNote> playbackTimeline(Score score, {bool expandRepeats = true}) {
     var measureEnd =
         voice1End.compareTo(voice2End) >= 0 ? voice1End : voice2End;
     if (measureEnd == measureStart && meter != null) {
-      // Empty measure: advance by the current meter.
-      measureEnd = measureStart + Fraction(meter.beats, meter.beatUnit);
+      // Empty or multi-rest measure: advance by the current meter.
+      final bars = measure.multiRest ?? 1;
+      measureEnd = measureStart + Fraction(meter.beats * bars, meter.beatUnit);
     }
     measureStart = measureEnd;
   }

@@ -428,6 +428,15 @@ terse is fine. See HANDOVER.md §6.
 - DSL markers are single trailing characters like articulations:
   `%` trill, `\$` short trill, `&` mordent, `?` turn.
 
+## v0.6.3 multi-measure rests (2026-07-11)
+
+- One `Measure` with `multiRest: N` stands for N silent bars (no
+  expansion into real measures) — layout draws a fixed-width H-bar,
+  playback advances N × meter, MusicXML round-trips through
+  `<measure-style><multiple-rest>`; whole-measure rest markup inside
+  an imported multiple-rest is dropped as redundant.
+- The count reuses the time-signature digit glyphs at y = −1.
+
 ## Blockers
 
 (none)

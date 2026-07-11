@@ -632,4 +632,15 @@ void main() {
       ),
     );
   });
+
+  testWidgets('42 multi-measure rest', (tester) async {
+    await golden(
+      tester,
+      '42_multi_rest',
+      Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'c4:q d4 e4 f4 | !mrest=16 | g4:w',
+      ),
+    );
+  });
 }

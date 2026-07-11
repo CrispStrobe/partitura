@@ -130,6 +130,7 @@ class _PartReader {
     var startRepeat = false;
     var endRepeat = false;
     int? volta;
+    int? multiRest;
 
     String? firstVoice; // this measure's voice-1 label
     var pendingGraces = <Pitch>[];
@@ -164,6 +165,11 @@ class _PartReader {
             } else if (signature != _time) {
               timeChange = signature;
             }
+          }
+          final multipleRest =
+              node.child('measure-style')?.childText('multiple-rest');
+          if (multipleRest != null) {
+            multiRest = int.tryParse(multipleRest);
           }
           for (final clefNode in node.childrenNamed('clef')) {
             final number =
@@ -297,6 +303,10 @@ class _PartReader {
     }
 
     _leadingSet = true;
+    if (multiRest != null && multiRest >= 2) {
+      // Whole-measure rest markup inside a multiple-rest is redundant.
+      elements.removeWhere((element) => element is RestElement);
+    }
     _measures.add(Measure(
       elements,
       voice2: voice2,
@@ -307,6 +317,7 @@ class _PartReader {
       startRepeat: startRepeat,
       endRepeat: endRepeat,
       volta: volta,
+      multiRest: multiRest != null && multiRest >= 2 ? multiRest : null,
     ));
   }
 

@@ -4,11 +4,11 @@
 (grand staff), 0.4.3 (line breaking + justification), 0.4.4 (lyrics)
 and 0.4.5 (chord symbols / annotations) shipped — **v0.4 complete**;
 0.5.1/0.5.2 (MusicXML import + export), 0.5.3 (playback-cursor API)
-and 0.5.4 (Score.transposedBy) shipped — **v0.5 complete**; 0.6.1
-(accidental stacking) and 0.6.2 (ornaments) shipped (versions
-0.4.0-dev.1). 485 core + 115 widget + 5 example tests, 41 golden
-scenes + hero, on-device integration test — all green. Next: 0.6.3
-multi-measure rests.
+and 0.5.4 (Score.transposedBy) shipped — **v0.5 complete**; 0.6.1–0.6.3
+(accidental stacking, ornaments, multi-measure rests) shipped
+(versions 0.4.0-dev.1). 492 core + 116 widget + 5 example tests, 42
+golden scenes + hero, on-device integration test — all green. Next:
+0.6.4 octave clefs + ottava brackets.
 
 Working checklist for the feature-parity plan. Analysis and per-item
 design notes live in [docs/ROADMAP.md](docs/ROADMAP.md); check items off
@@ -64,7 +64,8 @@ gates green (`dart format`, analyze zero issues, all tests), push.
       column packing)
 - [x] 0.6.2 Ornaments (trill, short trill, mordent, turn; DSL
       `% \$ & ?`, MusicXML round trip)
-- [ ] 0.6.3 Multi-measure rests
+- [x] 0.6.3 Multi-measure rests (`!mrest=N`, H-bar + count,
+      playback advances N bars, MusicXML measure-style)
 - [ ] 0.6.4 Octave clefs + ottava brackets
 
 ## Permanently out (per HANDOVER contract / until explicitly requested)

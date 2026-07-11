@@ -431,6 +431,10 @@ class _LayoutBuilder {
 
   void _layoutMeasure(Measure measure) {
     _validateTuplets(measure);
+    if (measure.multiRest != null) {
+      _layoutMultiRest(measure.multiRest!);
+      return;
+    }
     if (measure.voice2.isNotEmpty) {
       _layoutTwoVoiceMeasure(measure);
       return;
@@ -673,6 +677,28 @@ class _LayoutBuilder {
             elementId: element.id);
       }
     }
+  }
+
+  /// v0.6.3: multi-measure rest — an H-bar on the middle line spanning a
+  /// fixed-width measure, with the measure count in time-signature
+  /// digits centered above the staff.
+  void _layoutMultiRest(int count) {
+    const barWidth = 8.0;
+    const capHalf = 1.0; // vertical end caps span the middle two spaces
+    final left = _x + 1.0;
+    final right = _x + 1.0 + barWidth;
+    _addLine(Point(left, 2), Point(right, 2), 0.5);
+    _addLine(Point(left, 2 - capHalf), Point(left, 2 + capHalf), 0.16);
+    _addLine(Point(right, 2 - capHalf), Point(right, 2 + capHalf), 0.16);
+
+    final digits = _timeSigGlyphs(count);
+    final width = _rowWidth(digits);
+    var digitX = (left + right) / 2 - width / 2;
+    for (final glyph in digits) {
+      _addGlyph(glyph, digitX, -1.0);
+      digitX += _glyphWidth(glyph);
+    }
+    _x = right + 1.0;
   }
 
   void _validateTuplets(Measure measure) {

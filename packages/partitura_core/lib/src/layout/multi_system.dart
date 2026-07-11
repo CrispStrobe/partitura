@@ -198,6 +198,7 @@ Score _slice(
         startRepeat: measure.startRepeat,
         endRepeat: measure.endRepeat,
         volta: measure.volta,
+        multiRest: measure.multiRest,
       );
     }
     measures.add(measure);

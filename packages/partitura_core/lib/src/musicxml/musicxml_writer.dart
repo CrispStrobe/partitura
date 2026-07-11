@@ -123,7 +123,8 @@ class _PartWriter {
     if (index == 0 ||
         measure.clefChange != null ||
         measure.keyChange != null ||
-        measure.timeChange != null) {
+        measure.timeChange != null ||
+        measure.multiRest != null) {
       out.writeln('      <attributes>');
       if (index == 0) out.writeln('        <divisions>$divisions</divisions>');
       final key = index == 0 ? score.keySignature : measure.keyChange;
@@ -145,6 +146,10 @@ class _PartWriter {
         };
         out.writeln('        <clef><sign>$sign</sign>'
             '<line>$line</line></clef>');
+      }
+      if (measure.multiRest != null) {
+        out.writeln('        <measure-style><multiple-rest>'
+            '${measure.multiRest}</multiple-rest></measure-style>');
       }
       out.writeln('      </attributes>');
     }

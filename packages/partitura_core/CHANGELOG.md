@@ -2,6 +2,10 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Multi-measure rests** (v0.6 polish): `Measure.multiRest` / DSL
+  `!mrest=N` — H-bar with end caps on the middle line, count in
+  time-signature digits above; playback advances N bars of the current
+  meter; MusicXML `<measure-style><multiple-rest>` round-trips.
 - **Ornaments** (v0.6 polish): `NoteElement.ornament` — trill, short
   trill (upper mordent), mordent, turn — drawn above the element
   (above a fermata when both exist). DSL markers `%`, `\$`, `&`, `?`;
