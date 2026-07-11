@@ -109,6 +109,49 @@ turn); multi-measure rests; octave clefs (8va/8vb) + ottava brackets.
 
 ---
 
+## Distance to industry-standard level
+
+partitura's category is a **rendering + model library**, not a WYSIWYG editor,
+so parity is measured against serious interactive renderers and against
+professional *engraving* quality — not against note-entry apps. Note-entry /
+editing and audio synthesis are deliberately **out of category** (the latter a
+permanent contract boundary; apps bring their own synth and get a timing map).
+
+Already at or near that bar: core common-notation engraving (noteheads, stems,
+flags, accidentals, ties, tuplets, grace notes, articulations, ornaments,
+dynamics + hairpins, tremolo, and beaming incl. feathered / forced-slant /
+over-rests), repeat & navigation semantics (repeats, voltas, D.C./D.S./coda,
+nested repeats), a broad interchange surface (MusicXML, MIDI, the full Guitar
+Pro 3–8 line), and the category-unusual extras — a renderer-free deterministic
+layout engine, hit-testing, a highlight/timing pipeline, SVG/PNG export, a CLI.
+
+The remaining distance falls in three buckets:
+
+- **Table-stakes gaps** (credibility for real, published scores) — in priority
+  order: **(1.2) full-system skyline collision avoidance**, including
+  collision-aware slur/tie shaping — the single biggest visual lever and the
+  most invasive; **(2.5) a page-layout engine** (pages, margins, vertical
+  justification, frames, breaks — today only *system* line-breaking exists);
+  **(2.1) N-staff / ensemble systems** with brackets/braces (today capped at a
+  grand staff); **(2.6) transposing instruments + concert-pitch + parts
+  extraction**; **(2.4) pickup/anacrusis + irregular measures**; and the
+  Phase-5 breadth staples (voices 3–4, lyric verses/melisma/hyphenation,
+  figured bass, extra clefs, more noteheads, microtonal, additive meters).
+  Deeper MusicXML fidelity for arbitrary published files also lives here.
+- **Differentiators** (where partitura aims to *exceed*, not match — peers do
+  none of these): the **Phase 3** interactivity moat (cursor-synced piano /
+  fretboard visualizers, overlays, looping, played-vs-expected, accessibility)
+  and the **Phase 4** theory/analysis moat (Roman numerals, voice-leading,
+  key finding, chord ID, set theory). High value, but they read as polish
+  until the engraving/structure foundation itself looks professional.
+- **Out of category / boundary** — WYSIWYG editing (this is a library) and
+  audio synthesis (permanent boundary).
+
+Net: content *breadth* and *interchange* are already strong for the category;
+the gap to "professional" concentrates in **engraving collision quality (1.2)**
+and **score structure / page layout (Phase 2)**, with Phase 5 breadth close
+behind. The phase ordering below reflects exactly this.
+
 ## Planned — beyond parity
 
 Prioritized top-to-bottom; we implement them **one phase at a time**, and each
