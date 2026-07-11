@@ -327,9 +327,21 @@ enum TabNoteStyle {
   ghost,
 
   /// Natural harmonic: the fret digit is drawn in angle brackets, `<12>`.
-  /// (Artificial and pinch harmonics are future additions.)
   harmonic,
+
+  /// Artificial harmonic: fret in angle brackets with an "A.H." label above.
+  artificialHarmonic,
+
+  /// Pinch (pick) harmonic: fret in angle brackets with a "P.H." label above.
+  pinchHarmonic,
 }
+
+/// Whether a [TabNoteStyle] is one of the harmonic variants (natural,
+/// artificial or pinch) — all drawn with the angle-bracketed fret.
+bool isHarmonicStyle(TabNoteStyle style) =>
+    style == TabNoteStyle.harmonic ||
+    style == TabNoteStyle.artificialHarmonic ||
+    style == TabNoteStyle.pinchHarmonic;
 
 /// Marks a tab note with a [TabNoteStyle] — [TabNoteStyle.dead] (muted "x"),
 /// [TabNoteStyle.ghost] (parenthesized) or [TabNoteStyle.harmonic]

@@ -24,6 +24,9 @@ void main() {
   int markCount(Score s, TabNoteStyle style) =>
       s.tabNoteMarks.where((m) => m.style == style).length;
 
+  int harmonicCount(Score s) =>
+      s.tabNoteMarks.where((m) => isHarmonicStyle(m.style)).length;
+
   Score gp3(String name) => gp3ToScore(File('$dir/$name').readAsBytesSync());
   Score gp4(String name) => gp4ToScore(File('$dir/$name').readAsBytesSync());
   Score gp5(String name) => gp5ToScore(File('$dir/$name').readAsBytesSync());
@@ -57,10 +60,10 @@ void main() {
       expect(s.slurs, hasLength(6));
     });
 
-    test('harmonics: five harmonic marks (beat-level in GP3)', () {
+    test('harmonics: five natural harmonics (beat-level in GP3)', () {
       final s = gp3('harmonics.gp3');
       expect(noteCount(s), 5);
-      expect(markCount(s, TabNoteStyle.harmonic), 5);
+      expect(markCount(s, TabNoteStyle.harmonic), 5); // GP3: natural only
     });
 
     test('dead: four dead notes', () {
@@ -94,10 +97,13 @@ void main() {
       expect(s.slurs, hasLength(6));
     });
 
-    test('harmonics: five harmonic marks (per-note in GP4)', () {
+    test('harmonics: five, split natural / artificial / pinch (GP4)', () {
       final s = gp4('harmonics.gp4');
       expect(noteCount(s), 5);
-      expect(markCount(s, TabNoteStyle.harmonic), 5);
+      expect(harmonicCount(s), 5);
+      expect(markCount(s, TabNoteStyle.harmonic), 3);
+      expect(markCount(s, TabNoteStyle.artificialHarmonic), 1);
+      expect(markCount(s, TabNoteStyle.pinchHarmonic), 1);
     });
 
     test('dead: four dead notes', () {
@@ -174,6 +180,13 @@ void main() {
       expect(s.letRings, hasLength(2));
       expect(s.vibratos, hasLength(4));
       expect(s.palmMutes, isEmpty); // GP3 has no palm-mute note effect
+    });
+
+    test('harmonic types: natural / artificial / pinch classified (GP4)', () {
+      final s = gp4('harmonic-types.gp4');
+      expect(markCount(s, TabNoteStyle.harmonic), 3);
+      expect(markCount(s, TabNoteStyle.artificialHarmonic), 3);
+      expect(markCount(s, TabNoteStyle.pinchHarmonic), 1);
     });
   });
 }

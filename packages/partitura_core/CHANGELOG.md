@@ -2,6 +2,14 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Artificial & pinch harmonics** (Phase 6.4): `TabNoteStyle` gains
+  `artificialHarmonic` and `pinchHarmonic` (helper `isHarmonicStyle`). The tab
+  engine draws all three harmonic variants with the angle-bracketed fret and
+  adds an "A.H." / "P.H." label above the staff for the synthetic ones (golden
+  63). The GP3/4/5 binary readers classify the harmonic-type byte, and GPIF
+  read+write carry `HarmonicType` (Natural/Artificial/Pinch), so the type
+  survives a `.gp` round-trip. Confirmed on the alphaTab corpora
+  (`harmonic-types.gp4`: 3 natural / 3 artificial / 1 pinch; GP4 and GP5 agree).
 - **Guitar Pro binary import — more note effects** (Phase 7.3): the GP3/4/5
   binary readers now surface **vibrato** (`Vibrato`; note-level in GP4/5,
   beat-level "wide" in GP3 and GP5), and **palm mute** / **let ring**

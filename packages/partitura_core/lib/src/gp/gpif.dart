@@ -8,8 +8,9 @@
 /// partitura [Score]. On **import**, hammer-on/pull-off (`HopoOrigin`) → a
 /// slur, slides (`Slide`) → a glissando, bends (`Bended`/`BendDestinationValue`,
 /// 100 = a whole step) → a `Bend`, whammy vibrato (`VibratoWTremBar`) →
-/// a `Vibrato`, dead (`Muted`) and harmonic (`Harmonic`) notes → `TabNoteMark`s;
-/// export writes the same properties back, so a round-trip keeps techniques.
+/// a `Vibrato`, dead (`Muted`) and harmonic (`Harmonic`, with `HarmonicType`
+/// natural/artificial/pinch) notes → `TabNoteMark`s; export writes the same
+/// properties back, so a round-trip keeps techniques.
 /// Multi-track files import one track at a time (`trackIndex`; see
 /// [gpifTrackNames]). It reads real Guitar Pro 7 files correctly — validated
 /// against the alphaTab GP7 test corpus (pitches, chords, rhythm, techniques,
@@ -131,7 +132,17 @@ String scoreToGpif(Score score, {Tuning? tuning}) {
               case TabNoteStyle.dead:
                 props.write('<Property name="Muted"><Enable/></Property>');
               case TabNoteStyle.harmonic:
-                props.write('<Property name="Harmonic"><Enable/></Property>');
+                props.write('<Property name="Harmonic"><Enable/></Property>'
+                    '<Property name="HarmonicType">'
+                    '<HType>Natural</HType></Property>');
+              case TabNoteStyle.artificialHarmonic:
+                props.write('<Property name="Harmonic"><Enable/></Property>'
+                    '<Property name="HarmonicType">'
+                    '<HType>Artificial</HType></Property>');
+              case TabNoteStyle.pinchHarmonic:
+                props.write('<Property name="Harmonic"><Enable/></Property>'
+                    '<Property name="HarmonicType">'
+                    '<HType>Pinch</HType></Property>');
               case TabNoteStyle.ghost:
               case null:
                 break;
@@ -296,6 +307,7 @@ Score scoreFromGpif(String gpif, {int trackIndex = 0}) {
         pendingSlide = null;
       }
       var dead = false, harmonic = false, vibrato = false, vibratoWide = false;
+      var harmonicStyle = TabNoteStyle.harmonic;
       double? bendSteps;
       // Whammy-bar vibrato is a beat property.
       if (_propOn(beat, 'VibratoWTremBar')) {
@@ -304,7 +316,15 @@ Score scoreFromGpif(String gpif, {int trackIndex = 0}) {
       }
       for (final note in nodes) {
         if (_propOn(note, 'Muted')) dead = true;
-        if (_propOn(note, 'Harmonic')) harmonic = true;
+        if (_propOn(note, 'Harmonic')) {
+          harmonic = true;
+          harmonicStyle =
+              switch (_findProperty(note, 'HarmonicType')?.childText('HType')) {
+            'Artificial' => TabNoteStyle.artificialHarmonic,
+            'Pinch' => TabNoteStyle.pinchHarmonic,
+            _ => TabNoteStyle.harmonic,
+          };
+        }
         if (_propOn(note, 'HopoOrigin')) pendingHopo = noteId;
         if (_propOn(note, 'Slide')) pendingSlide = noteId;
         if (_propOn(note, 'Vibrato')) vibrato = true;
@@ -320,7 +340,7 @@ Score scoreFromGpif(String gpif, {int trackIndex = 0}) {
         }
       }
       if (harmonic) {
-        marks.add(TabNoteMark(noteId, TabNoteStyle.harmonic));
+        marks.add(TabNoteMark(noteId, harmonicStyle));
       } else if (dead) {
         marks.add(TabNoteMark(noteId, TabNoteStyle.dead));
       }

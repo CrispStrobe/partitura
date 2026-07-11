@@ -1077,4 +1077,29 @@ void main() {
       staffSpace: 12,
     );
   });
+
+  testWidgets('63 guitar tab: artificial + pinch harmonics', (tester) async {
+    // Natural (⟨12⟩), artificial ("A.H.") and pinch ("P.H.") harmonics — all
+    // show the bracketed fret; the two synthetic ones add a label above.
+    final base = Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'e5:q e4 b4 e5 | b4:q g4 d5 b4',
+    );
+    await tabGolden(
+      tester,
+      '63_tab_harmonic_types',
+      Score(
+        clef: base.clef,
+        timeSignature: base.timeSignature,
+        measures: base.measures,
+        tabNoteMarks: const [
+          TabNoteMark('e0', TabNoteStyle.harmonic),
+          TabNoteMark('e2', TabNoteStyle.artificialHarmonic),
+          TabNoteMark('e4', TabNoteStyle.pinchHarmonic),
+          TabNoteMark('e6', TabNoteStyle.artificialHarmonic),
+        ],
+      ),
+      Tuning.standardGuitar,
+    );
+  });
 }

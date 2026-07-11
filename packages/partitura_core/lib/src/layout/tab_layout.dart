@@ -135,7 +135,10 @@ class TabLayoutEngine {
           final text = switch (noteStyle[element.id]) {
             TabNoteStyle.dead => 'x',
             TabNoteStyle.ghost => '($fret)',
-            TabNoteStyle.harmonic => '<$fret>',
+            TabNoteStyle.harmonic ||
+            TabNoteStyle.artificialHarmonic ||
+            TabNoteStyle.pinchHarmonic =>
+              '<$fret>',
             null => '$fret',
           };
           final halfW = 0.28 * fretSize * text.length;
@@ -152,6 +155,21 @@ class TabLayoutEngine {
           if (element.id != null) {
             anchor.putIfAbsent(element.id!, () => (x, y));
           }
+        }
+        // Artificial / pinch harmonics keep the angle-bracketed fret but add a
+        // small "A.H." / "P.H." label above the staff over the column.
+        final hLabel = switch (noteStyle[element.id]) {
+          TabNoteStyle.artificialHarmonic => 'A.H.',
+          TabNoteStyle.pinchHarmonic => 'P.H.',
+          _ => null,
+        };
+        if (hLabel != null && left.isFinite) {
+          primitives.add(TextPrimitive(
+            hLabel,
+            Point(x, -0.6),
+            size: 1.0,
+            elementId: element.id,
+          ));
         }
         if (element.id != null && left.isFinite) {
           regions.add(ElementRegion(

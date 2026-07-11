@@ -279,6 +279,7 @@ void _readBeatGp34(
   final pitches = <Pitch>[];
   var dead = false, harmonic = beatHarmonic, hammer = false, slide = false;
   var bend = false, vibrato = beatVibrato, palmMute = false, letRing = false;
+  var harmonicStyle = TabNoteStyle.harmonic;
   double bendSteps = 0;
   for (var s = 1; s <= tuning.length; s++) {
     if (stringFlags & (1 << (7 - s)) == 0) continue;
@@ -289,7 +290,10 @@ void _readBeatGp34(
     } else {
       pitches.add(note.pitch);
     }
-    harmonic = harmonic || note.harmonic;
+    if (note.harmonic) {
+      harmonic = true;
+      harmonicStyle = note.harmonicStyle;
+    }
     hammer = hammer || note.hammer;
     slide = slide || note.slide;
     vibrato = vibrato || note.vibrato;
@@ -317,6 +321,7 @@ void _readBeatGp34(
     vibrato: vibrato,
     palmMute: palmMute,
     letRing: letRing,
+    harmonicStyle: harmonicStyle,
   );
 }
 
@@ -388,6 +393,7 @@ _NoteData? _readNoteGp34(_Reader r, int stringNumber, List<int> tuning,
   }
   var harmonic = false, hammer = false, slide = false;
   var vibrato = false, palmMute = false, letRing = false;
+  var harmonicStyle = TabNoteStyle.harmonic;
   double bendSteps = 0;
   if (flags & 0x08 != 0) {
     final e = gp4 ? _readNoteEffectsGp4(r) : _readNoteEffectsGp3(r);
@@ -398,6 +404,7 @@ _NoteData? _readNoteGp34(_Reader r, int stringNumber, List<int> tuning,
     vibrato = e.vibrato;
     palmMute = e.palmMute;
     letRing = e.letRing;
+    harmonicStyle = e.harmonicStyle;
   }
   final dead = type == 3;
   final open = stringNumber - 1 < tuning.length
@@ -412,7 +419,8 @@ _NoteData? _readNoteGp34(_Reader r, int stringNumber, List<int> tuning,
       bendSteps: bendSteps,
       vibrato: vibrato,
       palmMute: palmMute,
-      letRing: letRing);
+      letRing: letRing,
+      harmonicStyle: harmonicStyle);
 }
 
 _NoteEffects _readNoteEffectsGp3(_Reader r) {
@@ -438,15 +446,24 @@ _NoteEffects _readNoteEffectsGp4(_Reader r) {
   final slide = f2 & 0x08 != 0;
   if (slide) r.i8(); // slide type
   var harmonic = false;
+  var harmonicStyle = TabNoteStyle.harmonic;
   if (f2 & 0x10 != 0) {
     harmonic = true;
-    r.i8(); // harmonic type
+    // 1 natural, 3 tapped, 4 pinch, 5 semi, 15/17/22 artificial (fret offset).
+    harmonicStyle = switch (r.i8()) {
+      4 => TabNoteStyle.pinchHarmonic,
+      15 || 17 || 22 => TabNoteStyle.artificialHarmonic,
+      _ => TabNoteStyle.harmonic,
+    };
   }
   if (f2 & 0x20 != 0) r.skip(2); // trill (fret + period)
   final palmMute = f2 & 0x02 != 0;
   final vibrato = f2 & 0x40 != 0;
   return _NoteEffects(harmonic, hammer, slide, bendSteps,
-      vibrato: vibrato, palmMute: palmMute, letRing: letRing);
+      vibrato: vibrato,
+      palmMute: palmMute,
+      letRing: letRing,
+      harmonicStyle: harmonicStyle);
 }
 
 void _readChordGp34(_Reader r, {required bool gp4}) {
@@ -563,6 +580,7 @@ void _readBeat(
   final pitches = <Pitch>[];
   var dead = false, harmonic = false, hammer = false, slide = false;
   var bend = false, vibrato = beatVibrato, palmMute = false, letRing = false;
+  var harmonicStyle = TabNoteStyle.harmonic;
   double bendSteps = 0;
   for (var s = 1; s <= tuning.length; s++) {
     if (stringFlags & (1 << (7 - s)) == 0) continue;
@@ -573,7 +591,10 @@ void _readBeat(
     } else {
       pitches.add(note.pitch);
     }
-    harmonic = harmonic || note.harmonic;
+    if (note.harmonic) {
+      harmonic = true;
+      harmonicStyle = note.harmonicStyle;
+    }
     hammer = hammer || note.hammer;
     slide = slide || note.slide;
     vibrato = vibrato || note.vibrato;
@@ -604,6 +625,7 @@ void _readBeat(
     vibrato: vibrato,
     palmMute: palmMute,
     letRing: letRing,
+    harmonicStyle: harmonicStyle,
   );
 }
 
@@ -658,6 +680,7 @@ class _NoteData {
   final bool vibrato;
   final bool palmMute;
   final bool letRing;
+  final TabNoteStyle harmonicStyle;
   _NoteData(this.pitch,
       {this.dead = false,
       this.harmonic = false,
@@ -666,7 +689,8 @@ class _NoteData {
       this.bendSteps = 0,
       this.vibrato = false,
       this.palmMute = false,
-      this.letRing = false});
+      this.letRing = false,
+      this.harmonicStyle = TabNoteStyle.harmonic});
 }
 
 _NoteData? _readNote(_Reader r, int stringNumber, List<int> tuning) {
@@ -681,6 +705,7 @@ _NoteData? _readNote(_Reader r, int stringNumber, List<int> tuning) {
   r.u8(); // flags2
   var harmonic = false, hammer = false, slide = false;
   var vibrato = false, palmMute = false, letRing = false;
+  var harmonicStyle = TabNoteStyle.harmonic;
   double bendSteps = 0;
   if (flags & 0x08 != 0) {
     final e = _readNoteEffects(r);
@@ -691,6 +716,7 @@ _NoteData? _readNote(_Reader r, int stringNumber, List<int> tuning) {
     vibrato = e.vibrato;
     palmMute = e.palmMute;
     letRing = e.letRing;
+    harmonicStyle = e.harmonicStyle;
   }
   final dead = type == 3;
   final open = stringNumber - 1 < tuning.length
@@ -705,7 +731,8 @@ _NoteData? _readNote(_Reader r, int stringNumber, List<int> tuning) {
       bendSteps: bendSteps,
       vibrato: vibrato,
       palmMute: palmMute,
-      letRing: letRing);
+      letRing: letRing,
+      harmonicStyle: harmonicStyle);
 }
 
 class _NoteEffects {
@@ -716,8 +743,14 @@ class _NoteEffects {
   final bool vibrato;
   final bool palmMute;
   final bool letRing;
+
+  /// Which harmonic variant, when [harmonic] — natural / artificial / pinch.
+  final TabNoteStyle harmonicStyle;
   _NoteEffects(this.harmonic, this.hammer, this.slide, this.bendSteps,
-      {this.vibrato = false, this.palmMute = false, this.letRing = false});
+      {this.vibrato = false,
+      this.palmMute = false,
+      this.letRing = false,
+      this.harmonicStyle = TabNoteStyle.harmonic});
 }
 
 _NoteEffects _readNoteEffects(_Reader r) {
@@ -732,15 +765,19 @@ _NoteEffects _readNoteEffects(_Reader r) {
   final slide = f2 & 0x08 != 0;
   if (slide) r.u8(); // slide type
   var harmonic = false;
+  var harmonicStyle = TabNoteStyle.harmonic;
   if (f2 & 0x10 != 0) {
     harmonic = true;
-    _readHarmonic(r);
+    harmonicStyle = _readHarmonic(r);
   }
   if (f2 & 0x20 != 0) r.skip(2); // trill
   final palmMute = f2 & 0x02 != 0;
   final vibrato = f2 & 0x40 != 0;
   return _NoteEffects(harmonic, hammer, slide, bendSteps,
-      vibrato: vibrato, palmMute: palmMute, letRing: letRing);
+      vibrato: vibrato,
+      palmMute: palmMute,
+      letRing: letRing,
+      harmonicStyle: harmonicStyle);
 }
 
 double _readBend(_Reader r) {
@@ -753,8 +790,8 @@ double _readBend(_Reader r) {
   return value / 100.0;
 }
 
-void _readHarmonic(_Reader r) {
-  final type = r.i8();
+TabNoteStyle _readHarmonic(_Reader r) {
+  final type = r.i8(); // 1 natural, 2 artificial, 3 tapped, 4 pinch, 5 semi
   if (type == 2) {
     r.u8();
     r.i8();
@@ -762,6 +799,11 @@ void _readHarmonic(_Reader r) {
   } else if (type == 3) {
     r.u8();
   }
+  return switch (type) {
+    2 => TabNoteStyle.artificialHarmonic,
+    4 => TabNoteStyle.pinchHarmonic,
+    _ => TabNoteStyle.harmonic,
+  };
 }
 
 void _readChord(_Reader r) {
@@ -854,6 +896,7 @@ class _ScoreBuilder {
     bool vibrato = false,
     bool palmMute = false,
     bool letRing = false,
+    TabNoteStyle harmonicStyle = TabNoteStyle.harmonic,
   }) {
     if (status == 0 && pitches.isEmpty && !dead) return; // empty beat
     final id = 'e${_id++}';
@@ -878,7 +921,7 @@ class _ScoreBuilder {
       _pendingSlide = null;
     }
     if (harmonic) {
-      marks.add(TabNoteMark(id, TabNoteStyle.harmonic));
+      marks.add(TabNoteMark(id, harmonicStyle));
     } else if (dead) {
       marks.add(TabNoteMark(id, TabNoteStyle.dead));
     }

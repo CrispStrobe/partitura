@@ -29,6 +29,7 @@ modify a file, keep it under MPL-2.0.
 | `slides.gp3` / `.gp4` | Guitar Pro 3 / 4 (binary) | slides (glissando) |
 | `hammer.gp3` / `.gp4` | Guitar Pro 3 / 4 (binary) | hammer-on / pull-off (slur) |
 | `harmonics.gp3` / `.gp4` | Guitar Pro 3 / 4 (binary) | harmonics (beat-level in GP3) |
+| `harmonic-types.gp4` | Guitar Pro 4 (binary) | natural / artificial / pinch harmonics |
 | `dead.gp3` / `.gp4` | Guitar Pro 3 / 4 (binary) | dead (muted) notes |
 | `vibrato.gp3` / `.gp4` / `.gp5` | Guitar Pro 3 / 4 / 5 (binary) | vibrato (all three agree) |
 | `effects.gp3` / `.gp4` / `.gp5` | Guitar Pro 3 / 4 / 5 (binary) | mixed bundle: palm mute + let ring spans |
