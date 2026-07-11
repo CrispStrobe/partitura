@@ -2,6 +2,11 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Arpeggio / rolled chord** (v0.7.2): `NoteElement.arpeggio`
+  (`Arpeggio.up`/`down`) — a vertical wavy line left of the chord, tiled
+  from `wiggleArpeggiatoUp` and capped with a direction arrowhead.
+  Model-only (no DSL shorthand, like dynamics/hairpins); MusicXML
+  `<arpeggiate direction=…>` round-trips.
 - **Fingering numbers** (v0.7.2): `NoteElement.fingerings` (digits 0–9)
   stacked above the note from the notehead upward. DSL `=N` / `=1,3,5`
   suffix (may precede other markers, e.g. `c4:q=2~`); MusicXML

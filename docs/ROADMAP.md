@@ -86,8 +86,11 @@ them. Listed so the exclusion stays a *conscious* choice, since literal
 - **Audio synthesis / playback** (abcjs) — permanently out per HANDOVER
   ("partitura renders; it never makes sound"). partitura supplies the
   timing map instead; MIDI export (Tier 3) is the contract-safe analogue.
-- **Tablature** (VexFlow/OSMD/abcjs), **percussion notation**, **guitar
-  bends**, **microtonal accidentals** — out until a consumer asks.
+- **Percussion notation**, **microtonal accidentals** — out until a
+  consumer asks.
+- **Tablature + guitar bends** — a consumer asked (2026-07-11), so promoted
+  to its own milestone **v0.8** below (needs a HANDOVER/CONTRACT amendment
+  lifting the "tablature out" clause).
 
 **Figured bass** is intentionally skipped: none of the three render it
 well, so it is not a parity gap.
@@ -104,9 +107,10 @@ span/attachment infrastructure already built for slurs/hairpins/ottava.
       `<direction>`/`<sound>` round-trip. **Playback jump execution
       deferred** — the marks render and round-trip but the timeline does not
       yet follow them; that state machine is its own slice.
-- [ ] **0.7.2 Piano / technical layer** — pedal marks + fingering numbers +
+- [~] **0.7.2 Piano / technical layer** — pedal marks + fingering numbers +
       tremolo + arpeggio + glissando. One cluster; shares the
-      span/attach infra from hairpins and slurs.
+      span/attach infra from hairpins and slurs. **Done:** fingerings
+      (0.7.2a), arpeggio (0.7.2b). **Left:** glissando, tremolo, pedal.
 - [ ] **0.7.3 N-staff systems** — generalize `GrandStaff` from 2 → N staves
       with brackets and nested part groups. Unblocks choral (SATB) and
       organ/orchestral literature and a large slice of real-world
@@ -119,6 +123,30 @@ span/attachment infrastructure already built for slurs/hairpins/ottava.
       high ecosystem value, contract-safe (no audio).
 - [ ] **0.7.6 Output & ingest** (demand-driven) — PNG/SVG export, ABC
       import, alternate SMuFL fonts.
+
+## v0.8 — guitar tablature (consumer-requested 2026-07-11)
+
+Scope decision: **full techniques** (not a fret-numbers-only MVP). This is
+a *parallel notation mode*, not a decoration on the 5-line staff, so it
+gets a design phase before implementation and a contract amendment lifting
+the "tablature out" clause. Overlaps and should build on **0.7.3** (N-staff
+systems), since real tab is usually paired with a notation staff.
+
+Sub-slices, foundations first:
+
+- [ ] **0.8.0 Design + contract amendment** — N-line staff generalization
+      (the engine's `y = (8 − staffPosition)/2` and `Pitch.staffPosition`
+      assume exactly 5 lines), `Tuning` model (open-string pitches; standard
+      guitar, bass, drop-D, custom), pitch → (string, fret) assignment, the
+      TAB clef, DSL + MusicXML `<staff-details>`/`<technical>` mapping.
+- [ ] **0.8.1 Core TAB staff** — 6-line (configurable) staff, TAB clef,
+      fret numbers instead of noteheads, optional rhythm stems below.
+- [ ] **0.8.2 Tab paired with notation** — a notation staff + its TAB in
+      one system (rides on 0.7.3).
+- [ ] **0.8.3 Techniques** — bends (with release, multi-point), slides,
+      hammer-on / pull-off, vibrato, palm mute; MusicXML `<bend>`/`<slide>`
+      round-trip.
+- [ ] **0.8.4 Tunings** — presets (bass, drop-D, DADGAD…) + custom.
 
 Each item ships the full pipeline exactly as v0.3–v0.6 did: model + layout
 + unit tests in `partitura_core`, painting + goldens + interaction tests in

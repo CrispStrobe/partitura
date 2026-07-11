@@ -335,6 +335,37 @@ final List<GalleryItem> galleryItems = [
           'c4+e4+g4:h=1,3,5 r:h',
     ),
   ),
+  GalleryItem(
+    'Arpeggiated chords (roll up / down)',
+    Score(
+      clef: Clef.treble,
+      timeSignature: TimeSignature.fourFour,
+      measures: [
+        Measure([
+          NoteElement(
+            pitches: [
+              Pitch.parse('c4'),
+              Pitch.parse('e4'),
+              Pitch.parse('g4'),
+              Pitch.parse('c5'),
+            ],
+            duration: NoteDuration.half,
+            arpeggio: Arpeggio.up,
+          ),
+          NoteElement(
+            pitches: [
+              Pitch.parse('d4'),
+              Pitch.parse('f4'),
+              Pitch.parse('a4'),
+              Pitch.parse('d5'),
+            ],
+            duration: NoteDuration.half,
+            arpeggio: Arpeggio.down,
+          ),
+        ]),
+      ],
+    ),
+  ),
 ];
 
 /// Scrollable gallery of the corpus (plus grand-staff and multi-system

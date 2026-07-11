@@ -94,4 +94,7 @@ const Map<String, String> smuflCodepoints = {
   'fingering7': '\uED17',
   'fingering8': '\uED18',
   'fingering9': '\uED19',
+  'wiggleArpeggiatoUp': '\uEAA9',
+  'wiggleArpeggiatoUpArrow': '\uEAAD',
+  'wiggleArpeggiatoDownArrow': '\uEAAE',
 };

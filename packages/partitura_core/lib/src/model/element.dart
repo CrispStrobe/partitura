@@ -23,6 +23,16 @@ enum Articulation {
   fermata,
 }
 
+/// Arpeggio (rolled chord) direction, drawn as a vertical wavy line to the
+/// left of the chord (v0.7.2). The arrow points the way the roll travels.
+enum Arpeggio {
+  /// Rolled low → high; arrowhead at the top.
+  up,
+
+  /// Rolled high → low; arrowhead at the bottom.
+  down,
+}
+
 /// Ornaments drawn above a note (v0.6.2).
 enum Ornament {
   /// Trill (tr).
@@ -87,6 +97,10 @@ class NoteElement extends MusicElement {
   /// not tied to [pitches]; an empty list draws nothing.
   final List<int> fingerings;
 
+  /// Arpeggio (rolled chord) sign drawn as a vertical wavy line to the left
+  /// of the chord, or null. Model-only (no DSL shorthand).
+  final Arpeggio? arpeggio;
+
   /// Creates a note or chord from [pitches] and a [duration].
   ///
   /// [pitches] must be non-empty. (Not asserted: list lengths cannot be
@@ -100,6 +114,7 @@ class NoteElement extends MusicElement {
     this.graceNotes = const [],
     this.ornament,
     this.fingerings = const [],
+    this.arpeggio,
     super.id,
   });
 
@@ -113,6 +128,7 @@ class NoteElement extends MusicElement {
     List<Pitch> graceNotes = const [],
     Ornament? ornament,
     List<int> fingerings = const [],
+    Arpeggio? arpeggio,
     String? id,
   }) : this(
           pitches: [pitch],
@@ -123,6 +139,7 @@ class NoteElement extends MusicElement {
           graceNotes: graceNotes,
           ornament: ornament,
           fingerings: fingerings,
+          arpeggio: arpeggio,
           id: id,
         );
 
@@ -134,6 +151,7 @@ class NoteElement extends MusicElement {
       other.tieToNext == tieToNext &&
       other.ornament == ornament &&
       other.id == id &&
+      other.arpeggio == arpeggio &&
       listEquals(other.pitches, pitches) &&
       setEquals(other.articulations, articulations) &&
       listEquals(other.graceNotes, graceNotes) &&
@@ -145,6 +163,7 @@ class NoteElement extends MusicElement {
       showAccidental,
       tieToNext,
       ornament,
+      arpeggio,
       id,
       Object.hashAll(pitches),
       Object.hashAllUnordered(articulations),
@@ -157,6 +176,7 @@ class NoteElement extends MusicElement {
       '${articulations.isEmpty ? '' : ', ${articulations.map((a) => a.name).join('+')}'}'
       '${graceNotes.isEmpty ? '' : ', grace: ${graceNotes.join('+')}'}'
       '${fingerings.isEmpty ? '' : ', fingers: ${fingerings.join(',')}'}'
+      '${arpeggio == null ? '' : ', ${arpeggio!.name} arpeggio'}'
       '${id == null ? '' : ', id: $id'})';
 }
 

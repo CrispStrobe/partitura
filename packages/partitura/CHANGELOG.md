@@ -2,6 +2,9 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Arpeggio / rolled chords** rendered (v0.7.2, via `partitura_core`):
+  vertical wavy line with a direction arrowhead; golden scene 46, gallery
+  entry.
 - **Fingering numbers** rendered (v0.7.2, via `partitura_core`): SMuFL
   `fingering0`–`fingering9` glyphs above the note; golden scene 45,
   gallery entry.

@@ -91,7 +91,8 @@ value-based, invalid constructor arguments fail asserts in debug builds.
   a tie into a rest draws nothing; `articulations`: staccato, tenuto,
   accent, marcato, fermata; `graceNotes`: an acciaccatura group drawn as
   small slashed eighths before the element; `fingerings`: digits 0–9
-  stacked above the note, list order from the notehead upward) or
+  stacked above the note, list order from the notehead upward; `arpeggio`:
+  `Arpeggio.up`/`down`, a rolled-chord wavy line left of the chord) or
   `RestElement`.
 - `Score.slurs`: `Slur(startId, endId)` phrasing curves between note
   elements; unknown or reversed ids throw at layout time.
@@ -222,7 +223,9 @@ repeat dots · volta brackets with ending numbers above the staff ·
 navigation marks on one shared line above the staff per system (segno/coda
 glyphs at the measure start, D.C./D.S./To Coda/Fine words right-aligned at
 its end) · fingering digits stacked above the note (clear of the notehead,
-stem and any articulation/ornament ink).
+stem and any articulation/ornament ink) · arpeggio as a vertical wavy line
+(tiled `wiggleArpeggiatoUp`) just left of the chord, capped by an up/down
+direction arrowhead.
 
 Caveat: interaction quantization (`StaffTarget.pitchFor`) takes an
 explicit clef — apps using mid-score clef changes must map per measure.

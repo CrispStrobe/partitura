@@ -242,6 +242,7 @@ class _PartReader {
                   graceNotes: last.graceNotes,
                   ornament: last.ornament,
                   fingerings: last.fingerings,
+                  arpeggio: last.arpeggio,
                   id: last.id,
                 );
               }
@@ -267,6 +268,7 @@ class _PartReader {
               graceNotes: pendingGraces.isEmpty ? const [] : pendingGraces,
               ornament: _ornamentOf(node),
               fingerings: _fingeringsOf(node),
+              arpeggio: _arpeggioOf(node),
               id: id,
             ));
             pendingGraces = <Pitch>[];
@@ -447,6 +449,18 @@ class _PartReader {
       }
     }
     return result.isEmpty ? const {} : result;
+  }
+
+  Arpeggio? _arpeggioOf(XmlNode note) {
+    for (final notations in _notations(note)) {
+      final arp = notations.child('arpeggiate');
+      if (arp != null) {
+        return arp.attributes['direction'] == 'down'
+            ? Arpeggio.down
+            : Arpeggio.up;
+      }
+    }
+    return null;
   }
 
   List<int> _fingeringsOf(XmlNode note) {

@@ -220,6 +220,15 @@ abstract final class SmuflGlyph {
     return 'fingering$digit';
   }
 
+  /// Arpeggio wiggle segment; tiles vertically to form the rolled-chord line.
+  static const String wiggleArpeggiatoUp = 'wiggleArpeggiatoUp';
+
+  /// Arpeggio arrowhead pointing up (caps an upward roll at the top).
+  static const String wiggleArpeggiatoUpArrow = 'wiggleArpeggiatoUpArrow';
+
+  /// Arpeggio arrowhead pointing down (caps a downward roll at the bottom).
+  static const String wiggleArpeggiatoDownArrow = 'wiggleArpeggiatoDownArrow';
+
   /// The accidental glyph for a chromatic [alter] of -2..2
   /// (double flat … double sharp).
   static String accidentalFor(int alter) => switch (alter) {

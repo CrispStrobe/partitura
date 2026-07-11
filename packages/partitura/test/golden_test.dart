@@ -690,4 +690,27 @@ void main() {
       staffSpace: 9,
     );
   });
+
+  testWidgets('46 arpeggiated chords', (tester) async {
+    NoteElement roll(String pitches, Arpeggio dir) => NoteElement(
+          pitches: [for (final p in pitches.split('+')) Pitch.parse(p)],
+          duration: NoteDuration.half,
+          arpeggio: dir,
+        );
+    await golden(
+      tester,
+      '46_arpeggios',
+      Score(
+        clef: Clef.treble,
+        timeSignature: TimeSignature.fourFour,
+        measures: [
+          Measure([
+            roll('c4+e4+g4+c5', Arpeggio.up),
+            roll('d4+f4+a4+d5', Arpeggio.down),
+          ]),
+        ],
+      ),
+      staffSpace: 10,
+    );
+  });
 }

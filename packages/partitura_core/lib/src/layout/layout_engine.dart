@@ -534,6 +534,7 @@ class _LayoutBuilder {
     }
     _layoutArticulations(measure.elements, tieIndexOf);
     _layoutFingerings(measure.elements, tieIndexOf);
+    _layoutArpeggios(measure.elements, tieIndexOf);
     _layoutTuplets(measure, tieIndexOf);
   }
 
@@ -669,6 +670,7 @@ class _LayoutBuilder {
       }
       _layoutArticulations(voices[v], tieIndexPerVoice[v]);
       _layoutFingerings(voices[v], tieIndexPerVoice[v]);
+      _layoutArpeggios(voices[v], tieIndexPerVoice[v]);
     }
     _layoutTuplets(measure, tieIndexPerVoice[0]);
   }
@@ -754,6 +756,35 @@ class _LayoutBuilder {
         _addGlyph(glyph, centerX - box.swX - box.width / 2, y,
             elementId: element.id);
         y -= box.height + 0.2;
+      }
+    }
+  }
+
+  /// v0.7.2: arpeggio — a vertical wavy line just left of the chord,
+  /// spanning its noteheads, tiled from `wiggleArpeggiatoUp` and capped with
+  /// a direction arrowhead.
+  void _layoutArpeggios(
+    List<MusicElement> elements,
+    Map<int, int> tieIndexOf,
+  ) {
+    for (var i = 0; i < elements.length; i++) {
+      final element = elements[i];
+      if (element is! NoteElement || element.arpeggio == null) continue;
+      final info = _tieInfos[tieIndexOf[i]!];
+      final ys = info.heads.map((h) => h.$4);
+      final topY = ys.reduce(min) - 0.5;
+      final bottomY = ys.reduce(max) + 0.5;
+      final x = info.left - 0.5;
+      final tileH = meta.bBoxOf(SmuflGlyph.wiggleArpeggiatoUp).height;
+      for (var y = bottomY; y > topY; y -= tileH) {
+        _addGlyph(SmuflGlyph.wiggleArpeggiatoUp, x, y, elementId: element.id);
+      }
+      if (element.arpeggio == Arpeggio.up) {
+        _addGlyph(SmuflGlyph.wiggleArpeggiatoUpArrow, x, topY,
+            elementId: element.id);
+      } else {
+        _addGlyph(SmuflGlyph.wiggleArpeggiatoDownArrow, x, bottomY,
+            elementId: element.id);
       }
     }
   }

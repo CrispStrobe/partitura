@@ -523,6 +523,7 @@ class Score {
               graceNotes: element.graceNotes.map(move).toList(),
               ornament: element.ornament,
               fingerings: element.fingerings,
+              arpeggio: element.arpeggio,
               id: element.id,
             ),
           RestElement() => element,

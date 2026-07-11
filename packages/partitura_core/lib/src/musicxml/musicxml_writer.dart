@@ -362,6 +362,9 @@ class _PartWriter {
           element.fingerings.map((f) => '<fingering>$f</fingering>').join();
       parts.add('<technical>$fingers</technical>');
     }
+    if (element.arpeggio != null) {
+      parts.add('<arpeggiate direction="${element.arpeggio!.name}"/>');
+    }
     return parts.isEmpty ? '' : '<notations>${parts.join()}</notations>';
   }
 
