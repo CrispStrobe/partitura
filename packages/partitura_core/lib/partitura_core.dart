@@ -18,6 +18,7 @@ export 'src/layout/score_layout.dart';
 export 'src/model/element.dart';
 export 'src/model/measure.dart';
 export 'src/model/score.dart';
+export 'src/musicxml/musicxml_reader.dart';
 export 'src/smufl/glyph_names.dart';
 export 'src/smufl/smufl_metadata.dart';
 export 'src/theory/clef.dart';

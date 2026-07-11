@@ -350,6 +350,23 @@ terse is fine. See HANDOVER.md §6.
 - Centered over the notehead (not left-aligned): matches lead-sheet
   conventions well enough and keeps `TextPrimitive` single-anchor.
 
+## v0.5.1 MusicXML import (2026-07-11)
+
+- **Zero-dependency constraint** rules out `package:xml`; a ~200-line
+  internal reader (`src/musicxml/xml_reader.dart`) handles the XML
+  subset MusicXML actually uses (prolog, DOCTYPE, comments, CDATA,
+  entities). Not a general XML parser — namespaces and DTD content are
+  out of scope.
+- Durations map from `<type>` + `<dot>` when present (authoritative),
+  falling back to duration/divisions arithmetic for whole-measure
+  rests. `<backup>`/`<forward>` are ignored: voices are grouped by
+  their `<voice>` label instead (first label seen per measure = our
+  voice 1), which matches partitura's two-voice model.
+- Directions (dynamics, wedge starts) and `<harmony>` attach to the
+  **next** note read; wedge stops anchor on the most recent note.
+- Two id spaces (`e0…`, `e1000…`) keep grand-staff element ids unique
+  across staves, as `GrandStaffView` requires.
+
 ## Blockers
 
 (none)

@@ -2,6 +2,15 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **MusicXML import (subset)**: `scoreFromMusicXml(xml)` and
+  `grandStaffFromMusicXml(xml)` parse `score-partwise` documents —
+  pitches/chords/rests, durations (breve…64th, dots), accidentals,
+  ties, slurs, tuplets, articulations, grace notes, dynamics, wedges,
+  lyrics, `<harmony>` chord symbols, key/time/clef with mid-score
+  changes, repeats/voltas, two voices, two-staff parts. Ships its own
+  minimal XML reader — the package stays dependency-free. Unsupported
+  markup is ignored; unrepresentable documents throw `FormatException`.
+
 - **Chord symbols / annotations**: `Annotation(elementId, text)` on
   `Score.annotations`; DSL `annotations:` parameter (`*` skips a note).
   Text on a shared baseline above all other ink, centered over the

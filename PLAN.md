@@ -2,10 +2,10 @@
 
 **Status (2026-07-11):** v0.1–v0.3 complete; 0.4.1 (two voices), 0.4.2
 (grand staff), 0.4.3 (line breaking + justification), 0.4.4 (lyrics)
-and 0.4.5 (chord symbols / annotations) shipped — **v0.4 complete**
-(versions 0.4.0-dev.1). 408 core + 104 widget + 5 example tests, 38
-golden scenes + hero, on-device integration test — all green. Next:
-v0.5 interchange (MusicXML import).
+and 0.4.5 (chord symbols / annotations) shipped — **v0.4 complete**;
+0.5.1 (MusicXML import) shipped (versions 0.4.0-dev.1). 428 core + 107
+widget + 5 example tests, 39 golden scenes + hero, on-device
+integration test — all green. Next: 0.5.2 MusicXML export.
 
 Working checklist for the feature-parity plan. Analysis and per-item
 design notes live in [docs/ROADMAP.md](docs/ROADMAP.md); check items off
@@ -47,7 +47,8 @@ gates green (`dart format`, analyze zero issues, all tests), push.
 
 ## v0.5 — interchange & time
 
-- [ ] 0.5.1 MusicXML import (subset covering v0.3/0.4)
+- [x] 0.5.1 MusicXML import (subset covering v0.3/0.4;
+      dependency-free XML reader)
 - [ ] 0.5.2 MusicXML export (round-trip tested)
 - [ ] 0.5.3 Playback-cursor API (time iterator → `highlightedIds`;
       **no audio, ever** — apps bring their own synth)

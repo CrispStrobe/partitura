@@ -212,12 +212,23 @@ Caveat: interaction quantization (`StaffTarget.pitchFor`) takes an
 explicit clef — apps using mid-score clef changes must map per measure.
 
 **Not implemented (v0.x non-goals)**: multi-voice collision avoidance,
-cross-staff beaming, MusicXML, audio (never),
+cross-staff beaming, MusicXML **export**, audio (never),
 transposing instruments, tablature, compound-meter beam grouping (x/8
 meters render flags). Alto/tenor clefs shipped in v0.2; slurs/ties,
 tuplets, grace notes, articulations and dynamics in v0.3; two voices,
 grand staff, line breaking, lyrics and chord symbols/annotations in
 v0.4.
+
+## 5b. MusicXML import (`partitura_core`)
+
+`scoreFromMusicXml(xml, {partIndex})` → `Score`;
+`grandStaffFromMusicXml(xml)` → `GrandStaff` (a two-staff part, or the
+first two parts). Subset: the v0.3/v0.4 feature set over
+`score-partwise` documents; unsupported markup is skipped, documents
+the subset cannot represent throw `FormatException`. Elements get ids
+`e0, e1, …` in reading order (`e1000…` on the lower staff). No file
+I/O — pass the document contents as a string. Dependency-free (core
+ships its own minimal XML reader).
 
 ## 6. Rendering (`partitura`)
 
