@@ -339,6 +339,20 @@ Malformed bytes or an unsupported SMPTE division throw `FormatException`.
 
 Both are dependency-free (`dart:typed_data`) and deterministic.
 
+### Plain-text (ASCII) tablature import
+
+`asciiTabToScore(text, {tuning, duration})` → `Score` parses the informal
+web-shared guitar/bass tab (N dashed string lines with fret numbers) into a
+pitched score for a `Tuning` (default standard guitar). It is **lossy**: ASCII
+tab has no reliable rhythm, so every event takes the same `duration` (default
+an eighth) and the score is unmetered; barlines come from `|` columns;
+`(string, fret)` becomes a pitch; simultaneous columns become chords.
+Recognized techniques (single-note events): `h`/`p` → a slur, `/`/`\` → a
+glissando, `b` → a `Bend`, `~` → a `Vibrato`, `x` → a dead `TabNoteMark`.
+Re-rendering as tab uses canonical lowest-fret placement, so an unusual voicing
+may relocate to a different string (a per-note string override is future work).
+No tab lines → a single whole-rest measure. Dependency-free, deterministic.
+
 ## 5f. SVG export (`partitura_core`)
 
 `scoreToSvg(layout, {staffSpace, glyphFontFamily, textFontFamily, color,

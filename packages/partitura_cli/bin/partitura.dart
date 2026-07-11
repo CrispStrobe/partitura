@@ -36,7 +36,8 @@ Commands:
                                        the Flutter SDK)
 
 Common:
-  --from <musicxml|midi>               Force the input format
+  --from <musicxml|midi|asciitab>      Force the input format (.tab/.crd/.txt
+                                       are plain-text tab)
   --to   <musicxml|midi>               Force the convert output format
 
 render options:
@@ -92,7 +93,7 @@ const _booleanFlags = {'tab', 'no-embed-font', 'no-expand'};
 int _info(List<String> args) {
   final (positional, options) = _parse(args);
   if (positional.isEmpty) throw _CliError('info needs an input file');
-  final score = _loadScore(positional.first, options['from']);
+  final score = _loadScore(positional.first, options);
   final timeline = playbackTimeline(score);
   final elements = score.measures.fold<int>(0, (n, m) => n + m.elements.length);
   stdout.writeln('file:       ${positional.first}');
@@ -108,7 +109,7 @@ int _info(List<String> args) {
 int _timeline(List<String> args) {
   final (positional, options) = _parse(args);
   if (positional.isEmpty) throw _CliError('timeline needs an input file');
-  final score = _loadScore(positional.first, options['from']);
+  final score = _loadScore(positional.first, options);
   final bpm = double.tryParse(options['bpm'] ?? '120') ?? 120;
   final expand = !options.containsKey('no-expand');
   final timeline = playbackTimeline(score, expandRepeats: expand);
@@ -128,7 +129,7 @@ int _convert(List<String> args) {
   }
   final inPath = positional[0];
   final outPath = positional[1];
-  final score = _loadScore(inPath, options['from']);
+  final score = _loadScore(inPath, options);
   final outFormat = options['to'] ?? _formatOf(outPath);
   switch (outFormat) {
     case 'musicxml':
@@ -151,7 +152,7 @@ int _render(List<String> args) {
   if (_formatOf(outPath) == 'png') {
     return _renderPng(positional[0], outPath, options);
   }
-  final score = _loadScore(positional[0], options['from']);
+  final score = _loadScore(positional[0], options);
   final staffSpace = double.tryParse(options['staff-space'] ?? '12') ?? 12;
 
   final metadataFile = _findMetadata(options['metadata']);
@@ -164,12 +165,8 @@ int _render(List<String> args) {
 
   final ScoreLayout layout;
   if (options.containsKey('tab')) {
-    final tuning = switch (options['tuning']) {
-      'dropD' => Tuning.dropDGuitar,
-      'bass' => Tuning.standardBass,
-      _ => Tuning.standardGuitar,
-    };
-    layout = const TabLayoutEngine().layout(score, tuning, settings);
+    layout = const TabLayoutEngine()
+        .layout(score, _tuningOf(options['tuning']), settings);
   } else {
     layout = const LayoutEngine().layout(score, settings);
   }
@@ -191,19 +188,29 @@ int _render(List<String> args) {
 }
 
 /// Loads a [Score] from [path], detecting the format from the extension or
-/// the explicit [format] override (`musicxml` / `midi`).
-Score _loadScore(String path, String? format) {
+/// the explicit `--from` override (`musicxml` / `midi` / `asciitab`).
+/// ASCII tab uses `--tuning` (default standard guitar).
+Score _loadScore(String path, Map<String, String> options) {
   final file = File(path);
   if (!file.existsSync()) throw _CliError('no such file: $path');
-  switch (format ?? _formatOf(path)) {
+  switch (options['from'] ?? _formatOf(path)) {
     case 'musicxml':
       return scoreFromMusicXml(file.readAsStringSync());
     case 'midi':
       return scoreFromMidi(file.readAsBytesSync());
+    case 'asciitab':
+      return asciiTabToScore(file.readAsStringSync(),
+          tuning: _tuningOf(options['tuning']));
     default:
       throw _CliError('unknown input format for $path (use --from)');
   }
 }
+
+Tuning _tuningOf(String? name) => switch (name) {
+      'dropD' => Tuning.dropDGuitar,
+      'bass' => Tuning.standardBass,
+      _ => Tuning.standardGuitar,
+    };
 
 String _formatOf(String path) {
   final lower = path.toLowerCase();
@@ -211,6 +218,11 @@ String _formatOf(String path) {
   if (lower.endsWith('.xml') || lower.endsWith('.musicxml')) return 'musicxml';
   if (lower.endsWith('.svg')) return 'svg';
   if (lower.endsWith('.png')) return 'png';
+  if (lower.endsWith('.tab') ||
+      lower.endsWith('.crd') ||
+      lower.endsWith('.txt')) {
+    return 'asciitab';
+  }
   return 'unknown';
 }
 

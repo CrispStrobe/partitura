@@ -2,6 +2,13 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Plain-text (ASCII) tablature import** (Phase 7.3): `asciiTabToScore(text,
+  {tuning, duration})` → `Score` parses the informal web-shared guitar/bass
+  tab (dashed string lines + fret numbers) into a pitched, unmetered score:
+  chords from aligned columns, barlines from `|`, and techniques `h`/`p` →
+  slur, `/`/`\` → glissando, `b` → bend, `~` → vibrato, `x` → dead note. Lossy
+  (no rhythm; uniform durations). Wired into `partitura_cli` (`.tab`/`.crd`/
+  `.txt`).
 - **SVG export** (Phase 7.2): `scoreToSvg(layout, {…})` renders a
   `ScoreLayout` to a standalone SVG document (works for both notation and
   tablature); optional `@font-face` embedding of the engraving font. The

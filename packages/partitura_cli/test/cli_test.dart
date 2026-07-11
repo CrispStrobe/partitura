@@ -122,6 +122,26 @@ void main() {
     expect(File(out).readAsStringSync(), isNot(contains('@font-face')));
   });
 
+  test('reads a plain-text (.tab) file and converts it', () async {
+    final tab = '${tmp.path}/riff.tab';
+    File(tab).writeAsStringSync('''
+e|-------------|
+B|-------------|
+G|-0-2-2h4-----|
+D|---------3-2-|
+A|-------------|
+E|-------------|
+''');
+    final info = await run(['info', tab]);
+    expect(info.exitCode, 0, reason: '${info.stdout}\n${info.stderr}');
+    expect(info.stdout, contains('meter:      unmetered'));
+    // Convert the imported tab to MIDI.
+    final mid = '${tmp.path}/riff.mid';
+    final r = await run(['convert', tab, mid]);
+    expect(r.exitCode, 0);
+    expect(File(mid).readAsBytesSync().sublist(0, 4), [0x4D, 0x54, 0x68, 0x64]);
+  });
+
   test('a missing input file fails with a clear error', () async {
     final r = await run(['info', '${tmp.path}/nope.musicxml']);
     expect(r.exitCode, 1);

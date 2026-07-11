@@ -17,8 +17,11 @@ dart run partitura_cli:partitura <command> [arguments]
 | `convert <in> <out>` | Convert between MusicXML and MIDI (formats inferred from the extensions) |
 | `render <in> <out.svg> [options]` | Render to SVG (notation, or `--tab` for tablature) |
 
-Formats are inferred from file extensions (`.xml`/`.musicxml`, `.mid`/`.midi`,
-`.svg`) and can be overridden with `--from` / `--to`.
+Input formats are inferred from file extensions — `.xml`/`.musicxml`,
+`.mid`/`.midi`, and plain-text tab `.tab`/`.crd`/`.txt` — and can be overridden
+with `--from` (`musicxml` / `midi` / `asciitab`). Output formats use `--to` or
+the output extension (`.svg`, `.png`, `.mid`, `.musicxml`). Plain-text tab is a
+lossy import (no rhythm); use `--tuning` to set its tuning.
 
 ### `render` options
 
@@ -46,4 +49,5 @@ dart run partitura_cli:partitura convert song.musicxml song.mid
 dart run partitura_cli:partitura render song.musicxml song.svg
 dart run partitura_cli:partitura render song.musicxml song.png       # needs Flutter
 dart run partitura_cli:partitura render riff.musicxml riff.svg --tab --tuning dropD
+dart run partitura_cli:partitura render riff.tab riff.svg --tab      # import ASCII tab
 ```
