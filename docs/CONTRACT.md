@@ -102,6 +102,10 @@ value-based, invalid constructor arguments fail asserts in debug builds.
 - `Score.pedals`: `Pedal(startId, endId)` sustain-pedal spans (model-only);
   "Ped." under the start note and a release star under the end, below the
   staff.
+- `Score.featheredBeams`: `FeatheredBeam(startId, endId, {beginBeams,
+  endBeams})` (model-only) — forces the spanned notes into one beam group and
+  fans the beam count from `beginBeams` to `endBeams` (accelerando if growing,
+  ritardando if shrinking).
 - `Score.dynamics` (`DynamicMarking(elementId, pp…ff)`) and
   `Score.hairpins` (`Hairpin(startId, endId, crescendo|diminuendo)`) —
   model-only (no DSL shorthand); drawn on a dynamics line below the

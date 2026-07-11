@@ -2,6 +2,8 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Feathered beams** rendered (Phase 1.4, via `partitura_core`): fanned
+  accel./rit. beams; golden scene 50, gallery entry.
 - **Sustain-pedal marks** rendered (v0.7.2, via `partitura_core`):
   "Ped." … release star below the staff; golden scene 49, gallery entry.
 - **Tremolo** rendered (v0.7.2, via `partitura_core`): 1–5 stroke glyphs

@@ -411,6 +411,24 @@ final List<GalleryItem> galleryItems = [
       pedals: const [Pedal('a', 'd')],
     ),
   ),
+  GalleryItem(
+    'Feathered beams (accel. / rit.)',
+    () {
+      final base = Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'g4:e a4 b4 c5 d5 e5 f5 g5 | g5:e f5 e5 d5 c5 b4 a4 g4',
+      );
+      return Score(
+        clef: base.clef,
+        timeSignature: base.timeSignature,
+        measures: base.measures,
+        featheredBeams: const [
+          FeatheredBeam('e0', 'e7', beginBeams: 1, endBeams: 4),
+          FeatheredBeam('e8', 'e15', beginBeams: 4, endBeams: 1),
+        ],
+      );
+    }(),
+  ),
 ];
 
 /// Scrollable gallery of the corpus (plus grand-staff and multi-system

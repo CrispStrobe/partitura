@@ -249,5 +249,9 @@ Score _slice(
       for (final pedal in score.pedals)
         if (ids.contains(pedal.startId) && ids.contains(pedal.endId)) pedal,
     ],
+    featheredBeams: [
+      for (final fb in score.featheredBeams)
+        if (ids.contains(fb.startId) && ids.contains(fb.endId)) fb,
+    ],
   );
 }

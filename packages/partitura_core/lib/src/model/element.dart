@@ -242,6 +242,51 @@ class Glissando {
   String toString() => 'Glissando($startId -> $endId)';
 }
 
+/// A feathered (fanned) beam over a run of notes, referenced by the first
+/// and last note's ids: the beam count fans from [beginBeams] at the start to
+/// [endBeams] at the end (unequal → accelerando if growing, ritardando if
+/// shrinking). The spanned notes are forced into one beam group regardless of
+/// meter. Model-only. Both ids must exist and the start must precede the end,
+/// or layout throws an [ArgumentError].
+class FeatheredBeam {
+  /// Id of the first note in the fan.
+  final String startId;
+
+  /// Id of the last note in the fan.
+  final String endId;
+
+  /// Number of beams at the start (≥ 1).
+  final int beginBeams;
+
+  /// Number of beams at the end (≥ 1).
+  final int endBeams;
+
+  /// Creates a feathered beam; defaults fan 1 → 4 (accelerando).
+  const FeatheredBeam(
+    this.startId,
+    this.endId, {
+    this.beginBeams = 1,
+    this.endBeams = 4,
+  })  : assert(beginBeams >= 1, 'beginBeams must be >= 1'),
+        assert(endBeams >= 1, 'endBeams must be >= 1'),
+        assert(beginBeams != endBeams, 'a feathered beam must change count');
+
+  @override
+  bool operator ==(Object other) =>
+      other is FeatheredBeam &&
+      other.startId == startId &&
+      other.endId == endId &&
+      other.beginBeams == beginBeams &&
+      other.endBeams == endBeams;
+
+  @override
+  int get hashCode => Object.hash(startId, endId, beginBeams, endBeams);
+
+  @override
+  String toString() =>
+      'FeatheredBeam($startId -> $endId, $beginBeams..$endBeams)';
+}
+
 /// A sustain-pedal span: "Ped." under the start note and a release star
 /// under the end note, referenced by their ids. Same id/order rules as
 /// [Slur]/[Glissando]. Model-only (no DSL shorthand).

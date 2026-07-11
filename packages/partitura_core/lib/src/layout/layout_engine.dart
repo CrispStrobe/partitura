@@ -84,10 +84,12 @@ class _Bounds {
 }
 
 /// A beamed group: indices into a measure's element list, plus direction.
+/// A feathered group carries its (beginBeams, endBeams) fan.
 class _BeamGroup {
   final List<int> indices;
   final bool stemsDown;
-  _BeamGroup(this.indices, {required this.stemsDown});
+  final (int, int)? feather;
+  _BeamGroup(this.indices, {required this.stemsDown, this.feather});
 }
 
 /// Deferred stem/flag data for one beamed note, collected while walking the
@@ -531,7 +533,8 @@ class _LayoutBuilder {
     for (final group in groups) {
       final notes = deferred[group];
       if (notes != null && notes.length >= 2) {
-        _layoutBeamGroup(notes, stemsDown: group.stemsDown);
+        _layoutBeamGroup(notes,
+            stemsDown: group.stemsDown, feather: group.feather);
       }
     }
     _layoutArticulations(measure.elements, tieIndexOf);
@@ -667,7 +670,8 @@ class _LayoutBuilder {
       for (final group in groupsPerVoice[v]) {
         final notes = deferred[group];
         if (notes != null && notes.length >= 2) {
-          _layoutBeamGroup(notes, stemsDown: group.stemsDown);
+          _layoutBeamGroup(notes,
+              stemsDown: group.stemsDown, feather: group.feather);
         }
       }
       _layoutArticulations(voices[v], tieIndexPerVoice[v]);
@@ -1892,6 +1896,24 @@ class _LayoutBuilder {
       return -1;
     }
 
+    // Feathered spans (by note id) covering this element list: force each
+    // into its own group and exclude its notes from normal beaming.
+    final idIndex = <String, int>{
+      for (var i = 0; i < elements.length; i++)
+        if (elements[i].id case final id?) id: i,
+    };
+    final feathers = <(int, int, int, int)>[]; // start, end, begin, endBeams
+    final claimed = <int>{};
+    for (final fb in score.featheredBeams) {
+      final a = idIndex[fb.startId];
+      final b = idIndex[fb.endId];
+      if (a == null || b == null || b <= a) continue;
+      feathers.add((a, b, fb.beginBeams, fb.endBeams));
+      for (var i = a; i <= b; i++) {
+        claimed.add(i);
+      }
+    }
+
     var onset = Fraction.zero;
     final runs = <List<int>>[];
     final onsets = <Fraction>[];
@@ -1902,8 +1924,9 @@ class _LayoutBuilder {
     for (var i = 0; i < elements.length; i++) {
       final element = elements[i];
       onsets.add(onset);
-      final beamable =
-          element is NoteElement && _beamCountOf(element.duration.base) >= 1;
+      final beamable = element is NoteElement &&
+          _beamCountOf(element.duration.base) >= 1 &&
+          !claimed.contains(i);
       if (beamable) {
         final window = _windowIndex(onset, span);
         // Beam runs never cross a tuplet boundary in either direction.
@@ -1969,6 +1992,26 @@ class _LayoutBuilder {
       }
       groups.add(_BeamGroup(run, stemsDown: stemsDown));
     }
+
+    bool stemsDownFor(List<int> run) {
+      if (forcedStemsDown != null) return forcedStemsDown;
+      var maxAbove = -100;
+      var maxBelow = -100;
+      for (final i in run) {
+        for (final pitch in (elements[i] as NoteElement).pitches) {
+          final p = pitch.staffPosition(_clef);
+          if (p - 4 > maxAbove) maxAbove = p - 4;
+          if (4 - p > maxBelow) maxBelow = 4 - p;
+        }
+      }
+      return maxAbove >= maxBelow;
+    }
+
+    for (final (a, b, begin, end) in feathers) {
+      final run = [for (var i = a; i <= b; i++) i];
+      groups.add(
+          _BeamGroup(run, stemsDown: stemsDownFor(run), feather: (begin, end)));
+    }
     return groups;
   }
 
@@ -1994,7 +2037,11 @@ class _LayoutBuilder {
   /// ±1 staff space over the group, intercept chosen so every stem keeps at
   /// least the default length. [BeamPrimitive] points are the midpoints of
   /// the beam's end edges; stems run to the beam's center line.
-  void _layoutBeamGroup(List<_BeamedNote> notes, {required bool stemsDown}) {
+  void _layoutBeamGroup(
+    List<_BeamedNote> notes, {
+    required bool stemsDown,
+    (int, int)? feather,
+  }) {
     final first = notes.first;
     final last = notes.last;
     final dx = last.stemX - first.stemX;
@@ -2002,9 +2049,12 @@ class _LayoutBuilder {
     final slope = dx == 0 ? 0.0 : slant / dx;
 
     // Multi-level groups (32nds/64ths) need longer stems so the extra
-    // beams stay clear of the noteheads.
-    final stemLength = s.stemLength +
-        _stemExtension(notes.map((n) => n.beamCount).reduce(max));
+    // beams stay clear of the noteheads. A feathered group reserves room for
+    // its widest fan end instead.
+    final maxLevel = feather == null
+        ? notes.map((n) => n.beamCount).reduce(max)
+        : max(feather.$1, feather.$2);
+    final stemLength = s.stemLength + _stemExtension(maxLevel);
     double intercept;
     if (stemsDown) {
       intercept =
@@ -2040,8 +2090,35 @@ class _LayoutBuilder {
       s.beamThickness,
     );
 
+    // v0.7 Phase 1.4: feathered (fanned) beam — the extra beams converge on
+    // the primary at the "few" end and spread by one step per level at the
+    // "many" end (accelerando if growing left→right, ritardando if not).
+    if (feather != null) {
+      final step = (s.beamThickness + s.beamSpacing) * (stemsDown ? -1 : 1);
+      final lo = min(feather.$1, feather.$2);
+      final hi = max(feather.$1, feather.$2);
+      final growing = feather.$2 > feather.$1;
+      for (var level = 2; level <= hi; level++) {
+        final off = step * (level - 1);
+        final double y1;
+        final double y2;
+        if (level <= lo) {
+          y1 = beamY(first.stemX) + off;
+          y2 = beamY(last.stemX) + off;
+        } else if (growing) {
+          y1 = beamY(first.stemX);
+          y2 = beamY(last.stemX) + off;
+        } else {
+          y1 = beamY(first.stemX) + off;
+          y2 = beamY(last.stemX);
+        }
+        _addBeam(
+            Point(first.stemX, y1), Point(last.stemX, y2), s.beamThickness);
+      }
+      return;
+    }
+
     // Secondary/tertiary/quaternary beams, offset toward the noteheads.
-    final maxLevel = notes.map((n) => n.beamCount).reduce(max);
     for (var level = 2; level <= maxLevel; level++) {
       final offset = (s.beamThickness + s.beamSpacing) *
           (level - 1) *

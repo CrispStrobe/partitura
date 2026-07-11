@@ -778,4 +778,25 @@ void main() {
       staffSpace: 10,
     );
   });
+
+  testWidgets('50 feathered beams', (tester) async {
+    final base = Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'g4:e a4 b4 c5 d5 e5 f5 g5 | g5:e f5 e5 d5 c5 b4 a4 g4',
+    );
+    await golden(
+      tester,
+      '50_feathered_beams',
+      Score(
+        clef: base.clef,
+        timeSignature: base.timeSignature,
+        measures: base.measures,
+        featheredBeams: const [
+          FeatheredBeam('e0', 'e7', beginBeams: 1, endBeams: 4), // accel.
+          FeatheredBeam('e8', 'e15', beginBeams: 4, endBeams: 1), // rit.
+        ],
+      ),
+      staffSpace: 10,
+    );
+  });
 }

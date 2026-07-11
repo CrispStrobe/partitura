@@ -2,6 +2,10 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Feathered beams** (Phase 1.4, engraving quality): `Score.featheredBeams`
+  (`FeatheredBeam(startId, endId, {beginBeams, endBeams})`) — forces a note
+  run into one beam group and fans the beam count from start to end
+  (accelerando/ritardando). Model-only.
 - **Sustain-pedal marks** (v0.7.2): `Score.pedals` (`Pedal(startId, endId)`)
   — "Ped." under the start note and a release star under the end, on a line
   below the staff. Model-only; MusicXML `<pedal type=start/stop>`

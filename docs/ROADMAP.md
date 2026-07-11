@@ -77,7 +77,8 @@ N-line-staff generalization delivered in Phase 2 and because the Phase 1–2
 foundations lift its quality too. It can be pulled forward on request.)
 
 ### Phase 1 — Engraving quality  *(the biggest visual lever)*
-Raises the quality of everything already rendered.
+Raises the quality of everything already rendered. Slice order:
+**1.4 → 1.2 → 1.3.**
 - [x] **1.1 Optical horizontal spacing** — **already present**: `_advance`
       spaces by duration on a log2 scale (`spacingBase + spacingPerLog2 ·
       (4 + log2(duration))`), with a `minNoteGap` ink floor and a
@@ -95,10 +96,12 @@ Raises the quality of everything already rendered.
       reading engraving metrics (line thicknesses) from each font's metadata.
       The glyph-name abstraction already exists, so this is largely asset +
       config + a font-metrics loader.
-- [ ] **1.4 Advanced beaming** — feathered/fanned beams (accel./rall.), beam
+- [~] **1.4 Advanced beaming** — feathered/fanned beams (accel./rall.), beam
       subdivision at metric points, custom slope / independent beam-end
       heights, beams over rests, cross-measure beaming. (Cross-staff beaming
-      lands with Phase 2.)
+      lands with Phase 2.) **Done:** feathered beams (`FeatheredBeam`; golden
+      50). **Left:** subdivision, custom slope, beams over rests,
+      cross-measure.
 
 ### Phase 2 — Score structure (multi-staff)
 - [ ] **2.1 N-staff systems** — generalize the grand staff from 2 → N staves,

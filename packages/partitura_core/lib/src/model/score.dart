@@ -54,6 +54,9 @@ class Score {
   /// Sustain-pedal spans between note elements (model-only).
   final List<Pedal> pedals;
 
+  /// Feathered (fanned) beams over note runs (model-only).
+  final List<FeatheredBeam> featheredBeams;
+
   /// Creates a score (treat the lists as immutable).
   const Score({
     required this.clef,
@@ -68,6 +71,7 @@ class Score {
     this.ottavas = const [],
     this.glissandos = const [],
     this.pedals = const [],
+    this.featheredBeams = const [],
   });
 
   /// Builds a score from a terse note string, for tests and games.
@@ -569,6 +573,7 @@ class Score {
       ottavas: ottavas,
       glissandos: glissandos,
       pedals: pedals,
+      featheredBeams: featheredBeams,
     );
   }
 
@@ -629,7 +634,8 @@ class Score {
       listEquals(other.annotations, annotations) &&
       listEquals(other.ottavas, ottavas) &&
       listEquals(other.glissandos, glissandos) &&
-      listEquals(other.pedals, pedals);
+      listEquals(other.pedals, pedals) &&
+      listEquals(other.featheredBeams, featheredBeams);
 
   @override
   int get hashCode => Object.hash(
@@ -645,6 +651,7 @@ class Score {
         Object.hashAll(ottavas),
         Object.hashAll(glissandos),
         Object.hashAll(pedals),
+        Object.hashAll(featheredBeams),
       );
 
   @override
