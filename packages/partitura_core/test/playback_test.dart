@@ -119,6 +119,29 @@ void main() {
       expect(timeline.map((n) => n.elementId), ['e0', 'e1']);
     });
 
+    test('nested repeats: inner completes before the outer jumps back', () {
+      // |: a |: b | c :| d :|  — inner (b c) plays twice each time the whole
+      // outer (a b c d) plays, and the outer plays twice.
+      final timeline = playbackTimeline(Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes:
+            '!repeat a4:w | !repeat b4:w | c4:w !endrepeat | d4:w !endrepeat',
+      ));
+      expect(timeline.map((n) => n.elementId), [
+        'e0', 'e1', 'e2', 'e1', 'e2', 'e3', // outer pass 1 (inner twice)
+        'e0', 'e1', 'e2', 'e1', 'e2', 'e3', // outer pass 2 (inner twice)
+      ]);
+    });
+
+    test('two sequential (non-nested) repeats each play twice', () {
+      // |: a :| |: b :|  — independent repeats, tracked by the stack in turn.
+      final timeline = playbackTimeline(Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: '!repeat a4:w !endrepeat | !repeat b4:w !endrepeat',
+      ));
+      expect(timeline.map((n) => n.elementId), ['e0', 'e0', 'e1', 'e1']);
+    });
+
     test('empty measures advance by the current meter', () {
       final score = Score(
         clef: Clef.treble,

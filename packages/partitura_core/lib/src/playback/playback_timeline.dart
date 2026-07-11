@@ -76,8 +76,9 @@ double secondsFor(Fraction wholeNotes, {required double quarterBpm}) =>
 /// With [expandRepeats] (default), the score is linearized into performance
 /// order: repeat barlines play their segment twice and voltas select their
 /// pass (a `volta: 1` measure plays only on the first pass, `volta: 2` only
-/// on the second — deeper nested repeats are out of scope), and
-/// navigation marks execute their jumps (see [_navExpandedOrder] for the
+/// on the second), nested repeats expand via a stack (the inner repeat
+/// completes before the outer jumps back), and navigation marks execute
+/// their jumps (see [_navExpandedOrder] for the
 /// supported D.C. / D.S. / To Coda / Fine semantics). Ties stay separate
 /// entries — highlight both noteheads while the sound sustains. Grace notes
 /// carry no time of their own. An element id appears once per pass, so ids
@@ -153,6 +154,21 @@ List<PlaybackNote> playbackTimeline(Score score, {bool expandRepeats = true}) {
   return result;
 }
 
+/// One open repeat during expansion: where its `|:` sits and how many jumps
+/// back it still owes. A plain repeat owes one (body plays twice); the `pass`
+/// derived from the remaining jumps drives volta-bracket selection.
+class _RepeatFrame {
+  final int start;
+
+  /// Jumps back this repeat still owes; one for a plain `:|` (body plays
+  /// twice). A repeat-count model field would seed this with `count - 1`.
+  int jumpsLeft = 1;
+  _RepeatFrame(this.start);
+
+  /// 1 on the first time through the body, 2 after the first jump back, …
+  int get pass => 2 - jumpsLeft;
+}
+
 bool _isDaCapo(NavigationMark? n) =>
     n == NavigationMark.daCapo ||
     n == NavigationMark.daCapoAlFine ||
@@ -172,8 +188,12 @@ bool _isAlCoda(NavigationMark? n) =>
 /// The measure indices in performance order, expanding repeat barlines,
 /// voltas and navigation-mark jumps.
 ///
-/// Supported jump semantics (one level, the common cases):
+/// Supported jump semantics (the common cases):
 ///
+/// - **Repeat barlines** expand via a stack, so **nested** repeats
+///   (`|: … |: … :| … :|`) unfold correctly — the inner repeat completes each
+///   time before the outer jumps back. **Voltas** select their bracket by the
+///   enclosing repeat's pass number.
 /// - **D.C.** (da capo) returns to the first measure; **D.S.** (dal segno)
 ///   returns to the [NavigationMark.segno] measure. The instruction sits at
 ///   the end of its measure (that measure is played, then the jump happens),
@@ -182,9 +202,9 @@ bool _isAlCoda(NavigationMark? n) =>
 ///   is otherwise ignored on the first pass); **al Coda** variants arm the
 ///   [NavigationMark.toCoda] mark so that the next time it is reached, play
 ///   jumps to the [NavigationMark.coda] measure and continues to the end.
-/// - After a D.C./D.S. return the score plays **straight through** — inner
-///   repeat barlines and voltas are not re-expanded (their brackets are moot
-///   on the return pass). This is the standard "play repeats off on D.C./D.S."
+/// - After a D.C./D.S. return the score plays **straight through** — repeat
+///   barlines and voltas are not re-expanded (their brackets are moot on the
+///   return pass). This is the standard "play repeats off on D.C./D.S."
 ///   default and keeps the linearization unambiguous.
 ///
 /// Throws [ArgumentError] for a D.S. with no segno or an *al Coda* with no
@@ -203,8 +223,11 @@ List<int> _navExpandedOrder(List<Measure> measures) {
 
   final order = <int>[];
   var i = 0;
-  var repeatStart = 0;
-  var pass = 1;
+  // A stack of active repeat frames so nested `|: … |: … :| … :|` structures
+  // expand correctly (the inner repeat completes before the outer jumps back).
+  // Each frame counts the jumps it still owes; a plain repeat owes one (so its
+  // body plays twice). `pass` for a volta is the innermost frame's pass.
+  final repeats = <_RepeatFrame>[];
   var navReturned = false; // a D.C./D.S. jump has already fired
   var codaArmed = false; // an al Coda return is waiting for `toCoda`
   var stopAtFine = false; // an al Fine return will stop at `fine`
@@ -221,7 +244,13 @@ List<int> _navExpandedOrder(List<Measure> measures) {
     // Repeat/volta expansion runs only on the primary pass; after a
     // D.C./D.S. return the score plays straight through.
     if (!navReturned) {
-      if (measure.startRepeat && pass == 1) repeatStart = i;
+      // Open a repeat frame on its start barline (but not when we have just
+      // jumped back to it — the frame is already open).
+      if (measure.startRepeat && (repeats.isEmpty || repeats.last.start != i)) {
+        repeats.add(_RepeatFrame(i));
+      }
+      // A volta bracket is played only on its own pass of the enclosing repeat.
+      final pass = repeats.isEmpty ? 1 : repeats.last.pass;
       final volta = measure.volta;
       if (volta != null && volta != pass) {
         i++;
@@ -244,15 +273,16 @@ List<int> _navExpandedOrder(List<Measure> measures) {
       continue;
     }
 
-    // Repeat barline (primary pass only).
-    if (!navReturned && measure.endRepeat) {
-      if (pass == 1) {
-        pass = 2;
-        i = repeatStart;
+    // Repeat barline (primary pass only): jump back to the innermost open
+    // repeat's start until it has paid its jumps, then close the frame.
+    if (!navReturned && measure.endRepeat && repeats.isNotEmpty) {
+      final frame = repeats.last;
+      if (frame.jumpsLeft > 0) {
+        frame.jumpsLeft -= 1;
+        i = frame.start;
         continue;
       }
-      pass = 1;
-      repeatStart = i + 1;
+      repeats.removeLast();
     }
 
     // D.C./D.S. return instruction — fires once, then plays straight through.

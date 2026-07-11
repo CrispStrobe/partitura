@@ -2,6 +2,13 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Nested repeats** (Phase 7.4): `playbackTimeline` now expands repeat
+  barlines with a stack instead of a single start/pass pair, so nested
+  `|: … |: … :| … :|` structures unfold correctly — the inner repeat finishes
+  each time before the outer jumps back — and two sequential repeats are
+  tracked in turn. Voltas still select their bracket by the enclosing repeat's
+  pass. (A volta measure that is *also* an inner repeat start remains
+  ambiguous and unsupported.)
 - **Beams over rests** (Phase 1.4): a rest inside a beat no longer breaks a
   beam — the beam spans the gap (golden 64), matching standard engraving (and
   now, e.g., a triplet `[8th, rest, 8th]` beams under its bracket instead of
