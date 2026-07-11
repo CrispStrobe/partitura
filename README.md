@@ -15,6 +15,7 @@ are logged in [docs/DESIGN.md](docs/DESIGN.md).
 |---|---|---|
 | [`partitura_core`](packages/partitura_core) | Music theory model (pitch, duration, key, scale, chord, harmonic function), score document model, deterministic layout engine. Pure Dart. | Dart SDK only |
 | [`partitura`](packages/partitura) | Flutter rendering (`StaffView`) and interaction (`InteractiveStaff`): hit-testing, selection, drag-to-staff. Bundles the Bravura SMuFL font. | Flutter, `partitura_core` |
+| [`partitura_cli`](packages/partitura_cli) | Command-line tool: inspect scores, convert MusicXML ↔ MIDI, render to SVG (notation or tab). Pure Dart. | `partitura_core` |
 
 ## Why another notation library?
 

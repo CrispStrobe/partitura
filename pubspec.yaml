@@ -9,3 +9,4 @@ workspace:
   - packages/partitura_core
   - packages/partitura
   - packages/partitura/example
+  - packages/partitura_cli
