@@ -2,6 +2,11 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Guitar/bass tablature — foundation** (v0.8): `Tuning` (open-string
+  pitches + `fretFor` lowest-fret assignment; standard guitar, drop D, bass
+  presets) and `TabLayoutEngine`, which renders a `Score` as fret numbers on
+  an N-line string staff with a TAB clef and broken string lines. Rhythm and
+  techniques land incrementally. Lifts the former "tablature out" scope.
 - **Forced beam slant** (Phase 1.4): `Score.beamSlants`
   (`BeamSlant(startId, endId, {slant})`) — forces a note run into one beam
   group with a fixed slant (0 = horizontal). Model-only.

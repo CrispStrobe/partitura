@@ -15,4 +15,5 @@ export 'src/rendering/grand_staff_view.dart';
 export 'src/rendering/multi_system_view.dart';
 export 'src/rendering/smufl_glyphs.dart';
 export 'src/rendering/staff_view.dart';
+export 'src/rendering/tab_staff_view.dart';
 export 'src/rendering/theme.dart';

@@ -104,4 +104,6 @@ const Map<String, String> smuflCodepoints = {
   'tremolo5': '\uE224',
   'keyboardPedalPed': '\uE650',
   'keyboardPedalUp': '\uE655',
+  '6stringTabClef': '\uE06D',
+  '4stringTabClef': '\uE06E',
 };

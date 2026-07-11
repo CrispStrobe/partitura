@@ -818,4 +818,52 @@ void main() {
       staffSpace: 10,
     );
   });
+
+  Future<void> tabGolden(
+    WidgetTester tester,
+    String name,
+    Score score,
+    Tuning tuning, {
+    double staffSpace = 12,
+  }) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Colors.white,
+          body: Center(
+            child: RepaintBoundary(
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(12),
+                child: TabStaffView(
+                  score: score,
+                  tuning: tuning,
+                  staffSpace: staffSpace,
+                  theme: const PartituraTheme(textFontFamily: 'Roboto'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await expectLater(
+      find.byType(RepaintBoundary).last,
+      matchesGoldenFile('goldens/$name.png'),
+    );
+  }
+
+  testWidgets('52 guitar tab: open strings, melody, chords', (tester) async {
+    await tabGolden(
+      tester,
+      '52_tab_basic',
+      Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'e2:q a2 d3 g3 | b3:q e4 g4 b4 | '
+            'c3:q e3 g3 c4 | e2+b2+e4:h a2+e3+a3:h',
+      ),
+      Tuning.standardGuitar,
+    );
+  });
 }

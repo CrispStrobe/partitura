@@ -229,6 +229,12 @@ abstract final class SmuflGlyph {
     return 'tremolo$strokes';
   }
 
+  /// Six-string guitar tablature clef ("TAB").
+  static const String sixStringTabClef = '6stringTabClef';
+
+  /// Four-string bass tablature clef ("TAB").
+  static const String fourStringTabClef = '4stringTabClef';
+
   /// Piano sustain-pedal "Ped." mark (pedal down).
   static const String keyboardPedalPed = 'keyboardPedalPed';
 

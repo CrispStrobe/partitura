@@ -206,11 +206,14 @@ assume exactly 5 lines; tab needs an N-line staff where each line is a
 pitch → (string, fret) assignment. Also requires lifting the current
 "tablature out" clause in the contract.
 
-- [ ] **6.1 Design + contract amendment** — N-line staff, `Tuning` (open-
-      string pitches; standard/drop/custom), pitch→(string,fret) assignment,
-      the tab clef, DSL/builder shape, interchange mapping.
-- [ ] **6.2 Core tab staff** — configurable line count, tab clef, fret numbers
-      instead of noteheads, optional rhythm stems below, tunings, capo.
+- [x] **6.1 Design + contract amendment** — `Tuning` (open-string pitches +
+      `fretFor` lowest-fret assignment; guitar/dropD/bass presets), N-line
+      staff, TAB clef; contract "tablature out" clause lifted. (Pulled forward
+      on request, 2026-07-11.)
+- [~] **6.2 Core tab staff** — **done:** N-line string staff, TAB clef, fret
+      numbers with broken lines, barlines, `TabStaffView` (golden 52).
+      **Left:** rhythm stems/beams below the staff, capo, per-note string
+      override.
 - [ ] **6.3 Tab paired with a notation staff** (rides on Phase 2.1).
 - [ ] **6.4 Techniques** — the full set below.
 - [ ] **6.5 Tunings & other fretted instruments** (bass, drop-D, DADGAD…;

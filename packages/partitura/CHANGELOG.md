@@ -2,6 +2,9 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Guitar/bass tablature — foundation** (v0.8): `TabStaffView` renders a
+  `Score` as tab (fret numbers on string lines, TAB clef) for a `Tuning`;
+  golden scene 52.
 - **Forced horizontal / custom-slant beams** rendered (Phase 1.4, via
   `partitura_core`): golden scene 51, gallery entry.
 - **Feathered beams** rendered (Phase 1.4, via `partitura_core`): fanned

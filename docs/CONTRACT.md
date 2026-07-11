@@ -245,9 +245,18 @@ tremolo strokes (`tremolo1`…`tremolo5`) centered on the stem · sustain-pedal
 Caveat: interaction quantization (`StaffTarget.pitchFor`) takes an
 explicit clef — apps using mid-score clef changes must map per measure.
 
+**Guitar/bass tablature** (v0.8, in progress): `TabLayoutEngine.layout(score,
+tuning, settings)` renders a `Score`'s pitches as fret numbers on an N-line
+string staff, using a `Tuning` (open-string pitches; `Tuning.standardGuitar`
+/ `dropDGuitar` / `standardBass`, or custom). `Tuning.fretFor(pitch)` assigns
+the lowest playable (string, fret). `TabStaffView` is the Flutter widget.
+Rhythm stems/beams and playing techniques (bends, slides, harmonics…) are
+being added incrementally. *(This lifts the former "tablature out" clause —
+a consumer requested it.)*
+
 **Not implemented (v0.x non-goals)**: multi-voice collision avoidance,
 cross-staff beaming, audio (never),
-transposing instruments, tablature, compound-meter beam grouping (x/8
+transposing instruments, compound-meter beam grouping (x/8
 meters render flags). Alto/tenor clefs shipped in v0.2; slurs/ties,
 tuplets, grace notes, articulations and dynamics in v0.3; two voices,
 grand staff, line breaking, lyrics and chord symbols/annotations in
