@@ -110,6 +110,14 @@ class _PartWriter {
     for (var i = 0; i < score.slurs.length; i++)
       score.slurs[i].endId: '${i % 6 + 1}',
   };
+  late final Map<String, String> _glissStartsById = {
+    for (var i = 0; i < score.glissandos.length; i++)
+      score.glissandos[i].startId: '${i % 6 + 1}',
+  };
+  late final Map<String, String> _glissStopsById = {
+    for (var i = 0; i < score.glissandos.length; i++)
+      score.glissandos[i].endId: '${i % 6 + 1}',
+  };
 
   void write() {
     for (var m = 0; m < score.measures.length; m++) {
@@ -329,6 +337,12 @@ class _PartWriter {
       if (start != null) parts.add('<slur type="start" number="$start"/>');
       final stop = _slurStopsById[id];
       if (stop != null) parts.add('<slur type="stop" number="$stop"/>');
+      final gStart = _glissStartsById[id];
+      if (gStart != null) {
+        parts.add('<slide type="start" line-type="solid" number="$gStart"/>');
+      }
+      final gStop = _glissStopsById[id];
+      if (gStop != null) parts.add('<slide type="stop" number="$gStop"/>');
     }
     if (span != null && index == span.startIndex) {
       parts.add('<tuplet type="start"/>');

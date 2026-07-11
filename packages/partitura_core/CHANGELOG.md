@@ -2,6 +2,9 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Glissando / slide** (v0.7.2): `Score.glissandos`
+  (`Glissando(startId, endId)`) — a straight line between two notes, same
+  id/order validation as slurs. Model-only; MusicXML `<slide>` round-trips.
 - **Arpeggio / rolled chord** (v0.7.2): `NoteElement.arpeggio`
   (`Arpeggio.up`/`down`) — a vertical wavy line left of the chord, tiled
   from `wiggleArpeggiatoUp` and capped with a direction arrowhead.

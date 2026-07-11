@@ -48,6 +48,9 @@ class Score {
   /// notes draw an octave off their sounding pitch.
   final List<Ottava> ottavas;
 
+  /// Glissando/slide lines between note elements (model-only).
+  final List<Glissando> glissandos;
+
   /// Creates a score (treat the lists as immutable).
   const Score({
     required this.clef,
@@ -60,6 +63,7 @@ class Score {
     this.lyrics = const [],
     this.annotations = const [],
     this.ottavas = const [],
+    this.glissandos = const [],
   });
 
   /// Builds a score from a terse note string, for tests and games.
@@ -558,6 +562,7 @@ class Score {
       lyrics: lyrics,
       annotations: annotations,
       ottavas: ottavas,
+      glissandos: glissandos,
     );
   }
 
@@ -616,7 +621,8 @@ class Score {
       listEquals(other.hairpins, hairpins) &&
       listEquals(other.lyrics, lyrics) &&
       listEquals(other.annotations, annotations) &&
-      listEquals(other.ottavas, ottavas);
+      listEquals(other.ottavas, ottavas) &&
+      listEquals(other.glissandos, glissandos);
 
   @override
   int get hashCode => Object.hash(
@@ -630,6 +636,7 @@ class Score {
         Object.hashAll(lyrics),
         Object.hashAll(annotations),
         Object.hashAll(ottavas),
+        Object.hashAll(glissandos),
       );
 
   @override

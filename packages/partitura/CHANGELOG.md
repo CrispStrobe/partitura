@@ -2,6 +2,8 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Glissando / slide** rendered (v0.7.2, via `partitura_core`): straight
+  line between two notes; golden scene 47, gallery entry.
 - **Arpeggio / rolled chords** rendered (v0.7.2, via `partitura_core`):
   vertical wavy line with a direction arrowhead; golden scene 46, gallery
   entry.

@@ -713,4 +713,23 @@ void main() {
       staffSpace: 10,
     );
   });
+
+  testWidgets('47 glissando', (tester) async {
+    await golden(
+      tester,
+      '47_glissando',
+      Score(
+        clef: Clef.treble,
+        timeSignature: TimeSignature.fourFour,
+        measures: [
+          Measure([
+            NoteElement.note(Pitch.parse('c4'), NoteDuration.half, id: 'a'),
+            NoteElement.note(Pitch.parse('g5'), NoteDuration.half, id: 'b'),
+          ]),
+        ],
+        glissandos: const [Glissando('a', 'b')],
+      ),
+      staffSpace: 10,
+    );
+  });
 }

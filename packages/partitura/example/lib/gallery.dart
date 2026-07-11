@@ -366,6 +366,20 @@ final List<GalleryItem> galleryItems = [
       ],
     ),
   ),
+  GalleryItem(
+    'Glissando / slide',
+    Score(
+      clef: Clef.treble,
+      timeSignature: TimeSignature.fourFour,
+      measures: [
+        Measure([
+          NoteElement.note(Pitch.parse('c4'), NoteDuration.half, id: 'a'),
+          NoteElement.note(Pitch.parse('g5'), NoteDuration.half, id: 'b'),
+        ]),
+      ],
+      glissandos: const [Glissando('a', 'b')],
+    ),
+  ),
 ];
 
 /// Scrollable gallery of the corpus (plus grand-staff and multi-system

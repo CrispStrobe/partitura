@@ -96,6 +96,8 @@ value-based, invalid constructor arguments fail asserts in debug builds.
   `RestElement`.
 - `Score.slurs`: `Slur(startId, endId)` phrasing curves between note
   elements; unknown or reversed ids throw at layout time.
+- `Score.glissandos`: `Glissando(startId, endId)` straight slide lines
+  between two notes (model-only); same id/order rules as slurs.
 - `Score.dynamics` (`DynamicMarking(elementId, pp…ff)`) and
   `Score.hairpins` (`Hairpin(startId, endId, crescendo|diminuendo)`) —
   model-only (no DSL shorthand); drawn on a dynamics line below the
@@ -225,7 +227,7 @@ glyphs at the measure start, D.C./D.S./To Coda/Fine words right-aligned at
 its end) · fingering digits stacked above the note (clear of the notehead,
 stem and any articulation/ornament ink) · arpeggio as a vertical wavy line
 (tiled `wiggleArpeggiatoUp`) just left of the chord, capped by an up/down
-direction arrowhead.
+direction arrowhead · glissando as a straight line between two noteheads.
 
 Caveat: interaction quantization (`StaffTarget.pitchFor`) takes an
 explicit clef — apps using mid-score clef changes must map per measure.

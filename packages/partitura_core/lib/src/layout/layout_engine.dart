@@ -267,6 +267,7 @@ class _LayoutBuilder {
     }
     _layoutTies();
     _layoutSlurs();
+    _layoutGlissandos();
     _layoutOttavas();
     _layoutDynamics();
     _layoutLyrics();
@@ -757,6 +758,32 @@ class _LayoutBuilder {
             elementId: element.id);
         y -= box.height + 0.2;
       }
+    }
+  }
+
+  /// v0.7.2: glissando/slide — a straight line from the first note's right
+  /// edge to the second note's left edge, at their notehead centers.
+  void _layoutGlissandos() {
+    for (final gliss in score.glissandos) {
+      final startIdx =
+          _tieInfos.indexWhere((i) => i.note != null && i.id == gliss.startId);
+      final endIdx =
+          _tieInfos.indexWhere((i) => i.note != null && i.id == gliss.endId);
+      if (startIdx < 0 || endIdx < 0) {
+        throw ArgumentError('$gliss references an unknown note element id');
+      }
+      if (endIdx <= startIdx) {
+        throw ArgumentError('$gliss must run forward in reading order');
+      }
+      final start = _tieInfos[startIdx];
+      final end = _tieInfos[endIdx];
+      double centerY(_TieInfo i) =>
+          i.heads.map((h) => h.$4).reduce((a, b) => a + b) / i.heads.length;
+      _addLine(
+        Point(start.right + 0.15, centerY(start)),
+        Point(end.left - 0.15, centerY(end)),
+        meta.engravingDefault('glissandoLineThickness', orElse: 0.15),
+      );
     }
   }
 

@@ -90,6 +90,7 @@ class _PartReader {
 
   final _measures = <Measure>[];
   final _slurs = <Slur>[];
+  final _glissandos = <Glissando>[];
   final _dynamics = <DynamicMarking>[];
   final _hairpins = <Hairpin>[];
   final _lyrics = <Lyric>[];
@@ -97,6 +98,7 @@ class _PartReader {
 
   // Open spans keyed by MusicXML "number" attribute.
   final _openSlurs = <String, String>{};
+  final _openGliss = <String, String>{};
   final _openWedges = <String, (String, HairpinType)>{};
   final _openOttavas = <String, (String, bool)>{};
   final _ottavas = <Ottava>[];
@@ -119,6 +121,7 @@ class _PartReader {
       lyrics: _lyrics,
       annotations: _annotations,
       ottavas: _ottavas,
+      glissandos: _glissandos,
     );
   }
 
@@ -504,6 +507,16 @@ class _PartReader {
           case 'stop':
             final start = _openSlurs.remove(number);
             if (start != null) _slurs.add(Slur(start, id));
+        }
+      }
+      for (final slide in notations.childrenNamed('slide')) {
+        final number = slide.attributes['number'] ?? '1';
+        switch (slide.attributes['type']) {
+          case 'start':
+            _openGliss[number] = id;
+          case 'stop':
+            final start = _openGliss.remove(number);
+            if (start != null) _glissandos.add(Glissando(start, id));
         }
       }
     }

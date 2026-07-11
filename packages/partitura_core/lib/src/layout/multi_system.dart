@@ -241,5 +241,9 @@ Score _slice(
       for (final annotation in score.annotations)
         if (ids.contains(annotation.elementId)) annotation,
     ],
+    glissandos: [
+      for (final gliss in score.glissandos)
+        if (ids.contains(gliss.startId) && ids.contains(gliss.endId)) gliss,
+    ],
   );
 }

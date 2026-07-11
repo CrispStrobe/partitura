@@ -85,7 +85,9 @@ reuses the existing model → layout → paint pipeline.
             SMuFL fingering glyphs, MusicXML `<technical>`; golden 45)
       - [x] 0.7.2b Arpeggio (`NoteElement.arpeggio` up/down, wavy line +
             arrowhead, model-only, MusicXML `<arpeggiate>`; golden 46)
-      - [ ] 0.7.2c glissando · 0.7.2d tremolo · 0.7.2e pedal marks
+      - [x] 0.7.2c Glissando (`Score.glissandos`, straight line, model-only,
+            MusicXML `<slide>`; golden 47)
+      - [ ] 0.7.2d tremolo · 0.7.2e pedal marks
 - [ ] 0.7.3 N-staff systems (generalize `GrandStaff` 2 → N, brackets +
       nested part groups; unblocks SATB/organ/orchestral)
 - [ ] 0.7.4 Pedagogy breadth (model note-coloring incl. Boomwhacker, cue

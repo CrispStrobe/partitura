@@ -207,6 +207,31 @@ class Slur {
   String toString() => 'Slur($startId -> $endId)';
 }
 
+/// A glissando/slide: a straight line drawn from one note to a later one,
+/// referenced by their ids (like [Slur]). The start must precede the end in
+/// reading order and both ids must exist, or layout throws an
+/// [ArgumentError]. Model-only (no DSL shorthand).
+class Glissando {
+  /// Id of the note the line starts on.
+  final String startId;
+
+  /// Id of the note the line ends on.
+  final String endId;
+
+  /// Creates a glissando from [startId] to [endId].
+  const Glissando(this.startId, this.endId);
+
+  @override
+  bool operator ==(Object other) =>
+      other is Glissando && other.startId == startId && other.endId == endId;
+
+  @override
+  int get hashCode => Object.hash(startId, endId);
+
+  @override
+  String toString() => 'Glissando($startId -> $endId)';
+}
+
 /// A rest.
 class RestElement extends MusicElement {
   /// Creates a rest of [duration].
