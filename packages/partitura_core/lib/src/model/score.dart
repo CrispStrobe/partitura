@@ -39,6 +39,10 @@ class Score {
   /// `lyrics` parameter for the string shorthand).
   final List<Lyric> lyrics;
 
+  /// Text annotations above the staff — chord symbols, rehearsal marks,
+  /// tempo text (see `Score.simple`'s `annotations` parameter).
+  final List<Annotation> annotations;
+
   /// Creates a score (treat the lists as immutable).
   const Score({
     required this.clef,
@@ -49,6 +53,7 @@ class Score {
     this.dynamics = const [],
     this.hairpins = const [],
     this.lyrics = const [],
+    this.annotations = const [],
   });
 
   /// Builds a score from a terse note string, for tests and games.
@@ -96,6 +101,9 @@ class Score {
   ///   whitespace-separated tokens, `*` skips a note, a trailing `-`
   ///   hyphenates to the next syllable, a trailing `_` draws a melisma
   ///   extender (`lyrics: 'Twin- kle * star_'`).
+  /// - The optional [annotations] string works the same way but places
+  ///   text **above** the staff (chord symbols, tempo/rehearsal text):
+  ///   `*` skips a note (`annotations: 'C * G7 *'`).
   ///
   /// Examples: `Score.simple(notes: 'c4:q d4 e4:h')`,
   /// `Score.simple(notes: 'c4+e4+g4:h r:h | g4:w')`.
@@ -107,6 +115,7 @@ class Score {
     TimeSignature? timeSignature,
     required String notes,
     String? lyrics,
+    String? annotations,
   }) {
     var duration = NoteDuration.quarter;
     var nextId = 0;
@@ -343,7 +352,34 @@ class Score {
       measures: measures,
       slurs: slurs,
       lyrics: lyrics == null ? const [] : _parseLyrics(lyrics, measures),
+      annotations: annotations == null
+          ? const []
+          : _parseAnnotations(annotations, measures),
     );
+  }
+
+  /// Maps [source]'s tokens onto the voice-1 note elements of [measures]
+  /// in reading order (`*` skips a note).
+  static List<Annotation> _parseAnnotations(
+    String source,
+    List<Measure> measures,
+  ) {
+    final noteIds = <String>[
+      for (final measure in measures)
+        for (final element in measure.elements)
+          if (element is NoteElement && element.id != null) element.id!,
+    ];
+    final result = <Annotation>[];
+    var index = 0;
+    for (final token in source.trim().split(RegExp(r'\s+'))) {
+      if (token.isEmpty) continue;
+      if (index >= noteIds.length) {
+        throw FormatException('More annotation tokens than notes: "$token"');
+      }
+      if (token != '*') result.add(Annotation(noteIds[index], token));
+      index++;
+    }
+    return result;
   }
 
   /// Maps [source]'s syllable tokens onto the voice-1 note elements of
@@ -415,7 +451,8 @@ class Score {
       listEquals(other.slurs, slurs) &&
       listEquals(other.dynamics, dynamics) &&
       listEquals(other.hairpins, hairpins) &&
-      listEquals(other.lyrics, lyrics);
+      listEquals(other.lyrics, lyrics) &&
+      listEquals(other.annotations, annotations);
 
   @override
   int get hashCode => Object.hash(
@@ -427,6 +464,7 @@ class Score {
         Object.hashAll(dynamics),
         Object.hashAll(hairpins),
         Object.hashAll(lyrics),
+        Object.hashAll(annotations),
       );
 
   @override

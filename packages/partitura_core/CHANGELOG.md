@@ -2,6 +2,10 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Chord symbols / annotations**: `Annotation(elementId, text)` on
+  `Score.annotations`; DSL `annotations:` parameter (`*` skips a note).
+  Text on a shared baseline above all other ink, centered over the
+  note; element hit regions grow upward.
 - **Lyrics**: `Lyric` (elementId, text, `hyphenToNext`, `extender`) on
   `Score.lyrics`; DSL `lyrics:` parameter (`*` skips a note, trailing
   `-` hyphenates, trailing `_` starts a melisma extender). Layout puts

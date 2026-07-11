@@ -1,10 +1,11 @@
 # partitura — implementation plan (living tracker)
 
 **Status (2026-07-11):** v0.1–v0.3 complete; 0.4.1 (two voices), 0.4.2
-(grand staff), 0.4.3 (line breaking + justification) and 0.4.4 (lyrics)
-shipped (versions 0.4.0-dev.1). 395 core + 97 widget + 5 example tests,
-37 golden scenes + hero, on-device integration test — all green. Next:
-0.4.5 chord symbols / text annotations.
+(grand staff), 0.4.3 (line breaking + justification), 0.4.4 (lyrics)
+and 0.4.5 (chord symbols / annotations) shipped — **v0.4 complete**
+(versions 0.4.0-dev.1). 408 core + 104 widget + 5 example tests, 38
+golden scenes + hero, on-device integration test — all green. Next:
+v0.5 interchange (MusicXML import).
 
 Working checklist for the feature-parity plan. Analysis and per-item
 design notes live in [docs/ROADMAP.md](docs/ROADMAP.md); check items off
@@ -41,8 +42,8 @@ gates green (`dart format`, analyze zero issues, all tests), push.
 - [x] 0.4.3 Line breaking + justification (`layoutSystems` +
       `MultiSystemView`)
 - [x] 0.4.4 Lyrics (syllables, hyphens, extenders; `TextPrimitive`)
-- [ ] 0.4.5 Chord symbols / text annotations (covers rehearsal + tempo
-      marks)
+- [x] 0.4.5 Chord symbols / text annotations (covers rehearsal + tempo
+      marks; `Annotation` above the staff)
 
 ## v0.5 — interchange & time
 

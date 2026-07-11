@@ -229,6 +229,7 @@ class _LayoutBuilder {
     _layoutSlurs();
     _layoutDynamics();
     _layoutLyrics();
+    _layoutAnnotations();
     final width = _addFinalBarline();
 
     // Staff lines span the full width; paint them first.
@@ -1377,6 +1378,42 @@ class _LayoutBuilder {
           );
         }
       }
+    }
+  }
+
+  /// v0.4.5: text annotations (chord symbols, tempo/rehearsal text) on a
+  /// shared baseline above all other ink, centered over their note.
+  void _layoutAnnotations() {
+    if (score.annotations.isEmpty) return;
+    final size = s.annotationSize;
+    // Text bottom (baseline + descender) clears the highest ink so far.
+    final baselineY = min(-1.0, _ink.minY - s.annotationGap - 0.25 * size);
+
+    final infoOf = <String, _TieInfo>{
+      for (final info in _tieInfos)
+        if (info.id != null) info.id!: info,
+    };
+    for (final annotation in score.annotations) {
+      final info = infoOf[annotation.elementId];
+      if (info == null || info.note == null) {
+        throw ArgumentError(
+            '$annotation references an unknown note element id');
+      }
+      final centerX = (info.left + info.right) / 2;
+      final halfWidth = 0.25 * size * max(1, annotation.text.length);
+      _primitives.add(TextPrimitive(
+        annotation.text,
+        Point(centerX, baselineY),
+        size: size,
+        elementId: annotation.elementId,
+      ));
+      _expand(
+        annotation.elementId,
+        centerX - halfWidth,
+        baselineY - 0.72 * size,
+        centerX + halfWidth,
+        baselineY + 0.25 * size,
+      );
     }
   }
 

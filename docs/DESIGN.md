@@ -340,6 +340,16 @@ terse is fine. See HANDOVER.md §6.
   the local Flutter SDK in `test_setup.dart` (no font asset added to
   the package).
 
+## v0.4.5 chord symbols / annotations (2026-07-11)
+
+- Reuses the lyric machinery mirrored upward: `Annotation` =
+  center-anchored `TextPrimitive` on one shared baseline **above** all
+  prior ink (`min(-1.0, inkTop - gap - descender)`), laid out after
+  lyrics so the two never collide. Covers chord symbols, rehearsal
+  marks and tempo text; no per-kind styling until a consumer needs it.
+- Centered over the notehead (not left-aligned): matches lead-sheet
+  conventions well enough and keeps `TextPrimitive` single-anchor.
+
 ## Blockers
 
 (none)

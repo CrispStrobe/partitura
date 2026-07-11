@@ -235,5 +235,9 @@ Score _slice(
       for (final lyric in score.lyrics)
         if (ids.contains(lyric.elementId)) lyric,
     ],
+    annotations: [
+      for (final annotation in score.annotations)
+        if (ids.contains(annotation.elementId)) annotation,
+    ],
   );
 }

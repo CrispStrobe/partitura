@@ -136,6 +136,11 @@ syllable, a trailing `_` starts a melisma extender
 hyphenToNext:, extender:)` in `Score.lyrics`. More tokens than notes
 throw `FormatException`.
 
+The `annotations:` parameter works the same way but places text
+**above** the staff (chord symbols, rehearsal marks, tempo text): `*`
+skips a note (`annotations: 'C * G7 *'`). Model type:
+`Annotation(elementId, text)` in `Score.annotations`.
+
 ## 5. Layout engine (`partitura_core`)
 
 `const LayoutEngine().layout(score, settings)` → `ScoreLayout`.
@@ -207,11 +212,12 @@ Caveat: interaction quantization (`StaffTarget.pitchFor`) takes an
 explicit clef — apps using mid-score clef changes must map per measure.
 
 **Not implemented (v0.x non-goals)**: multi-voice collision avoidance,
-cross-staff beaming, chord symbols, MusicXML, audio (never),
+cross-staff beaming, MusicXML, audio (never),
 transposing instruments, tablature, compound-meter beam grouping (x/8
 meters render flags). Alto/tenor clefs shipped in v0.2; slurs/ties,
 tuplets, grace notes, articulations and dynamics in v0.3; two voices,
-grand staff, line breaking and lyrics in v0.4.
+grand staff, line breaking, lyrics and chord symbols/annotations in
+v0.4.
 
 ## 6. Rendering (`partitura`)
 

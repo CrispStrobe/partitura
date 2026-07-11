@@ -11,6 +11,9 @@
   fit the available width (rebreaks on resize, justification toggle,
   taps and repaint-only highlights across systems); golden scene 36,
   gallery card.
+- **Chord symbols / annotations** above the staff (same `TextPrimitive`
+  path as lyrics: highlight/element colors, taps resolve to the note);
+  golden scene 38, gallery card.
 - **Lyrics** rendered via the new `TextPrimitive` (real text centered on
   the core's anchor); `PartituraTheme.textFontFamily` picks the text
   font (null = platform default); syllables follow highlight/element

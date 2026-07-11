@@ -597,4 +597,17 @@ void main() {
       ),
     );
   });
+
+  testWidgets('38 chord symbols above the staff', (tester) async {
+    await golden(
+      tester,
+      '38_chord_symbols',
+      theme: const PartituraTheme(textFontFamily: 'Roboto'),
+      Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'c4+e4+g4:h a3+c4+e4:h | f3+a3+c4:h g3+b3+d4:h | c4+e4+g4:w',
+        annotations: 'C Am F G7 C',
+      ),
+    );
+  });
 }

@@ -293,3 +293,26 @@ class Lyric {
   String toString() => 'Lyric($elementId: "$text"'
       '${hyphenToNext ? ' -' : ''}${extender ? ' _' : ''})';
 }
+
+/// A text annotation anchored above the staff at a note element: chord
+/// symbols, rehearsal marks, tempo text.
+class Annotation {
+  /// Id of the note element the text sits above.
+  final String elementId;
+
+  /// The text to display (e.g. `C`, `G7/B`, `Andante`).
+  final String text;
+
+  /// Creates an annotation.
+  const Annotation(this.elementId, this.text);
+
+  @override
+  bool operator ==(Object other) =>
+      other is Annotation && other.elementId == elementId && other.text == text;
+
+  @override
+  int get hashCode => Object.hash(elementId, text);
+
+  @override
+  String toString() => 'Annotation($elementId: "$text")';
+}

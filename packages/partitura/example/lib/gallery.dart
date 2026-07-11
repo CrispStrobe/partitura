@@ -19,16 +19,6 @@ class GalleryItem {
 /// The golden-test corpus, browsable on a device. Doubles as manual QA.
 final List<GalleryItem> galleryItems = [
   GalleryItem(
-    'Lyrics (hyphens, melisma extender)',
-    Score.simple(
-      timeSignature: TimeSignature.fourFour,
-      notes: 'c4:q c4 g4 g4 | a4:q a4 g4:q g4 | f4:q f4 e4 e4 |'
-          'd4:q d4 c4:h',
-      lyrics: 'Twin- kle twin- kle lit- tle star_ * how I won- der '
-          'what you are',
-    ),
-  ),
-  GalleryItem(
     'C major scale (treble)',
     Score.simple(
       timeSignature: TimeSignature.fourFour,
@@ -279,6 +269,24 @@ final List<GalleryItem> galleryItems = [
       clef: Clef.bass,
       keySignature: const KeySignature(2),
       notes: 'd3:q f#3+a3 d3+f#3+a3:h | g2+b2+d3:w',
+    ),
+  ),
+  GalleryItem(
+    'Chord symbols (annotations above the staff)',
+    Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'c4+e4+g4:h a3+c4+e4:h | f3+a3+c4:h g3+b3+d4:h | c4+e4+g4:w',
+      annotations: 'C Am F G7 C',
+    ),
+  ),
+  GalleryItem(
+    'Lyrics (hyphens, melisma extender)',
+    Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'c4:q c4 g4 g4 | a4:q a4 g4:q g4 | f4:q f4 e4 e4 |'
+          'd4:q d4 c4:h',
+      lyrics: 'Twin- kle twin- kle lit- tle star_ * how I won- der '
+          'what you are',
     ),
   ),
 ];

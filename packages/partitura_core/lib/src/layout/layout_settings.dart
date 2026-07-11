@@ -87,6 +87,12 @@ class LayoutSettings {
   /// Minimum clearance between the lowest ink and the lyric baseline.
   final double lyricGap;
 
+  /// Em size of annotation text (chord symbols), in staff spaces.
+  final double annotationSize;
+
+  /// Minimum clearance between an annotation's text and the ink below.
+  final double annotationGap;
+
   /// Creates settings seeded from [metadata]'s engraving defaults; any
   /// parameter can be overridden.
   LayoutSettings({
@@ -115,6 +121,8 @@ class LayoutSettings {
     this.verticalPadding = 0.5,
     this.lyricSize = 1.6,
     this.lyricGap = 0.8,
+    this.annotationSize = 1.8,
+    this.annotationGap = 0.5,
   })  : staffLineThickness = staffLineThickness ??
             metadata.engravingDefault('staffLineThickness', orElse: 0.13),
         stemThickness = stemThickness ??
