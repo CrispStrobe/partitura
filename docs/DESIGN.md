@@ -293,6 +293,34 @@ terse is fine. See HANDOVER.md §6.
   (`GlyphPrimitive.scale` machinery); the widget adds a 1.4-space left
   inset for it.
 
+## v0.4.3 line breaking + justification (2026-07-11)
+
+- **Slice-based**: each system re-lays a sub-`Score` of its measures
+  with the running clef/key/time as the slice's leading state (state
+  arrays precomputed once). No system-aware code inside the measure
+  loop; the engine stays single-line.
+- Greedy packing estimates system widths from the natural layout's
+  cumulative `measureRegions` (exact for barlines/repeats/inline
+  changes) plus a per-system leading-width probe; a post-layout trim
+  loop guarantees `width ≤ maxWidth` for multi-measure systems. An
+  overwide single measure gets its own system rather than failing.
+- **Justification = uniform spacing stretch**, binary-searched (24
+  iterations, break when within 0.05 spaces under budget; only a
+  fitting candidate may end the search — an overshooting one must keep
+  narrowing). `spacingStretch` multiplies only the duration-proportional
+  ideal advance, never ink minimums or the leading segment.
+- The slice keeps its time signature (beam windows derive from it) but
+  the engine's new `drawTimeSignature: false` suppresses drawing it on
+  later systems; `finalBarline: false` closes continuing systems with a
+  thin barline.
+- Spans (slurs/dynamics/hairpins) whose endpoints land on different
+  systems are **dropped**, not split — correct broken-span rendering
+  (dangling curve to the margin) is 0.6 polish; ties already degrade
+  gracefully per measure.
+- `MultiSystemView` requires a fixed `staffSpace` (no fit-to-width):
+  the available width is the input to breaking, so it cannot also
+  derive the scale.
+
 ## Blockers
 
 (none)

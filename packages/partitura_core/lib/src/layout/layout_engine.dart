@@ -33,14 +33,30 @@ class LayoutEngine {
   /// leading segment (clef/key/time) and each measure — the grand-staff
   /// layout uses them to align barlines across staves. Narrow content is
   /// padded; content wider than an override keeps its natural width.
+  ///
+  /// [spacingStretch] multiplies the duration-proportional ideal advance
+  /// (≥ 1.0); system justification uses it to widen lines uniformly.
+  ///
+  /// With [drawTimeSignature] false the leading time signature is not
+  /// drawn but still governs beaming — later systems of a broken score
+  /// use this. With [finalBarline] false the layout closes with a plain
+  /// thin barline instead of the thin+thick end-of-score pair — systems
+  /// that continue on the next line use this.
   ScoreLayout layout(
     Score score,
     LayoutSettings settings, {
     double? leadingWidth,
     List<double>? measureWidths,
+    double spacingStretch = 1.0,
+    bool drawTimeSignature = true,
+    bool finalBarline = true,
   }) =>
       _LayoutBuilder(score, settings,
-              leadingWidth: leadingWidth, measureWidths: measureWidths)
+              leadingWidth: leadingWidth,
+              measureWidths: measureWidths,
+              spacingStretch: spacingStretch,
+              drawTimeSignature: drawTimeSignature,
+              finalBarline: finalBarline)
           .build();
 }
 
@@ -132,6 +148,9 @@ class _LayoutBuilder {
   final LayoutSettings s;
   final double? leadingWidth;
   final List<double>? measureWidths;
+  final double spacingStretch;
+  final bool drawTimeSignature;
+  final bool finalBarline;
   SmuflMetadata get meta => s.metadata;
 
   final List<LayoutPrimitive> _primitives = [];
@@ -147,7 +166,12 @@ class _LayoutBuilder {
   late KeySignature _key = score.keySignature;
   late TimeSignature? _time = score.timeSignature;
 
-  _LayoutBuilder(this.score, this.s, {this.leadingWidth, this.measureWidths});
+  _LayoutBuilder(this.score, this.s,
+      {this.leadingWidth,
+      this.measureWidths,
+      this.spacingStretch = 1.0,
+      this.drawTimeSignature = true,
+      this.finalBarline = true});
 
   // Key signature accidental staff positions per clef, in writing order.
   // Bass/alto shift the treble pattern down 2/1 positions; the tenor sharp
@@ -176,7 +200,7 @@ class _LayoutBuilder {
     _x = s.leadingPadding;
     _layoutClef();
     _layoutKeySignature();
-    _layoutTimeSignature();
+    if (drawTimeSignature) _layoutTimeSignature();
     if (leadingWidth != null && _x < leadingWidth!) {
       _x = leadingWidth!;
     }
@@ -595,7 +619,8 @@ class _LayoutBuilder {
   double _idealAdvance(Fraction delta) {
     if (delta.numerator <= 0) return 0;
     final log2Delta = log(delta.numerator / delta.denominator) / ln2;
-    return s.spacingBase + s.spacingPerLog2 * (4 + log2Delta);
+    return (s.spacingBase + s.spacingPerLog2 * (4 + log2Delta)) *
+        spacingStretch;
   }
 
   /// v0.3.4: articulation marks on the notehead side (opposite the stem),
@@ -1093,7 +1118,8 @@ class _LayoutBuilder {
         ? 1.0
         : -duration.base.index.toDouble();
     final log2Duration = baseLog2 + _dotLog2[duration.dots] + log2Adjust;
-    final ideal = s.spacingBase + s.spacingPerLog2 * (4 + log2Duration);
+    final ideal = (s.spacingBase + s.spacingPerLog2 * (4 + log2Duration)) *
+        spacingStretch;
     _x = max(fromX + ideal, inkRight + s.minNoteGap);
   }
 
@@ -1356,9 +1382,12 @@ class _LayoutBuilder {
   }
 
   /// Rule 13: `barlineFinal` (thin + thick) at the end; returns the width.
+  /// With [finalBarline] false (systems that continue on the next line)
+  /// a plain thin barline closes the layout instead.
   double _addFinalBarline() {
     final thinX = _x;
     _addLine(Point(thinX, 0), Point(thinX, 4), s.thinBarlineThickness);
+    if (!finalBarline) return thinX + s.thinBarlineThickness / 2;
     final thickX = thinX +
         s.thinBarlineThickness / 2 +
         s.barlineSeparation +

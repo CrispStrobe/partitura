@@ -7,6 +7,10 @@
 - **Grand staff**: `GrandStaffView` (brace, connected barlines, aligned
   measures, cross-staff element taps); painting extracted into a shared
   `LayoutPainter`; golden scene 35, gallery card.
+- **Line breaking**: `MultiSystemView` wraps a score into systems that
+  fit the available width (rebreaks on resize, justification toggle,
+  taps and repaint-only highlights across systems); golden scene 36,
+  gallery card.
 
 ## 0.3.0-dev.1
 

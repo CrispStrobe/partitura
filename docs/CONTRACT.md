@@ -196,10 +196,11 @@ Caveat: interaction quantization (`StaffTarget.pitchFor`) takes an
 explicit clef — apps using mid-score clef changes must map per measure.
 
 **Not implemented (v0.x non-goals)**: multi-voice collision avoidance,
-slurs/ties, tuplets, grace notes, cross-staff beaming, lyrics, dynamics,
-articulations, line breaking/justification, grand staff, MusicXML,
-audio (never), transposing instruments, tablature, compound-meter beam
-grouping (x/8 meters render flags). Alto/tenor clefs shipped in v0.2.
+cross-staff beaming, lyrics, chord symbols, MusicXML, audio (never),
+transposing instruments, tablature, compound-meter beam grouping (x/8
+meters render flags). Alto/tenor clefs shipped in v0.2; slurs/ties,
+tuplets, grace notes, articulations and dynamics in v0.3; two voices,
+grand staff and line breaking in v0.4.
 
 ## 6. Rendering (`partitura`)
 
@@ -221,6 +222,16 @@ grouping (x/8 meters render flags). Alto/tenor clefs shipped in v0.2.
   on `LayoutEngine.layout`), joined by a stretched SMuFL brace and
   connected barlines; element taps resolve on both staves (keep ids
   unique across the two scores).
+- `MultiSystemView(score, theme, staffSpace, systemGap, justify,
+  highlightedIds, onElementTap)` wraps a score into systems that fit the
+  available width (sheet-music style) and rebreaks on resize. Line
+  breaking lives in core: `layoutSystems(score, settings, maxWidth: …,
+  justify: …)` → `MultiSystemLayout` (greedy packing; clef/key restated
+  per system; time signature drawn only on the first system yet still
+  governing beaming; slurs/dynamics/hairpins that would span a break are
+  dropped; non-final systems justified via uniform spacing stretch; thin
+  closing barline on continuing systems, `barlineFinal` only at the
+  end). `staffSpace` is fixed here — the width budget drives breaking.
 - `RenderStaffView` is public as the geometry service: `scoreLayout`,
   `scale`, `localToStaff`/`staffToLocal`, `elementIdAt`,
   `quantizeStaffPosition`, `ghostNote`.

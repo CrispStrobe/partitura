@@ -273,7 +273,8 @@ final List<GalleryItem> galleryItems = [
   ),
 ];
 
-/// Scrollable gallery of the corpus (plus a grand-staff showcase card).
+/// Scrollable gallery of the corpus (plus grand-staff and multi-system
+/// showcase cards).
 class GalleryScreen extends StatelessWidget {
   const GalleryScreen({super.key});
 
@@ -281,9 +282,35 @@ class GalleryScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
-      itemCount: galleryItems.length + 1,
+      itemCount: galleryItems.length + 2,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
+        if (index == galleryItems.length + 1) {
+          return Card(
+            color: Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Line breaking (multi-system)',
+                      style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 12),
+                  MultiSystemView(
+                    score: Score.simple(
+                      keySignature: const KeySignature(1),
+                      timeSignature: TimeSignature.fourFour,
+                      notes: 'g4:q a4 b4 c5 | d5:e c5 b4 a4 g4:h |'
+                          'e4:q g4 b4 d5 | c5:q a4 f#4 d4 |'
+                          'g4:e a4 b4 c5 d5:q g5 | f#5:q e5 d5 c5 | g4:w',
+                    ),
+                    staffSpace: 10,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
         if (index == galleryItems.length) {
           return Card(
             color: Colors.white,

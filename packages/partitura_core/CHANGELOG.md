@@ -2,6 +2,15 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Line breaking + justification**: `layoutSystems(score, settings,
+  maxWidth: …)` breaks a score into `MultiSystemLayout`/`SystemLayout`
+  lines — greedy measure packing, clef/key restated per system, the time
+  signature only on the first system (but still governing beaming),
+  mid-score changes threaded across breaks, slurs/dynamics/hairpins
+  spanning a break dropped, non-final systems justified to `maxWidth` by
+  binary-searched spacing stretch, thin closing barlines on continuing
+  systems. `LayoutEngine.layout` gained `spacingStretch`,
+  `drawTimeSignature` and `finalBarline` knobs.
 - **Grand staff**: `GrandStaff` + `layoutGrandStaff` — two-pass layout
   aligning leading widths and per-measure widths across staves;
   `LayoutEngine.layout` gained optional `leadingWidth`/`measureWidths`

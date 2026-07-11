@@ -546,4 +546,40 @@ void main() {
       ),
     );
   });
+
+  testWidgets('36 multi-system line breaking', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Colors.white,
+          body: Center(
+            child: RepaintBoundary(
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(12),
+                child: SizedBox(
+                  width: 420,
+                  child: MultiSystemView(
+                    score: Score.simple(
+                      keySignature: const KeySignature(1),
+                      timeSignature: TimeSignature.fourFour,
+                      notes: 'g4:q a4 b4 c5 | d5:e c5 b4 a4 g4:h |'
+                          'e4:q g4 b4 d5 | c5:q a4 f#4 d4 |'
+                          'g4:e a4 b4 c5 d5:q g5 | f#5:q e5 d5 c5 | g4:w',
+                    ),
+                    staffSpace: 9,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await expectLater(
+      find.byType(RepaintBoundary).last,
+      matchesGoldenFile('goldens/36_multi_system.png'),
+    );
+  });
 }
