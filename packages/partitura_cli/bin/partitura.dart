@@ -45,6 +45,7 @@ Common:
 render options:
   --tab                                Render as guitar/bass tablature
   --tuning <std|dropD|bass>            Tab tuning (default std)
+  --track <n>                          Which track to import from a .gp/.gpif
   --infer-rhythm                       Guess note durations from tab spacing
                                        (plain-text tab input)
   --staff-space <px>                   Pixels per staff space (default 12)
@@ -101,6 +102,15 @@ int _info(List<String> args) {
   final timeline = playbackTimeline(score);
   final elements = score.measures.fold<int>(0, (n, m) => n + m.elements.length);
   stdout.writeln('file:       ${positional.first}');
+  final format = options['from'] ?? _formatOf(positional.first);
+  if (format == 'gp' || format == 'gpif') {
+    final gpif = format == 'gp'
+        ? readGpifFromGp(File(positional.first).readAsBytesSync())
+        : File(positional.first).readAsStringSync();
+    final names = gpifTrackNames(gpif);
+    stdout.writeln('tracks:     ${names.length} '
+        '(${names.join(', ')})  [--track N to pick]');
+  }
   stdout.writeln('clef:       ${score.clef.name}');
   stdout.writeln('key:        ${score.keySignature.fifths} fifths');
   stdout.writeln('meter:      ${score.timeSignature ?? 'unmetered'}');
@@ -215,9 +225,11 @@ Score _loadScore(String path, Map<String, String> options) {
         inferRhythm: options.containsKey('infer-rhythm'),
       );
     case 'gpif':
-      return scoreFromGpif(file.readAsStringSync());
+      return scoreFromGpif(file.readAsStringSync(),
+          trackIndex: int.tryParse(options['track'] ?? '0') ?? 0);
     case 'gp':
-      return scoreFromGpif(readGpifFromGp(file.readAsBytesSync()));
+      return scoreFromGpif(readGpifFromGp(file.readAsBytesSync()),
+          trackIndex: int.tryParse(options['track'] ?? '0') ?? 0);
     default:
       throw _CliError('unknown input format for $path (use --from)');
   }

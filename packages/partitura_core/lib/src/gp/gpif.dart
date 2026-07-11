@@ -8,10 +8,12 @@
 /// partitura [Score]. On **import**, hammer-on/pull-off (`HopoOrigin`) → a
 /// slur, slides (`Slide`) → a glissando, bends (`Bended`/`BendDestinationValue`,
 /// 100 = a whole step) → a `Bend`, whammy vibrato (`VibratoWTremBar`) →
-/// a `Vibrato`, dead (`Muted`) and harmonic (`Harmonic`) notes → `TabNoteMark`s.
-/// (Export writes plain notes; multi-track scores are out of scope.) It reads
-/// real Guitar Pro 7 files correctly — validated against the alphaTab GP7 test
-/// corpus (pitches, chords, rhythm and the above techniques).
+/// a `Vibrato`, dead (`Muted`) and harmonic (`Harmonic`) notes → `TabNoteMark`s;
+/// export writes the same properties back, so a round-trip keeps techniques.
+/// Multi-track files import one track at a time (`trackIndex`; see
+/// [gpifTrackNames]). It reads real Guitar Pro 7 files correctly — validated
+/// against the alphaTab GP7 test corpus (pitches, chords, rhythm, techniques,
+/// multi-track).
 ///
 /// The zip/`.gp` container wrapping lives in the CLI (it needs `dart:io`); this
 /// module works on the `score.gpif` XML string directly.
@@ -176,19 +178,34 @@ String scoreToGpif(Score score, {Tuning? tuning}) {
   return b.toString();
 }
 
-/// Parses a `score.gpif` XML string into a [Score] (track 0, voice 0).
+/// The names of the tracks in a GPIF document, in order (for choosing a
+/// [trackIndex] to import).
+List<String> gpifTrackNames(String gpif) {
+  final root = parseXml(gpif);
+  return [
+    for (final t
+        in root.child('Tracks')?.childrenNamed('Track') ?? const <XmlNode>[])
+      t.childText('Name') ?? 'Track',
+  ];
+}
+
+/// Parses a `score.gpif` XML string into a [Score] — the [trackIndex]-th track
+/// (default 0), voice 0.
 ///
 /// Throws [FormatException] on malformed or unsupported GPIF.
-Score scoreFromGpif(String gpif) {
+Score scoreFromGpif(String gpif, {int trackIndex = 0}) {
   final root = parseXml(gpif);
   if (root.name != 'GPIF') {
     throw const FormatException('not a GPIF document');
   }
 
-  // Track 0 tuning → MIDI numbers (in the file's string order). The tuning
-  // property lives on the staff.
-  final staff =
-      root.child('Tracks')?.child('Track')?.child('Staves')?.child('Staff');
+  // The chosen track's tuning → MIDI numbers (in the file's string order). The
+  // tuning property lives on the staff.
+  final tracks =
+      root.child('Tracks')?.childrenNamed('Track').toList() ?? const [];
+  final track =
+      tracks.isEmpty ? null : tracks[trackIndex.clamp(0, tracks.length - 1)];
+  final staff = track?.child('Staves')?.child('Staff');
   final tuningText = _findProperty(staff, 'Tuning')?.childText('Pitches');
   final tuningMidi = (tuningText ?? '64 59 55 50 45 40')
       .split(RegExp(r'\s+'))
@@ -219,9 +236,11 @@ Score scoreFromGpif(String gpif) {
     final time = masterBar.childText('Time');
     if (time != null && firstTime == null) firstTime = _parseTime(time);
 
+    // A MasterBar lists one bar id per track; pick this track's.
     final barIds = _ints(masterBar.childText('Bars'));
     if (barIds.isEmpty) continue;
-    final bar = barById[barIds.first];
+    final barRef = trackIndex < barIds.length ? barIds[trackIndex] : barIds[0];
+    final bar = barById[barRef];
     final voiceIds = _ints(bar?.childText('Voices'));
     final voiceRef = voiceIds.firstWhere((v) => v >= 0, orElse: () => -1);
     final voice = voiceRef < 0 ? null : voiceById[voiceRef];
