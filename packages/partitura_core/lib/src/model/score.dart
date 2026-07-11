@@ -48,7 +48,8 @@ class Score {
 
   /// Builds a score from a terse note string, for tests and games.
   ///
-  /// Grammar (whitespace-separated tokens, measures separated by `|`):
+  /// Grammar (whitespace-separated tokens, measures separated by `|`,
+  /// voices within a measure separated by `;`):
   ///
   /// ```text
   /// notes    := measure ('|' measure)*
@@ -75,6 +76,9 @@ class Score {
   /// - Measure directives (tokens starting with `!`, conventionally first
   ///   in the measure): `!clef=bass`, `!key=-2`, `!time=3/4`, `!repeat`
   ///   (start repeat), `!endrepeat`, `!volta=1`.
+  /// - A `;` splits a measure into two voices (`c5:q d5 ; c4:h`): voice 1
+  ///   (before, stems up) and voice 2 (after, stems down). Directives and
+  ///   tuplets belong to voice 1; ids keep counting across voices.
   /// - `3[c4:e d4 e4]` groups a tuplet: `actual[`…`]` or `actual:normal[`
   ///   (default `normal` = the largest power of two below `actual`, and 3
   ///   for duplets). Tuplets cannot cross barlines or nest.
@@ -99,7 +103,12 @@ class Score {
     final slurs = <Slur>[];
     String? openSlurStart;
     for (final measureSource in notes.split('|')) {
+      final voiceSources = measureSource.split(';');
+      if (voiceSources.length > 2) {
+        throw const FormatException('At most two voices per measure');
+      }
       final elements = <MusicElement>[];
+      final voice2 = <MusicElement>[];
       final tuplets = <TupletSpan>[];
       (int start, int actual, int normal)? openTuplet;
       Clef? clefChange;
@@ -108,189 +117,202 @@ class Score {
       var startRepeat = false;
       var endRepeat = false;
       int? volta;
-      for (var token in measureSource.trim().split(RegExp(r'\s+'))) {
-        if (token.isEmpty) continue;
-        if (token.startsWith('!')) {
-          final directive = token.substring(1);
-          if (directive == 'repeat') {
-            startRepeat = true;
-          } else if (directive == 'endrepeat') {
-            endRepeat = true;
-          } else if (directive.startsWith('clef=')) {
-            final name = directive.substring(5);
-            clefChange = Clef.values.asNameMap()[name];
-            if (clefChange == null) {
-              throw FormatException('Unknown clef: "$token"');
-            }
-          } else if (directive.startsWith('key=')) {
-            final fifths = int.tryParse(directive.substring(4));
-            if (fifths == null || fifths < -7 || fifths > 7) {
-              throw FormatException('Invalid key directive: "$token"');
-            }
-            keyChange = KeySignature(fifths);
-          } else if (directive.startsWith('time=')) {
-            final match =
-                RegExp(r'^(\d+)/(\d+)$').firstMatch(directive.substring(5));
-            if (match == null) {
-              throw FormatException('Invalid time directive: "$token"');
-            }
-            timeChange = TimeSignature(
-              int.parse(match[1]!),
-              int.parse(match[2]!),
-            );
-          } else if (directive.startsWith('volta=')) {
-            volta = int.tryParse(directive.substring(6));
-            if (volta == null || volta < 1) {
-              throw FormatException('Invalid volta directive: "$token"');
-            }
-          } else {
-            throw FormatException('Unknown directive: "$token"');
+      var voiceIndex = 0;
+      for (final voiceSource in voiceSources) {
+        final target = voiceIndex == 0 ? elements : voice2;
+        for (var token in voiceSource.trim().split(RegExp(r'\s+'))) {
+          if (token.isEmpty) continue;
+          if (voiceIndex == 1 &&
+              (token.startsWith('!') || RegExp(r'^\d').hasMatch(token))) {
+            throw FormatException(
+                'Directives and tuplets are voice-1 only: "$token"');
           }
-          continue;
-        }
-        final tupletMatch = RegExp(r'^(\d+)(?::(\d+))?\[').firstMatch(token);
-        if (tupletMatch != null) {
-          if (openTuplet != null) {
-            throw const FormatException('Tuplets cannot nest');
-          }
-          final actual = int.parse(tupletMatch[1]!);
-          if (actual < 2) {
-            throw FormatException('Invalid tuplet ratio: "$token"');
-          }
-          var normal = tupletMatch[2] == null ? 0 : int.parse(tupletMatch[2]!);
-          if (normal == 0) {
-            if (actual == 2) {
-              normal = 3; // duplet convention
+          if (token.startsWith('!')) {
+            final directive = token.substring(1);
+            if (directive == 'repeat') {
+              startRepeat = true;
+            } else if (directive == 'endrepeat') {
+              endRepeat = true;
+            } else if (directive.startsWith('clef=')) {
+              final name = directive.substring(5);
+              clefChange = Clef.values.asNameMap()[name];
+              if (clefChange == null) {
+                throw FormatException('Unknown clef: "$token"');
+              }
+            } else if (directive.startsWith('key=')) {
+              final fifths = int.tryParse(directive.substring(4));
+              if (fifths == null || fifths < -7 || fifths > 7) {
+                throw FormatException('Invalid key directive: "$token"');
+              }
+              keyChange = KeySignature(fifths);
+            } else if (directive.startsWith('time=')) {
+              final match =
+                  RegExp(r'^(\d+)/(\d+)$').firstMatch(directive.substring(5));
+              if (match == null) {
+                throw FormatException('Invalid time directive: "$token"');
+              }
+              timeChange = TimeSignature(
+                int.parse(match[1]!),
+                int.parse(match[2]!),
+              );
+            } else if (directive.startsWith('volta=')) {
+              volta = int.tryParse(directive.substring(6));
+              if (volta == null || volta < 1) {
+                throw FormatException('Invalid volta directive: "$token"');
+              }
             } else {
-              normal = 1;
-              while (normal * 2 < actual) {
-                normal *= 2;
+              throw FormatException('Unknown directive: "$token"');
+            }
+            continue;
+          }
+          final tupletMatch = RegExp(r'^(\d+)(?::(\d+))?\[').firstMatch(token);
+          if (tupletMatch != null) {
+            if (openTuplet != null) {
+              throw const FormatException('Tuplets cannot nest');
+            }
+            final actual = int.parse(tupletMatch[1]!);
+            if (actual < 2) {
+              throw FormatException('Invalid tuplet ratio: "$token"');
+            }
+            var normal =
+                tupletMatch[2] == null ? 0 : int.parse(tupletMatch[2]!);
+            if (normal == 0) {
+              if (actual == 2) {
+                normal = 3; // duplet convention
+              } else {
+                normal = 1;
+                while (normal * 2 < actual) {
+                  normal *= 2;
+                }
               }
             }
+            openTuplet = (elements.length, actual, normal);
+            token = token.substring(tupletMatch[0]!.length);
           }
-          openTuplet = (elements.length, actual, normal);
-          token = token.substring(tupletMatch[0]!.length);
-        }
-        var tied = false;
-        var opensSlur = false;
-        var closesSlur = false;
-        var closesTuplet = false;
-        final articulations = <Articulation>{};
-        var stripping = true;
-        while (stripping && token.isNotEmpty) {
-          switch (token[token.length - 1]) {
-            case '~':
-              tied = true;
-              token = token.substring(0, token.length - 1);
-            case '(':
-              opensSlur = true;
-              token = token.substring(0, token.length - 1);
-            case ')':
-              closesSlur = true;
-              token = token.substring(0, token.length - 1);
-            case ']':
-              closesTuplet = true;
-              token = token.substring(0, token.length - 1);
-            case "'":
-              articulations.add(Articulation.staccato);
-              token = token.substring(0, token.length - 1);
-            case '_':
-              articulations.add(Articulation.tenuto);
-              token = token.substring(0, token.length - 1);
-            case '>':
-              articulations.add(Articulation.accent);
-              token = token.substring(0, token.length - 1);
-            case '^':
-              articulations.add(Articulation.marcato);
-              token = token.substring(0, token.length - 1);
-            case '@':
-              articulations.add(Articulation.fermata);
-              token = token.substring(0, token.length - 1);
-            default:
-              stripping = false;
-          }
-        }
-        var graceNotes = const <Pitch>[];
-        final graceMatch = RegExp(r'^\{([^}]*)\}').firstMatch(token);
-        if (graceMatch != null) {
-          final inner = graceMatch[1]!.trim();
-          if (inner.isEmpty) {
-            throw FormatException('Empty grace group: "$token"');
-          }
-          graceNotes = [
-            for (final source in inner.split(',')) Pitch.parse(source.trim()),
-          ];
-          token = token.substring(graceMatch[0]!.length);
-        }
-        final parts = token.split(':');
-        if (parts.length > 2) {
-          throw FormatException('Invalid token: "$token"');
-        }
-        if (parts.length == 2) {
-          duration = _parseDuration(parts[1], token);
-        }
-        final id = 'e${nextId++}';
-        if (parts[0] == 'r') {
-          if (tied) {
-            throw FormatException('A rest cannot be tied: "$token~"');
-          }
-          if (opensSlur || closesSlur) {
-            throw FormatException('A rest cannot carry a slur: "$token"');
-          }
-          if (articulations.isNotEmpty) {
-            throw FormatException(
-                'A rest cannot carry articulations: "$token"');
-          }
-          if (graceNotes.isNotEmpty) {
-            throw FormatException('A rest cannot carry grace notes: "$token"');
-          }
-          elements.add(RestElement(duration, id: id));
-        } else {
-          final sources = parts[0].split('+');
-          final pitches = sources.map(Pitch.parse).toList();
-          final forced = sources.any(_hasExplicitNatural);
-          elements.add(NoteElement(
-            pitches: pitches,
-            duration: duration,
-            showAccidental: forced ? true : null,
-            tieToNext: tied,
-            articulations: articulations,
-            graceNotes: graceNotes,
-            id: id,
-          ));
-          if (closesSlur) {
-            if (openSlurStart == null) {
-              throw FormatException('")" without an open slur: "$token)"');
+          var tied = false;
+          var opensSlur = false;
+          var closesSlur = false;
+          var closesTuplet = false;
+          final articulations = <Articulation>{};
+          var stripping = true;
+          while (stripping && token.isNotEmpty) {
+            switch (token[token.length - 1]) {
+              case '~':
+                tied = true;
+                token = token.substring(0, token.length - 1);
+              case '(':
+                opensSlur = true;
+                token = token.substring(0, token.length - 1);
+              case ')':
+                closesSlur = true;
+                token = token.substring(0, token.length - 1);
+              case ']':
+                closesTuplet = true;
+                token = token.substring(0, token.length - 1);
+              case "'":
+                articulations.add(Articulation.staccato);
+                token = token.substring(0, token.length - 1);
+              case '_':
+                articulations.add(Articulation.tenuto);
+                token = token.substring(0, token.length - 1);
+              case '>':
+                articulations.add(Articulation.accent);
+                token = token.substring(0, token.length - 1);
+              case '^':
+                articulations.add(Articulation.marcato);
+                token = token.substring(0, token.length - 1);
+              case '@':
+                articulations.add(Articulation.fermata);
+                token = token.substring(0, token.length - 1);
+              default:
+                stripping = false;
             }
-            slurs.add(Slur(openSlurStart, id));
-            openSlurStart = null;
           }
-          if (opensSlur) {
-            if (openSlurStart != null) {
-              throw const FormatException('Slurs cannot nest');
+          var graceNotes = const <Pitch>[];
+          final graceMatch = RegExp(r'^\{([^}]*)\}').firstMatch(token);
+          if (graceMatch != null) {
+            final inner = graceMatch[1]!.trim();
+            if (inner.isEmpty) {
+              throw FormatException('Empty grace group: "$token"');
             }
-            openSlurStart = id;
+            graceNotes = [
+              for (final source in inner.split(',')) Pitch.parse(source.trim()),
+            ];
+            token = token.substring(graceMatch[0]!.length);
+          }
+          final parts = token.split(':');
+          if (parts.length > 2) {
+            throw FormatException('Invalid token: "$token"');
+          }
+          if (parts.length == 2) {
+            duration = _parseDuration(parts[1], token);
+          }
+          final id = 'e${nextId++}';
+          if (parts[0] == 'r') {
+            if (tied) {
+              throw FormatException('A rest cannot be tied: "$token~"');
+            }
+            if (opensSlur || closesSlur) {
+              throw FormatException('A rest cannot carry a slur: "$token"');
+            }
+            if (articulations.isNotEmpty) {
+              throw FormatException(
+                  'A rest cannot carry articulations: "$token"');
+            }
+            if (graceNotes.isNotEmpty) {
+              throw FormatException(
+                  'A rest cannot carry grace notes: "$token"');
+            }
+            target.add(RestElement(duration, id: id));
+          } else {
+            final sources = parts[0].split('+');
+            final pitches = sources.map(Pitch.parse).toList();
+            final forced = sources.any(_hasExplicitNatural);
+            target.add(NoteElement(
+              pitches: pitches,
+              duration: duration,
+              showAccidental: forced ? true : null,
+              tieToNext: tied,
+              articulations: articulations,
+              graceNotes: graceNotes,
+              id: id,
+            ));
+            if (closesSlur) {
+              if (openSlurStart == null) {
+                throw FormatException('")" without an open slur: "$token)"');
+              }
+              slurs.add(Slur(openSlurStart, id));
+              openSlurStart = null;
+            }
+            if (opensSlur) {
+              if (openSlurStart != null) {
+                throw const FormatException('Slurs cannot nest');
+              }
+              openSlurStart = id;
+            }
+          }
+          if (closesTuplet) {
+            final open = openTuplet;
+            if (open == null) {
+              throw FormatException('"]" without an open tuplet: "$token]"');
+            }
+            tuplets.add(TupletSpan(
+              open.$1,
+              elements.length - 1,
+              actual: open.$2,
+              normal: open.$3,
+            ));
+            openTuplet = null;
           }
         }
-        if (closesTuplet) {
-          final open = openTuplet;
-          if (open == null) {
-            throw FormatException('"]" without an open tuplet: "$token]"');
-          }
-          tuplets.add(TupletSpan(
-            open.$1,
-            elements.length - 1,
-            actual: open.$2,
-            normal: open.$3,
-          ));
-          openTuplet = null;
-        }
+        voiceIndex++;
       }
       if (openTuplet != null) {
         throw const FormatException('Unclosed tuplet "["');
       }
       measures.add(Measure(
         elements,
+        voice2: voice2,
         tuplets: tuplets,
         clefChange: clefChange,
         keyChange: keyChange,

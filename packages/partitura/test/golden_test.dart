@@ -483,6 +483,19 @@ void main() {
     );
   });
 
+  testWidgets('34 two voices', (tester) async {
+    await golden(
+      tester,
+      '34_two_voices',
+      Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'c5:q d5 e5 f5 ; c4:h e4:h | '
+            'g5:e f5 e5 d5 e5:h ; c4:q r b3 c4 | '
+            'e5:w ; c4:q c4 c4:h',
+      ),
+    );
+  });
+
   testWidgets('21 unmetered snippet in bass with chords', (tester) async {
     await golden(
       tester,

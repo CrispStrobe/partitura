@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0-dev.1 (in progress)
+
+- **Two voices per staff**: `Measure.voice2` (DSL `;` separator) — voice 1
+  stems up, voice 2 stems down; elements sharing an onset align in one
+  column (union of both voices' onsets), rests displace vertically,
+  cross-voice unisons/seconds shift voice 2 rightward, beams stay per
+  voice, ties bind within their voice, accidental state is shared.
+
 ## 0.3.0-dev.1
 
 

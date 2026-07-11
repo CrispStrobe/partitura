@@ -1,4 +1,4 @@
-# partitura — features and public API contract (v0.3-dev)
+# partitura — features and public API contract (v0.4-dev)
 
 This document describes what partitura **does** and which API surface and
 behaviors consumers may **rely on**. It reflects the implementation as
@@ -68,7 +68,11 @@ value-based, invalid constructor arguments fail asserts in debug builds.
 - `Score` = clef + `KeySignature` (default C) + optional `TimeSignature`
   (null = unmetered: no time signature drawn, measure sums unchecked) +
   `List<Measure>`.
-- `Measure` = ordered `List<MusicElement>` plus non-overlapping
+- `Measure` = ordered `List<MusicElement>` (voice 1) plus an optional
+  `voice2` (DSL `;`): voice 1 stems up / voice 2 down, onsets align in
+  columns, rests displace vertically, cross-voice unisons/seconds shift
+  voice 2 rightward; ties bind per voice, accidental state is shared;
+  tuplets and directives are voice-1 only. Plus non-overlapping
   `TupletSpan`s (`actual` notes in the time of `normal` over a contiguous
   element range; cannot cross barlines), optional mid-score changes
   (`clefChange`, `keyChange` — with cancellation naturals, `timeChange`)
@@ -115,6 +119,8 @@ artic    := trailing markers: ' staccato, _ tenuto, > accent,
 grace    := '{pitch,pitch}' prefix before the chord ({g4}a4:q)
 directive:= measure-level tokens: !clef=bass, !key=-2, !time=3/4,
             !repeat, !endrepeat, !volta=1
+voices   := ';' splits a measure into voice 1 and voice 2
+            (c5:q d5 ; c4:h)
 ```
 
 Durations are sticky (initial default: quarter). `n` = explicit natural

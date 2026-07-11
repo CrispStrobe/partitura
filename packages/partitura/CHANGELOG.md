@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.0-dev.1 (in progress)
+
+- **Two voices per staff** rendered (via `partitura_core` 0.4); golden
+  scene 34, gallery entry.
+
 ## 0.3.0-dev.1
 
 - **Slurs** and **ties** rendered as stroked Bézier curves (`CurvePrimitive`); golden

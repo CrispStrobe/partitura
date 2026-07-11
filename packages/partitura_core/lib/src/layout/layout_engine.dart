@@ -94,6 +94,9 @@ class _TieInfo {
   final String? id;
   final bool stemsDown;
 
+  /// Voice this element belongs to (0 or 1); ties never cross voices.
+  final int voice;
+
   /// Horizontal ink extent of the notehead/rest glyphs.
   final double left;
   final double right;
@@ -108,6 +111,7 @@ class _TieInfo {
     required this.left,
     required this.right,
     required this.heads,
+    this.voice = 0,
   });
 }
 
@@ -380,13 +384,21 @@ class _LayoutBuilder {
 
   void _layoutMeasure(Measure measure) {
     _validateTuplets(measure);
-    final tieBase = _tieInfos.length;
-    final groups = _computeBeamGroups(measure);
+    if (measure.voice2.isNotEmpty) {
+      _layoutTwoVoiceMeasure(measure);
+      return;
+    }
+    final groups = _computeBeamGroups(
+      measure.elements,
+      effectiveAt: measure.effectiveDurationAt,
+      tuplets: measure.tuplets,
+    );
     final beamedIndex = <int, _BeamGroup>{
       for (final group in groups)
         for (final index in group.indices) index: group,
     };
     final deferred = <_BeamGroup, List<_BeamedNote>>{};
+    final tieIndexOf = <int, int>{};
 
     // Accidental state: (step, octave) -> alteration written earlier in
     // this measure. Resets every measure (rule 9).
@@ -395,21 +407,23 @@ class _LayoutBuilder {
     for (var i = 0; i < measure.elements.length; i++) {
       final element = measure.elements[i];
       final log2Adjust = _tupletLog2Adjust(measure, i);
+      tieIndexOf[i] = _tieInfos.length;
       switch (element) {
         case NoteElement():
           final group = beamedIndex[i];
-          final beamed = _layoutNote(
+          final result = _layoutNote(
             element,
             written,
             stemsDownOverride: group?.stemsDown,
             deferStem: group != null,
-            log2Adjust: log2Adjust,
           );
-          if (group != null && beamed != null) {
-            deferred.putIfAbsent(group, () => []).add(beamed);
+          if (group != null && result.beamed != null) {
+            deferred.putIfAbsent(group, () => []).add(result.beamed!);
           }
+          _advance(result.noteX, result.inkRight, element.duration, log2Adjust);
         case RestElement():
-          _layoutRest(element, log2Adjust: log2Adjust);
+          final result = _layoutRest(element);
+          _advance(result.noteX, result.inkRight, element.duration, log2Adjust);
       }
     }
 
@@ -419,20 +433,163 @@ class _LayoutBuilder {
         _layoutBeamGroup(notes, stemsDown: group.stemsDown);
       }
     }
-    _layoutArticulations(measure, tieBase);
-    _layoutTuplets(measure, tieBase);
+    _layoutArticulations(measure.elements, tieIndexOf);
+    _layoutTuplets(measure, tieIndexOf);
+  }
+
+  /// v0.4.1: a measure with two voices — voice 1 stems up, voice 2 stems
+  /// down; elements sharing an onset align in one column, rests displace
+  /// vertically, and a cross-voice second/unison shifts voice 2 rightward.
+  void _layoutTwoVoiceMeasure(Measure measure) {
+    final voices = [measure.elements, measure.voice2];
+    Fraction effectiveAt(int voice, int index) => voice == 0
+        ? measure.effectiveDurationAt(index)
+        : measure.voice2[index].duration.toFraction();
+
+    final groupsPerVoice = [
+      _computeBeamGroups(
+        measure.elements,
+        effectiveAt: measure.effectiveDurationAt,
+        tuplets: measure.tuplets,
+        forcedStemsDown: false,
+      ),
+      _computeBeamGroups(
+        measure.voice2,
+        effectiveAt: (i) => effectiveAt(1, i),
+        tuplets: const [],
+        forcedStemsDown: true,
+      ),
+    ];
+    final beamedIndexPerVoice = [
+      for (final groups in groupsPerVoice)
+        <int, _BeamGroup>{
+          for (final group in groups)
+            for (final index in group.indices) index: group,
+        },
+    ];
+    final deferred = <_BeamGroup, List<_BeamedNote>>{};
+    final tieIndexPerVoice = [<int, int>{}, <int, int>{}];
+
+    // Onsets per voice, plus the merged distinct column onsets.
+    final onsetsPerVoice = <List<Fraction>>[];
+    var measureEnd = Fraction.zero;
+    for (var v = 0; v < 2; v++) {
+      var onset = Fraction.zero;
+      final onsets = <Fraction>[];
+      for (var i = 0; i < voices[v].length; i++) {
+        onsets.add(onset);
+        onset += effectiveAt(v, i);
+      }
+      onsetsPerVoice.add(onsets);
+      if (onset > measureEnd) measureEnd = onset;
+    }
+    final columns = <Fraction>[
+      for (final onsets in onsetsPerVoice) ...onsets,
+    ]..sort();
+    final distinct = <Fraction>[];
+    for (final onset in columns) {
+      if (distinct.isEmpty || distinct.last != onset) distinct.add(onset);
+    }
+
+    // Shared accidental state: both voices write on the same staff.
+    final written = <(Step, int), int>{};
+    final cursor = [0, 0];
+
+    for (var c = 0; c < distinct.length; c++) {
+      final onset = distinct[c];
+      final columnX = _x;
+      final nextOnset = c + 1 < distinct.length ? distinct[c + 1] : measureEnd;
+      final delta = nextOnset - onset;
+      var idealEnd = columnX;
+      var inkRight = columnX;
+
+      // Voice-1 head positions at this column, for collision checks.
+      List<int> voice1Positions = const [];
+
+      for (var v = 0; v < 2; v++) {
+        final i = cursor[v];
+        if (i >= voices[v].length || onsetsPerVoice[v][i] != onset) {
+          continue;
+        }
+        cursor[v] = i + 1;
+        final element = voices[v][i];
+        tieIndexPerVoice[v][i] = _tieInfos.length;
+        _x = columnX;
+        if (v == 1 && element is NoteElement && voice1Positions.isNotEmpty) {
+          final voice2Positions = [
+            for (final pitch in element.pitches) pitch.staffPosition(_clef),
+          ];
+          final collides = voice1Positions
+              .any((p1) => voice2Positions.any((p2) => (p1 - p2).abs() <= 1));
+          if (collides) {
+            _x = columnX + _glyphWidth(SmuflGlyph.noteheadBlack) + 0.15;
+          }
+        }
+        switch (element) {
+          case NoteElement():
+            final group = beamedIndexPerVoice[v][i];
+            final result = _layoutNote(
+              element,
+              written,
+              stemsDownOverride: group?.stemsDown ?? (v == 1),
+              deferStem: group != null,
+              voice: v,
+            );
+            if (group != null && result.beamed != null) {
+              deferred.putIfAbsent(group, () => []).add(result.beamed!);
+            }
+            if (v == 0) {
+              voice1Positions = [
+                for (final pitch in element.pitches) pitch.staffPosition(_clef),
+              ];
+            }
+            idealEnd = max(idealEnd, result.noteX + _idealAdvance(delta));
+            inkRight = max(inkRight, result.inkRight);
+          case RestElement():
+            final result = _layoutRest(
+              element,
+              voice: v,
+              yOffset: v == 0 ? -1.0 : 1.0,
+            );
+            idealEnd = max(idealEnd, result.noteX + _idealAdvance(delta));
+            inkRight = max(inkRight, result.inkRight);
+        }
+      }
+      _x = max(idealEnd, inkRight + s.minNoteGap);
+    }
+
+    for (var v = 0; v < 2; v++) {
+      for (final group in groupsPerVoice[v]) {
+        final notes = deferred[group];
+        if (notes != null && notes.length >= 2) {
+          _layoutBeamGroup(notes, stemsDown: group.stemsDown);
+        }
+      }
+      _layoutArticulations(voices[v], tieIndexPerVoice[v]);
+    }
+    _layoutTuplets(measure, tieIndexPerVoice[0]);
+  }
+
+  /// Ideal advance for an onset gap of [delta] (fraction of a whole note).
+  double _idealAdvance(Fraction delta) {
+    if (delta.numerator <= 0) return 0;
+    final log2Delta = log(delta.numerator / delta.denominator) / ln2;
+    return s.spacingBase + s.spacingPerLog2 * (4 + log2Delta);
   }
 
   /// v0.3.4: articulation marks on the notehead side (opposite the stem),
   /// stacked outward in enum order; fermatas always go above the element
   /// and outside the staff.
-  void _layoutArticulations(Measure measure, int tieBase) {
-    for (var i = 0; i < measure.elements.length; i++) {
-      final element = measure.elements[i];
+  void _layoutArticulations(
+    List<MusicElement> elements,
+    Map<int, int> tieIndexOf,
+  ) {
+    for (var i = 0; i < elements.length; i++) {
+      final element = elements[i];
       if (element is! NoteElement || element.articulations.isEmpty) {
         continue;
       }
-      final info = _tieInfos[tieBase + i];
+      final info = _tieInfos[tieIndexOf[i]!];
       final centerX = (info.left + info.right) / 2;
       final above = info.stemsDown; // notehead side = opposite the stem
       final headYs = info.heads.map((h) => h.$4);
@@ -489,10 +646,12 @@ class _LayoutBuilder {
 
   /// v0.3.3: tuplet ratio digit with a bracket, on the stem side of the
   /// group.
-  void _layoutTuplets(Measure measure, int tieBase) {
+  void _layoutTuplets(Measure measure, Map<int, int> tieIndexOf) {
     for (final span in measure.tuplets) {
-      final infos = _tieInfos.sublist(
-          tieBase + span.startIndex, tieBase + span.endIndex + 1);
+      final infos = [
+        for (var i = span.startIndex; i <= span.endIndex; i++)
+          _tieInfos[tieIndexOf[i]!],
+      ];
       final notes = infos.where((i) => i.note != null).toList();
       final downCount = notes.where((i) => i.stemsDown).length;
       final below = notes.isNotEmpty && downCount * 2 >= notes.length;
@@ -543,12 +702,12 @@ class _LayoutBuilder {
 
   /// Rules 4–6, 8–11: noteheads, stem, flag, ledger lines, accidentals,
   /// dots, chord clustering. Returns deferred stem data when [deferStem].
-  _BeamedNote? _layoutNote(
+  ({double noteX, double inkRight, _BeamedNote? beamed}) _layoutNote(
     NoteElement element,
     Map<(Step, int), int> written, {
     bool? stemsDownOverride,
     bool deferStem = false,
-    double log2Adjust = 0,
+    int voice = 0,
   }) {
     if (element.pitches.isEmpty) {
       throw ArgumentError('NoteElement.pitches must not be empty');
@@ -638,6 +797,7 @@ class _LayoutBuilder {
       note: element,
       id: id,
       stemsDown: stemsDown,
+      voice: voice,
       left: columnX.reduce(min),
       right: columnX.reduce(max) + headWidth,
       heads: [
@@ -759,8 +919,7 @@ class _LayoutBuilder {
           s.dotSpacing;
     }
 
-    _advance(noteX, inkRight, element.duration, log2Adjust);
-    return beamed;
+    return (noteX: noteX, inkRight: inkRight, beamed: beamed);
   }
 
   /// v0.3.6: grace notes — an acciaccatura group of small (0.6×) eighths
@@ -840,9 +999,14 @@ class _LayoutBuilder {
 
   // ------------------------------------------------------------------ rests
 
-  /// Rule 12: rest glyphs at their conventional vertical homes.
-  void _layoutRest(RestElement element, {double log2Adjust = 0}) {
-    final (glyph, y) = switch (element.duration.base) {
+  /// Rule 12: rest glyphs at their conventional vertical homes
+  /// ([yOffset] shifts them apart in two-voice measures).
+  ({double noteX, double inkRight}) _layoutRest(
+    RestElement element, {
+    int voice = 0,
+    double yOffset = 0,
+  }) {
+    final (glyph, baseY) = switch (element.duration.base) {
       // The breve rest fills the space between the middle and fourth
       // staff lines.
       DurationBase.breve => (SmuflGlyph.restDoubleWhole, 2.0),
@@ -856,13 +1020,16 @@ class _LayoutBuilder {
       DurationBase.thirtySecond => (SmuflGlyph.rest32nd, 2.0),
       DurationBase.sixtyFourth => (SmuflGlyph.rest64th, 2.0),
     };
+    final startX = _x;
+    final y = baseY + yOffset;
     final id = element.id;
-    _addGlyph(glyph, _x, y, elementId: id);
+    _addGlyph(glyph, startX, y, elementId: id);
     // Rests break tie chains.
     _tieInfos.add(_TieInfo(
       note: null,
       id: id,
       stemsDown: false,
+      voice: voice,
       left: _x,
       right: _x + _glyphWidth(glyph),
       heads: const [],
@@ -877,7 +1044,7 @@ class _LayoutBuilder {
         _addGlyph(
           SmuflGlyph.augmentationDot,
           dotStart + d * (dotWidth + s.dotSpacing),
-          1.5,
+          1.5 + yOffset,
           elementId: id,
         );
       }
@@ -885,7 +1052,7 @@ class _LayoutBuilder {
           element.duration.dots * (dotWidth + s.dotSpacing) -
           s.dotSpacing;
     }
-    _advance(_x, inkRight, element.duration, log2Adjust);
+    return (noteX: startX, inkRight: inkRight);
   }
 
   // -------------------------------------------------------------- spacing
@@ -921,8 +1088,15 @@ class _LayoutBuilder {
       final start = _tieInfos[i];
       final note = start.note;
       if (note == null || !note.tieToNext) continue;
-      final next = _tieInfos[i + 1];
-      if (next.note == null) continue;
+      // The next element of the SAME voice (columns interleave voices).
+      _TieInfo? next;
+      for (var j = i + 1; j < _tieInfos.length; j++) {
+        if (_tieInfos[j].voice == start.voice) {
+          next = _tieInfos[j];
+          break;
+        }
+      }
+      if (next == null || next.note == null) continue;
       final dir = start.stemsDown ? -1.0 : 1.0;
       for (final (pitch, _, xRight, y) in start.heads) {
         final matches = next.heads.where((h) => h.$1 == pitch);
@@ -1178,7 +1352,12 @@ class _LayoutBuilder {
   /// even x/4 meters, adjacent all-eighth beat groups within the same half
   /// measure merge (so 8 eighths in 4/4 yield 2 beams). No beaming across
   /// rests or beat boundaries.
-  List<_BeamGroup> _computeBeamGroups(Measure measure) {
+  List<_BeamGroup> _computeBeamGroups(
+    List<MusicElement> elements, {
+    required Fraction Function(int index) effectiveAt,
+    required List<TupletSpan> tuplets,
+    bool? forcedStemsDown,
+  }) {
     final time = _time;
     // Unmetered scores group per quarter-note window.
     final span = time == null ? Fraction(1, 4) : Fraction(1, time.beatUnit);
@@ -1186,8 +1365,8 @@ class _LayoutBuilder {
 
     // Which tuplet span (by list index) an element belongs to, or -1.
     int spanOf(int index) {
-      for (var t = 0; t < measure.tuplets.length; t++) {
-        if (measure.tuplets[t].contains(index)) return t;
+      for (var t = 0; t < tuplets.length; t++) {
+        if (tuplets[t].contains(index)) return t;
       }
       return -1;
     }
@@ -1199,8 +1378,8 @@ class _LayoutBuilder {
     int? currentWindow;
     int? currentSpan;
 
-    for (var i = 0; i < measure.elements.length; i++) {
-      final element = measure.elements[i];
+    for (var i = 0; i < elements.length; i++) {
+      final element = elements[i];
       onsets.add(onset);
       final beamable =
           element is NoteElement && _beamCountOf(element.duration.base) >= 1;
@@ -1223,15 +1402,14 @@ class _LayoutBuilder {
         currentWindow = null;
         currentSpan = null;
       }
-      onset += measure.effectiveDurationAt(i);
+      onset += effectiveAt(i);
     }
 
     // Merge adjacent all-eighth beat groups within the same half measure
     // (tuplet groups never merge).
     if (time != null && time.beatUnit == 4 && time.beats.isEven) {
       bool allEighths(List<int> run) => run.every((i) =>
-          (measure.elements[i] as NoteElement).duration.base ==
-          DurationBase.eighth);
+          (elements[i] as NoteElement).duration.base == DurationBase.eighth);
       for (var i = 0; i < runs.length - 1;) {
         final a = runs[i];
         final b = runs[i + 1];
@@ -1252,17 +1430,23 @@ class _LayoutBuilder {
 
     final groups = <_BeamGroup>[];
     for (final run in runs.where((r) => r.length >= 2)) {
-      var maxAbove = -100;
-      var maxBelow = -100;
-      for (final i in run) {
-        final note = measure.elements[i] as NoteElement;
-        for (final pitch in note.pitches) {
-          final p = pitch.staffPosition(_clef);
-          if (p - 4 > maxAbove) maxAbove = p - 4;
-          if (4 - p > maxBelow) maxBelow = 4 - p;
+      final bool stemsDown;
+      if (forcedStemsDown != null) {
+        stemsDown = forcedStemsDown;
+      } else {
+        var maxAbove = -100;
+        var maxBelow = -100;
+        for (final i in run) {
+          final note = elements[i] as NoteElement;
+          for (final pitch in note.pitches) {
+            final p = pitch.staffPosition(_clef);
+            if (p - 4 > maxAbove) maxAbove = p - 4;
+            if (4 - p > maxBelow) maxBelow = 4 - p;
+          }
         }
+        stemsDown = maxAbove >= maxBelow;
       }
-      groups.add(_BeamGroup(run, stemsDown: maxAbove >= maxBelow));
+      groups.add(_BeamGroup(run, stemsDown: stemsDown));
     }
     return groups;
   }

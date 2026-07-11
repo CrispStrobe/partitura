@@ -263,6 +263,23 @@ terse is fine. See HANDOVER.md §6.
 - Interaction quantization still maps via one clef; documented caveat in
   CONTRACT.md until the geometry API grows per-measure clefs.
 
+## v0.4.1 two voices (2026-07-11)
+
+- **Two code paths, deliberately**: the proven single-voice measure loop
+  is untouched; `_layoutTwoVoiceMeasure` adds an onset-column engine
+  (merged onsets of both voices, per-column ideal advance from the onset
+  delta, ink constraint across both voices). Unifying them was possible
+  but would have re-derived every single-voice test and golden for zero
+  user value; revisit if a third path (grand staff) makes the duplication
+  hurt.
+- Ties match the next element **of the same voice** (`_TieInfo.voice`) —
+  layout order interleaves voices per column, so "next in list" is wrong.
+- Columns align element *starts*; noteheads misalign slightly when only
+  one voice carries an accidental at that beat. Accepted for v0.4.1,
+  fix with notehead-aligned columns in 0.6 polish.
+- Voice-2 rests offset ±1 space; tuplets/directives stay voice-1 only
+  until a consumer needs more.
+
 ## Blockers
 
 (none)

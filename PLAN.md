@@ -1,10 +1,9 @@
 # partitura — implementation plan (living tracker)
 
-**Status (2026-07-11):** v0.1–v0.3 complete and pushed (versions
-0.3.0-dev.1). 334 core + 74 widget + 5 example tests, 33 golden scenes +
-hero, on-device integration test — all green. **Now in progress: 0.4.1
-two voices per staff** (`Measure.voice2` model landed; column layout
-next).
+**Status (2026-07-11):** v0.1–v0.3 complete, 0.4.1 (two voices) shipped
+(versions 0.4.0-dev.1). 347 core + 75 widget + 5 example tests, 34 golden
+scenes + hero, on-device integration test — all green. Next: 0.4.2 grand
+staff / systems.
 
 Working checklist for the feature-parity plan. Analysis and per-item
 design notes live in [docs/ROADMAP.md](docs/ROADMAP.md); check items off
@@ -35,8 +34,8 @@ gates green (`dart format`, analyze zero issues, all tests), push.
 
 ## v0.4 — structure
 
-- [ ] 0.4.1 Two voices per staff (forced stems, rest displacement,
-      cross-voice seconds) — **in progress**
+- [x] 0.4.1 Two voices per staff (forced stems, rest displacement,
+      cross-voice seconds)
 - [ ] 0.4.2 Grand staff / systems (brace, connected barlines)
 - [ ] 0.4.3 Line breaking + justification (`MultiSystemView`)
 - [ ] 0.4.4 Lyrics (syllables, hyphens, extenders)

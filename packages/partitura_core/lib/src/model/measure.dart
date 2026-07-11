@@ -60,8 +60,14 @@ class TupletSpan {
 /// tuplet spans over contiguous element ranges and optional mid-score
 /// changes taking effect at this measure.
 class Measure {
-  /// The measure's elements in temporal order.
+  /// The measure's elements in temporal order (voice 1 — the upper voice
+  /// when [voice2] is non-empty).
   final List<MusicElement> elements;
+
+  /// Optional second (lower) voice. When non-empty, voice 1 stems are
+  /// forced up and voice 2 stems down; elements sharing an onset align in
+  /// one column. Tuplets are voice-1 only in v0.4.
+  final List<MusicElement> voice2;
 
   /// Tuplet spans over [elements] (treat as immutable, non-overlapping).
   final List<TupletSpan> tuplets;
@@ -88,6 +94,7 @@ class Measure {
   /// Creates a measure from [elements] (treat the lists as immutable).
   const Measure(
     this.elements, {
+    this.voice2 = const [],
     this.tuplets = const [],
     this.clefChange,
     this.keyChange,
@@ -111,18 +118,25 @@ class Measure {
     return fraction;
   }
 
-  /// The exact sum of the (tuplet-adjusted) element durations as a
-  /// fraction of a whole note. Games compare this against
+  /// The exact sum of the (tuplet-adjusted) voice-1 element durations as
+  /// a fraction of a whole note. Games compare this against
   /// `TimeSignature.measureCapacity` ("fill the measure" exercises); the
   /// layout engine does not enforce it.
   Fraction get totalDuration => [
         for (var i = 0; i < elements.length; i++) effectiveDurationAt(i),
       ].fold(Fraction.zero, (sum, f) => sum + f);
 
+  /// The exact sum of the voice-2 element durations.
+  Fraction get voice2Duration => voice2.fold(
+        Fraction.zero,
+        (sum, element) => sum + element.duration.toFraction(),
+      );
+
   @override
   bool operator ==(Object other) =>
       other is Measure &&
       listEquals(other.elements, elements) &&
+      listEquals(other.voice2, voice2) &&
       listEquals(other.tuplets, tuplets) &&
       other.clefChange == clefChange &&
       other.keyChange == keyChange &&
@@ -134,6 +148,7 @@ class Measure {
   @override
   int get hashCode => Object.hash(
       Object.hashAll(elements),
+      Object.hashAll(voice2),
       Object.hashAll(tuplets),
       clefChange,
       keyChange,
@@ -144,5 +159,6 @@ class Measure {
 
   @override
   String toString() => 'Measure(${elements.length} elements'
+      '${voice2.isEmpty ? '' : ' + ${voice2.length} in voice 2'}'
       '${tuplets.isEmpty ? '' : ', ${tuplets.length} tuplets'})';
 }

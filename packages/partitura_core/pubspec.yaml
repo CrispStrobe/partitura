@@ -1,6 +1,6 @@
 name: partitura_core
 description: Music theory model, score document model and deterministic layout engine for the partitura music notation libraries. Pure Dart, zero dependencies.
-version: 0.3.0-dev.1
+version: 0.4.0-dev.1
 repository: https://github.com/CrispStrobe/partitura
 topics:
   - music
