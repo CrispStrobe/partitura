@@ -40,9 +40,17 @@ final _basesByName = {for (final e in _noteValues.entries) e.value: e.key};
 
 /// Serializes [score] to a `score.gpif` XML string, fretting its pitches on
 /// [tuning] (default standard guitar). Notes unreachable on the tuning are
-/// dropped. Voice 2 is ignored (single voice per bar).
+/// dropped. Voice 2 is ignored (single voice per bar). Tab techniques
+/// (bends, hammer-on/pull-off, slides, vibrato, dead/harmonic) are written as
+/// GPIF note properties, so a `.gp` round-trip keeps them.
 String scoreToGpif(Score score, {Tuning? tuning}) {
   final tune = tuning ?? Tuning.standardGuitar;
+  // Per-note technique lookups (a span is written on its start note).
+  final hopoFrom = {for (final s in score.slurs) s.startId};
+  final slideFrom = {for (final g in score.glissandos) g.startId};
+  final bendBy = {for (final bend in score.bends) bend.noteId: bend.steps};
+  final vibratoIds = {for (final v in score.vibratos) v.noteId};
+  final markBy = {for (final m in score.tabNoteMarks) m.noteId: m.style};
   final b = StringBuffer();
   b.writeln('<?xml version="1.0" encoding="UTF-8"?>');
   b.writeln('<GPIF>');
@@ -92,14 +100,45 @@ String scoreToGpif(Score score, {Tuning? tuning}) {
       if (rid < 0) continue;
       final noteRefs = <int>[];
       if (element is NoteElement) {
+        var first = true;
         for (final pitch in element.pitches) {
           final place = tune.fretFor(pitch);
           if (place == null) continue;
-          notes.writeln('    <Note id="$noteId"><Properties>'
+          final props = StringBuffer(
               '<Property name="String"><String>${place.$1}</String></Property>'
-              '<Property name="Fret"><Fret>${place.$2}</Fret></Property>'
+              '<Property name="Fret"><Fret>${place.$2}</Fret></Property>');
+          // Element-level techniques go on the first sounding note.
+          final eid = element.id;
+          if (first && eid != null) {
+            if (hopoFrom.contains(eid)) {
+              props.write('<Property name="HopoOrigin"><Enable/></Property>');
+            }
+            if (slideFrom.contains(eid)) {
+              props.write('<Property name="Slide"><Flags>2</Flags></Property>');
+            }
+            final steps = bendBy[eid];
+            if (steps != null) {
+              props.write('<Property name="Bended"><Enable/></Property>'
+                  '<Property name="BendDestinationValue"><Float>'
+                  '${(steps * 100).toStringAsFixed(6)}</Float></Property>');
+            }
+            if (vibratoIds.contains(eid)) {
+              props.write('<Property name="Vibrato"><Enable/></Property>');
+            }
+            switch (markBy[eid]) {
+              case TabNoteStyle.dead:
+                props.write('<Property name="Muted"><Enable/></Property>');
+              case TabNoteStyle.harmonic:
+                props.write('<Property name="Harmonic"><Enable/></Property>');
+              case TabNoteStyle.ghost:
+              case null:
+                break;
+            }
+          }
+          notes.writeln('    <Note id="$noteId"><Properties>$props'
               '</Properties></Note>');
           noteRefs.add(noteId++);
+          first = false;
         }
       }
       beats.write('    <Beat id="$beatId"><Rhythm ref="$rid"/>');

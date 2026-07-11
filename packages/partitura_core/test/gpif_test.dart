@@ -110,6 +110,29 @@ void main() {
     );
   });
 
+  test('round-trips techniques through export + import', () {
+    final base = Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'g4:q b4 d5 e5 g5',
+    );
+    final source = Score(
+      clef: base.clef,
+      timeSignature: base.timeSignature,
+      measures: base.measures,
+      slurs: const [Slur('e0', 'e1')], // hammer-on
+      glissandos: const [Glissando('e1', 'e2')], // slide
+      bends: const [Bend('e2', steps: 1.5)],
+      vibratos: const [Vibrato('e3')],
+      tabNoteMarks: const [TabNoteMark('e4', TabNoteStyle.dead)],
+    );
+    final back = scoreFromGpif(scoreToGpif(source));
+    expect(back.slurs, [const Slur('e0', 'e1')]);
+    expect(back.glissandos, [const Glissando('e1', 'e2')]);
+    expect(back.bends, [const Bend('e2', steps: 1.5)]);
+    expect(back.vibratos, [const Vibrato('e3')]);
+    expect(back.tabNoteMarks, [const TabNoteMark('e4', TabNoteStyle.dead)]);
+  });
+
   test('rejects non-GPIF input', () {
     expect(() => scoreFromGpif('<Other></Other>'), throwsFormatException);
   });
