@@ -465,6 +465,23 @@ E|---|
     expect(diagonalsAbove.length, greaterThanOrEqualTo(4)); // 2 per bar
   });
 
+  test('a chord assigns each tone to a distinct string', () {
+    // E4 and F4 both fret cheapest on the high-E string; the chord must split
+    // them onto different lines rather than collide.
+    final layout = tabOf(Score.simple(notes: 'e4+f4:q'));
+    final digits = layout.primitives.whereType<TextPrimitive>().toList();
+    expect(digits, hasLength(2));
+    expect(digits.map((d) => d.position.y).toSet(), hasLength(2)); // 2 strings
+  });
+
+  test('a six-note chord uses six distinct strings', () {
+    // A C-major open voicing: C E G C E — five sounding strings, all distinct.
+    final layout = tabOf(Score.simple(notes: 'c3+e3+g3+c4+e4:h'));
+    final ys =
+        layout.primitives.whereType<TextPrimitive>().map((d) => d.position.y);
+    expect(ys.toSet(), hasLength(5)); // no two share a line
+  });
+
   test('deterministic', () {
     String render() => tabOf(Score.simple(notes: 'e2:q a2 d3 g3'))
         .primitives

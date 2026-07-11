@@ -3,9 +3,10 @@
 /// primitives as the notation engine, so the Flutter renderer and the
 /// interaction layer work unchanged.
 ///
-/// This is a parallel notation mode: each note's pitch is assigned to the
-/// lowest-fret (string, fret) on the tuning, drawn as a digit centered on its
-/// string line (the line is broken behind the digit). Rhythm is shown with
+/// This is a parallel notation mode: each note's pitch is assigned to a
+/// (string, fret) on the tuning — a chord's tones to distinct strings, so two
+/// never collide on one line — drawn as a digit centered on its string line
+/// (the line is broken behind the digit). Rhythm is shown with
 /// stems, flags and beams **below** the staff (half and quarter both draw a
 /// plain stem — the tab convention leaves them distinguished by context).
 library;
@@ -123,27 +124,14 @@ class TabLayoutEngine {
         cols.add(_Col(x, element.duration, onset, false));
         var left = double.infinity;
         var right = -double.infinity;
-        final pins = voicing[element.id];
+        // Assign every chord tone to a distinct string (a pinned voicing wins;
+        // otherwise auto-assign so two notes never collide on one line).
+        final placement =
+            _placeChord(element.pitches, effTuning, voicing[element.id]);
         for (var pi = 0; pi < element.pitches.length; pi++) {
-          final pitch = element.pitches[pi];
-          int? stringIndex;
-          int? fret;
-          // Honor a pinned string when its fret is playable.
-          if (pins != null && pi < pins.length) {
-            final pinned = pins[pi];
-            if (pinned >= 0 && pinned < effTuning.stringCount) {
-              final f = pitch.midiNumber - effTuning.strings[pinned].midiNumber;
-              if (f >= 0 && f <= 24) {
-                stringIndex = pinned;
-                fret = f;
-              }
-            }
-          }
-          if (stringIndex == null) {
-            final place = effTuning.fretFor(pitch);
-            if (place == null) continue;
-            (stringIndex, fret) = place;
-          }
+          final place = placement[pi];
+          if (place == null) continue;
+          final (stringIndex, fret) = place;
           final text = switch (noteStyle[element.id]) {
             TabNoteStyle.dead => 'x',
             TabNoteStyle.ghost => '($fret)',
@@ -554,6 +542,55 @@ class TabLayoutEngine {
         2.0 => '2',
         _ => steps == steps.roundToDouble() ? '${steps.toInt()}' : '$steps',
       };
+
+  /// Per-pitch (string, fret) for a note/chord. A pinned voicing ([pins]) is
+  /// honored where playable; otherwise every tone is assigned a **distinct**
+  /// string via [_assignChord] so two notes never land on the same line.
+  static List<(int, int)?> _placeChord(
+      List<Pitch> pitches, Tuning tuning, List<int>? pins) {
+    if (pins == null) return _assignChord(pitches, tuning);
+    return [
+      for (var pi = 0; pi < pitches.length; pi++)
+        () {
+          if (pi < pins.length) {
+            final s = pins[pi];
+            if (s >= 0 && s < tuning.stringCount) {
+              final f = pitches[pi].midiNumber - tuning.strings[s].midiNumber;
+              if (f >= 0 && f <= 24) return (s, f);
+            }
+          }
+          return tuning.fretFor(pitches[pi]);
+        }(),
+    ];
+  }
+
+  /// Assigns each pitch to a distinct string, greedily placing higher pitches
+  /// on higher strings (lowest fret first) — the natural chord voicing. A
+  /// pitch that can't be placed on a free string is dropped (null).
+  static List<(int, int)?> _assignChord(List<Pitch> pitches, Tuning tuning) {
+    final n = tuning.stringCount;
+    final used = List<bool>.filled(n, false);
+    final result = List<(int, int)?>.filled(pitches.length, null);
+    // Strings from highest open pitch to lowest.
+    final strings = List.generate(n, (i) => i)
+      ..sort((a, b) =>
+          tuning.strings[b].midiNumber.compareTo(tuning.strings[a].midiNumber));
+    // Pitches high to low, so the top voice claims the top string first.
+    final order = List.generate(pitches.length, (i) => i)
+      ..sort((a, b) => pitches[b].midiNumber.compareTo(pitches[a].midiNumber));
+    for (final pi in order) {
+      final midi = pitches[pi].midiNumber;
+      for (final si in strings) {
+        if (used[si]) continue;
+        final fret = midi - tuning.strings[si].midiNumber;
+        if (fret < 0 || fret > 24) continue;
+        used[si] = true;
+        result[pi] = (si, fret);
+        break;
+      }
+    }
+    return result;
+  }
 
   /// The open string's note letter (with accidental) for a tuning label.
   static String _noteLetter(Pitch pitch) {

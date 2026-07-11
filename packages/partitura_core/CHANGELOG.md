@@ -2,6 +2,11 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Tab chord voicing** (fix): `TabLayoutEngine` now assigns each chord tone to
+  a **distinct string** (higher pitches to higher strings, lowest fret first)
+  instead of placing every pitch at its independent lowest fret — so two notes
+  of a chord no longer collide on one line (visible on dense real Guitar Pro
+  chords). Pinned `TabVoicing`s still win; hand-designed goldens are unchanged.
 - **Guitar Pro (GPIF) import/export** (Phase 7.3): `scoreFromGpif` /
   `scoreToGpif` read and write the `score.gpif` XML of the Guitar Pro 6/7/8
   formats — a subset (tuning, bars → voices → beats → string+fret notes,
