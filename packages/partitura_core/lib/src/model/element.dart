@@ -317,19 +317,25 @@ class LetRing {
   String toString() => 'LetRing($startId -> $endId)';
 }
 
-/// How a tab note's fret digit is drawn, for muted and softly-played notes.
+/// How a tab note's fret digit is presented — for muted, softly-played and
+/// harmonic notes (mutually exclusive per note).
 enum TabNoteStyle {
   /// Dead (muted): each sounding string shows an "x" instead of a fret.
   dead,
 
   /// Ghost (played softly): the fret digit is drawn in parentheses, `(3)`.
   ghost,
+
+  /// Natural harmonic: the fret digit is drawn in angle brackets, `<12>`.
+  /// (Artificial and pinch harmonics are future additions.)
+  harmonic,
 }
 
-/// Marks a tab note as [TabNoteStyle.dead] (muted "x") or [TabNoteStyle.ghost]
-/// (parenthesized), referenced by the note's id. Rendered by the tab engine
-/// only; ignored by standard-notation rendering. (Named to avoid clashing with
-/// the rendering layer's drag-preview `GhostNote`.)
+/// Marks a tab note with a [TabNoteStyle] — [TabNoteStyle.dead] (muted "x"),
+/// [TabNoteStyle.ghost] (parenthesized) or [TabNoteStyle.harmonic]
+/// (angle-bracketed) — referenced by the note's id. Rendered by the tab engine only;
+/// ignored by standard-notation rendering. (Named to avoid clashing with the
+/// rendering layer's drag-preview `GhostNote`.)
 class TabNoteMark {
   /// Id of the marked note.
   final String noteId;

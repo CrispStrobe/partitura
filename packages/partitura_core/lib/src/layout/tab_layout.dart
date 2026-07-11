@@ -91,6 +91,7 @@ class TabLayoutEngine {
           final text = switch (noteStyle[element.id]) {
             TabNoteStyle.dead => 'x',
             TabNoteStyle.ghost => '($fret)',
+            TabNoteStyle.harmonic => '<$fret>',
             null => '$fret',
           };
           final halfW = 0.28 * fretSize * text.length;

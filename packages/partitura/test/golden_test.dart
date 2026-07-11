@@ -986,4 +986,27 @@ void main() {
       Tuning.standardGuitar,
     );
   });
+
+  testWidgets('59 guitar tab: natural harmonics', (tester) async {
+    // Octave (fret 12) and fifth (fret 7) natural harmonics.
+    final base = Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'e5:q e4 b4 e5 | b4:q g4 d5 b4',
+    );
+    await tabGolden(
+      tester,
+      '59_tab_harmonics',
+      Score(
+        clef: base.clef,
+        timeSignature: base.timeSignature,
+        measures: base.measures,
+        tabNoteMarks: const [
+          TabNoteMark('e0', TabNoteStyle.harmonic), // ⟨12⟩
+          TabNoteMark('e3', TabNoteStyle.harmonic),
+          TabNoteMark('e5', TabNoteStyle.harmonic),
+        ],
+      ),
+      Tuning.standardGuitar,
+    );
+  });
 }

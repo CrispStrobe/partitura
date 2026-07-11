@@ -12,9 +12,10 @@
   {steps})`), vibrato (`Score.vibratos` — `Vibrato(noteId, {wide})`, a wavy
   line above the fret) and palm mute / let ring (`Score.palmMutes` /
   `Score.letRings` — a labelled dashed bracket above the staff) and dead /
-  ghost notes (`Score.tabNoteMarks` — `TabNoteMark(noteId, TabNoteStyle.dead
-  | .ghost)`; "x" or a parenthesized fret); more techniques land
-  incrementally. Lifts the former "tablature out" scope.
+  ghost / natural-harmonic notes (`Score.tabNoteMarks` — `TabNoteMark(noteId,
+  TabNoteStyle.dead | .ghost | .harmonic)`; "x", a parenthesized fret, or an
+  angle-bracketed fret); more techniques land incrementally. Lifts the former
+  "tablature out" scope.
 - **Forced beam slant** (Phase 1.4): `Score.beamSlants`
   (`BeamSlant(startId, endId, {slant})`) — forces a note run into one beam
   group with a fixed slant (0 = horizontal). Model-only.

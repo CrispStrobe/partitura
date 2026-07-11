@@ -35,8 +35,8 @@ ships* at the end for the mechanics.
     per-beat beams); techniques so far — slides (reuse `glissandos`),
     hammer-on/pull-off (reuse `slurs`), string bends (`Bend`), vibrato
     (`Vibrato`), palm mute / let ring (`PalmMute`/`LetRing`), dead / ghost
-    notes (`TabNoteMark`). Goldens 52–58. Contract "tablature out" clause
-    lifted.
+    notes and natural harmonics (`TabNoteMark`). Goldens 52–59. Contract
+    "tablature out" clause lifted.
 - **Test counts:** 594 core + 129 widget, all gates green.
 
 ### ▶ Where the next agent picks up
@@ -44,10 +44,11 @@ ships* at the end for the mechanics.
 Two open threads; either is a valid continuation (ask the owner which):
 
 1. **Finish Phase 6 tab techniques** (the owner asked for tab "fully").
-   Vibrato, palm mute / let ring and dead / ghost notes are done (goldens
-   56–58). Next batch — harmonics (natural first: a diamond/⟨⟩ notehead),
-   tapping, tremolo bar, rasgueado,
-   then chord/fretboard diagrams, then import of the common tablature
+   Vibrato, palm mute / let ring, dead / ghost notes and natural harmonics
+   are done (goldens 56–59). Next batch — artificial/pinch harmonics (a label
+   next to the bracketed fret), tapping ("T"/"+" marker), tremolo bar,
+   rasgueado, then chord/fretboard diagrams, then import of the common
+   tablature
    interchange formats (see Phase 7.3). Model each like `Bend` (a
    `Score.<list>` keyed by note id, rendered in `TabLayoutEngine`) or reuse an
    existing span. All tab code: `theory/tuning.dart`,
@@ -256,8 +257,10 @@ pitch → (string, fret) assignment. Also requires lifting the current
       arcs (reuse `slurs`) — goldens 53, 54; string bends (`Bend`) — golden 55;
       vibrato (`Vibrato`, normal + wide) — golden 56; palm mute / let ring
       (`PalmMute`/`LetRing`, dashed brackets) — golden 57; dead / ghost notes
-      (`TabNoteMark` — "x" / parenthesized fret) — golden 58. **Left:**
-      harmonics, tapping, tremolo bar, and the rest of the checklist.
+      (`TabNoteMark` — "x" / parenthesized fret) — golden 58; natural harmonics
+      (`TabNoteStyle.harmonic` — angle-bracketed fret) — golden 59. **Left:**
+      artificial/pinch harmonics, tapping, tremolo bar, and the rest of the
+      checklist.
 - [ ] **6.5 Tunings & other fretted instruments** (bass, drop-D, DADGAD…;
       7/8-string, banjo, ukulele, mandolin).
 

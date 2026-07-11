@@ -283,6 +283,22 @@ void main() {
     );
   });
 
+  test('a natural harmonic wraps its fret in angle brackets', () {
+    // e5 sits at the 12th-fret (octave) harmonic on the high E string.
+    final base = Score.simple(notes: 'e5:q');
+    final score = Score(
+      clef: base.clef,
+      measures: base.measures,
+      tabNoteMarks: const [TabNoteMark('e0', TabNoteStyle.harmonic)],
+    );
+    final layout =
+        const TabLayoutEngine().layout(score, Tuning.standardGuitar, settings);
+    expect(
+      layout.primitives.whereType<TextPrimitive>().map((t) => t.text),
+      contains('<12>'),
+    );
+  });
+
   test('every string of a dead chord shows an x', () {
     final base = Score.simple(notes: 'e2+b2+e4:q');
     final score = Score(
