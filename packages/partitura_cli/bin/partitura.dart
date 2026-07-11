@@ -37,10 +37,10 @@ Commands:
                                        the Flutter SDK)
 
 Common:
-  --from <musicxml|midi|asciitab|gp|gpx|gpif>
+  --from <musicxml|midi|asciitab|gp|gpx|gp5|gpif>
                                        Force the input format (.tab/.crd/.txt
                                        are plain-text tab; .gp = Guitar Pro 7/8,
-                                       .gpx = Guitar Pro 6)
+                                       .gpx = GP6, .gp5 = GP5)
   --to   <musicxml|midi|gp|gpif>       Force the convert output format
 
 render options:
@@ -236,6 +236,9 @@ Score _loadScore(String path, Map<String, String> options) {
     case 'gpx':
       return scoreFromGpif(readGpifFromGpx(file.readAsBytesSync()),
           trackIndex: int.tryParse(options['track'] ?? '0') ?? 0);
+    case 'gp5':
+      return gp5ToScore(file.readAsBytesSync(),
+          trackIndex: int.tryParse(options['track'] ?? '0') ?? 0);
     default:
       throw _CliError('unknown input format for $path (use --from)');
   }
@@ -260,6 +263,7 @@ String _formatOf(String path) {
   }
   if (lower.endsWith('.gpif')) return 'gpif';
   if (lower.endsWith('.gpx')) return 'gpx';
+  if (lower.endsWith('.gp5')) return 'gp5';
   if (lower.endsWith('.gp')) return 'gp';
   return 'unknown';
 }

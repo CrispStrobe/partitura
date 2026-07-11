@@ -370,7 +370,10 @@ playing techniques into the tab marks (HO/PO → slur, slide → glissando, bend
 against the alphaTab GP7 test corpus — pitches/chords/rhythm and those
 techniques read correctly. Multi-track files import one track at a time
 (`--track N`). GP6 `.gpx` (a BCFZ/BCFS container over the same gpif) is also
-read by the CLI (validated against the alphaTab GP6 corpus).
+read by the CLI (validated against the alphaTab GP6 corpus). **GP5 `.gp5`** —
+a version-tagged *binary* format — has its own from-scratch reader
+(`gp5ToScore`; pitches/chords/durations/measures/tunings + the note
+techniques), validated against the alphaTab GP5 corpus.
 
 ### Plain-text (ASCII) tablature import
 

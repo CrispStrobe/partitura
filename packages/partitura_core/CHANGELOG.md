@@ -2,6 +2,12 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Guitar Pro 5 (.gp5) import** (Phase 7.3): `gp5ToScore(bytes, {trackIndex})`
+  — a from-scratch byte/bit-exact reader for the GP5 *binary* format (ported
+  from PyGuitarPro's layout): measures, time signatures, per-track tunings,
+  notes as string+fret → pitch, and the note techniques (HO/PO, slides, bends,
+  dead, harmonic). Pure Dart. Validated against the alphaTab GP5 corpus —
+  `chords.gp5` renders identically to `chords.gp` (GP7). Wired into the CLI.
 - **Guitar Pro technique import** (Phase 7.3): `scoreFromGpif` now reads the
   common GPIF playing techniques into partitura's tab marks — hammer-on/
   pull-off → slur, slide → glissando, bend (with amount) → `Bend`, whammy
