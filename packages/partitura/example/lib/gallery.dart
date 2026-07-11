@@ -429,6 +429,21 @@ final List<GalleryItem> galleryItems = [
       );
     }(),
   ),
+  GalleryItem(
+    'Forced horizontal beam',
+    () {
+      final base = Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'c5:e d5 e5 f5 g5 a5 b5 c6',
+      );
+      return Score(
+        clef: base.clef,
+        timeSignature: base.timeSignature,
+        measures: base.measures,
+        beamSlants: const [BeamSlant('e0', 'e7')],
+      );
+    }(),
+  ),
 ];
 
 /// Scrollable gallery of the corpus (plus grand-staff and multi-system

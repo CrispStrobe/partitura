@@ -253,5 +253,9 @@ Score _slice(
       for (final fb in score.featheredBeams)
         if (ids.contains(fb.startId) && ids.contains(fb.endId)) fb,
     ],
+    beamSlants: [
+      for (final bs in score.beamSlants)
+        if (ids.contains(bs.startId) && ids.contains(bs.endId)) bs,
+    ],
   );
 }

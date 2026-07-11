@@ -100,8 +100,9 @@ Raises the quality of everything already rendered. Slice order:
       subdivision at metric points, custom slope / independent beam-end
       heights, beams over rests, cross-measure beaming. (Cross-staff beaming
       lands with Phase 2.) **Done:** feathered beams (`FeatheredBeam`; golden
-      50). **Left:** subdivision, custom slope, beams over rests,
-      cross-measure.
+      50), forced beam slant / force-horizontal (`BeamSlant`; golden 51).
+      **Left:** beam subdivision, beams over rests (a default-behavior change —
+      needs per-case golden verification), cross-measure.
 
 ### Phase 2 — Score structure (multi-staff)
 - [ ] **2.1 N-staff systems** — generalize the grand staff from 2 → N staves,

@@ -89,7 +89,9 @@ class _BeamGroup {
   final List<int> indices;
   final bool stemsDown;
   final (int, int)? feather;
-  _BeamGroup(this.indices, {required this.stemsDown, this.feather});
+  final double? forcedSlant;
+  _BeamGroup(this.indices,
+      {required this.stemsDown, this.feather, this.forcedSlant});
 }
 
 /// Deferred stem/flag data for one beamed note, collected while walking the
@@ -534,7 +536,9 @@ class _LayoutBuilder {
       final notes = deferred[group];
       if (notes != null && notes.length >= 2) {
         _layoutBeamGroup(notes,
-            stemsDown: group.stemsDown, feather: group.feather);
+            stemsDown: group.stemsDown,
+            feather: group.feather,
+            forcedSlant: group.forcedSlant);
       }
     }
     _layoutArticulations(measure.elements, tieIndexOf);
@@ -1903,12 +1907,22 @@ class _LayoutBuilder {
         if (elements[i].id case final id?) id: i,
     };
     final feathers = <(int, int, int, int)>[]; // start, end, begin, endBeams
+    final slants = <(int, int, double)>[]; // start, end, slant
     final claimed = <int>{};
     for (final fb in score.featheredBeams) {
       final a = idIndex[fb.startId];
       final b = idIndex[fb.endId];
       if (a == null || b == null || b <= a) continue;
       feathers.add((a, b, fb.beginBeams, fb.endBeams));
+      for (var i = a; i <= b; i++) {
+        claimed.add(i);
+      }
+    }
+    for (final bs in score.beamSlants) {
+      final a = idIndex[bs.startId];
+      final b = idIndex[bs.endId];
+      if (a == null || b == null || b <= a || claimed.contains(a)) continue;
+      slants.add((a, b, bs.slant));
       for (var i = a; i <= b; i++) {
         claimed.add(i);
       }
@@ -2012,6 +2026,11 @@ class _LayoutBuilder {
       groups.add(
           _BeamGroup(run, stemsDown: stemsDownFor(run), feather: (begin, end)));
     }
+    for (final (a, b, slant) in slants) {
+      final run = [for (var i = a; i <= b; i++) i];
+      groups.add(
+          _BeamGroup(run, stemsDown: stemsDownFor(run), forcedSlant: slant));
+    }
     return groups;
   }
 
@@ -2041,11 +2060,13 @@ class _LayoutBuilder {
     List<_BeamedNote> notes, {
     required bool stemsDown,
     (int, int)? feather,
+    double? forcedSlant,
   }) {
     final first = notes.first;
     final last = notes.last;
     final dx = last.stemX - first.stemX;
-    final slant = ((last.refY - first.refY) / 2).clamp(-1.0, 1.0);
+    final slant =
+        forcedSlant ?? ((last.refY - first.refY) / 2).clamp(-1.0, 1.0);
     final slope = dx == 0 ? 0.0 : slant / dx;
 
     // Multi-level groups (32nds/64ths) need longer stems so the extra

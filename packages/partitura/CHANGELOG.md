@@ -2,6 +2,8 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Forced horizontal / custom-slant beams** rendered (Phase 1.4, via
+  `partitura_core`): golden scene 51, gallery entry.
 - **Feathered beams** rendered (Phase 1.4, via `partitura_core`): fanned
   accel./rit. beams; golden scene 50, gallery entry.
 - **Sustain-pedal marks** rendered (v0.7.2, via `partitura_core`):

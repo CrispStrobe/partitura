@@ -2,6 +2,9 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Forced beam slant** (Phase 1.4): `Score.beamSlants`
+  (`BeamSlant(startId, endId, {slant})`) — forces a note run into one beam
+  group with a fixed slant (0 = horizontal). Model-only.
 - **Feathered beams** (Phase 1.4, engraving quality): `Score.featheredBeams`
   (`FeatheredBeam(startId, endId, {beginBeams, endBeams})`) — forces a note
   run into one beam group and fans the beam count from start to end

@@ -106,6 +106,9 @@ value-based, invalid constructor arguments fail asserts in debug builds.
   endBeams})` (model-only) — forces the spanned notes into one beam group and
   fans the beam count from `beginBeams` to `endBeams` (accelerando if growing,
   ritardando if shrinking).
+- `Score.beamSlants`: `BeamSlant(startId, endId, {slant})` (model-only) —
+  forces the spanned notes into one beam group with a fixed slant (staff
+  spaces, y-down; 0 = horizontal).
 - `Score.dynamics` (`DynamicMarking(elementId, pp…ff)`) and
   `Score.hairpins` (`Hairpin(startId, endId, crescendo|diminuendo)`) —
   model-only (no DSL shorthand); drawn on a dynamics line below the

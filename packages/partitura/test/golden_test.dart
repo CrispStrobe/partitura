@@ -799,4 +799,23 @@ void main() {
       staffSpace: 10,
     );
   });
+
+  testWidgets('51 forced horizontal beam', (tester) async {
+    final base = Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'c5:e d5 e5 f5 g5 a5 b5 c6',
+    );
+    await golden(
+      tester,
+      '51_beam_slant',
+      Score(
+        clef: base.clef,
+        timeSignature: base.timeSignature,
+        measures: base.measures,
+        // One horizontal beam over the whole ascending run (would slope up).
+        beamSlants: const [BeamSlant('e0', 'e7')],
+      ),
+      staffSpace: 10,
+    );
+  });
 }

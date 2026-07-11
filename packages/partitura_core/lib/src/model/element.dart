@@ -287,6 +287,40 @@ class FeatheredBeam {
       'FeatheredBeam($startId -> $endId, $beginBeams..$endBeams)';
 }
 
+/// Forces the beam over a run of notes to a fixed slant (and into one beam
+/// group), referenced by the first and last note's ids. [slant] is the beam's
+/// total vertical change from the first stem to the last, in staff spaces and
+/// layout coordinates (y grows downward): **0 = horizontal**, positive slopes
+/// down to the right, negative up to the right. Model-only. Both ids must
+/// exist and the start must precede the end, or layout throws an
+/// [ArgumentError].
+class BeamSlant {
+  /// Id of the first note under the beam.
+  final String startId;
+
+  /// Id of the last note under the beam.
+  final String endId;
+
+  /// Total vertical change (staff spaces, y-down); 0 = horizontal.
+  final double slant;
+
+  /// Creates a forced beam slant (default horizontal).
+  const BeamSlant(this.startId, this.endId, {this.slant = 0});
+
+  @override
+  bool operator ==(Object other) =>
+      other is BeamSlant &&
+      other.startId == startId &&
+      other.endId == endId &&
+      other.slant == slant;
+
+  @override
+  int get hashCode => Object.hash(startId, endId, slant);
+
+  @override
+  String toString() => 'BeamSlant($startId -> $endId, slant $slant)';
+}
+
 /// A sustain-pedal span: "Ped." under the start note and a release star
 /// under the end note, referenced by their ids. Same id/order rules as
 /// [Slur]/[Glissando]. Model-only (no DSL shorthand).
