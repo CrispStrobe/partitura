@@ -253,3 +253,43 @@ class Hairpin {
   @override
   String toString() => 'Hairpin($startId -> $endId, ${type.name})';
 }
+
+/// One lyric syllable attached to a note element, drawn below the staff.
+class Lyric {
+  /// Id of the note element the syllable sits under.
+  final String elementId;
+
+  /// The syllable text (without hyphen/extender markers).
+  final String text;
+
+  /// Whether a hyphen connects this syllable to the next one (the word
+  /// continues on a later note).
+  final bool hyphenToNext;
+
+  /// Whether an extender (melisma) line follows this word-final syllable
+  /// while subsequent notes carry no lyric of their own.
+  final bool extender;
+
+  /// Creates a lyric syllable.
+  const Lyric(
+    this.elementId,
+    this.text, {
+    this.hyphenToNext = false,
+    this.extender = false,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      other is Lyric &&
+      other.elementId == elementId &&
+      other.text == text &&
+      other.hyphenToNext == hyphenToNext &&
+      other.extender == extender;
+
+  @override
+  int get hashCode => Object.hash(elementId, text, hyphenToNext, extender);
+
+  @override
+  String toString() => 'Lyric($elementId: "$text"'
+      '${hyphenToNext ? ' -' : ''}${extender ? ' _' : ''})';
+}

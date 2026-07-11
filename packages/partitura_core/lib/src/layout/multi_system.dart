@@ -231,5 +231,9 @@ Score _slice(
         if (ids.contains(hairpin.startId) && ids.contains(hairpin.endId))
           hairpin,
     ],
+    lyrics: [
+      for (final lyric in score.lyrics)
+        if (ids.contains(lyric.elementId)) lyric,
+    ],
   );
 }

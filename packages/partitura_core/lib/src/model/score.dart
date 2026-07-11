@@ -35,6 +35,10 @@ class Score {
   /// Crescendo/diminuendo wedges between note elements (model-only).
   final List<Hairpin> hairpins;
 
+  /// Lyric syllables attached to note elements (see `Score.simple`'s
+  /// `lyrics` parameter for the string shorthand).
+  final List<Lyric> lyrics;
+
   /// Creates a score (treat the lists as immutable).
   const Score({
     required this.clef,
@@ -44,6 +48,7 @@ class Score {
     this.slurs = const [],
     this.dynamics = const [],
     this.hairpins = const [],
+    this.lyrics = const [],
   });
 
   /// Builds a score from a terse note string, for tests and games.
@@ -86,6 +91,11 @@ class Score {
   ///   accidental to be drawn (`showAccidental: true`).
   /// - Every element is auto-assigned the id `e0`, `e1`, … in reading order,
   ///   so games can address them immediately.
+  /// - The optional [lyrics] string attaches syllables to the voice-1
+  ///   **note** elements in reading order (rests are skipped):
+  ///   whitespace-separated tokens, `*` skips a note, a trailing `-`
+  ///   hyphenates to the next syllable, a trailing `_` draws a melisma
+  ///   extender (`lyrics: 'Twin- kle * star_'`).
   ///
   /// Examples: `Score.simple(notes: 'c4:q d4 e4:h')`,
   /// `Score.simple(notes: 'c4+e4+g4:h r:h | g4:w')`.
@@ -96,6 +106,7 @@ class Score {
     KeySignature keySignature = const KeySignature(0),
     TimeSignature? timeSignature,
     required String notes,
+    String? lyrics,
   }) {
     var duration = NoteDuration.quarter;
     var nextId = 0;
@@ -331,7 +342,42 @@ class Score {
       timeSignature: timeSignature,
       measures: measures,
       slurs: slurs,
+      lyrics: lyrics == null ? const [] : _parseLyrics(lyrics, measures),
     );
+  }
+
+  /// Maps [source]'s syllable tokens onto the voice-1 note elements of
+  /// [measures] in reading order.
+  static List<Lyric> _parseLyrics(String source, List<Measure> measures) {
+    final noteIds = <String>[
+      for (final measure in measures)
+        for (final element in measure.elements)
+          if (element is NoteElement && element.id != null) element.id!,
+    ];
+    final result = <Lyric>[];
+    var index = 0;
+    for (final token in source.trim().split(RegExp(r'\s+'))) {
+      if (token.isEmpty) continue;
+      if (index >= noteIds.length) {
+        throw FormatException('More lyric tokens than notes: "$token"');
+      }
+      if (token == '*') {
+        index++;
+        continue;
+      }
+      final hyphen = token.endsWith('-') && token.length > 1;
+      final extender = token.endsWith('_') && token.length > 1;
+      final text =
+          hyphen || extender ? token.substring(0, token.length - 1) : token;
+      result.add(Lyric(
+        noteIds[index],
+        text,
+        hyphenToNext: hyphen,
+        extender: extender,
+      ));
+      index++;
+    }
+    return result;
   }
 
   static bool _hasExplicitNatural(String pitchSource) =>
@@ -368,7 +414,8 @@ class Score {
       listEquals(other.measures, measures) &&
       listEquals(other.slurs, slurs) &&
       listEquals(other.dynamics, dynamics) &&
-      listEquals(other.hairpins, hairpins);
+      listEquals(other.hairpins, hairpins) &&
+      listEquals(other.lyrics, lyrics);
 
   @override
   int get hashCode => Object.hash(
@@ -379,6 +426,7 @@ class Score {
         Object.hashAll(slurs),
         Object.hashAll(dynamics),
         Object.hashAll(hairpins),
+        Object.hashAll(lyrics),
       );
 
   @override

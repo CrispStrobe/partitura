@@ -29,6 +29,11 @@ class PartituraTheme {
   /// bolder stroke).
   final double lineBoost;
 
+  /// Font family for plain text (lyrics, annotations); null uses the
+  /// platform default. Golden tests set this to a loaded font so text
+  /// renders as glyphs instead of the test framework's box font.
+  final String? textFontFamily;
+
   /// Creates a theme; defaults are ink-on-paper black.
   const PartituraTheme({
     this.staffColor = const Color(0xFF1A1A1A),
@@ -38,6 +43,7 @@ class PartituraTheme {
     this.kidMode = false,
     this.hitSlop = 0.5,
     this.lineBoost = 1.0,
+    this.textFontFamily,
   });
 
   /// The default theme.
@@ -60,6 +66,7 @@ class PartituraTheme {
     bool? kidMode,
     double? hitSlop,
     double? lineBoost,
+    String? textFontFamily,
   }) =>
       PartituraTheme(
         staffColor: staffColor ?? this.staffColor,
@@ -69,6 +76,7 @@ class PartituraTheme {
         kidMode: kidMode ?? this.kidMode,
         hitSlop: hitSlop ?? this.hitSlop,
         lineBoost: lineBoost ?? this.lineBoost,
+        textFontFamily: textFontFamily ?? this.textFontFamily,
       );
 
   @override
@@ -80,6 +88,7 @@ class PartituraTheme {
       other.kidMode == kidMode &&
       other.hitSlop == hitSlop &&
       other.lineBoost == lineBoost &&
+      other.textFontFamily == textFontFamily &&
       mapEquals(other.elementColors, elementColors);
 
   @override
@@ -90,6 +99,7 @@ class PartituraTheme {
         kidMode,
         hitSlop,
         lineBoost,
+        textFontFamily,
         Object.hashAllUnordered(
           elementColors.entries.map((e) => Object.hash(e.key, e.value)),
         ),

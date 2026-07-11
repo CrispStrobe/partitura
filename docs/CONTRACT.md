@@ -128,6 +128,14 @@ and forces `showAccidental: true`. Elements auto-receive ids `e0, e1, …`
 in reading order. Malformed input throws `FormatException` naming the
 offending token.
 
+The separate `lyrics:` parameter attaches syllables to voice-1 note
+elements in reading order (rests are skipped): whitespace-separated
+tokens; `*` skips a note, a trailing `-` hyphenates to the next
+syllable, a trailing `_` starts a melisma extender
+(`lyrics: 'Twin- kle * star_'`). Model type: `Lyric(elementId, text,
+hyphenToNext:, extender:)` in `Score.lyrics`. More tokens than notes
+throw `FormatException`.
+
 ## 5. Layout engine (`partitura_core`)
 
 `const LayoutEngine().layout(score, settings)` → `ScoreLayout`.
@@ -144,7 +152,10 @@ offending token.
   the top staff line), `bounds`, a flat painting-ordered `primitives`
   list (`GlyphPrimitive` = SMuFL name + origin, `LinePrimitive`,
   `BeamPrimitive` = end-edge midpoints + thickness,
-  `CurvePrimitive` = cubic Bézier for ties/slurs), per-element
+  `CurvePrimitive` = cubic Bézier for ties/slurs,
+  `TextPrimitive` = plain text anchored center-baseline with an em size
+  in staff spaces — core estimates text widths at 0.5 em/char, painters
+  center the real text on the anchor), per-element
   `regions` (hit boxes for every id-tagged element) and `measureRegions`
   (x-extents per measure; empty measures are zero-width).
 - Primitives tagged with an `elementId` are that element's ink;
@@ -196,11 +207,11 @@ Caveat: interaction quantization (`StaffTarget.pitchFor`) takes an
 explicit clef — apps using mid-score clef changes must map per measure.
 
 **Not implemented (v0.x non-goals)**: multi-voice collision avoidance,
-cross-staff beaming, lyrics, chord symbols, MusicXML, audio (never),
+cross-staff beaming, chord symbols, MusicXML, audio (never),
 transposing instruments, tablature, compound-meter beam grouping (x/8
 meters render flags). Alto/tenor clefs shipped in v0.2; slurs/ties,
 tuplets, grace notes, articulations and dynamics in v0.3; two voices,
-grand staff and line breaking in v0.4.
+grand staff, line breaking and lyrics in v0.4.
 
 ## 6. Rendering (`partitura`)
 
@@ -214,8 +225,10 @@ grand staff and line breaking in v0.4.
   (baseline-anchored, font size = 4 × staff space).
 - `PartituraTheme` — `staffColor` (furniture), `noteColor` (element ink),
   `highlightColor` (wins over everything), `elementColors` per-id
-  overrides, `kidMode`/`hitSlop`/`lineBoost`. Presets: `standard`, `kids`
-  (hit slop 1.5 spaces, line boost 1.4). Value type with `copyWith`.
+  overrides, `kidMode`/`hitSlop`/`lineBoost`, `textFontFamily` for
+  lyrics/annotations (null = platform default). Presets: `standard`,
+  `kids` (hit slop 1.5 spaces, line boost 1.4). Value type with
+  `copyWith`.
 - `GrandStaffView(grandStaff, …)` renders a `GrandStaff` (two scores):
   measures align across staves via a two-pass layout
   (`layoutGrandStaff` in core, `leadingWidth`/`measureWidths` minimums

@@ -24,4 +24,19 @@ Future<void> setUpPartituraForTests() async {
   final loader = FontLoader('packages/partitura/Bravura')
     ..addFont(Future.value(ByteData.view(fontBytes.buffer)));
   await loader.load();
+
+  // A real text font for lyric/annotation goldens (the framework's
+  // default test font draws boxes). Taken from the local Flutter SDK;
+  // themes opt in via `textFontFamily: 'Roboto'`.
+  final flutterRoot = Platform.environment['FLUTTER_ROOT'];
+  if (flutterRoot != null) {
+    final roboto = File(
+        '$flutterRoot/bin/cache/artifacts/material_fonts/Roboto-Regular.ttf');
+    if (roboto.existsSync()) {
+      final bytes = roboto.readAsBytesSync();
+      final robotoLoader = FontLoader('Roboto')
+        ..addFont(Future.value(ByteData.view(bytes.buffer)));
+      await robotoLoader.load();
+    }
+  }
 }

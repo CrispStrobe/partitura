@@ -11,6 +11,11 @@
   fit the available width (rebreaks on resize, justification toggle,
   taps and repaint-only highlights across systems); golden scene 36,
   gallery card.
+- **Lyrics** rendered via the new `TextPrimitive` (real text centered on
+  the core's anchor); `PartituraTheme.textFontFamily` picks the text
+  font (null = platform default); syllables follow highlight/element
+  colors and taps on them resolve to their note; golden scene 37,
+  gallery card.
 
 ## 0.3.0-dev.1
 

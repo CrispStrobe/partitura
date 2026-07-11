@@ -73,6 +73,34 @@ final class LinePrimitive extends LayoutPrimitive {
       '${elementId == null ? '' : ', $elementId'})';
 }
 
+/// A run of text (lyrics; later annotations/chord symbols), anchored by
+/// its **horizontal center** at `position.x` with the alphabetic
+/// baseline at `position.y`. Renderers pick the font; [size] is the em
+/// size in staff spaces. Core cannot measure text — hit regions use an
+/// estimated width, painters center the real text on the anchor.
+final class TextPrimitive extends LayoutPrimitive {
+  /// The text to draw.
+  final String text;
+
+  /// Center-baseline anchor in staff spaces.
+  final Point<double> position;
+
+  /// Em size (font size) in staff spaces.
+  final double size;
+
+  /// Creates a text primitive.
+  const TextPrimitive(
+    this.text,
+    this.position, {
+    required this.size,
+    super.elementId,
+  });
+
+  @override
+  String toString() => 'Text("$text" @ ${position.x},${position.y} x$size'
+      '${elementId == null ? '' : ', $elementId'})';
+}
+
 /// A beam: a filled parallelogram with vertical end edges.
 ///
 /// [start] and [end] are the **midpoints** of the beam's left and right

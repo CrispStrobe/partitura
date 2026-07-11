@@ -19,6 +19,16 @@ class GalleryItem {
 /// The golden-test corpus, browsable on a device. Doubles as manual QA.
 final List<GalleryItem> galleryItems = [
   GalleryItem(
+    'Lyrics (hyphens, melisma extender)',
+    Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'c4:q c4 g4 g4 | a4:q a4 g4:q g4 | f4:q f4 e4 e4 |'
+          'd4:q d4 c4:h',
+      lyrics: 'Twin- kle twin- kle lit- tle star_ * how I won- der '
+          'what you are',
+    ),
+  ),
+  GalleryItem(
     'C major scale (treble)',
     Score.simple(
       timeSignature: TimeSignature.fourFour,

@@ -2,6 +2,13 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Lyrics**: `Lyric` (elementId, text, `hyphenToNext`, `extender`) on
+  `Score.lyrics`; DSL `lyrics:` parameter (`*` skips a note, trailing
+  `-` hyphenates, trailing `_` starts a melisma extender). Layout puts
+  all syllables on one baseline below the lowest ink (`TextPrimitive`,
+  center-baseline anchored; core estimates widths at 0.5 em/char),
+  draws hyphen dashes and extender lines, and grows element hit
+  regions. Systems keep their own syllables under line breaking.
 - **Line breaking + justification**: `layoutSystems(score, settings,
   maxWidth: …)` breaks a score into `MultiSystemLayout`/`SystemLayout`
   lines — greedy measure packing, clef/key restated per system, the time

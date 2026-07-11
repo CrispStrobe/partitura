@@ -321,6 +321,25 @@ terse is fine. See HANDOVER.md §6.
   the available width is the input to breaking, so it cannot also
   derive the scale.
 
+## v0.4.4 lyrics (2026-07-11)
+
+- **Core cannot measure text** (pure Dart, no font rasterizer), so
+  `TextPrimitive` is anchored center-baseline and the engine estimates
+  syllable widths at 0.5 em per character — good enough for hyphen
+  placement and hit regions; the renderer centers the real text on the
+  same anchor, so visual centering is always exact.
+- One shared lyric baseline per layout, below all prior ink
+  (`max(6.5, inkBottom + lyricGap + capHeight)`) — computed after
+  ties/slurs/dynamics so nothing collides; no per-syllable skyline
+  until a consumer needs stacked verses.
+- Hyphens draw only when the estimated gap fits a dash; extenders run
+  along the baseline under following voice-1 notes without their own
+  syllable and stop at the next syllable.
+- Widget tests default to the framework's box font; goldens opt into a
+  real face via `PartituraTheme.textFontFamily: 'Roboto'`, loaded from
+  the local Flutter SDK in `test_setup.dart` (no font asset added to
+  the package).
+
 ## Blockers
 
 (none)

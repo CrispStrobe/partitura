@@ -228,6 +228,7 @@ class _LayoutBuilder {
     _layoutTies();
     _layoutSlurs();
     _layoutDynamics();
+    _layoutLyrics();
     final width = _addFinalBarline();
 
     // Staff lines span the full width; paint them first.
@@ -1286,6 +1287,96 @@ class _LayoutBuilder {
       final tipX = hairpin.type == HairpinType.crescendo ? x1 : x2;
       _addLine(Point(tipX, midY), Point(openX, midY - halfOpening), thickness);
       _addLine(Point(tipX, midY), Point(openX, midY + halfOpening), thickness);
+    }
+  }
+
+  /// v0.4.4: lyric syllables on a shared baseline below all other ink,
+  /// centered under their note; hyphens between connected syllables,
+  /// extender lines under melismas.
+  ///
+  /// Core cannot measure text, so syllable widths are estimated at
+  /// 0.5 em per character (renderers center the real text on the same
+  /// anchor; see [TextPrimitive]).
+  void _layoutLyrics() {
+    if (score.lyrics.isEmpty) return;
+    final size = s.lyricSize;
+    // Shared baseline: below the staff and below everything drawn so far
+    // (beams, dynamics, hairpins), cap height above the baseline.
+    final baselineY = max(6.5, _ink.maxY + s.lyricGap + 0.72 * size);
+
+    final infoIndexOf = <String, int>{
+      for (var i = 0; i < _tieInfos.length; i++)
+        if (_tieInfos[i].id != null) _tieInfos[i].id!: i,
+    };
+    final lyricIds = {for (final lyric in score.lyrics) lyric.elementId};
+    double halfWidthOf(String text) => 0.25 * size * max(1, text.length);
+
+    // Anchor x per syllable, in score.lyrics order.
+    final centers = <double>[];
+    for (final lyric in score.lyrics) {
+      final index = infoIndexOf[lyric.elementId];
+      if (index == null || _tieInfos[index].note == null) {
+        throw ArgumentError('$lyric references an unknown note element id');
+      }
+      final info = _tieInfos[index];
+      centers.add((info.left + info.right) / 2);
+    }
+
+    for (var i = 0; i < score.lyrics.length; i++) {
+      final lyric = score.lyrics[i];
+      final centerX = centers[i];
+      final halfWidth = halfWidthOf(lyric.text);
+      _primitives.add(TextPrimitive(
+        lyric.text,
+        Point(centerX, baselineY),
+        size: size,
+        elementId: lyric.elementId,
+      ));
+      _expand(
+        lyric.elementId,
+        centerX - halfWidth,
+        baselineY - 0.72 * size,
+        centerX + halfWidth,
+        baselineY + 0.25 * size,
+      );
+
+      if (lyric.hyphenToNext && i + 1 < score.lyrics.length) {
+        // Dash centered between this syllable's end and the next one's
+        // start, on the x-height line.
+        final gapStart = centerX + halfWidth;
+        final gapEnd = centers[i + 1] - halfWidthOf(score.lyrics[i + 1].text);
+        if (gapEnd > gapStart + 0.2) {
+          final mid = (gapStart + gapEnd) / 2;
+          final dashHalf = min(0.3, (gapEnd - gapStart) / 4);
+          _addLine(
+            Point(mid - dashHalf, baselineY - 0.25 * size),
+            Point(mid + dashHalf, baselineY - 0.25 * size),
+            0.1,
+            elementId: lyric.elementId,
+          );
+        }
+      }
+
+      if (lyric.extender) {
+        // Extender runs along the baseline under the following voice-1
+        // notes that carry no syllable of their own.
+        final startIndex = infoIndexOf[lyric.elementId]!;
+        double? endX;
+        for (var j = startIndex + 1; j < _tieInfos.length; j++) {
+          final info = _tieInfos[j];
+          if (info.voice != 0 || info.note == null) continue;
+          if (info.id != null && lyricIds.contains(info.id)) break;
+          endX = info.right;
+        }
+        if (endX != null && endX > centerX + halfWidth + 0.2) {
+          _addLine(
+            Point(centerX + halfWidth + 0.15, baselineY),
+            Point(endX, baselineY),
+            0.1,
+            elementId: lyric.elementId,
+          );
+        }
+      }
     }
   }
 

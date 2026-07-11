@@ -81,6 +81,12 @@ class LayoutSettings {
   /// the layout's bounding box.
   final double verticalPadding;
 
+  /// Em size of lyric text, in staff spaces.
+  final double lyricSize;
+
+  /// Minimum clearance between the lowest ink and the lyric baseline.
+  final double lyricGap;
+
   /// Creates settings seeded from [metadata]'s engraving defaults; any
   /// parameter can be overridden.
   LayoutSettings({
@@ -107,6 +113,8 @@ class LayoutSettings {
     this.spacingBase = 1.8,
     this.spacingPerLog2 = 0.75,
     this.verticalPadding = 0.5,
+    this.lyricSize = 1.6,
+    this.lyricGap = 0.8,
   })  : staffLineThickness = staffLineThickness ??
             metadata.engravingDefault('staffLineThickness', orElse: 0.13),
         stemThickness = stemThickness ??

@@ -37,6 +37,25 @@ class LayoutPainter {
     return theme.elementColors[elementId] ?? theme.noteColor;
   }
 
+  /// A laid-out painter for plain text (lyrics, annotations), cached.
+  TextPainter textPainter(String text, Color color, double sizeSpaces) {
+    final family = theme.textFontFamily;
+    final key = 'txt|$text|${color.toARGB32()}|$sizeSpaces|$family';
+    return _glyphCache.putIfAbsent(key, () {
+      return TextPainter(
+        text: TextSpan(
+          text: text,
+          style: TextStyle(
+            fontFamily: family,
+            fontSize: sizeSpaces * scale,
+            color: color,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+    });
+  }
+
   /// A laid-out text painter for [smuflName] (cached).
   TextPainter glyphPainter(String smuflName, Color color, double glyphScale) {
     final key = '$smuflName|${color.toARGB32()}|$glyphScale';
@@ -110,6 +129,22 @@ class LayoutPainter {
               ..lineTo(start.dx, start.dy + half)
               ..close(),
             paint,
+          );
+        case TextPrimitive():
+          // Anchored by the horizontal center at position.x, alphabetic
+          // baseline at position.y (core estimates widths; the real text
+          // centers itself here).
+          final painter = textPainter(
+            primitive.text,
+            colorFor(primitive.elementId),
+            primitive.size,
+          );
+          final baseline =
+              painter.computeDistanceToActualBaseline(TextBaseline.alphabetic);
+          final anchor = at(primitive.position);
+          painter.paint(
+            canvas,
+            anchor - Offset(painter.width / 2, baseline),
           );
         case CurvePrimitive():
           // Ties/slurs are shared note ink, like beams.
