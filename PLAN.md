@@ -24,12 +24,44 @@ ships* at the end for the mechanics.
 ## Status (2026-07-11)
 
 - **Shipped: v0.1 → v0.7.2** — the full common-notation set plus the
-  piano/technical layer. 559 core + 123 widget tests, 49 golden scenes, an
-  on-device integration test — all green.
-- **Next:** the prioritized *Beyond parity* sequence below, one phase at a
-  time. Foundations that lift the quality of everything already rendered come
-  first; then the differentiators no peer renderer owns; then breadth; then
-  the specialist and interchange work.
+  piano/technical layer. All green.
+- **In progress (partial):**
+  - **Phase 1.4 (advanced beaming):** feathered beams (`FeatheredBeam`,
+    golden 50) and forced beam slant (`BeamSlant`, golden 51) done. Left:
+    beam subdivision, beams-over-rests, cross-measure.
+  - **Phase 6 (guitar tablature)** — *pulled forward on request.* Done:
+    `Tuning` + `fretFor`; `TabLayoutEngine` + `TabStaffView` (N-line staff,
+    TAB clef, fret numbers, broken lines, barlines); rhythm (stems/flags/
+    per-beat beams); techniques so far — slides (reuse `glissandos`),
+    hammer-on/pull-off (reuse `slurs`), string bends (`Bend`). Goldens
+    52–55. Contract "tablature out" clause lifted.
+- **Test counts:** 594 core + 129 widget, all gates green.
+
+### ▶ Where the next agent picks up
+
+Two open threads; either is a valid continuation (ask the owner which):
+
+1. **Finish Phase 6 tab techniques** (the owner asked for tab "fully"). Next
+   cheap batch — vibrato, palm mute / let ring, dead & ghost notes (shared
+   decoration patterns), then harmonics, tapping, tremolo bar, rasgueado,
+   then chord/fretboard diagrams, then Guitar Pro import. Model each like
+   `Bend` (a `Score.<list>` keyed by note id, rendered in `TabLayoutEngine`)
+   or reuse an existing span. All tab code: `theory/tuning.dart`,
+   `layout/tab_layout.dart`, `rendering/tab_staff_view.dart`.
+2. **Resume the Phase sequence** at Phase 1.4's remainder, then Phase 2
+   (structure / N-staff — also unblocks tab-paired-with-notation), Phase 3
+   (interaction moat), Phase 4 (theory moat), Phase 5 (breadth), Phase 7
+   (interchange).
+
+**Note — a correction the next agent should trust:** Phase 1.1 "optical
+spacing" is **already implemented** (`layout_engine.dart` `_advance` spaces
+by duration-log2 with a justification stretch). The real Phase-1 gaps are
+1.2 skyline collision avoidance and 1.3 pluggable fonts (needs a ~1MB second
+font asset added — get owner OK).
+
+Owner conventions (see also the session memory): **one planning doc
+(`PLAN.md`), no competitor product names in committed docs.** Each feature
+ships the full pipeline (see *How each feature ships* at the end).
 
 ---
 
