@@ -396,6 +396,36 @@ E|---|
     expect(texts, isNot(contains('0')));
   });
 
+  test('a capo shifts the shown fret numbers and adds a label', () {
+    final score = Score.simple(notes: 'g4:q'); // fret 3 on the high E string
+    final plain = tabOf(score);
+    expect(plain.primitives.whereType<TextPrimitive>().single.text, '3');
+    final capoed = const TabLayoutEngine()
+        .layout(score, Tuning.standardGuitar, settings, capo: 2);
+    final texts =
+        capoed.primitives.whereType<TextPrimitive>().map((t) => t.text).toSet();
+    expect(texts, contains('1')); // 3 − 2
+    expect(texts, contains('capo 2'));
+  });
+
+  test('showTuning draws each open string note letter', () {
+    final layout = const TabLayoutEngine().layout(
+        Score.simple(notes: 'e2:q'), Tuning.standardGuitar, settings,
+        showTuning: true);
+    final texts =
+        layout.primitives.whereType<TextPrimitive>().map((t) => t.text);
+    // Standard guitar open strings: E B G D A E.
+    expect(texts, containsAll(['E', 'B', 'G', 'D', 'A']));
+  });
+
+  test('the tuning gutter shifts the staff content right', () {
+    final without = tabOf(Score.simple(notes: 'e2:q'));
+    final withLabels = const TabLayoutEngine().layout(
+        Score.simple(notes: 'e2:q'), Tuning.standardGuitar, settings,
+        showTuning: true);
+    expect(withLabels.width, greaterThan(without.width));
+  });
+
   test('deterministic', () {
     String render() => tabOf(Score.simple(notes: 'e2:q a2 d3 g3'))
         .primitives

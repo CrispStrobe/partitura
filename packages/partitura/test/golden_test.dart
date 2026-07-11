@@ -825,6 +825,8 @@ void main() {
     Score score,
     Tuning tuning, {
     double staffSpace = 12,
+    int capo = 0,
+    bool showTuning = false,
   }) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -840,6 +842,8 @@ void main() {
                   score: score,
                   tuning: tuning,
                   staffSpace: staffSpace,
+                  capo: capo,
+                  showTuning: showTuning,
                   theme: const PartituraTheme(textFontFamily: 'Roboto'),
                 ),
               ),
@@ -1007,6 +1011,20 @@ void main() {
         ],
       ),
       Tuning.standardGuitar,
+    );
+  });
+
+  testWidgets('60 guitar tab: capo + tuning labels', (tester) async {
+    await tabGolden(
+      tester,
+      '60_tab_capo_tuning',
+      Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'e2:q g2 c3 e3 | g4:q e4 c4 g3',
+      ),
+      Tuning.standardGuitar,
+      capo: 2,
+      showTuning: true,
     );
   });
 }

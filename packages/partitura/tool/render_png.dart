@@ -30,7 +30,8 @@ void main() {
     'bass' => Tuning.standardBass,
     _ => Tuning.standardGuitar,
   };
-  final staffSpace = double.tryParse(env['PARTITURA_STAFF_SPACE'] ?? '12') ?? 12;
+  final staffSpace =
+      double.tryParse(env['PARTITURA_STAFF_SPACE'] ?? '12') ?? 12;
 
   testWidgets('render png', (tester) async {
     if (inPath == null || outPath == null) {
@@ -38,9 +39,9 @@ void main() {
     }
     TestWidgetsFlutterBinding.ensureInitialized();
 
-    final metadata = SmuflMetadata.fromJson(
-        jsonDecode(File('assets/smufl/bravura_metadata.json').readAsStringSync())
-            as Map<String, Object?>);
+    final metadata = SmuflMetadata.fromJson(jsonDecode(
+            File('assets/smufl/bravura_metadata.json').readAsStringSync())
+        as Map<String, Object?>);
     Bravura.debugOverrideMetadata(metadata);
     final fontBytes = File('assets/fonts/Bravura.otf').readAsBytesSync();
     await (FontLoader('packages/partitura/Bravura')

@@ -250,6 +250,9 @@ tuning, settings)` renders a `Score`'s pitches as fret numbers on an N-line
 string staff, using a `Tuning` (open-string pitches; `Tuning.standardGuitar`
 / `dropDGuitar` / `standardBass`, or custom). `Tuning.fretFor(pitch)` assigns
 the lowest playable (string, fret). `TabStaffView` is the Flutter widget.
+`layout(…, {capo, showTuning})` (and the matching `TabStaffView` params)
+clamps a capo (fret numbers read relative to it, plus a "capo N" label) and
+draws each open string's note letter in a left gutter.
 Rhythm stems/beams and playing techniques are drawn by the tab engine only
 (they are inert in standard-notation rendering) and are added incrementally.
 Supported so far: slides (reuse `Score.glissandos`), hammer-on/pull-off

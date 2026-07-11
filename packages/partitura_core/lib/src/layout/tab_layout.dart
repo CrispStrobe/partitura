@@ -17,6 +17,7 @@ import '../model/score.dart';
 import '../smufl/glyph_names.dart';
 import '../theory/duration.dart';
 import '../theory/fraction.dart';
+import '../theory/pitch.dart';
 import '../theory/tuning.dart';
 import 'layout_settings.dart';
 import 'score_layout.dart';
@@ -42,7 +43,17 @@ class TabLayoutEngine {
   static const double fretSize = 1.4;
 
   /// Lays [score] out as tablature for [tuning].
-  ScoreLayout layout(Score score, Tuning tuning, LayoutSettings settings) {
+  ///
+  /// [capo] (default 0) clamps the nut up that many frets: the shown numbers
+  /// become relative to the capo and a "capo N" label is drawn. [showTuning]
+  /// draws each open string's note letter in a gutter on the left.
+  ScoreLayout layout(
+    Score score,
+    Tuning tuning,
+    LayoutSettings settings, {
+    int capo = 0,
+    bool showTuning = false,
+  }) {
     final n = tuning.stringCount;
     final s = settings;
     final meta = s.metadata;
@@ -57,14 +68,39 @@ class TabLayoutEngine {
     final noteStyle = {for (final m in score.tabNoteMarks) m.noteId: m.style};
     // Per-note string pinning (overrides lowest-fret placement).
     final voicing = {for (final v in score.tabVoicings) v.noteId: v.strings};
+    // A capo shifts every open string up, so frets read relative to it.
+    final effTuning = capo <= 0
+        ? tuning
+        : Tuning([
+            for (final p in tuning.strings) _shiftPitch(p, capo),
+          ], name: tuning.name);
 
     double yOfString(int i) => i * lineGap;
     final bottomY = (n - 1) * lineGap;
 
+    // A left gutter for the per-string note letters, when requested.
+    final gutter = showTuning ? 1.3 : 0.0;
+    if (showTuning) {
+      for (var i = 0; i < n; i++) {
+        primitives.add(TextPrimitive(
+          _noteLetter(tuning.strings[i]),
+          Point(gutter * 0.45, yOfString(i) + 0.32 * fretSize),
+          size: fretSize,
+        ));
+      }
+    }
+    if (capo > 0) {
+      primitives.add(TextPrimitive(
+        'capo $capo',
+        Point(gutter + 1.0, -1.2),
+        size: 1.1,
+      ));
+    }
+
     final clefGlyph =
         n <= 4 ? SmuflGlyph.fourStringTabClef : SmuflGlyph.sixStringTabClef;
     final clefBox = meta.bBoxOf(clefGlyph);
-    var x = 0.5;
+    var x = 0.5 + gutter;
     final clefBaseline = bottomY / 2 + (clefBox.neY + clefBox.swY) / 2;
     primitives.add(GlyphPrimitive(clefGlyph, Point(x, clefBaseline)));
     x += clefBox.width + 1.2;
@@ -94,8 +130,8 @@ class TabLayoutEngine {
           // Honor a pinned string when its fret is playable.
           if (pins != null && pi < pins.length) {
             final pinned = pins[pi];
-            if (pinned >= 0 && pinned < tuning.stringCount) {
-              final f = pitch.midiNumber - tuning.strings[pinned].midiNumber;
+            if (pinned >= 0 && pinned < effTuning.stringCount) {
+              final f = pitch.midiNumber - effTuning.strings[pinned].midiNumber;
               if (f >= 0 && f <= 24) {
                 stringIndex = pinned;
                 fret = f;
@@ -103,7 +139,7 @@ class TabLayoutEngine {
             }
           }
           if (stringIndex == null) {
-            final place = tuning.fretFor(pitch);
+            final place = effTuning.fretFor(pitch);
             if (place == null) continue;
             (stringIndex, fret) = place;
           }
@@ -239,11 +275,11 @@ class TabLayoutEngine {
       ));
     }
 
-    // String lines, broken behind any digits.
+    // String lines, broken behind any digits (starting after the gutter).
     for (var i = 0; i < n; i++) {
       final y = yOfString(i);
       final ranges = [...breaks[i]]..sort((a, b) => a.$1.compareTo(b.$1));
-      var cursor = 0.0;
+      var cursor = gutter;
       for (final (bl, br) in ranges) {
         if (bl > cursor) {
           primitives.insert(
@@ -464,6 +500,25 @@ class TabLayoutEngine {
         2.0 => '2',
         _ => steps == steps.roundToDouble() ? '${steps.toInt()}' : '$steps',
       };
+
+  /// The open string's note letter (with accidental) for a tuning label.
+  static String _noteLetter(Pitch pitch) {
+    const acc = {-2: 'bb', -1: 'b', 0: '', 1: '#', 2: '##'};
+    return '${pitch.step.name.toUpperCase()}${acc[pitch.alter] ?? ''}';
+  }
+
+  /// A pitch [semitones] higher (by MIDI number, sharps spelling) — used to
+  /// shift open strings up for a capo.
+  static Pitch _shiftPitch(Pitch pitch, int semitones) {
+    const table = [
+      (Step.c, 0), (Step.c, 1), (Step.d, 0), (Step.d, 1), //
+      (Step.e, 0), (Step.f, 0), (Step.f, 1), (Step.g, 0),
+      (Step.g, 1), (Step.a, 0), (Step.a, 1), (Step.b, 0),
+    ];
+    final midi = pitch.midiNumber + semitones;
+    final (step, alter) = table[midi % 12];
+    return Pitch(step, alter: alter, octave: midi ~/ 12 - 1);
+  }
 
   static bool _hasStem(DurationBase base) =>
       base != DurationBase.whole && base != DurationBase.breve;

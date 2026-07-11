@@ -2,6 +2,10 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Tab capo + tuning labels** (Phase 6.2/6.5): `TabLayoutEngine.layout` (and
+  `TabStaffView`) gain `capo` (fret numbers read relative to the capo, with a
+  "capo N" label) and `showTuning` (each open string's note letter in a left
+  gutter). Golden scene 60.
 - **Per-note tab string override** (Phase 6.2): `Score.tabVoicings`
   (`TabVoicing(noteId, strings)`) pins each pitch of a tab note to an explicit
   string (0 = top line), overriding the engine's lowest-fret placement (an

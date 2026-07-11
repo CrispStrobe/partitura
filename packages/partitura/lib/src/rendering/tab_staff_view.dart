@@ -26,6 +26,12 @@ class TabStaffView extends StatelessWidget {
   /// Ids painted in the highlight color.
   final Set<String> highlightedIds;
 
+  /// Frets the capo clamps at (0 = none); shown numbers read relative to it.
+  final int capo;
+
+  /// Whether to draw each open string's note letter on the left.
+  final bool showTuning;
+
   /// Creates a tablature view.
   const TabStaffView({
     super.key,
@@ -34,6 +40,8 @@ class TabStaffView extends StatelessWidget {
     this.staffSpace = 12,
     this.theme = PartituraTheme.standard,
     this.highlightedIds = const {},
+    this.capo = 0,
+    this.showTuning = false,
   });
 
   @override
@@ -41,7 +49,8 @@ class TabStaffView extends StatelessWidget {
     final metadata = Bravura.metadataOrNull;
     if (metadata == null) return const SizedBox.shrink();
     final settings = LayoutSettings(metadata: metadata);
-    final layout = const TabLayoutEngine().layout(score, tuning, settings);
+    final layout = const TabLayoutEngine()
+        .layout(score, tuning, settings, capo: capo, showTuning: showTuning);
     return CustomPaint(
       size: Size(layout.width * staffSpace, layout.height * staffSpace),
       painter: _TabPainter(
