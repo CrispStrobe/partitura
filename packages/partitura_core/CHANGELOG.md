@@ -2,6 +2,12 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Guitar Pro technique import** (Phase 7.3): `scoreFromGpif` now reads the
+  common GPIF playing techniques into partitura's tab marks — hammer-on/
+  pull-off → slur, slide → glissando, bend (with amount) → `Bend`, whammy
+  vibrato → `Vibrato`, dead → `TabNoteMark.dead`, harmonic →
+  `TabNoteMark.harmonic`. Validated against the alphaTab GP7 corpus (e.g.
+  `bends.gp` renders correct "full"/"1½" bend arrows).
 - **Tab chord voicing** (fix): `TabLayoutEngine` now assigns each chord tone to
   a **distinct string** (higher pitches to higher strings, lowest fret first)
   instead of placing every pitch at its independent lowest fret — so two notes

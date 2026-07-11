@@ -73,6 +73,43 @@ void main() {
     expect(pitchNames(back), ['D2']);
   });
 
+  test('parses playing techniques into tab marks', () {
+    // A hand-written GPIF (the shape Guitar Pro emits): note 0 hammers to
+    // note 1 which is bent full; note 2 is dead; note 3 is a harmonic.
+    const gpif = '''
+<GPIF>
+  <Tracks><Track id="0"><Staves><Staff><Properties>
+    <Property name="Tuning"><Pitches>64 59 55 50 45 40</Pitches></Property>
+  </Properties></Staff></Staves></Track></Tracks>
+  <MasterBars><MasterBar><Time>4/4</Time><Bars>0</Bars></MasterBar></MasterBars>
+  <Bars><Bar id="0"><Voices>0 -1 -1 -1</Voices></Bar></Bars>
+  <Voices><Voice id="0"><Beats>0 1 2 3</Beats></Voice></Voices>
+  <Beats>
+    <Beat id="0"><Rhythm ref="0"/><Notes>0</Notes></Beat>
+    <Beat id="1"><Rhythm ref="0"/><Notes>1</Notes></Beat>
+    <Beat id="2"><Rhythm ref="0"/><Notes>2</Notes></Beat>
+    <Beat id="3"><Rhythm ref="0"/><Notes>3</Notes></Beat>
+  </Beats>
+  <Notes>
+    <Note id="0"><Properties><Property name="String"><String>0</String></Property><Property name="Fret"><Fret>5</Fret></Property><Property name="HopoOrigin"><Enable/></Property></Properties></Note>
+    <Note id="1"><Properties><Property name="String"><String>0</String></Property><Property name="Fret"><Fret>7</Fret></Property><Property name="Bended"><Enable/></Property><Property name="BendDestinationValue"><Float>100</Float></Property></Properties></Note>
+    <Note id="2"><Properties><Property name="String"><String>0</String></Property><Property name="Fret"><Fret>3</Fret></Property><Property name="Muted"><Enable/></Property></Properties></Note>
+    <Note id="3"><Properties><Property name="String"><String>0</String></Property><Property name="Fret"><Fret>12</Fret></Property><Property name="Harmonic"><Enable/></Property></Properties></Note>
+  </Notes>
+  <Rhythms><Rhythm id="0"><NoteValue>Quarter</NoteValue></Rhythm></Rhythms>
+</GPIF>''';
+    final score = scoreFromGpif(gpif);
+    expect(score.slurs, [const Slur('e0', 'e1')]); // hammer-on
+    expect(score.bends, [const Bend('e1')]); // full bend (100/100)
+    expect(
+      score.tabNoteMarks,
+      containsAll([
+        const TabNoteMark('e2', TabNoteStyle.dead),
+        const TabNoteMark('e3', TabNoteStyle.harmonic),
+      ]),
+    );
+  });
+
   test('rejects non-GPIF input', () {
     expect(() => scoreFromGpif('<Other></Other>'), throwsFormatException);
   });

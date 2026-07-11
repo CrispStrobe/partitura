@@ -300,9 +300,11 @@ enum encodings so files round-trip cleanly), tiered by importance:
       **Done:** MIDI import (`scoreFromMidi`); plain-text/ASCII tab import
       (`asciiTabToScore`); Guitar Pro import **and** export (`scoreFromGpif` /
       `scoreToGpif` GPIF subset + the `.gp` ZIP container in `partitura_cli`).
-      All formats round-trip transparently through the shared `Score` model for
-      the data they share. **Left:** GP6 `.gpx` (different container), the older
-      binary `.gp3–5`/`.ptb` versions, and GP playing techniques.
+      GP import also reads the common playing techniques (HO/PO, slides, bends,
+      vibrato, dead, harmonic) into the tab marks. All formats round-trip
+      transparently through the shared `Score` model for the data they share.
+      **Left:** GP6 `.gpx` (different container), the older binary `.gp3–5`/
+      `.ptb` versions.
 - [x] **7.4 Repeat unfolding** — `playbackTimeline` linearizes repeats /
       voltas / D.C. / D.S. / To Coda / al Fine / al Coda into performance
       order, executing the navigation jumps (one level; after a D.C./D.S.

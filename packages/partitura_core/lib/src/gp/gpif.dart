@@ -4,11 +4,14 @@
 /// (`.gpx` is a compressed container, `.gp` a zip — both hold a `score.gpif`).
 /// This is a **subset** codec, pure Dart (web-safe): it reads/writes the
 /// reference structure — track tuning, master bars, bars → voices → beats →
-/// notes (string+fret) and rhythms — into a partitura [Score]. Playing
-/// techniques and multi-track scores are out of scope for now. It round-trips
-/// partitura's own GPIF and reads real Guitar Pro 7 files correctly (validated
-/// against the alphaTab GP7 test corpus — pitches, chords and rhythm come
-/// through); playing techniques in those files are simply ignored.
+/// notes (string+fret), rhythms and the common playing techniques — into a
+/// partitura [Score]. On **import**, hammer-on/pull-off (`HopoOrigin`) → a
+/// slur, slides (`Slide`) → a glissando, bends (`Bended`/`BendDestinationValue`,
+/// 100 = a whole step) → a `Bend`, whammy vibrato (`VibratoWTremBar`) →
+/// a `Vibrato`, dead (`Muted`) and harmonic (`Harmonic`) notes → `TabNoteMark`s.
+/// (Export writes plain notes; multi-track scores are out of scope.) It reads
+/// real Guitar Pro 7 files correctly — validated against the alphaTab GP7 test
+/// corpus (pitches, chords, rhythm and the above techniques).
 ///
 /// The zip/`.gp` container wrapping lives in the CLI (it needs `dart:io`); this
 /// module works on the `score.gpif` XML string directly.
@@ -161,6 +164,13 @@ Score scoreFromGpif(String gpif) {
   final rhythmById = _byId(root.child('Rhythms'), 'Rhythm');
 
   final measures = <Measure>[];
+  final bends = <Bend>[];
+  final vibratos = <Vibrato>[];
+  final marks = <TabNoteMark>[];
+  final slurs = <Slur>[]; // hammer-on / pull-off
+  final glissandos = <Glissando>[]; // slides
+  String? pendingHopo; // a HO/PO note waiting for its destination
+  String? pendingSlide;
   var id = 0;
   TimeSignature? firstTime;
 
@@ -192,8 +202,10 @@ Score scoreFromGpif(String gpif) {
         continue;
       }
       final pitches = <Pitch>[];
+      final nodes = <XmlNode>[];
       for (final noteRef in noteRefs) {
         final note = noteById[noteRef];
+        if (note == null) continue;
         final string = int.tryParse(
             _findProperty(note, 'String')?.childText('String') ?? '');
         final fret =
@@ -202,14 +214,62 @@ Score scoreFromGpif(String gpif) {
           continue;
         }
         pitches.add(_pitchFromMidi(tuningMidi[string] + fret));
+        nodes.add(note);
       }
       if (pitches.isEmpty) {
         elements.add(RestElement(duration, id: 'e${id++}'));
-      } else {
-        pitches.sort((a, b) => a.midiNumber.compareTo(b.midiNumber));
-        elements.add(
-            NoteElement(pitches: pitches, duration: duration, id: 'e${id++}'));
+        continue;
       }
+      pitches.sort((a, b) => a.midiNumber.compareTo(b.midiNumber));
+      final noteId = 'e${id++}';
+      elements
+          .add(NoteElement(pitches: pitches, duration: duration, id: noteId));
+
+      // Playing techniques → partitura's tab marks. Spans (HO/PO, slide)
+      // connect this note to the previous one that opened them.
+      final hopoFrom = pendingHopo;
+      if (hopoFrom != null) {
+        slurs.add(Slur(hopoFrom, noteId));
+        pendingHopo = null;
+      }
+      final slideFrom = pendingSlide;
+      if (slideFrom != null) {
+        glissandos.add(Glissando(slideFrom, noteId));
+        pendingSlide = null;
+      }
+      var dead = false, harmonic = false, vibrato = false, vibratoWide = false;
+      double? bendSteps;
+      // Whammy-bar vibrato is a beat property.
+      if (_propOn(beat, 'VibratoWTremBar')) {
+        vibrato = true;
+        vibratoWide = true;
+      }
+      for (final note in nodes) {
+        if (_propOn(note, 'Muted')) dead = true;
+        if (_propOn(note, 'Harmonic')) harmonic = true;
+        if (_propOn(note, 'HopoOrigin')) pendingHopo = noteId;
+        if (_propOn(note, 'Slide')) pendingSlide = noteId;
+        if (_propOn(note, 'Vibrato')) vibrato = true;
+        if (_propOn(note, 'VibratoWTremBar')) {
+          vibrato = true;
+          vibratoWide = true;
+        }
+        final bv =
+            _findProperty(note, 'BendDestinationValue')?.childText('Float');
+        if (_propOn(note, 'Bended') && bv != null) {
+          final v = (double.tryParse(bv) ?? 0) / 100;
+          if (bendSteps == null || v > bendSteps) bendSteps = v;
+        }
+      }
+      if (harmonic) {
+        marks.add(TabNoteMark(noteId, TabNoteStyle.harmonic));
+      } else if (dead) {
+        marks.add(TabNoteMark(noteId, TabNoteStyle.dead));
+      }
+      if (bendSteps != null && bendSteps > 0) {
+        bends.add(Bend(noteId, steps: bendSteps));
+      }
+      if (vibrato) vibratos.add(Vibrato(noteId, wide: vibratoWide));
     }
     measures.add(Measure(elements));
   }
@@ -217,7 +277,22 @@ Score scoreFromGpif(String gpif) {
   if (measures.isEmpty) {
     measures.add(Measure([RestElement(NoteDuration.whole, id: 'e0')]));
   }
-  return Score(clef: Clef.treble, timeSignature: firstTime, measures: measures);
+  return Score(
+    clef: Clef.treble,
+    timeSignature: firstTime,
+    measures: measures,
+    slurs: slurs,
+    glissandos: glissandos,
+    bends: bends,
+    vibratos: vibratos,
+    tabNoteMarks: marks,
+  );
+}
+
+/// Whether a note carries the boolean property [name] (present, not disabled).
+bool _propOn(XmlNode? note, String name) {
+  final p = _findProperty(note, name);
+  return p != null && p.child('Disable') == null;
 }
 
 Map<int, XmlNode> _byId(XmlNode? parent, String childName) => {
