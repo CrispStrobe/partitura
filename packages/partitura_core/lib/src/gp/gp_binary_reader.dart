@@ -1,12 +1,15 @@
-/// Guitar Pro 5 (`.gp5`) binary import.
+/// Guitar Pro 3/4/5 (`.gp3`/`.gp4`/`.gp5`) binary import.
 ///
-/// GP5 is a version-tagged **binary** format (unlike the GP6/7/8 gpif XML), so
-/// this is a from-scratch byte/bit-exact reader — ported from the reference
+/// These are version-tagged **binary** formats (unlike the GP6/7/8 gpif XML),
+/// so this is a from-scratch byte/bit-exact reader — ported from the reference
 /// layout in PyGuitarPro. It parses the essential musical data (measures, time
 /// signatures, per-track tunings, and notes as string+fret → pitch, with the
 /// common note techniques) into a partitura [Score]; the many effect/RSE/mix
 /// structures are parsed only far enough to stay byte-aligned, then discarded.
-/// Pure Dart (web-safe). Validated against the alphaTab GP5 test corpus.
+/// The three versions share most of their layout; GP3/GP4 are handled by
+/// [gp3ToScore]/[gp4ToScore] (a version-delta on the GP5 path — one voice per
+/// measure, no RSE/page-setup/lyrics-in-GP3, different beat/note effect flags).
+/// Pure Dart (web-safe). Validated against the alphaTab / PyGuitarPro corpora.
 library;
 
 import 'dart:typed_data';
@@ -146,6 +149,339 @@ Score gp5ToScore(Uint8List bytes, {int trackIndex = 0}) {
 }
 
 const _standard = [64, 59, 55, 50, 45, 40];
+
+/// Parses Guitar Pro 3 [bytes] into a [Score] (the [trackIndex]-th track).
+///
+/// Throws [FormatException] if the file is not a recognizable GP3 document.
+Score gp3ToScore(Uint8List bytes, {int trackIndex = 0}) =>
+    _gp3or4ToScore(bytes, trackIndex, gp4: false);
+
+/// Parses Guitar Pro 4 [bytes] into a [Score] (the [trackIndex]-th track).
+///
+/// Throws [FormatException] if the file is not a recognizable GP4 document.
+Score gp4ToScore(Uint8List bytes, {int trackIndex = 0}) =>
+    _gp3or4ToScore(bytes, trackIndex, gp4: true);
+
+/// GP3 and GP4 share a layout; [gp4] selects the (small) v4 additions: lyrics
+/// and an octave byte in the header, two-byte beat/note effect flags, and the
+/// richer chord diagram. GP3 has a single voice per measure and stores
+/// harmonics at the beat rather than the note level.
+Score _gp3or4ToScore(Uint8List bytes, int trackIndex, {required bool gp4}) {
+  final r = _Reader(bytes);
+  final version = r.byteSizeString(30);
+  final tag = gp4 ? 'v4.' : 'v3.';
+  if (!version.contains(tag)) {
+    throw FormatException('not a Guitar Pro ${gp4 ? 4 : 3} file ("$version")');
+  }
+
+  // Score info: title..instructions (8 strings) + notices.
+  for (var i = 0; i < 8; i++) {
+    r.intByteSizeString();
+  }
+  final noticeCount = r.i32();
+  for (var i = 0; i < noticeCount; i++) {
+    r.intByteSizeString();
+  }
+  r.u8(); // triplet feel (bool)
+  if (gp4) {
+    // Lyrics: track choice + 5 lines (measure int + int-size string).
+    r.i32();
+    for (var i = 0; i < 5; i++) {
+      r.i32();
+      r.skip(r.i32()); // int-size string body (no leading byte count)
+    }
+  }
+  r.i32(); // tempo
+  r.i32(); // key
+  if (gp4) r.i8(); // octave (reserved)
+  _readMidiChannels(r);
+  final measureCount = r.i32();
+  final trackCount = r.i32();
+
+  // Measure headers → time signatures per measure.
+  final timeSigs = <TimeSignature>[];
+  var num = 4, den = 4;
+  for (var m = 0; m < measureCount; m++) {
+    final flags = r.u8();
+    if (flags & 0x01 != 0) num = r.i8();
+    if (flags & 0x02 != 0) den = r.i8();
+    // 0x04 repeat open — presence only.
+    if (flags & 0x08 != 0) r.i8(); // repeat close
+    if (flags & 0x10 != 0) r.u8(); // repeat alternative
+    if (flags & 0x20 != 0) {
+      r.intByteSizeString(); // marker title
+      r.skip(4); // marker color
+    }
+    if (flags & 0x40 != 0) r.skip(2); // key sig root+type
+    // 0x80 double bar — presence only.
+    timeSigs.add(TimeSignature(num, den));
+  }
+
+  // Tracks → tunings (MIDI number per string, string 1 first).
+  final tunings = <List<int>>[];
+  for (var t = 0; t < trackCount; t++) {
+    r.u8(); // flags
+    r.byteSizeString(40); // name
+    final stringCount = r.i32();
+    final strings = <int>[];
+    for (var i = 0; i < 7; i++) {
+      final tuning = r.i32();
+      if (i < stringCount) strings.add(tuning);
+    }
+    tunings.add(strings);
+    r.i32(); // port
+    r.i32(); // channel index
+    r.i32(); // effect channel
+    r.i32(); // fret count
+    r.i32(); // capo
+    r.skip(4); // color
+  }
+
+  // Measures: for each header, for each track, one voice of beats.
+  final builder = _ScoreBuilder();
+  final track = tunings.isEmpty ? 0 : trackIndex.clamp(0, tunings.length - 1);
+  final tuning = tunings.isEmpty ? _standard : tunings[track];
+  for (var m = 0; m < measureCount; m++) {
+    for (var t = 0; t < trackCount; t++) {
+      final keep = t == track;
+      builder.startMeasure(keep);
+      final beats = r.i32();
+      for (var b = 0; b < beats; b++) {
+        _readBeatGp34(r, tuning, keep, builder, gp4: gp4);
+      }
+    }
+  }
+
+  return builder.build(timeSigs);
+}
+
+void _readBeatGp34(
+    _Reader r, List<int> tuning, bool keep, _ScoreBuilder builder,
+    {required bool gp4}) {
+  final flags = r.u8();
+  var status = 1; // normal
+  if (flags & 0x40 != 0) status = r.u8(); // 0 empty, 1 normal, 2 rest
+  final durByte = r.i8();
+  final dotted = flags & 0x01 != 0;
+  if (flags & 0x20 != 0) r.i32(); // tuplet
+  if (flags & 0x02 != 0) _readChordGp34(r, gp4: gp4);
+  if (flags & 0x04 != 0) r.intByteSizeString(); // text
+  var beatHarmonic = false, beatBar = false;
+  if (flags & 0x08 != 0) {
+    final e = _readBeatEffectsGp34(r, gp4: gp4);
+    beatHarmonic = e.harmonic;
+    beatBar = e.bar;
+  }
+  if (flags & 0x10 != 0) _readMixTableChangeGp34(r, gp4: gp4);
+  // Notes: one bit per string (string 1 = bit 6 … string 7 = bit 0).
+  final stringFlags = r.u8();
+  final pitches = <Pitch>[];
+  var dead = false, harmonic = beatHarmonic, hammer = false, slide = false;
+  var bend = false;
+  double bendSteps = 0;
+  for (var s = 1; s <= tuning.length; s++) {
+    if (stringFlags & (1 << (7 - s)) == 0) continue;
+    final note = _readNoteGp34(r, s, tuning, gp4: gp4);
+    if (note == null) continue;
+    if (note.dead) {
+      dead = true;
+    } else {
+      pitches.add(note.pitch);
+    }
+    harmonic = harmonic || note.harmonic;
+    hammer = hammer || note.hammer;
+    slide = slide || note.slide;
+    if (note.bendSteps > 0) {
+      bend = true;
+      bendSteps = note.bendSteps > bendSteps ? note.bendSteps : bendSteps;
+    }
+  }
+
+  if (beatBar) bend = true; // whammy/tremolo-bar → a bend mark
+  final duration = _durationOf(durByte, dotted);
+  if (!keep) return;
+  builder.addBeat(
+    status: status,
+    duration: duration,
+    pitches: pitches,
+    dead: dead,
+    harmonic: harmonic,
+    hammer: hammer,
+    slide: slide,
+    bend: bend,
+    bendSteps: bendSteps > 0 ? bendSteps : (bend ? 1.0 : 0),
+  );
+}
+
+class _BeatEffectsGp34 {
+  final bool harmonic; // GP3 stores natural/artificial harmonic on the beat
+  final bool bar; // tremolo/whammy bar
+  _BeatEffectsGp34(this.harmonic, this.bar);
+}
+
+_BeatEffectsGp34 _readBeatEffectsGp34(_Reader r, {required bool gp4}) {
+  if (!gp4) {
+    final f1 = r.u8();
+    var bar = false;
+    if (f1 & 0x20 != 0) {
+      final slap = r.u8();
+      r.i32(); // tremolo-bar dip value, or slap/tap/pop payload
+      if (slap == 0) bar = true;
+    }
+    if (f1 & 0x40 != 0) r.skip(2); // beat stroke (down/up)
+    final harmonic = f1 & 0x04 != 0 || f1 & 0x08 != 0; // natural/artificial
+    return _BeatEffectsGp34(harmonic, bar);
+  }
+  final f1 = r.i8();
+  final f2 = r.i8();
+  var bar = false;
+  if (f1 & 0x20 != 0) r.i8(); // slap effect
+  if (f2 & 0x04 != 0) {
+    _readBend(r); // tremolo bar (full bend envelope in GP4)
+    bar = true;
+  }
+  if (f1 & 0x40 != 0) r.skip(2); // beat stroke
+  if (f2 & 0x02 != 0) r.i8(); // pick stroke
+  return _BeatEffectsGp34(false, bar); // GP4 harmonics are per-note
+}
+
+void _readMixTableChangeGp34(_Reader r, {required bool gp4}) {
+  r.i8(); // instrument
+  final vals = <int>[]; // volume,balance,chorus,reverb,phaser,tremolo
+  for (var i = 0; i < 6; i++) {
+    vals.add(r.i8());
+  }
+  final tempo = r.i32();
+  for (final v in vals) {
+    if (v >= 0) r.i8(); // duration for each changed item
+  }
+  if (tempo >= 0) r.i8();
+  if (gp4) r.i8(); // "apply to all tracks" flags
+}
+
+_NoteData? _readNoteGp34(_Reader r, int stringNumber, List<int> tuning,
+    {required bool gp4}) {
+  final flags = r.u8();
+  var type = 1;
+  if (flags & 0x20 != 0) type = r.u8(); // 1 normal, 2 tie, 3 dead
+  if (flags & 0x01 != 0) {
+    r.i8(); // duration
+    r.i8(); // tuplet
+  }
+  if (flags & 0x10 != 0) r.i8(); // dynamics
+  var fret = 0;
+  if (flags & 0x20 != 0) fret = r.i8();
+  if (flags & 0x80 != 0) {
+    r.i8(); // left-hand fingering
+    r.i8(); // right-hand fingering
+  }
+  var harmonic = false, hammer = false, slide = false;
+  double bendSteps = 0;
+  if (flags & 0x08 != 0) {
+    final e = gp4 ? _readNoteEffectsGp4(r) : _readNoteEffectsGp3(r);
+    harmonic = e.harmonic;
+    hammer = e.hammer;
+    slide = e.slide;
+    bendSteps = e.bendSteps;
+  }
+  final dead = type == 3;
+  final open = stringNumber - 1 < tuning.length
+      ? tuning[stringNumber - 1]
+      : _standard[(stringNumber - 1).clamp(0, 5)];
+  final midi = (open + (fret >= 0 && fret < 100 ? fret : 0)).clamp(0, 127);
+  return _NoteData(_pitchFromMidi(midi),
+      dead: dead,
+      harmonic: harmonic,
+      hammer: hammer,
+      slide: slide,
+      bendSteps: bendSteps);
+}
+
+_NoteEffects _readNoteEffectsGp3(_Reader r) {
+  final f = r.u8();
+  final hammer = f & 0x02 != 0;
+  double bendSteps = 0;
+  if (f & 0x01 != 0) bendSteps = _readBend(r);
+  if (f & 0x10 != 0) r.skip(4); // grace (fret, velocity, duration, transition)
+  final slide = f & 0x04 != 0; // GP3 slide carries no extra bytes
+  return _NoteEffects(false, hammer, slide, bendSteps);
+}
+
+_NoteEffects _readNoteEffectsGp4(_Reader r) {
+  final f1 = r.i8();
+  final f2 = r.i8();
+  final hammer = f1 & 0x02 != 0;
+  double bendSteps = 0;
+  if (f1 & 0x01 != 0) bendSteps = _readBend(r);
+  if (f1 & 0x10 != 0) r.skip(4); // grace
+  if (f2 & 0x04 != 0) r.i8(); // tremolo picking
+  final slide = f2 & 0x08 != 0;
+  if (slide) r.i8(); // slide type
+  var harmonic = false;
+  if (f2 & 0x10 != 0) {
+    harmonic = true;
+    r.i8(); // harmonic type
+  }
+  if (f2 & 0x20 != 0) r.skip(2); // trill (fret + period)
+  return _NoteEffects(harmonic, hammer, slide, bendSteps);
+}
+
+void _readChordGp34(_Reader r, {required bool gp4}) {
+  final newFormat = r.u8() != 0;
+  if (!newFormat) {
+    // GP3 legacy chord: name + first fret + (if set) 6 fret positions.
+    r.intByteSizeString();
+    final firstFret = r.i32();
+    if (firstFret != 0) {
+      for (var i = 0; i < 6; i++) {
+        r.i32();
+      }
+    }
+    return;
+  }
+  r.u8(); // sharp
+  r.skip(3);
+  if (!gp4) {
+    r.i32(); // root
+    r.i32(); // type
+    r.i32(); // extension
+  } else {
+    r.u8(); // root
+    r.u8(); // type
+    r.u8(); // extension
+  }
+  r.i32(); // bass
+  r.i32(); // tonality
+  r.u8(); // add
+  r.byteSizeString(22); // name
+  if (!gp4) {
+    r.i32(); // fifth
+    r.i32(); // ninth
+    r.i32(); // eleventh
+  } else {
+    r.u8(); // fifth
+    r.u8(); // ninth
+    r.u8(); // eleventh
+  }
+  r.i32(); // first fret
+  final fretCount = gp4 ? 7 : 6;
+  for (var i = 0; i < fretCount; i++) {
+    r.i32(); // frets
+  }
+  if (!gp4) {
+    r.i32(); // barre count
+    r.skip(2 * 4 * 3); // barre frets/starts/ends (2 ints each)
+    r.skip(7); // omissions
+    r.skip(1);
+  } else {
+    r.u8(); // barre count
+    r.skip(5 * 3); // barre frets/starts/ends (5 bytes each)
+    r.skip(7); // omissions
+    r.skip(1);
+    r.skip(7); // fingerings
+    r.u8(); // show
+  }
+}
 
 void _readPageSetup(_Reader r) {
   r.skip(4 * 2); // page size

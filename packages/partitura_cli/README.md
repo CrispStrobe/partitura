@@ -18,9 +18,10 @@ dart run partitura_cli:partitura <command> [arguments]
 | `render <in> <out.svg> [options]` | Render to SVG (notation, or `--tab` for tablature) |
 
 Input formats are inferred from file extensions — `.xml`/`.musicxml`,
-`.mid`/`.midi`, Guitar Pro `.gp` (7/8) / `.gpx` (6) / `.gp5` (and raw
-`.gpif`), and plain-text tab `.tab`/`.crd`/`.txt` — and can be overridden with
-`--from` (`musicxml` / `midi` / `gp` / `gpx` / `gp5` / `gpif` / `asciitab`). Output formats use `--to` or the output
+`.mid`/`.midi`, Guitar Pro `.gp` (7/8) / `.gpx` (6) / `.gp5` / `.gp4` / `.gp3`
+(and raw `.gpif`), and plain-text tab `.tab`/`.crd`/`.txt` — and can be
+overridden with `--from` (`musicxml` / `midi` / `gp` / `gpx` / `gp5` / `gp4` /
+`gp3` / `gpif` / `asciitab`). Output formats use `--to` or the output
 extension (`.svg`, `.png`, `.mid`, `.musicxml`, `.gp`, `.gpif`). All formats
 funnel through one score model, so any pair round-trips transparently for the
 data they share. Plain-text tab is a lossy import; use `--tuning` to set the

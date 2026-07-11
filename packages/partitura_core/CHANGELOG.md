@@ -2,6 +2,13 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Guitar Pro 3/4 (.gp3/.gp4) import** (Phase 7.3):
+  `gp3ToScore` / `gp4ToScore` extend the GP5 binary reader with the older
+  layout — one voice per measure, no RSE/page-setup, GP3's beat-level
+  harmonics, and the narrower beat/note effect flags. Same technique coverage
+  (HO/PO, slides, bends, dead, harmonic). Committed regression tests parse the
+  real alphaTab GP3/GP4 corpora and confirm the versions agree note-for-note
+  (`gp_fixtures_test.dart`). The reader now lives in `gp_binary_reader.dart`.
 - **Guitar Pro 5 (.gp5) import** (Phase 7.3): `gp5ToScore(bytes, {trackIndex})`
   — a from-scratch byte/bit-exact reader for the GP5 *binary* format (ported
   from PyGuitarPro's layout): measures, time signatures, per-track tunings,
