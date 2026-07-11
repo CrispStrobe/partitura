@@ -215,6 +215,12 @@ grouping (x/8 meters render flags). Alto/tenor clefs shipped in v0.2.
   `highlightColor` (wins over everything), `elementColors` per-id
   overrides, `kidMode`/`hitSlop`/`lineBoost`. Presets: `standard`, `kids`
   (hit slop 1.5 spaces, line boost 1.4). Value type with `copyWith`.
+- `GrandStaffView(grandStaff, …)` renders a `GrandStaff` (two scores):
+  measures align across staves via a two-pass layout
+  (`layoutGrandStaff` in core, `leadingWidth`/`measureWidths` minimums
+  on `LayoutEngine.layout`), joined by a stretched SMuFL brace and
+  connected barlines; element taps resolve on both staves (keep ids
+  unique across the two scores).
 - `RenderStaffView` is public as the geometry service: `scoreLayout`,
   `scale`, `localToStaff`/`staffToLocal`, `elementIdAt`,
   `quantizeStaffPosition`, `ghostNote`.

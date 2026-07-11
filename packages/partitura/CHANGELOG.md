@@ -4,6 +4,9 @@
 
 - **Two voices per staff** rendered (via `partitura_core` 0.4); golden
   scene 34, gallery entry.
+- **Grand staff**: `GrandStaffView` (brace, connected barlines, aligned
+  measures, cross-staff element taps); painting extracted into a shared
+  `LayoutPainter`; golden scene 35, gallery card.
 
 ## 0.3.0-dev.1
 

@@ -280,6 +280,19 @@ terse is fine. See HANDOVER.md §6.
 - Voice-2 rests offset ±1 space; tuplets/directives stay voice-1 only
   until a consumer needs more.
 
+## v0.4.2 grand staff (2026-07-11)
+
+- **Alignment granularity**: measures (and the leading segment) align
+  across staves via two-pass width maxima — not note columns. Equal or
+  simple rhythms look right; dense cross-staff polyrhythms would need a
+  cross-staff column engine (0.6 candidate if a consumer needs it).
+- **Painting extracted** into `LayoutPainter` (shared by StaffView and
+  GrandStaffView); the 34 pre-existing goldens passed unchanged,
+  proving the extraction pixel-identical.
+- The brace is the SMuFL `brace` glyph scaled to span both staves
+  (`GlyphPrimitive.scale` machinery); the widget adds a 1.4-space left
+  inset for it.
+
 ## Blockers
 
 (none)

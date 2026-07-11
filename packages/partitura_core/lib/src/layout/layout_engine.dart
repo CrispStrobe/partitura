@@ -28,8 +28,20 @@ class LayoutEngine {
   const LayoutEngine();
 
   /// Lays out [score] according to [settings].
-  ScoreLayout layout(Score score, LayoutSettings settings) =>
-      _LayoutBuilder(score, settings).build();
+  ///
+  /// [leadingWidth] and [measureWidths] set **minimum** widths for the
+  /// leading segment (clef/key/time) and each measure — the grand-staff
+  /// layout uses them to align barlines across staves. Narrow content is
+  /// padded; content wider than an override keeps its natural width.
+  ScoreLayout layout(
+    Score score,
+    LayoutSettings settings, {
+    double? leadingWidth,
+    List<double>? measureWidths,
+  }) =>
+      _LayoutBuilder(score, settings,
+              leadingWidth: leadingWidth, measureWidths: measureWidths)
+          .build();
 }
 
 /// y-coordinate of a staff position (0 = bottom line → y = 4; y grows down).
@@ -118,6 +130,8 @@ class _TieInfo {
 class _LayoutBuilder {
   final Score score;
   final LayoutSettings s;
+  final double? leadingWidth;
+  final List<double>? measureWidths;
   SmuflMetadata get meta => s.metadata;
 
   final List<LayoutPrimitive> _primitives = [];
@@ -133,7 +147,7 @@ class _LayoutBuilder {
   late KeySignature _key = score.keySignature;
   late TimeSignature? _time = score.timeSignature;
 
-  _LayoutBuilder(this.score, this.s);
+  _LayoutBuilder(this.score, this.s, {this.leadingWidth, this.measureWidths});
 
   // Key signature accidental staff positions per clef, in writing order.
   // Bass/alto shift the treble pattern down 2/1 positions; the tenor sharp
@@ -163,6 +177,9 @@ class _LayoutBuilder {
     _layoutClef();
     _layoutKeySignature();
     _layoutTimeSignature();
+    if (leadingWidth != null && _x < leadingWidth!) {
+      _x = leadingWidth!;
+    }
 
     for (var i = 0; i < score.measures.length; i++) {
       final measure = score.measures[i];
@@ -170,6 +187,10 @@ class _LayoutBuilder {
       if (measure.startRepeat) _addStartRepeat();
       final startX = _x;
       _layoutMeasure(measure);
+      final widths = measureWidths;
+      if (widths != null && i < widths.length && _x < startX + widths[i]) {
+        _x = startX + widths[i];
+      }
       _measureRegions.add(MeasureRegion(i, startX: startX, endX: _x));
       if (measure.volta != null) {
         _addVolta(measure.volta!, startX, _x);

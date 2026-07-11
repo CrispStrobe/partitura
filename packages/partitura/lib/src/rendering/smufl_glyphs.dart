@@ -74,4 +74,5 @@ const Map<String, String> smuflCodepoints = {
   'rest32nd': '\uE4E8',
   'rest64th': '\uE4E9',
   'repeatDots': '\uE043',
+  'brace': '\uE000',
 };

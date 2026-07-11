@@ -6,7 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:partitura_core/partitura_core.dart';
 
 import 'bravura.dart';
-import 'smufl_glyphs.dart';
+import 'layout_painter.dart';
 import 'theme.dart';
 
 /// Renders a [Score] as a single staff.
@@ -119,7 +119,11 @@ class RenderStaffView extends RenderBox {
 
   ScoreLayout? _layout;
   double _scale = _fallbackStaffSpace;
-  final Map<String, TextPainter> _glyphCache = {};
+  late final LayoutPainter _painter = LayoutPainter(
+    theme: _theme,
+    scale: _scale,
+    highlightedIds: _highlightedIds,
+  );
 
   /// Called with the element id when the user taps an element.
   void Function(String elementId)? onElementTap;
@@ -146,10 +150,11 @@ class RenderStaffView extends RenderBox {
     if (value == _theme) return;
     final needsLayout = value.lineBoost != _theme.lineBoost;
     _theme = value;
+    _painter.theme = value;
     if (needsLayout) {
       markNeedsLayout();
     } else {
-      _glyphCache.clear();
+      _painter.clearCache();
       markNeedsPaint();
     }
   }
@@ -175,6 +180,7 @@ class RenderStaffView extends RenderBox {
       return;
     }
     _highlightedIds = value;
+    _painter.highlightedIds = value;
     markNeedsPaint();
   }
 
@@ -237,8 +243,9 @@ class RenderStaffView extends RenderBox {
         if (attached) markNeedsLayout();
       });
     }
-    _glyphCache.clear();
+    _painter.clearCache();
     size = _measure(constraints);
+    _painter.scale = _scale;
   }
 
   @override
@@ -330,102 +337,19 @@ class RenderStaffView extends RenderBox {
   @override
   void dispose() {
     _tap.dispose();
-    for (final painter in _glyphCache.values) {
-      painter.dispose();
-    }
+    _painter.dispose();
     super.dispose();
   }
 
   // ------------------------------------------------------------------ paint
-
-  Color _colorFor(String? elementId) {
-    if (elementId == null) return _theme.staffColor;
-    if (_highlightedIds.contains(elementId)) return _theme.highlightColor;
-    return _theme.elementColors[elementId] ?? _theme.noteColor;
-  }
-
-  TextPainter _glyphPainter(String smuflName, Color color, double scale) {
-    final key = '$smuflName|${color.toARGB32()}|$scale';
-    return _glyphCache.putIfAbsent(key, () {
-      final character = smuflCodepoints[smuflName];
-      assert(character != null, 'No codepoint for SMuFL glyph $smuflName');
-      return TextPainter(
-        text: TextSpan(
-          text: character ?? '',
-          style: TextStyle(
-            fontFamily: 'Bravura',
-            package: 'partitura',
-            // SMuFL convention: font size = 4 x staff space.
-            fontSize: 4 * _scale * scale,
-            color: color,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-    });
-  }
 
   @override
   void paint(PaintingContext context, Offset offset) {
     final layout = _layout;
     if (layout == null) return;
     final canvas = context.canvas;
-
-    for (final primitive in layout.primitives) {
-      switch (primitive) {
-        case GlyphPrimitive():
-          _paintGlyph(
-            canvas,
-            offset,
-            primitive.smuflName,
-            primitive.position,
-            _colorFor(primitive.elementId),
-            glyphScale: primitive.scale,
-          );
-        case LinePrimitive():
-          final paint = Paint()
-            ..color = _colorFor(primitive.elementId)
-            ..strokeWidth = primitive.thickness * _scale;
-          canvas.drawLine(
-            offset + staffToLocal(primitive.from),
-            offset + staffToLocal(primitive.to),
-            paint,
-          );
-        case BeamPrimitive():
-          // Beams are note ink even though they are shared across elements.
-          final paint = Paint()..color = _theme.noteColor;
-          final start = offset + staffToLocal(primitive.start);
-          final end = offset + staffToLocal(primitive.end);
-          final half = primitive.thickness / 2 * _scale;
-          canvas.drawPath(
-            Path()
-              ..moveTo(start.dx, start.dy - half)
-              ..lineTo(end.dx, end.dy - half)
-              ..lineTo(end.dx, end.dy + half)
-              ..lineTo(start.dx, start.dy + half)
-              ..close(),
-            paint,
-          );
-        case CurvePrimitive():
-          // Ties/slurs are shared note ink, like beams.
-          final paint = Paint()
-            ..color = _theme.noteColor
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = primitive.thickness * _scale
-            ..strokeCap = StrokeCap.round;
-          final p0 = offset + staffToLocal(primitive.start);
-          final c1 = offset + staffToLocal(primitive.control1);
-          final c2 = offset + staffToLocal(primitive.control2);
-          final p1 = offset + staffToLocal(primitive.end);
-          canvas.drawPath(
-            Path()
-              ..moveTo(p0.dx, p0.dy)
-              ..cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, p1.dx, p1.dy),
-            paint,
-          );
-      }
-    }
-
+    final origin = offset + Offset(0, -layout.top * _scale);
+    _painter.paintLayout(canvas, origin, layout);
     _paintGhostNote(canvas, offset);
   }
 
@@ -441,9 +365,10 @@ class RenderStaffView extends RenderBox {
     final y = (8 - ghost.staffPosition) / 2;
     final metadata = Bravura.metadataOrNull;
     final width = metadata?.bBoxOf(glyph).width ?? 1.18;
-    _paintGlyph(
+    final origin = offset + Offset(0, -(_layout?.top ?? 0) * _scale);
+    _painter.paintGlyph(
       canvas,
-      offset,
+      origin,
       glyph,
       math.Point(ghost.xSpaces - width / 2, y),
       color,
@@ -474,20 +399,5 @@ class RenderStaffView extends RenderBox {
       offset + staffToLocal(math.Point(xSpaces + headWidth / 2 + 0.4, y)),
       paint,
     );
-  }
-
-  void _paintGlyph(
-    Canvas canvas,
-    Offset offset,
-    String smuflName,
-    math.Point<double> position,
-    Color color, {
-    double glyphScale = 1.0,
-  }) {
-    final painter = _glyphPainter(smuflName, color, glyphScale);
-    final baseline =
-        painter.computeDistanceToActualBaseline(TextBaseline.alphabetic);
-    final local = staffToLocal(position);
-    painter.paint(canvas, offset + Offset(local.dx, local.dy - baseline));
   }
 }

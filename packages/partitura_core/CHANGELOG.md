@@ -2,6 +2,10 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Grand staff**: `GrandStaff` + `layoutGrandStaff` — two-pass layout
+  aligning leading widths and per-measure widths across staves;
+  `LayoutEngine.layout` gained optional `leadingWidth`/`measureWidths`
+  minimums.
 - **Two voices per staff**: `Measure.voice2` (DSL `;` separator) — voice 1
   stems up, voice 2 stems down; elements sharing an onset align in one
   column (union of both voices' onsets), rests displace vertically,

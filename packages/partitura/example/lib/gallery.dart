@@ -273,7 +273,7 @@ final List<GalleryItem> galleryItems = [
   ),
 ];
 
-/// Scrollable gallery of the corpus.
+/// Scrollable gallery of the corpus (plus a grand-staff showcase card).
 class GalleryScreen extends StatelessWidget {
   const GalleryScreen({super.key});
 
@@ -281,9 +281,40 @@ class GalleryScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
-      itemCount: galleryItems.length,
+      itemCount: galleryItems.length + 1,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
+        if (index == galleryItems.length) {
+          return Card(
+            color: Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Grand staff (piano system)',
+                      style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 12),
+                  GrandStaffView(
+                    grandStaff: GrandStaff(
+                      upper: Score.simple(
+                        keySignature: const KeySignature(1),
+                        timeSignature: TimeSignature.fourFour,
+                        notes: 'd5:q b4 g4 b4 | c5:e d5 e5 c5 d5:h',
+                      ),
+                      lower: Score.simple(
+                        clef: Clef.bass,
+                        keySignature: const KeySignature(1),
+                        timeSignature: TimeSignature.fourFour,
+                        notes: 'g2:h d3:h | c3:q e3 g3+b3:h',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
         final item = galleryItems[index];
         return Card(
           color: Colors.white,
