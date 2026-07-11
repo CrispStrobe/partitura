@@ -2,6 +2,11 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Per-note tab string override** (Phase 6.2): `Score.tabVoicings`
+  (`TabVoicing(noteId, strings)`) pins each pitch of a tab note to an explicit
+  string (0 = top line), overriding the engine's lowest-fret placement (an
+  out-of-range pin falls back). The ASCII-tab importer now emits voicings, so
+  an imported tab re-renders on the strings it was written on.
 - **Plain-text (ASCII) tablature import** (Phase 7.3): `asciiTabToScore(text,
   {tuning, duration})` → `Score` parses the informal web-shared guitar/bass
   tab (dashed string lines + fret numbers) into a pitched, unmetered score:

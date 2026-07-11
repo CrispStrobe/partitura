@@ -96,6 +96,7 @@ Score asciiTabToScore(
   final bends = <Bend>[];
   final vibratos = <Vibrato>[];
   final deadNotes = <TabNoteMark>[];
+  final voicings = <TabVoicing>[];
 
   var current = <MusicElement>[];
   var id = 0;
@@ -119,26 +120,29 @@ Score asciiTabToScore(
       barPtr++;
     }
 
-    final pitches = <Pitch>[];
+    // Collect (pitch, string) so the note renders on the written strings.
+    final placed = <(Pitch, int)>[];
     final singleString = event.tokens.length == 1;
     int? soloString;
     var soloDead = false;
     event.tokens.forEach((stringIndex, tok) {
       final open = tune.strings[stringIndex];
       final fret = tok.fret ?? 0; // a dead note sits at the open string
-      pitches.add(_pitchFromMidi(open.midiNumber + fret));
+      placed.add((_pitchFromMidi(open.midiNumber + fret), stringIndex));
       if (singleString) {
         soloString = stringIndex;
         soloDead = tok.fret == null;
       }
     });
-    if (pitches.isEmpty) continue;
-    pitches.sort((a, b) => a.midiNumber.compareTo(b.midiNumber));
+    if (placed.isEmpty) continue;
+    placed.sort((a, b) => a.$1.midiNumber.compareTo(b.$1.midiNumber));
+    final pitches = [for (final p in placed) p.$1];
 
     final noteId = 'e$id';
     id++;
     current
         .add(NoteElement(pitches: pitches, duration: durations[e], id: noteId));
+    voicings.add(TabVoicing(noteId, [for (final p in placed) p.$2]));
     if (soloDead) deadNotes.add(TabNoteMark(noteId, TabNoteStyle.dead));
 
     // Resolve a pending same-string technique from the previous note.
@@ -194,6 +198,7 @@ Score asciiTabToScore(
     bends: bends,
     vibratos: vibratos,
     tabNoteMarks: deadNotes,
+    tabVoicings: voicings,
   );
 }
 

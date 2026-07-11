@@ -346,6 +346,56 @@ void main() {
     expect(top, lessThan(-1.0));
   });
 
+  test('a tab voicing pins a note to a chosen string', () {
+    final base = Score.simple(notes: 'b3:q'); // default: fret 0 on the B string
+    final score = Score(
+      clef: base.clef,
+      measures: base.measures,
+      tabVoicings: const [
+        TabVoicing('e0', [2])
+      ], // pin to the G string
+    );
+    final layout =
+        const TabLayoutEngine().layout(score, Tuning.standardGuitar, settings);
+    final digit = layout.primitives.whereType<TextPrimitive>().single;
+    expect(digit.text, '4'); // B3 is the 4th fret on the G string
+    // ...and it sits on the G-string line (index 2), below the B line (1).
+    expect(digit.position.y, greaterThan(1 * TabLayoutEngine.lineGap));
+  });
+
+  test('an unplayable voicing falls back to lowest-fret placement', () {
+    final base = Score.simple(notes: 'b3:q');
+    final score = Score(
+      clef: base.clef,
+      measures: base.measures,
+      tabVoicings: const [
+        TabVoicing('e0', [0])
+      ], // high E string → negative fret
+    );
+    final layout =
+        const TabLayoutEngine().layout(score, Tuning.standardGuitar, settings);
+    expect(layout.primitives.whereType<TextPrimitive>().single.text, '0');
+  });
+
+  test('an imported ASCII voicing keeps the written string in tab render', () {
+    // Fret 4 on the G string sounds B3, which by default relocates to fret 0
+    // on the B string; the imported voicing keeps it as a 4.
+    final score = asciiTabToScore('''
+e|---|
+B|---|
+G|-4-|
+D|---|
+A|---|
+E|---|
+''');
+    final layout =
+        const TabLayoutEngine().layout(score, Tuning.standardGuitar, settings);
+    final texts =
+        layout.primitives.whereType<TextPrimitive>().map((t) => t.text);
+    expect(texts, contains('4'));
+    expect(texts, isNot(contains('0')));
+  });
+
   test('deterministic', () {
     String render() => tabOf(Score.simple(notes: 'e2:q a2 d3 g3'))
         .primitives

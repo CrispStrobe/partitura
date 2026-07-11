@@ -76,6 +76,10 @@ class Score {
   /// engine only).
   final List<TabNoteMark> tabNoteMarks;
 
+  /// Per-note string assignments pinning tab placement (rendered by the tab
+  /// engine only; overrides default lowest-fret placement).
+  final List<TabVoicing> tabVoicings;
+
   /// Creates a score (treat the lists as immutable).
   const Score({
     required this.clef,
@@ -97,6 +101,7 @@ class Score {
     this.palmMutes = const [],
     this.letRings = const [],
     this.tabNoteMarks = const [],
+    this.tabVoicings = const [],
   });
 
   /// Builds a score from a terse note string, for tests and games.
@@ -605,6 +610,7 @@ class Score {
       palmMutes: palmMutes,
       letRings: letRings,
       tabNoteMarks: tabNoteMarks,
+      tabVoicings: tabVoicings,
     );
   }
 
@@ -672,7 +678,8 @@ class Score {
       listEquals(other.vibratos, vibratos) &&
       listEquals(other.palmMutes, palmMutes) &&
       listEquals(other.letRings, letRings) &&
-      listEquals(other.tabNoteMarks, tabNoteMarks);
+      listEquals(other.tabNoteMarks, tabNoteMarks) &&
+      listEquals(other.tabVoicings, tabVoicings);
 
   @override
   int get hashCode => Object.hash(
@@ -698,6 +705,7 @@ class Score {
         Object.hash(
           Object.hashAll(letRings),
           Object.hashAll(tabNoteMarks),
+          Object.hashAll(tabVoicings),
         ),
       );
 

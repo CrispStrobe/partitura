@@ -277,5 +277,9 @@ Score _slice(
       for (final tm in score.tabNoteMarks)
         if (ids.contains(tm.noteId)) tm,
     ],
+    tabVoicings: [
+      for (final tv in score.tabVoicings)
+        if (ids.contains(tv.noteId)) tv,
+    ],
   );
 }

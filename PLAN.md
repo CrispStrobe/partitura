@@ -249,9 +249,9 @@ pitch → (string, fret) assignment. Also requires lifting the current
       staff, TAB clef; contract "tablature out" clause lifted. (Pulled forward
       on request, 2026-07-11.)
 - [~] **6.2 Core tab staff** — **done:** N-line string staff, TAB clef, fret
-      numbers with broken lines, barlines, `TabStaffView` (golden 52).
-      **Left:** rhythm stems/beams below the staff, capo, per-note string
-      override.
+      numbers with broken lines, barlines, `TabStaffView` (golden 52); rhythm
+      stems/beams below the staff; per-note string override
+      (`Score.tabVoicings` — `TabVoicing(noteId, strings)`). **Left:** capo.
 - [ ] **6.3 Tab paired with a notation staff** (rides on Phase 2.1).
 - [~] **6.4 Techniques** — the full set below. **Done:** rhythm stems/flags/
       beams below the staff; slides (reuse `glissandos`) and hammer-on/pull-off

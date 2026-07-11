@@ -55,6 +55,8 @@ class TabLayoutEngine {
     final anchor = <String, (double, double)>{};
     // Per-note fret-digit overrides: dead notes show "x", ghost notes "(n)".
     final noteStyle = {for (final m in score.tabNoteMarks) m.noteId: m.style};
+    // Per-note string pinning (overrides lowest-fret placement).
+    final voicing = {for (final v in score.tabVoicings) v.noteId: v.strings};
 
     double yOfString(int i) => i * lineGap;
     final bottomY = (n - 1) * lineGap;
@@ -84,10 +86,27 @@ class TabLayoutEngine {
         cols.add(_Col(x, element.duration, onset, false));
         var left = double.infinity;
         var right = -double.infinity;
-        for (final pitch in element.pitches) {
-          final place = tuning.fretFor(pitch);
-          if (place == null) continue;
-          final (stringIndex, fret) = place;
+        final pins = voicing[element.id];
+        for (var pi = 0; pi < element.pitches.length; pi++) {
+          final pitch = element.pitches[pi];
+          int? stringIndex;
+          int? fret;
+          // Honor a pinned string when its fret is playable.
+          if (pins != null && pi < pins.length) {
+            final pinned = pins[pi];
+            if (pinned >= 0 && pinned < tuning.stringCount) {
+              final f = pitch.midiNumber - tuning.strings[pinned].midiNumber;
+              if (f >= 0 && f <= 24) {
+                stringIndex = pinned;
+                fret = f;
+              }
+            }
+          }
+          if (stringIndex == null) {
+            final place = tuning.fretFor(pitch);
+            if (place == null) continue;
+            (stringIndex, fret) = place;
+          }
           final text = switch (noteStyle[element.id]) {
             TabNoteStyle.dead => 'x',
             TabNoteStyle.ghost => '($fret)',

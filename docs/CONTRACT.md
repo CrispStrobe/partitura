@@ -261,9 +261,11 @@ wave), and palm mute / let ring (`Score.palmMutes` / `Score.letRings` —
 bracket above the staff over the spanned notes), and dead / ghost / natural-harmonic notes
 (`Score.tabNoteMarks` — `TabNoteMark(noteId, TabNoteStyle.dead | .ghost |
 .harmonic)`; dead shows "x" on each string, ghost draws the fret in
-parentheses, harmonic in angle brackets `<12>`). Still to come: artificial /
-pinch harmonics, tapping… *(This lifts the former "tablature out" clause —
-a consumer requested it.)*
+parentheses, harmonic in angle brackets `<12>`). `Score.tabVoicings`
+(`TabVoicing(noteId, strings)`) pins a note/chord's pitches to explicit strings
+(0 = top line), overriding the default lowest-fret placement (an out-of-range
+pin falls back). Still to come: artificial / pinch harmonics, tapping…
+*(This lifts the former "tablature out" clause — a consumer requested it.)*
 
 **Not implemented (v0.x non-goals)**: multi-voice collision avoidance,
 cross-staff beaming, audio (never),
@@ -352,9 +354,9 @@ whole), a heuristic that recovers plausible rhythm from well-spaced tabs.
 Barlines come from `|` columns;
 `(string, fret)` becomes a pitch; simultaneous columns become chords.
 Recognized techniques (single-note events): `h`/`p` → a slur, `/`/`\` → a
-glissando, `b` → a `Bend`, `~` → a `Vibrato`, `x` → a dead `TabNoteMark`.
-Re-rendering as tab uses canonical lowest-fret placement, so an unusual voicing
-may relocate to a different string (a per-note string override is future work).
+glissando, `b` → a `Bend`, `~` → a `Vibrato`, `x` → a dead `TabNoteMark`. The
+importer also emits `TabVoicing`s so re-rendering as tab keeps each note on the
+string it was written on (rather than the engine's default lowest-fret).
 No tab lines → a single whole-rest measure. Dependency-free, deterministic.
 
 ## 5f. SVG export (`partitura_core`)

@@ -357,6 +357,42 @@ class TabNoteMark {
   String toString() => 'TabNoteMark($noteId, ${style.name})';
 }
 
+/// Pins a tab note/chord to explicit strings, overriding the tab engine's
+/// default lowest-fret placement. [strings] gives the string index for each
+/// pitch of the note **in the note's pitch order** (`0` = top tab line). An
+/// entry whose fret would be negative or out of range is ignored (the engine
+/// falls back to lowest-fret for that pitch). Rendered by the tab engine only.
+class TabVoicing {
+  /// Id of the note whose string placement is pinned.
+  final String noteId;
+
+  /// String index per pitch, in the note's pitch order (0 = top line).
+  final List<int> strings;
+
+  /// Pins [noteId]'s pitches to [strings].
+  const TabVoicing(this.noteId, this.strings);
+
+  @override
+  bool operator ==(Object other) =>
+      other is TabVoicing &&
+      other.noteId == noteId &&
+      _listEquals(other.strings, strings);
+
+  @override
+  int get hashCode => Object.hash(noteId, Object.hashAll(strings));
+
+  @override
+  String toString() => 'TabVoicing($noteId, $strings)';
+
+  static bool _listEquals(List<int> a, List<int> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+}
+
 /// A glissando/slide: a straight line drawn from one note to a later one,
 /// referenced by their ids (like [Slur]). The start must precede the end in
 /// reading order and both ids must exist, or layout throws an
