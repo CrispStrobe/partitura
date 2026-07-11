@@ -47,9 +47,10 @@ Two open threads; either is a valid continuation (ask the owner which):
    Vibrato, palm mute / let ring and dead / ghost notes are done (goldens
    56–58). Next batch — harmonics (natural first: a diamond/⟨⟩ notehead),
    tapping, tremolo bar, rasgueado,
-   then chord/fretboard diagrams, then Guitar Pro import. Model each like
-   `Bend` (a `Score.<list>` keyed by note id, rendered in `TabLayoutEngine`)
-   or reuse an existing span. All tab code: `theory/tuning.dart`,
+   then chord/fretboard diagrams, then import of the common tablature
+   interchange formats (see Phase 7.3). Model each like `Bend` (a
+   `Score.<list>` keyed by note id, rendered in `TabLayoutEngine`) or reuse an
+   existing span. All tab code: `theory/tuning.dart`,
    `layout/tab_layout.dart`, `rendering/tab_staff_view.dart`.
 2. **Resume the Phase sequence** at Phase 1.4's remainder, then Phase 2
    (structure / N-staff — also unblocks tab-paired-with-notation), Phase 3
