@@ -2,6 +2,12 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Playback-cursor API** (no audio, ever): `playbackTimeline(score)`
+  flattens a score into `PlaybackNote`s — exact whole-note `Fraction`
+  onsets/durations (tuplet-scaled), rests flagged, two voices in
+  parallel, repeats/voltas expanded (`expandRepeats: false` opts out).
+  `soundingAt(timeline, t)` yields the ids to highlight;
+  `secondsFor(t, quarterBpm:)` maps musical time to wall-clock time.
 - **MusicXML export**: `scoreToMusicXml(score)` and
   `grandStaffToMusicXml(grandStaff)` emit `score-partwise` documents
   over the same subset as the importer; every feature round-trips

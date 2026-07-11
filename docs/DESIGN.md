@@ -381,6 +381,18 @@ terse is fine. See HANDOVER.md §6.
 - Grand staffs export as two parts (`P1`/`P2`) rather than a two-staff
   part: simpler, and the importer accepts both shapes.
 
+## v0.5.3 playback cursor (2026-07-11)
+
+- Time is exact `Fraction` whole-notes, never floats — apps convert to
+  seconds at the edge (`secondsFor`) so long scores cannot drift.
+- Ties stay separate timeline entries (apps highlight both noteheads
+  through the sustain); grace notes carry no time of their own.
+- Repeat expansion supports one level with two passes; `volta: n`
+  plays only on pass n. Nested/multi-ending structures are out of
+  scope until a consumer needs them.
+- Empty measures advance by the running meter (time changes followed
+  in playback order), so cursor and barlines stay aligned.
+
 ## Blockers
 
 (none)

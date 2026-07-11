@@ -234,6 +234,16 @@ the subset cannot represent throw `FormatException`. Elements get ids
 I/O — pass the document contents as a string. Dependency-free (core
 ships its own minimal XML reader).
 
+## 5c. Playback cursor (`partitura_core`)
+
+`playbackTimeline(score, {expandRepeats = true})` → sorted
+`List<PlaybackNote>` (`elementId`, `start`/`duration` as whole-note
+`Fraction`s, `isRest`, `voice`, `measureIndex`); repeats play twice,
+voltas pick their pass. `soundingAt(timeline, time)` → the ids to
+highlight (rests excluded). `secondsFor(wholeNotes, quarterBpm:)` maps
+musical time to seconds. **No audio, ever** — apps bring their own
+synth and drive `highlightedIds` from this timeline.
+
 ## 6. Rendering (`partitura`)
 
 - `Bravura.load()` — parses the bundled font metadata once (async,
