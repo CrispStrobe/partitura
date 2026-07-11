@@ -296,6 +296,13 @@ final List<GalleryItem> galleryItems = [
           'bb3+eb4+ab4+db5:w',
     ),
   ),
+  GalleryItem(
+    'Ornaments (trill, short trill, mordent, turn)',
+    Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: r'c5:q% d5$ e5& f5? | g5:h@% c6:h?',
+    ),
+  ),
 ];
 
 /// Scrollable gallery of the corpus (plus grand-staff and multi-system

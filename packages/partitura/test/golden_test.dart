@@ -621,4 +621,15 @@ void main() {
       ),
     );
   });
+
+  testWidgets('41 ornaments', (tester) async {
+    await golden(
+      tester,
+      '41_ornaments',
+      Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: r'c5:q% d5$ e5& f5? | g5:h@% c6:h?',
+      ),
+    );
+  });
 }

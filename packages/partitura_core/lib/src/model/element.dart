@@ -23,6 +23,21 @@ enum Articulation {
   fermata,
 }
 
+/// Ornaments drawn above a note (v0.6.2).
+enum Ornament {
+  /// Trill (tr).
+  trill,
+
+  /// Short trill / upper mordent (squiggle without a line).
+  shortTrill,
+
+  /// Mordent / lower mordent (squiggle with a vertical line).
+  mordent,
+
+  /// Turn (Doppelschlag).
+  turn,
+}
+
 /// A single rhythmic event in a measure: a note/chord or a rest.
 ///
 /// Elements are value types; treat their lists as immutable. The optional
@@ -64,6 +79,9 @@ class NoteElement extends MusicElement {
   /// as small slashed eighths to its left.
   final List<Pitch> graceNotes;
 
+  /// Ornament drawn above the element (above a fermata when both exist).
+  final Ornament? ornament;
+
   /// Creates a note or chord from [pitches] and a [duration].
   ///
   /// [pitches] must be non-empty. (Not asserted: list lengths cannot be
@@ -75,6 +93,7 @@ class NoteElement extends MusicElement {
     this.tieToNext = false,
     this.articulations = const {},
     this.graceNotes = const [],
+    this.ornament,
     super.id,
   });
 
@@ -86,6 +105,7 @@ class NoteElement extends MusicElement {
     bool tieToNext = false,
     Set<Articulation> articulations = const {},
     List<Pitch> graceNotes = const [],
+    Ornament? ornament,
     String? id,
   }) : this(
           pitches: [pitch],
@@ -94,6 +114,7 @@ class NoteElement extends MusicElement {
           tieToNext: tieToNext,
           articulations: articulations,
           graceNotes: graceNotes,
+          ornament: ornament,
           id: id,
         );
 
@@ -103,6 +124,7 @@ class NoteElement extends MusicElement {
       other.duration == duration &&
       other.showAccidental == showAccidental &&
       other.tieToNext == tieToNext &&
+      other.ornament == ornament &&
       other.id == id &&
       listEquals(other.pitches, pitches) &&
       setEquals(other.articulations, articulations) &&
@@ -113,6 +135,7 @@ class NoteElement extends MusicElement {
       duration,
       showAccidental,
       tieToNext,
+      ornament,
       id,
       Object.hashAll(pitches),
       Object.hashAllUnordered(articulations),

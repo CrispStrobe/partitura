@@ -116,6 +116,8 @@ tuplet   := 'actual[' or 'actual:normal[' opens, ']' closes
             normal = largest power of two below actual (3 for duplets)
 artic    := trailing markers: ' staccato, _ tenuto, > accent,
             ^ marcato, @ fermata (combinable: c4:q>')
+ornament := trailing marker (one per note): % trill, \$ short trill,
+            & mordent, ? turn
 grace    := '{pitch,pitch}' prefix before the chord ({g4}a4:q)
 directive:= measure-level tokens: !clef=bass, !key=-2, !time=3/4,
             !repeat, !endrepeat, !volta=1
@@ -212,7 +214,7 @@ Caveat: interaction quantization (`StaffTarget.pitchFor`) takes an
 explicit clef — apps using mid-score clef changes must map per measure.
 
 **Not implemented (v0.x non-goals)**: multi-voice collision avoidance,
-cross-staff beaming, ornaments, multi-measure rests, octave clefs,
+cross-staff beaming, multi-measure rests, octave clefs,
 audio (never),
 transposing instruments, tablature, compound-meter beam grouping (x/8
 meters render flags). Alto/tenor clefs shipped in v0.2; slurs/ties,

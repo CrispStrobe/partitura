@@ -126,6 +126,26 @@ abstract final class SmuflGlyph {
     };
   }
 
+  /// Trill ornament.
+  static const String ornamentTrill = 'ornamentTrill';
+
+  /// Turn ornament.
+  static const String ornamentTurn = 'ornamentTurn';
+
+  /// Short trill (upper mordent).
+  static const String ornamentShortTrill = 'ornamentShortTrill';
+
+  /// Mordent (lower mordent, with the vertical stroke).
+  static const String ornamentMordent = 'ornamentMordent';
+
+  /// The glyph for [ornament].
+  static String ornamentGlyph(Ornament ornament) => switch (ornament) {
+        Ornament.trill => ornamentTrill,
+        Ornament.shortTrill => ornamentShortTrill,
+        Ornament.mordent => ornamentMordent,
+        Ornament.turn => ornamentTurn,
+      };
+
   /// Time signature digits 0–9; index with [timeSigDigit].
   static const List<String> timeSigDigits = [
     'timeSig0',

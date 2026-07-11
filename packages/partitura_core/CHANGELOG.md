@@ -2,6 +2,10 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Ornaments** (v0.6 polish): `NoteElement.ornament` — trill, short
+  trill (upper mordent), mordent, turn — drawn above the element
+  (above a fermata when both exist). DSL markers `%`, `\$`, `&`, `?`;
+  MusicXML `<ornaments>` import/export round-trips.
 - **Accidental stacking** (v0.6 polish): chord accidentals pack into
   columns — zigzag order from the outside in, each accidental taking
   the rightmost column it clears by ≥ 3 spaces. Octave-apart

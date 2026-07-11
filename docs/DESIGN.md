@@ -418,6 +418,16 @@ terse is fine. See HANDOVER.md §6.
   a multi-accidental chord that the naive one-column-each rule and the
   new packing render differently.
 
+## v0.6.2 ornaments (2026-07-11)
+
+- One `Ornament?` per note (not a set): real scores hardly ever stack
+  ornaments, and MusicXML's first ornament wins on import.
+- Placement chains off the articulation pass: notehead-side marks →
+  fermata (always above) → ornament on top, so combined marks never
+  collide.
+- DSL markers are single trailing characters like articulations:
+  `%` trill, `\$` short trill, `&` mordent, `?` turn.
+
 ## Blockers
 
 (none)

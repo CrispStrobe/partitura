@@ -5,9 +5,10 @@
 and 0.4.5 (chord symbols / annotations) shipped — **v0.4 complete**;
 0.5.1/0.5.2 (MusicXML import + export), 0.5.3 (playback-cursor API)
 and 0.5.4 (Score.transposedBy) shipped — **v0.5 complete**; 0.6.1
-(accidental stacking) shipped (versions 0.4.0-dev.1). 476 core + 113
-widget + 5 example tests, 40 golden scenes + hero, on-device
-integration test — all green. Next: 0.6.2 ornaments.
+(accidental stacking) and 0.6.2 (ornaments) shipped (versions
+0.4.0-dev.1). 485 core + 115 widget + 5 example tests, 41 golden
+scenes + hero, on-device integration test — all green. Next: 0.6.3
+multi-measure rests.
 
 Working checklist for the feature-parity plan. Analysis and per-item
 design notes live in [docs/ROADMAP.md](docs/ROADMAP.md); check items off
@@ -61,7 +62,8 @@ gates green (`dart format`, analyze zero issues, all tests), push.
 
 - [x] 0.6.1 Accidental stacking rules for dense chords (zigzag
       column packing)
-- [ ] 0.6.2 Ornaments (trill, mordent, turn)
+- [x] 0.6.2 Ornaments (trill, short trill, mordent, turn; DSL
+      `% \$ & ?`, MusicXML round trip)
 - [ ] 0.6.3 Multi-measure rests
 - [ ] 0.6.4 Octave clefs + ottava brackets
 

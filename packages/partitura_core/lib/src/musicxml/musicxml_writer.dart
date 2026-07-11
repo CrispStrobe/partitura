@@ -287,6 +287,14 @@ class _PartWriter {
     if (element.articulations.contains(Articulation.fermata)) {
       parts.add('<fermata/>');
     }
+    final ornamentTag = switch (element.ornament) {
+      Ornament.trill => '<trill-mark/>',
+      Ornament.shortTrill => '<inverted-mordent/>',
+      Ornament.mordent => '<mordent/>',
+      Ornament.turn => '<turn/>',
+      null => null,
+    };
+    if (ornamentTag != null) parts.add('<ornaments>$ornamentTag</ornaments>');
     final marks = <String>[
       if (element.articulations.contains(Articulation.staccato)) '<staccato/>',
       if (element.articulations.contains(Articulation.tenuto)) '<tenuto/>',

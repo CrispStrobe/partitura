@@ -84,6 +84,8 @@ class Score {
   /// - Articulation markers at the end of a note token: `'` staccato,
   ///   `_` tenuto, `>` accent, `^` marcato, `@` fermata (combinable, e.g.
   ///   `c4:q>'`).
+  /// - Ornament markers (one per note, drawn above): `%` trill, `\$`
+  ///   short trill (upper mordent), `&` mordent, `?` turn.
   /// - Measure directives (tokens starting with `!`, conventionally first
   ///   in the measure): `!clef=bass`, `!key=-2`, `!time=3/4`, `!repeat`
   ///   (start repeat), `!endrepeat`, `!volta=1`.
@@ -214,6 +216,7 @@ class Score {
           var opensSlur = false;
           var closesSlur = false;
           var closesTuplet = false;
+          Ornament? ornament;
           final articulations = <Articulation>{};
           var stripping = true;
           while (stripping && token.isNotEmpty) {
@@ -244,6 +247,18 @@ class Score {
                 token = token.substring(0, token.length - 1);
               case '@':
                 articulations.add(Articulation.fermata);
+                token = token.substring(0, token.length - 1);
+              case '%':
+                ornament = Ornament.trill;
+                token = token.substring(0, token.length - 1);
+              case r'$':
+                ornament = Ornament.shortTrill;
+                token = token.substring(0, token.length - 1);
+              case '&':
+                ornament = Ornament.mordent;
+                token = token.substring(0, token.length - 1);
+              case '?':
+                ornament = Ornament.turn;
                 token = token.substring(0, token.length - 1);
               default:
                 stripping = false;
@@ -296,6 +311,7 @@ class Score {
               tieToNext: tied,
               articulations: articulations,
               graceNotes: graceNotes,
+              ornament: ornament,
               id: id,
             ));
             if (closesSlur) {
@@ -459,6 +475,7 @@ class Score {
               tieToNext: element.tieToNext,
               articulations: element.articulations,
               graceNotes: element.graceNotes.map(move).toList(),
+              ornament: element.ornament,
               id: element.id,
             ),
           RestElement() => element,

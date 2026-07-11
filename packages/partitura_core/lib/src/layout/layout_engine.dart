@@ -634,7 +634,8 @@ class _LayoutBuilder {
   ) {
     for (var i = 0; i < elements.length; i++) {
       final element = elements[i];
-      if (element is! NoteElement || element.articulations.isEmpty) {
+      if (element is! NoteElement ||
+          (element.articulations.isEmpty && element.ornament == null)) {
         continue;
       }
       final info = _tieInfos[tieIndexOf[i]!];
@@ -653,11 +654,20 @@ class _LayoutBuilder {
             elementId: element.id);
         y += (above ? -1 : 1) * (box.height + 0.45);
       }
+      final bounds = element.id == null ? null : _elementBounds[element.id];
+      var top = min(bounds?.minY ?? headYs.reduce(min), -0.5);
       if (element.articulations.contains(Articulation.fermata)) {
-        final bounds = element.id == null ? null : _elementBounds[element.id];
-        final top = min(bounds?.minY ?? headYs.reduce(min), -0.5);
         final glyph =
             SmuflGlyph.articulationGlyph(Articulation.fermata, above: true);
+        final box = meta.bBoxOf(glyph);
+        _addGlyph(glyph, centerX - box.swX - box.width / 2, top - 0.4,
+            elementId: element.id);
+        top -= box.height + 0.4;
+      }
+      // v0.6.2: the ornament sits above everything else on the element.
+      final ornament = element.ornament;
+      if (ornament != null) {
+        final glyph = SmuflGlyph.ornamentGlyph(ornament);
         final box = meta.bBoxOf(glyph);
         _addGlyph(glyph, centerX - box.swX - box.width / 2, top - 0.4,
             elementId: element.id);

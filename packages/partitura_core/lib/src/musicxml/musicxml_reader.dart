@@ -249,6 +249,7 @@ class _PartReader {
               tieToNext: _startsTie(node),
               articulations: _articulationsOf(node),
               graceNotes: pendingGraces.isEmpty ? const [] : pendingGraces,
+              ornament: _ornamentOf(node),
               id: id,
             ));
             pendingGraces = <Pitch>[];
@@ -402,6 +403,24 @@ class _PartReader {
       }
     }
     return result.isEmpty ? const {} : result;
+  }
+
+  Ornament? _ornamentOf(XmlNode note) {
+    for (final notations in _notations(note)) {
+      final ornaments = notations.child('ornaments');
+      if (ornaments == null) continue;
+      for (final mark in ornaments.children) {
+        final ornament = switch (mark.name) {
+          'trill-mark' => Ornament.trill,
+          'inverted-mordent' => Ornament.shortTrill,
+          'mordent' => Ornament.mordent,
+          'turn' => Ornament.turn,
+          _ => null,
+        };
+        if (ornament != null) return ornament;
+      }
+    }
+    return null;
   }
 
   void _readSpans(XmlNode note, String id) {
