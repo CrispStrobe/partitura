@@ -24,7 +24,7 @@ games, ear-training, theory drills — where every notehead must be tappable,
 draggable and highlightable.
 
 Not (yet) a full engraver, but closing in — see
-[PLAN.md](PLAN.md)/[docs/ROADMAP.md](docs/ROADMAP.md). Today: single
+[docs/ROADMAP.md](docs/ROADMAP.md). Today: single
 staff, four clefs, notes/rests from breve to 64th with dots, accidentals
 with measure memory, key/time signatures incl. mid-score changes, chords,
 multi-level beaming, tuplets, ties, slurs, articulations, dynamics +

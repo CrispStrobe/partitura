@@ -41,7 +41,7 @@ void main() {
 | Layout | `LayoutEngine` → `ScoreLayout`: flat glyph/line/beam/curve display list + per-element hit regions, all in staff spaces; four clefs, key/time signatures incl. mid-score changes, stems, flags, multi-level beams, tuplets, ties, slurs, articulations, dynamics + hairpins, grace notes, ledger lines, accidentals with measure memory, dots, chords, rests, barlines, repeats, voltas |
 | SMuFL | `SmuflMetadata` (engraving defaults, glyph boxes, stem anchors parsed from a SMuFL font's metadata JSON), glyph-name constants |
 
-Still **out of scope** (see [PLAN.md](../../PLAN.md) for the roadmap):
+Still **out of scope** (see [docs/ROADMAP.md](../../docs/ROADMAP.md) for the roadmap):
 grand staff, line breaking, lyrics, MusicXML (all planned); audio
 (never). Two-voice support is in progress.
 
