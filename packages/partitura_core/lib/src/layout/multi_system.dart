@@ -281,5 +281,13 @@ Score _slice(
       for (final tv in score.tabVoicings)
         if (ids.contains(tv.noteId)) tv,
     ],
+    taps: [
+      for (final tap in score.taps)
+        if (ids.contains(tap.noteId)) tap,
+    ],
+    tremoloBars: [
+      for (final tb in score.tremoloBars)
+        if (ids.contains(tb.noteId)) tb,
+    ],
   );
 }

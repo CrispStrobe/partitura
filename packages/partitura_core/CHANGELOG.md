@@ -2,6 +2,10 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Tapping + tremolo-bar** (Phase 6.4, tab techniques): `Score.taps`
+  (`Tap(noteId)` — a "T" above the fret) and `Score.tremoloBars`
+  (`TremoloBar(noteId, {steps})` — a whammy-bar V with the dip amount, separate
+  from string bends). Golden scene 61.
 - **Chord / fretboard diagrams** (Phase 6.4): `ChordDiagram(frets, {name,
   fingers, baseFret, fretSpan, barreFret})` + `layoutChordDiagram(diagram,
   settings)` produce a standalone diagram `ScoreLayout` — string×fret grid,

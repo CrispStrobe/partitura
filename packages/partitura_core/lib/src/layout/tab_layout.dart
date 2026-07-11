@@ -246,6 +246,20 @@ class TabLayoutEngine {
       _layoutVibrato(primitives, at.$1, at.$2, vibrato.wide);
     }
 
+    // Tapping: a "T" above the fret.
+    for (final tap in score.taps) {
+      final at = anchor[tap.noteId];
+      if (at == null) continue;
+      primitives.add(TextPrimitive('T', Point(at.$1, at.$2 - 1.0), size: 1.1));
+    }
+
+    // Tremolo bar (whammy): a V above the fret with the dip amount.
+    for (final tb in score.tremoloBars) {
+      final at = anchor[tb.noteId];
+      if (at == null) continue;
+      _layoutTremoloBar(primitives, at.$1, at.$2, tb.steps);
+    }
+
     // Palm mute / let ring: a labelled dashed bracket above the staff.
     for (final pm in score.palmMutes) {
       final a = anchor[pm.startId];
@@ -363,6 +377,36 @@ class TabLayoutEngine {
       ));
       px += half;
     }
+  }
+
+  /// Draws a tremolo-bar V above the fret at ([bx], [by]) with the [steps]
+  /// dip amount labelled at the bottom of the V.
+  void _layoutTremoloBar(
+      List<LayoutPrimitive> primitives, double bx, double by, double steps) {
+    final topY = by - 1.4;
+    final lowY = topY + 0.65;
+    primitives.add(LinePrimitive(Point(bx - 0.1, topY), Point(bx + 0.35, lowY),
+        thickness: 0.13));
+    primitives.add(LinePrimitive(Point(bx + 0.35, lowY), Point(bx + 0.8, topY),
+        thickness: 0.13));
+    primitives.add(TextPrimitive(
+      _tremoloBarLabel(steps),
+      Point(bx + 0.35, lowY + 0.55),
+      size: 1.0,
+    ));
+  }
+
+  /// The conventional label for a tremolo-bar dip of [steps] whole tones.
+  static String _tremoloBarLabel(double steps) {
+    final mag = steps.abs();
+    final magLabel = switch (mag) {
+      0.25 => '¼',
+      0.5 => '½',
+      0.75 => '¾',
+      1.5 => '1½',
+      _ => mag == mag.roundToDouble() ? '${mag.toInt()}' : '$mag',
+    };
+    return '${steps < 0 ? '-' : ''}$magLabel';
   }
 
   /// Draws a [label] followed by a dashed bracket line above the staff, from

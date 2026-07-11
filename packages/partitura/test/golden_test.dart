@@ -1027,4 +1027,26 @@ void main() {
       showTuning: true,
     );
   });
+
+  testWidgets('61 guitar tab: tapping + tremolo bar', (tester) async {
+    final base = Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'e5:q c5 g4 e4',
+    );
+    await tabGolden(
+      tester,
+      '61_tab_tap_whammy',
+      Score(
+        clef: base.clef,
+        timeSignature: base.timeSignature,
+        measures: base.measures,
+        taps: const [Tap('e0'), Tap('e1')], // tapped notes
+        tremoloBars: const [
+          TremoloBar('e2'), // whole-step dive
+          TremoloBar('e3', steps: -1.5), // 1½-step dive
+        ],
+      ),
+      Tuning.standardGuitar,
+    );
+  });
 }

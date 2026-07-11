@@ -10,7 +10,8 @@
   (fret numbers on string lines, TAB clef) for a `Tuning`, with rhythm and
   playing techniques — slides, hammer-on/pull-off, bends, vibrato, palm
   mute / let ring, dead / ghost notes, natural harmonics, and capo + tuning
-  labels (`TabStaffView` `capo` / `showTuning`); golden scenes 52–60.
+  labels (`TabStaffView` `capo` / `showTuning`), and tapping + tremolo-bar;
+  golden scenes 52–61.
 - **Forced horizontal / custom-slant beams** rendered (Phase 1.4, via
   `partitura_core`): golden scene 51, gallery entry.
 - **Feathered beams** rendered (Phase 1.4, via `partitura_core`): fanned

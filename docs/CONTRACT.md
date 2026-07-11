@@ -272,8 +272,10 @@ pin falls back). `ChordDiagram(frets, {name, fingers, baseFret, fretSpan,
 barreFret})` + `layoutChordDiagram(diagram, settings)` produce a standalone
 fretboard-diagram `ScoreLayout` (string×fret grid, filled fingering dots,
 open/muted x·o markers, name, base-fret label, optional barre) that renders
-through the SVG/PNG pipeline. Still to come: artificial / pinch harmonics,
-tapping…
+through the SVG/PNG pipeline. `Score.taps` (`Tap(noteId)` — a "T" above the
+fret) and `Score.tremoloBars` (`TremoloBar(noteId, {steps})` — a whammy-bar V
+with the dip amount, a system separate from string bends) add tapping and
+tremolo-bar. Still to come: artificial / pinch harmonics…
 *(This lifts the former "tablature out" clause — a consumer requested it.)*
 
 **Not implemented (v0.x non-goals)**: multi-voice collision avoidance,

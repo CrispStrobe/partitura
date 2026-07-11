@@ -426,6 +426,45 @@ E|---|
     expect(withLabels.width, greaterThan(without.width));
   });
 
+  test('a tap draws a T above the fret', () {
+    final base = Score.simple(notes: 'g4:q');
+    final score = Score(
+      clef: base.clef,
+      measures: base.measures,
+      taps: const [Tap('e0')],
+    );
+    final layout =
+        const TabLayoutEngine().layout(score, Tuning.standardGuitar, settings);
+    final t = layout.primitives
+        .whereType<TextPrimitive>()
+        .firstWhere((p) => p.text == 'T');
+    final digitY = layout.primitives
+        .whereType<TextPrimitive>()
+        .firstWhere((p) => p.text == '3')
+        .position
+        .y;
+    expect(t.position.y, lessThan(digitY)); // above the fret digit
+  });
+
+  test('a tremolo bar draws a V and its dip amount', () {
+    final base = Score.simple(notes: 'g4:q b4');
+    final score = Score(
+      clef: base.clef,
+      measures: base.measures,
+      tremoloBars: const [TremoloBar('e0'), TremoloBar('e1', steps: -0.5)],
+    );
+    final layout =
+        const TabLayoutEngine().layout(score, Tuning.standardGuitar, settings);
+    final labels =
+        layout.primitives.whereType<TextPrimitive>().map((t) => t.text);
+    expect(labels, containsAll(['-1', '-½']));
+    // Each V is two diagonal line segments above the staff.
+    final diagonalsAbove = layout.primitives
+        .whereType<LinePrimitive>()
+        .where((l) => l.from.x != l.to.x && l.from.y != l.to.y && l.from.y < 0);
+    expect(diagonalsAbove.length, greaterThanOrEqualTo(4)); // 2 per bar
+  });
+
   test('deterministic', () {
     String render() => tabOf(Score.simple(notes: 'e2:q a2 d3 g3'))
         .primitives

@@ -80,6 +80,12 @@ class Score {
   /// engine only; overrides default lowest-fret placement).
   final List<TabVoicing> tabVoicings;
 
+  /// Tapped tab notes (rendered by the tab engine only).
+  final List<Tap> taps;
+
+  /// Tremolo-bar (whammy) dips on tab notes (rendered by the tab engine only).
+  final List<TremoloBar> tremoloBars;
+
   /// Creates a score (treat the lists as immutable).
   const Score({
     required this.clef,
@@ -102,6 +108,8 @@ class Score {
     this.letRings = const [],
     this.tabNoteMarks = const [],
     this.tabVoicings = const [],
+    this.taps = const [],
+    this.tremoloBars = const [],
   });
 
   /// Builds a score from a terse note string, for tests and games.
@@ -611,6 +619,8 @@ class Score {
       letRings: letRings,
       tabNoteMarks: tabNoteMarks,
       tabVoicings: tabVoicings,
+      taps: taps,
+      tremoloBars: tremoloBars,
     );
   }
 
@@ -679,7 +689,9 @@ class Score {
       listEquals(other.palmMutes, palmMutes) &&
       listEquals(other.letRings, letRings) &&
       listEquals(other.tabNoteMarks, tabNoteMarks) &&
-      listEquals(other.tabVoicings, tabVoicings);
+      listEquals(other.tabVoicings, tabVoicings) &&
+      listEquals(other.taps, taps) &&
+      listEquals(other.tremoloBars, tremoloBars);
 
   @override
   int get hashCode => Object.hash(
@@ -706,6 +718,8 @@ class Score {
           Object.hashAll(letRings),
           Object.hashAll(tabNoteMarks),
           Object.hashAll(tabVoicings),
+          Object.hashAll(taps),
+          Object.hashAll(tremoloBars),
         ),
       );
 

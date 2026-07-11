@@ -393,6 +393,52 @@ class TabVoicing {
   }
 }
 
+/// A tapped tab note (left- or right-hand tapping), referenced by its id: a
+/// "T" drawn above the fret. Rendered by the tab engine only; ignored by
+/// standard-notation rendering.
+class Tap {
+  /// Id of the tapped note.
+  final String noteId;
+
+  /// Marks [noteId] as tapped.
+  const Tap(this.noteId);
+
+  @override
+  bool operator ==(Object other) => other is Tap && other.noteId == noteId;
+
+  @override
+  int get hashCode => noteId.hashCode;
+
+  @override
+  String toString() => 'Tap($noteId)';
+}
+
+/// A tremolo-bar (whammy) dip/dive on a tab note, referenced by its id. This
+/// is a *separate* system from string [Bend]s. [steps] is the pitch change in
+/// whole tones at the low point (negative = dive down, positive = up); the bar
+/// returns to pitch. Drawn as a V above the fret with the amount label.
+/// Rendered by the tab engine only; ignored by standard-notation rendering.
+class TremoloBar {
+  /// Id of the note the bar acts on.
+  final String noteId;
+
+  /// Pitch change in whole tones at the low point (negative = dive down).
+  final double steps;
+
+  /// Creates a tremolo-bar dip on [noteId] (default a whole-step dive).
+  const TremoloBar(this.noteId, {this.steps = -1.0});
+
+  @override
+  bool operator ==(Object other) =>
+      other is TremoloBar && other.noteId == noteId && other.steps == steps;
+
+  @override
+  int get hashCode => Object.hash(noteId, steps);
+
+  @override
+  String toString() => 'TremoloBar($noteId, ${steps}st)';
+}
+
 /// A glissando/slide: a straight line drawn from one note to a later one,
 /// referenced by their ids (like [Slur]). The start must precede the end in
 /// reading order and both ids must exist, or layout throws an
