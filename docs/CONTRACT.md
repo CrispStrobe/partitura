@@ -316,9 +316,9 @@ stay unchanged, so highlights/taps/playback keep working. Note:
 Flutter's `material.dart` also exports an `Interval` — `hide Interval`
 on the material import when using both.
 
-## 5e. MIDI export (`partitura_core`)
+## 5e. MIDI import & export (`partitura_core`)
 
-`scoreToMidi(score, {quarterBpm = 120, ticksPerQuarter = 480})` →
+Export: `scoreToMidi(score, {quarterBpm = 120, ticksPerQuarter = 480})` →
 `Uint8List`: a Standard MIDI File (format 0). Built on `playbackTimeline`,
 so repeats, voltas and D.C./D.S./Coda jumps unfold into the note stream.
 One tempo and (if the score is metered) one time-signature meta event at
@@ -326,7 +326,18 @@ tick 0; each note/chord emits a note-on per pitch at velocity 80 and a
 matching note-off; voice 1 → channel 0, voice 2 → channel 1. Grace notes
 carry no time and are omitted. **Contract-safe**: this is a byte stream for
 a consumer's own synth/DAW — partitura still produces no audio.
-Dependency-free (`dart:typed_data`), deterministic.
+
+Import: `scoreFromMidi(Uint8List bytes)` → `Score` (format 0 and 1; all
+tracks merged). MIDI carries no spelling, clef, key, ties, voices or
+articulations, so this is a **lossy** single-staff reconstruction: pitches
+spelled with sharps in the treble clef; onsets/durations quantized to a
+sixteenth-note grid; simultaneous notes merged into chords; durations packed
+into measures by the file's time signature (default 4/4) with ties across
+barlines; ids `e0, e1, …` in order. It round-trips the pitches and quantized
+rhythm of a simple exported score (enharmonic flats return as sharps).
+Malformed bytes or an unsupported SMPTE division throw `FormatException`.
+
+Both are dependency-free (`dart:typed_data`) and deterministic.
 
 ## 6. Rendering (`partitura`)
 

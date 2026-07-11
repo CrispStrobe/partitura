@@ -2,6 +2,12 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **MIDI import** (Phase 7.3): `scoreFromMidi(bytes)` → `Score` parses a
+  Standard MIDI File (format 0/1, running status supported). Lossy single-
+  staff reconstruction: sharps/treble, sixteenth-grid quantization, chords
+  from simultaneous notes, measures packed by the file's time signature with
+  cross-barline ties. Round-trips the pitches and quantized rhythm of an
+  exported score. Zero new dependencies.
 - **MIDI export** (Phase 7.1): `scoreToMidi(score, {quarterBpm,
   ticksPerQuarter})` → a Standard MIDI File (format 0) `Uint8List`, built off
   `playbackTimeline` so repeats / voltas / D.C./D.S./Coda jumps unfold into the

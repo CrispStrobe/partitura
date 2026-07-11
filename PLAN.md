@@ -289,8 +289,10 @@ enum encodings so files round-trip cleanly), tiered by importance:
       time-signature meta; voice→channel). Contract-safe (no audio).
 - [ ] **7.2 Raster + vector export** — PNG (easy via the Flutter canvas) and
       SVG (own emitter).
-- [ ] **7.3 Wider import** — additional interchange formats beyond MusicXML
-      (e.g. MIDI, and the common tablature file formats for Phase 6).
+- [~] **7.3 Wider import** — additional interchange formats beyond MusicXML.
+      **Done:** MIDI import (`scoreFromMidi` — format 0/1, lossy single-staff
+      quantized reconstruction). **Left:** the common tablature file formats
+      for Phase 6.
 - [x] **7.4 Repeat unfolding** — `playbackTimeline` linearizes repeats /
       voltas / D.C. / D.S. / To Coda / al Fine / al Coda into performance
       order, executing the navigation jumps (one level; after a D.C./D.S.

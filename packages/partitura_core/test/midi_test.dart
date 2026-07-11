@@ -101,4 +101,115 @@ void main() {
       expect(a, b);
     });
   });
+
+  group('MIDI import', () {
+    List<Pitch> pitchesOf(Measure m) =>
+        m.elements.whereType<NoteElement>().expand((n) => n.pitches).toList();
+
+    test('rejects non-MIDI bytes', () {
+      expect(() => scoreFromMidi(Uint8List.fromList([1, 2, 3, 4])),
+          throwsFormatException);
+    });
+
+    test('round-trips a melody (pitches and durations)', () {
+      final source = Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'c4:q d4 e4 f4',
+      );
+      final back = scoreFromMidi(scoreToMidi(source));
+      expect(back.measures, hasLength(1));
+      final notes = back.measures.single.elements.whereType<NoteElement>();
+      expect(notes.map((n) => n.pitches.single.toString()),
+          ['C4', 'D4', 'E4', 'F4']);
+      expect(notes.map((n) => n.duration), everyElement(NoteDuration.quarter));
+    });
+
+    test('round-trips a chord', () {
+      final back = scoreFromMidi(scoreToMidi(Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'c4+e4+g4:w',
+      )));
+      final chord =
+          back.measures.single.elements.whereType<NoteElement>().single;
+      expect(chord.pitches.map((p) => p.toString()), ['C4', 'E4', 'G4']);
+    });
+
+    test('sharps round-trip exactly; flats come back as sharps', () {
+      final back = scoreFromMidi(scoreToMidi(Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'f#4:q g4 a4 bb4',
+      )));
+      final names = pitchesOf(back.measures.single).map((p) => p.toString());
+      // bb4 (MIDI 70) is spelled A#4 on the way back (enharmonic, documented).
+      expect(names, ['F#4', 'G4', 'A4', 'A#4']);
+    });
+
+    test('splits across measures with ties', () {
+      // Eight quarters → two 4/4 measures.
+      final back = scoreFromMidi(scoreToMidi(Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'c4:q d4 e4 f4 | g4:q a4 b4 c5',
+      )));
+      expect(back.measures, hasLength(2));
+      expect(pitchesOf(back.measures[1]).map((p) => p.toString()),
+          ['G4', 'A4', 'B4', 'C5']);
+    });
+
+    test('a single note longer than a measure is split and tied', () {
+      // A breve (two whole notes) sounds as one MIDI note spanning two 4/4
+      // bars; import splits it into two whole notes bound by a tie.
+      final back = scoreFromMidi(scoreToMidi(Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'c4:b',
+      )));
+      expect(back.measures, hasLength(2));
+      final first = back.measures[0].elements.whereType<NoteElement>().last;
+      expect(first.tieToNext, isTrue);
+      expect(first.duration, NoteDuration.whole);
+      final second = back.measures[1].elements.whereType<NoteElement>().single;
+      expect(second.tieToNext, isFalse);
+    });
+
+    test('recovers the time signature from the file', () {
+      final back = scoreFromMidi(scoreToMidi(Score.simple(
+        timeSignature: const TimeSignature(3, 4),
+        notes: 'c4:q d4 e4',
+      )));
+      expect(back.timeSignature, const TimeSignature(3, 4));
+    });
+
+    test('parses running status (repeated note-on status byte)', () {
+      // MThd + one MTrk with two note-ons sharing a 0x90 running status.
+      final track = <int>[
+        0x00, 0x90, 60, 0x40, // note on C4
+        0x60, 62, 0x40, //       running status: note on D4 (no 0x90)
+        0x60, 60, 0x00, //       running status: C4 off (vel 0)
+        0x00, 62, 0x00, //       running status: D4 off
+        0x00, 0xFF, 0x2F, 0x00, // end of track
+      ];
+      final bytes = <int>[
+        0x4D, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, 0x00,
+        0x60, // MThd, tpq 96
+        0x4D, 0x54, 0x72, 0x6B, //                                     MTrk
+        0, 0, 0, track.length,
+        ...track,
+      ];
+      final score = scoreFromMidi(Uint8List.fromList(bytes));
+      final names = score.measures
+          .expand((m) => m.elements)
+          .whereType<NoteElement>()
+          .map((n) => n.pitches.single.toString())
+          .toList();
+      expect(names, containsAll(['C4', 'D4']));
+    });
+
+    test('an empty MIDI yields one empty (whole-rest) measure', () {
+      final back = scoreFromMidi(scoreToMidi(Score(
+        clef: Clef.treble,
+        timeSignature: TimeSignature.fourFour,
+        measures: const [Measure([])],
+      )));
+      expect(back.measures.single.elements.single, isA<RestElement>());
+    });
+  });
 }
