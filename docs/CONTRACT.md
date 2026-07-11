@@ -339,6 +339,19 @@ Malformed bytes or an unsupported SMPTE division throw `FormatException`.
 
 Both are dependency-free (`dart:typed_data`) and deterministic.
 
+## 5f. SVG export (`partitura_core`)
+
+`scoreToSvg(layout, {staffSpace, glyphFontFamily, textFontFamily, color,
+background, fontFaceDataUri})` → a standalone SVG document string. It renders
+a laid-out `ScoreLayout` — so it works for **both** notation (`LayoutEngine`)
+and tablature (`TabLayoutEngine`) — mapping the display list to SVG shapes
+(SMuFL glyphs as `<text>` in the engraving font, lines/curves/beams/text as
+native SVG). Pass `fontFaceDataUri` (a `data:` URI of the engraving font) to
+embed it via `@font-face` for a self-contained file. The
+`smuflCodepoints` name→character table also lives in core now (shared by the
+Flutter painter and this emitter). Pure Dart, deterministic. *(Raster/PNG
+export rides the Flutter renderer — see the `partitura` package.)*
+
 ## 6. Rendering (`partitura`)
 
 - `Bravura.load()` — parses the bundled font metadata once (async,

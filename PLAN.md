@@ -287,8 +287,10 @@ enum encodings so files round-trip cleanly), tiered by importance:
 - [x] **7.1 MIDI file export** — `scoreToMidi` emits a format-0 Standard MIDI
       File off the playback timeline (repeats/jumps unfolded; tempo +
       time-signature meta; voice→channel). Contract-safe (no audio).
-- [ ] **7.2 Raster + vector export** — PNG (easy via the Flutter canvas) and
-      SVG (own emitter).
+- [~] **7.2 Raster + vector export** — **Done:** SVG (`scoreToSvg`, own
+      pure-Dart emitter over `ScoreLayout`; serves notation and tab; optional
+      embedded font). **Left:** PNG (rides the Flutter canvas —
+      `RepaintBoundary.toImage`).
 - [~] **7.3 Wider import** — additional interchange formats beyond MusicXML.
       **Done:** MIDI import (`scoreFromMidi` — format 0/1, lossy single-staff
       quantized reconstruction). **Left:** the common tablature file formats

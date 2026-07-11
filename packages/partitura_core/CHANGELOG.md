@@ -2,6 +2,11 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **SVG export** (Phase 7.2): `scoreToSvg(layout, {…})` renders a
+  `ScoreLayout` to a standalone SVG document (works for both notation and
+  tablature); optional `@font-face` embedding of the engraving font. The
+  `smuflCodepoints` glyph-name→character table moved into `partitura_core`
+  (shared by the Flutter painter and the SVG emitter). Pure Dart.
 - **MIDI import** (Phase 7.3): `scoreFromMidi(bytes)` → `Score` parses a
   Standard MIDI File (format 0/1, running status supported). Lossy single-
   staff reconstruction: sharps/treble, sixteenth-grid quantization, chords

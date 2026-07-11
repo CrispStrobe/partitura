@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/rendering.dart';
 import 'package:partitura_core/partitura_core.dart';
 
-import 'smufl_glyphs.dart';
 import 'theme.dart';
 
 /// Paints a [ScoreLayout]'s primitives onto a canvas — the shared engine
