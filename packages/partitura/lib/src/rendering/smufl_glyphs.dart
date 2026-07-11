@@ -82,4 +82,6 @@ const Map<String, String> smuflCodepoints = {
   'rest64th': '\uE4E9',
   'repeatDots': '\uE043',
   'brace': '\uE000',
+  'segno': '\uE047',
+  'coda': '\uE048',
 };

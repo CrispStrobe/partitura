@@ -318,6 +318,15 @@ final List<GalleryItem> galleryItems = [
       notes: 'c3:q e3 g3 c4 | b3:h. r:q',
     ),
   ),
+  GalleryItem(
+    'Navigation marks (Segno, Coda, D.S., Fine)',
+    Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: '!nav=segno c4:q e4 g4 e4 | !nav=fine g4:q e4 c4 r | '
+          '!nav=coda c4:q e4 g4 c5 | !nav=dalSegnoAlFine g4:h e4',
+    ),
+    theme: const PartituraTheme(textFontFamily: 'Roboto'),
+  ),
 ];
 
 /// Scrollable gallery of the corpus (plus grand-staff and multi-system

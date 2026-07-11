@@ -6,6 +6,7 @@ import '../layout/grand_staff.dart';
 import '../model/element.dart';
 import '../model/measure.dart';
 import '../model/score.dart';
+import '../smufl/glyph_names.dart';
 import '../theory/clef.dart';
 import '../theory/duration.dart';
 import '../theory/fraction.dart';
@@ -167,6 +168,13 @@ class _PartWriter {
       out.writeln('      <barline location="left">'
           '<ending number="${measure.volta}" type="start"/></barline>');
     }
+    // Navigation targets (segno/coda) open the measure.
+    final nav = measure.navigation;
+    if (nav != null && nav.isTarget) {
+      out.writeln('      <direction><direction-type>'
+          '<${nav == NavigationMark.segno ? 'segno' : 'coda'}/>'
+          '</direction-type></direction>');
+    }
 
     _writeVoice(measure, measure.elements, '1', measure.tuplets);
     if (measure.voice2.isNotEmpty) {
@@ -180,6 +188,26 @@ class _PartWriter {
           '${scaled.numerator ~/ scaled.denominator}'
           '</duration></backup>');
       _writeVoice(measure, measure.voice2, '2', const []);
+    }
+
+    // Navigation instructions (D.C./D.S./To Coda/Fine) close the measure.
+    if (nav != null && !nav.isTarget) {
+      final sound = switch (nav) {
+        NavigationMark.toCoda => '<sound tocoda="coda"/>',
+        NavigationMark.daCapo ||
+        NavigationMark.daCapoAlFine ||
+        NavigationMark.daCapoAlCoda =>
+          '<sound dacapo="yes"/>',
+        NavigationMark.dalSegno ||
+        NavigationMark.dalSegnoAlFine ||
+        NavigationMark.dalSegnoAlCoda =>
+          '<sound dalsegno="segno"/>',
+        NavigationMark.fine => '<sound fine="yes"/>',
+        _ => '',
+      };
+      out.writeln('      <direction><direction-type><words>'
+          '${_escape(SmuflGlyph.navigationLabel(nav)!)}'
+          '</words></direction-type>$sound</direction>');
     }
 
     if (measure.endRepeat) {

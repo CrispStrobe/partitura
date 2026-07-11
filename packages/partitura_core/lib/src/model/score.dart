@@ -147,6 +147,7 @@ class Score {
       var endRepeat = false;
       int? volta;
       int? multiRest;
+      NavigationMark? navigation;
       var voiceIndex = 0;
       for (final voiceSource in voiceSources) {
         final target = voiceIndex == 0 ? elements : voice2;
@@ -194,6 +195,12 @@ class Score {
               multiRest = int.tryParse(directive.substring(6));
               if (multiRest == null || multiRest < 2) {
                 throw FormatException('Invalid mrest directive: "$token"');
+              }
+            } else if (directive.startsWith('nav=')) {
+              navigation =
+                  NavigationMark.values.asNameMap()[directive.substring(4)];
+              if (navigation == null) {
+                throw FormatException('Unknown navigation mark: "$token"');
               }
             } else {
               throw FormatException('Unknown directive: "$token"');
@@ -373,6 +380,7 @@ class Score {
         endRepeat: endRepeat,
         volta: volta,
         multiRest: multiRest,
+        navigation: navigation,
       ));
     }
     if (openSlurStart != null) {
@@ -517,6 +525,7 @@ class Score {
             endRepeat: measure.endRepeat,
             volta: measure.volta,
             multiRest: measure.multiRest,
+            navigation: measure.navigation,
           ),
       ],
       slurs: slurs,

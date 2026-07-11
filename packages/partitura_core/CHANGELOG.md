@@ -2,6 +2,14 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Navigation marks** (v0.7.1 long-tail parity): `Measure.navigation`
+  (`NavigationMark`) — segno/coda targets and the D.C./D.S./To Coda/Fine
+  instruction words (incl. *al Coda*/*al Fine*). DSL `!nav=<mark>`; drawn on
+  one shared line above the staff per system (glyph targets at the measure
+  start, right-aligned instruction words at its end); MusicXML `<direction>`
+  (`<segno>`/`<coda>`/`<words>` + `<sound>`) round-trips. Playback timing is
+  unchanged — the marks render and round-trip but the timeline does not yet
+  execute the jumps.
 - **Octave clefs + ottava brackets** (v0.6 polish): `Clef.treble8va`/
   `treble8vb`/`bass8vb` (staff arithmetic, key signatures, MusicXML
   `<clef-octave-change>`); `Ottava(startId, endId, down:)` spans draw

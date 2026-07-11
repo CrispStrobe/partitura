@@ -2,6 +2,10 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Navigation marks** rendered (v0.7.1, via `partitura_core`): segno/coda
+  glyphs and D.C./D.S./To Coda/Fine words above the staff (reusing the
+  existing `GlyphPrimitive`/`TextPrimitive` paint paths — no new painter);
+  golden scene 44, gallery entry.
 - **Two voices per staff** rendered (via `partitura_core` 0.4); golden
   scene 34, gallery entry.
 - **Grand staff**: `GrandStaffView` (brace, connected barlines, aligned

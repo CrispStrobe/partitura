@@ -7,6 +7,7 @@
 library;
 
 import '../model/element.dart';
+import '../model/measure.dart';
 
 /// SMuFL glyph name constants (the subset partitura uses).
 abstract final class SmuflGlyph {
@@ -153,6 +154,37 @@ abstract final class SmuflGlyph {
         Ornament.shortTrill => ornamentShortTrill,
         Ornament.mordent => ornamentMordent,
         Ornament.turn => ornamentTurn,
+      };
+
+  /// Segno sign (𝄋) — the target of a *dal segno* jump.
+  static const String segno = 'segno';
+
+  /// Coda sign (𝄌) — the target of a *to coda* jump.
+  static const String coda = 'coda';
+
+  /// The SMuFL glyph for a *target* navigation mark
+  /// ([NavigationMark.segno]/[NavigationMark.coda]); null for the text
+  /// instructions, which use [navigationLabel] instead.
+  static String? navigationGlyph(NavigationMark mark) => switch (mark) {
+        NavigationMark.segno => segno,
+        NavigationMark.coda => coda,
+        _ => null,
+      };
+
+  /// The above-staff text label for a navigation *instruction*
+  /// (`D.C.`, `D.S. al Coda`, `Fine`, …); null for the two marks drawn as
+  /// SMuFL glyphs ([NavigationMark.segno]/[NavigationMark.coda]).
+  static String? navigationLabel(NavigationMark mark) => switch (mark) {
+        NavigationMark.segno => null,
+        NavigationMark.coda => null,
+        NavigationMark.toCoda => 'To Coda',
+        NavigationMark.daCapo => 'D.C.',
+        NavigationMark.daCapoAlFine => 'D.C. al Fine',
+        NavigationMark.daCapoAlCoda => 'D.C. al Coda',
+        NavigationMark.dalSegno => 'D.S.',
+        NavigationMark.dalSegnoAlFine => 'D.S. al Fine',
+        NavigationMark.dalSegnoAlCoda => 'D.S. al Coda',
+        NavigationMark.fine => 'Fine',
       };
 
   /// Time signature digits 0–9; index with [timeSigDigit].

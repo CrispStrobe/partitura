@@ -1,14 +1,14 @@
 # partitura — implementation plan (living tracker)
 
-**Status (2026-07-11):** v0.1–v0.3 complete; 0.4.1 (two voices), 0.4.2
-(grand staff), 0.4.3 (line breaking + justification), 0.4.4 (lyrics)
-and 0.4.5 (chord symbols / annotations) shipped — **v0.4 complete**;
-0.5.1/0.5.2 (MusicXML import + export), 0.5.3 (playback-cursor API)
-and 0.5.4 (Score.transposedBy) shipped — **v0.5 complete**; **the whole
-feature-parity plan (v0.1–v0.6) is complete** (versions 0.4.0-dev.1).
+**Status (2026-07-11):** v0.1–v0.6 complete (the original v0.2 parity
+plan — see [docs/ROADMAP.md](docs/ROADMAP.md) Part II — shipped in full).
 501 core + 117 widget + 5 example tests, 43 golden scenes + hero,
-on-device integration test — all green. Remaining work is
-consumer-driven (see "Permanently out" and DESIGN.md backlog notes).
+on-device integration test — all green. **Now in progress: v0.7
+"long-tail parity"** — the features the three incumbents carry that the
+v0.2 table never enumerated, re-derived 2026-07-11 against VexFlow ~5.0 /
+OSMD ~1.9 / abcjs ~6.6 (analysis + tiers in
+[docs/ROADMAP.md](docs/ROADMAP.md) Part I). "Feature-complete" against the
+old table is *not* parity with the incumbents; v0.7 closes the tail.
 
 Working checklist for the feature-parity plan. Analysis and per-item
 design notes live in [docs/ROADMAP.md](docs/ROADMAP.md); check items off
@@ -68,6 +68,27 @@ gates green (`dart format`, analyze zero issues, all tests), push.
       playback advances N bars, MusicXML measure-style)
 - [x] 0.6.4 Octave clefs (treble8va/treble8vb/bass8vb) + ottava
       brackets (`Ottava` spans, dashed bracket, octave-shifted layout)
+
+## v0.7 — long-tail parity (in progress)
+
+Closes the incumbents' long tail (full analysis + tiers:
+[docs/ROADMAP.md](docs/ROADMAP.md) Part I). Breadth, not depth — each item
+reuses the existing model → layout → paint pipeline.
+
+- [x] 0.7.1 Navigation marks (Coda, Segno, D.C., D.S. + al Coda/al Fine,
+      Fine; measure-level `NavigationMark`, shared-baseline glyphs/words
+      above staff, DSL `!nav=`, MusicXML round trip; golden 44 + gallery.
+      Playback jump execution deferred)
+- [ ] 0.7.2 Piano / technical layer (pedal marks, fingering numbers,
+      tremolo, arpeggio, glissando)
+- [ ] 0.7.3 N-staff systems (generalize `GrandStaff` 2 → N, brackets +
+      nested part groups; unblocks SATB/organ/orchestral)
+- [ ] 0.7.4 Pedagogy breadth (model note-coloring incl. Boomwhacker, cue
+      notes, notehead shapes, more articulations + dynamics, multiple
+      lyric verses, rendered measure numbers, cautionary accidentals)
+- [ ] 0.7.5 MIDI export off the playback timeline (no audio; contract-safe)
+- [ ] 0.7.6 Output & ingest, demand-driven (PNG/SVG export, ABC import,
+      alternate SMuFL fonts)
 
 ## Permanently out (per HANDOVER contract / until explicitly requested)
 

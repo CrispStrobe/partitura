@@ -76,8 +76,12 @@ value-based, invalid constructor arguments fail asserts in debug builds.
   `TupletSpan`s (`actual` notes in the time of `normal` over a contiguous
   element range; cannot cross barlines), optional mid-score changes
   (`clefChange`, `keyChange` — with cancellation naturals, `timeChange`)
-  taking effect at the measure, repeat flags (`startRepeat`/`endRepeat`)
-  and a `volta` ending number. `effectiveDurationAt(i)` and
+  taking effect at the measure, repeat flags (`startRepeat`/`endRepeat`),
+  a `volta` ending number and an optional `navigation` mark
+  (`NavigationMark`: segno/coda targets drawn at the measure start, and the
+  D.C./D.S./To Coda/Fine instruction words — incl. *al Coda*/*al Fine* —
+  drawn at its end; rendered and MusicXML-round-tripped, but the playback
+  timeline does not yet execute the jumps). `effectiveDurationAt(i)` and
   `totalDuration` sum exactly with tuplet scaling — a triplet eighth
   sounds 1/12 (games compare against `TimeSignature.measureCapacity`; the
   layout engine does **not** enforce it).
@@ -120,7 +124,9 @@ ornament := trailing marker (one per note): % trill, \$ short trill,
             & mordent, ? turn
 grace    := '{pitch,pitch}' prefix before the chord ({g4}a4:q)
 directive:= measure-level tokens: !clef=bass, !key=-2, !time=3/4,
-            !repeat, !endrepeat, !volta=1
+            !repeat, !endrepeat, !volta=1, !mrest=N,
+            !nav=<mark> (segno, coda, toCoda, daCapo, daCapoAlFine,
+            daCapoAlCoda, dalSegno, dalSegnoAlFine, dalSegnoAlCoda, fine)
 voices   := ';' splits a measure into voice 1 and voice 2
             (c5:q d5 ; c4:h)
 ```
@@ -208,7 +214,10 @@ centers on the same dynamics line · grace notes as 0.6× glyphs
 small ledger lines · mid-score changes at the measure start (0.8× clef,
 cancellation naturals before a new key, fresh time digits; notes and
 beam windows follow the current state) · repeat barlines with SMuFL
-repeat dots · volta brackets with ending numbers above the staff.
+repeat dots · volta brackets with ending numbers above the staff ·
+navigation marks on one shared line above the staff per system (segno/coda
+glyphs at the measure start, D.C./D.S./To Coda/Fine words right-aligned at
+its end).
 
 Caveat: interaction quantization (`StaffTarget.pitchFor`) takes an
 explicit clef — apps using mid-score clef changes must map per measure.

@@ -93,6 +93,12 @@ class LayoutSettings {
   /// Minimum clearance between an annotation's text and the ink below.
   final double annotationGap;
 
+  /// Em size of a navigation instruction's text (`D.C.`, `Fine`, …).
+  final double navigationSize;
+
+  /// Clearance above the highest ink at which a navigation mark's top sits.
+  final double navigationGap;
+
   /// Creates settings seeded from [metadata]'s engraving defaults; any
   /// parameter can be overridden.
   LayoutSettings({
@@ -123,6 +129,8 @@ class LayoutSettings {
     this.lyricGap = 0.8,
     this.annotationSize = 1.8,
     this.annotationGap = 0.5,
+    this.navigationSize = 1.8,
+    this.navigationGap = 0.6,
   })  : staffLineThickness = staffLineThickness ??
             metadata.engravingDefault('staffLineThickness', orElse: 0.13),
         stemThickness = stemThickness ??

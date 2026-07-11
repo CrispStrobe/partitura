@@ -270,6 +270,7 @@ class _LayoutBuilder {
     _layoutOttavas();
     _layoutDynamics();
     _layoutLyrics();
+    _layoutNavigation();
     _layoutAnnotations();
     final width = _addFinalBarline();
 
@@ -1660,6 +1661,46 @@ class _LayoutBuilder {
       final glyph = SmuflGlyph.tupletDigit(int.parse(ch));
       _addGlyph(glyph, digitX - meta.bBoxOf(glyph).swX, y + 1.0, scale: 0.8);
       digitX += _glyphWidth(glyph) * 0.8;
+    }
+  }
+
+  /// v0.7.1: navigation marks above the staff, all on one shared clearance
+  /// line (as engravers align them per system). Targets
+  /// ([NavigationMark.segno]/[NavigationMark.coda]) draw their SMuFL glyph at
+  /// the measure's left edge; every instruction draws its text word
+  /// ([SmuflGlyph.navigationLabel]) right-aligned above the closing barline.
+  void _layoutNavigation() {
+    final marks = <(MeasureRegion, NavigationMark)>[
+      for (final region in _measureRegions)
+        if (score.measures[region.index].navigation case final mark?)
+          (region, mark),
+    ];
+    if (marks.isEmpty) return;
+    // One clearance line for the whole system: a fixed gap above all ink.
+    final clearance = min(-1.0, _ink.minY - s.navigationGap);
+    for (final (region, mark) in marks) {
+      final glyph = SmuflGlyph.navigationGlyph(mark);
+      if (glyph != null) {
+        // Baseline so the (y-up) bbox bottom lands on `clearance`; the tall
+        // segno/coda glyph then sits entirely above the staff.
+        _addGlyph(glyph, region.startX, clearance + meta.bBoxOf(glyph).swY);
+        continue;
+      }
+      final label = SmuflGlyph.navigationLabel(mark)!;
+      final size = s.navigationSize;
+      final halfWidth = 0.25 * size * label.length;
+      final centerX = region.endX - 0.3 - halfWidth;
+      // Baseline so the text's descender rests on `clearance`.
+      final baselineY = clearance - 0.25 * size;
+      _primitives
+          .add(TextPrimitive(label, Point(centerX, baselineY), size: size));
+      _expand(
+        null,
+        centerX - halfWidth,
+        baselineY - 0.72 * size,
+        centerX + halfWidth,
+        clearance,
+      );
     }
   }
 

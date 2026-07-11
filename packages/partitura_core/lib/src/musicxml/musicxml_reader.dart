@@ -11,6 +11,7 @@ import '../layout/grand_staff.dart';
 import '../model/element.dart';
 import '../model/measure.dart';
 import '../model/score.dart';
+import '../smufl/glyph_names.dart';
 import '../theory/clef.dart';
 import '../theory/duration.dart';
 import '../theory/key_signature.dart';
@@ -134,6 +135,7 @@ class _PartReader {
     var endRepeat = false;
     int? volta;
     int? multiRest;
+    NavigationMark? navigation;
 
     String? firstVoice; // this measure's voice-1 label
     var pendingGraces = <Pitch>[];
@@ -211,6 +213,7 @@ class _PartReader {
           if (wedge != null) _handleWedge(wedge, elements, voice2);
           final shift = node.child('direction-type')?.child('octave-shift');
           if (shift != null) _handleOctaveShift(shift);
+          navigation ??= _navigationOf(node);
         case 'harmony':
           pendingHarmony = _harmonyText(node);
         case 'note':
@@ -323,7 +326,24 @@ class _PartReader {
       endRepeat: endRepeat,
       volta: volta,
       multiRest: multiRest != null && multiRest >= 2 ? multiRest : null,
+      navigation: navigation,
     ));
+  }
+
+  /// A navigation mark from a `<direction>`: a `<segno>`/`<coda>` target, or
+  /// an instruction whose `<words>` match a [SmuflGlyph.navigationLabel]
+  /// (`D.C.`, `D.S. al Coda`, `Fine`, …). Returns null for other directions.
+  static NavigationMark? _navigationOf(XmlNode node) {
+    final type = node.child('direction-type');
+    if (type == null) return null;
+    if (type.child('segno') != null) return NavigationMark.segno;
+    if (type.child('coda') != null) return NavigationMark.coda;
+    final words = type.childText('words')?.trim();
+    if (words == null) return null;
+    for (final mark in NavigationMark.values) {
+      if (SmuflGlyph.navigationLabel(mark) == words) return mark;
+    }
+    return null;
   }
 
   bool _isForStaff(XmlNode node) =>

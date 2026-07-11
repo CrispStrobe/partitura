@@ -2,8 +2,137 @@
 
 Gap analysis against the three JavaScript incumbents — **VexFlow** (the
 low-level engraving library), **OpenSheetMusicDisplay/OSMD** (MusicXML
-renderer built on VexFlow) and **abcjs** (ABC-notation renderer) — and the
-plan to close the gaps that matter. Written 2026-07-10 at v0.2.
+renderer built on VexFlow) and **abcjs** (ABC-notation renderer + synth) —
+and the plan to close the gaps that matter.
+
+This document has two parts:
+
+- **Part I — v0.7 long-tail parity** (current): a fresh gap analysis
+  written 2026-07-11 against **VexFlow ~5.0**, **OSMD ~1.9** and
+  **abcjs ~6.6**, after the original parity plan (below) shipped in full.
+- **Part II — the original v0.1–v0.6 parity plan** (historical): the
+  analysis written 2026-07-10 at v0.2 and the plan that closed it. Every
+  row of that plan is now implemented; it is kept as the record of what
+  shipped and why.
+
+---
+
+# Part I — v0.7 long-tail parity (2026-07-11)
+
+## Why a second gap analysis
+
+The original matrix (Part II) was the *headline* feature set: what a
+beginner-to-intermediate single-part or piano score needs, plus MusicXML
+round-trip and interactivity. Every row of it now reads ✓ for partitura.
+"Feature-complete" against that table is **not** parity with the three
+incumbents — those libraries carry a long tail the v0.2 table never
+enumerated (navigation marks, piano/technical marks, extra noteheads,
+tremolo/arpeggio/glissando, alternate fonts, MIDI export…). Part I is that
+long tail, re-derived from exhaustive current inventories of all three.
+
+None of it is architecturally hard on partitura's existing
+model → layout → paint pipeline: it is **breadth, not depth**. The moat
+(first-class interactivity, pure-Dart deterministic layout, a pedagogy
+theory core, repaint-only highlighting) still stands; defend it while
+adding breadth.
+
+Legend: ✓ = full · ● = partial · — = none.
+
+## Tier 1 — common in real scores; all three have it, partitura does not
+
+| Feature | VexFlow | OSMD | abcjs | partitura today |
+|---|---|---|---|---|
+| Coda / Segno / D.C. / D.S. / Fine navigation | ✓ | ✓ | ✓ | — (repeats + voltas only) |
+| Pedal marks (Ped. / sost. / una corda) | ✓ | ✓ | ✓ | — |
+| Fingering numbers | ✓ | ✓ | ✓ | — |
+| Tremolo (single-note strokes + between two notes) | ✓ | ✓ | ✓ | — |
+| Arpeggio / roll (vertical wavy before a chord) | ✓ | ✓ | ✓ | — |
+| Glissando / slide line | ✓ | ✓ | ✓ | — |
+| 3+ staff systems | ✓ | ✓ | ✓ | — (`GrandStaff` is exactly 2) |
+| Trill wavy-line extension | ✓ | ✓ | — | ● (glyph only, no line) |
+| cresc./dim. as dashed text (not only a wedge) | ✓ | ✓ | ✓ | — (hairpin wedge only) |
+
+## Tier 2 — pedagogy / breadth wins, cheap on the existing pipeline
+
+| Feature | VexFlow | OSMD | abcjs | partitura today |
+|---|---|---|---|---|
+| Model note-coloring (pitch color, Boomwhacker, custom set) | ✓ (style) | ✓ (`coloringMode`) | ● (CSS) | — (highlight infra only) |
+| Cue / small notes (distinct from grace) | ✓ | ● | ● | — |
+| Notehead shapes (x, diamond/harmonic, triangle, slash) | ✓ | ✓ | ✓ | — |
+| More articulations (staccatissimo, breath, caesura, up/down-bow, harmonic) | ✓ | ✓ | ✓ | ● (5: staccato/tenuto/accent/marcato/fermata) |
+| Fuller dynamics (sf, sfz, fp, rfz, pppp/ffff) | ✓ | ✓ | ✓ | ● (pp…ff) |
+| Multiple lyric verses | ● | ✓ | ✓ | — (`Lyric` has no verse index) |
+| Rendered measure numbers | ✓ | ✓ | ✓ | — (emitted to MusicXML, never drawn) |
+| Cautionary / parenthesized accidentals | ✓ | ✓ | ● | ● (`showAccidental:true` forces, not parenthesized) |
+| Part-group brackets + nested grouping | ✓ | ✓ | ✓ | ● (single brace) |
+| 15ma ottava + fuller C-clef family (soprano/mezzo/baritone/subbass) | ✓ | ✓ | ● | ● (4 clefs + 3 octave variants, 8va only) |
+
+## Tier 3 — ecosystem / output; bigger lifts
+
+| Feature | Who has it | Notes for partitura |
+|---|---|---|
+| MIDI file export | abcjs | Pure-Dart serializer on top of the existing `playbackTimeline`. **No audio** — fully within contract. Natural unlock. |
+| SVG / PNG export | OSMD, abcjs | `PictureRecorder`→PNG is easy; SVG is real work (own emitter). |
+| ABC import | abcjs (native) | Broadens ingest beyond the DSL + MusicXML. |
+| Alternate SMuFL fonts (Petaluma/Leland "handwritten") | VexFlow | SMuFL metadata layer already abstracts glyphs; mostly asset + config. |
+| Cross-staff beaming | VexFlow only | Hardest, least-supported even among incumbents (OSMD/abcjs punt). Low priority. |
+
+## Explicitly out by the HANDOVER contract (needs a product decision, not engineering)
+
+The three incumbents have these; partitura's contract currently excludes
+them. Listed so the exclusion stays a *conscious* choice, since literal
+"parity on every count" would include them:
+
+- **Audio synthesis / playback** (abcjs) — permanently out per HANDOVER
+  ("partitura renders; it never makes sound"). partitura supplies the
+  timing map instead; MIDI export (Tier 3) is the contract-safe analogue.
+- **Tablature** (VexFlow/OSMD/abcjs), **percussion notation**, **guitar
+  bends**, **microtonal accidentals** — out until a consumer asks.
+
+**Figured bass** is intentionally skipped: none of the three render it
+well, so it is not a parity gap.
+
+## v0.7 sequencing
+
+Ordering principle unchanged from v0.3–v0.6: model + layout foundations
+first, pedagogical value weighted over engraving completeness, reuse the
+span/attachment infrastructure already built for slurs/hairpins/ottava.
+
+- [x] **0.7.1 Navigation marks** — Coda, Segno, D.C., D.S. (+ al Coda / al
+      Fine), Fine. Measure-level `NavigationMark` (like `startRepeat`/
+      `volta`), drawn on one shared line above the staff per system, MusicXML
+      `<direction>`/`<sound>` round-trip. **Playback jump execution
+      deferred** — the marks render and round-trip but the timeline does not
+      yet follow them; that state machine is its own slice.
+- [ ] **0.7.2 Piano / technical layer** — pedal marks + fingering numbers +
+      tremolo + arpeggio + glissando. One cluster; shares the
+      span/attach infra from hairpins and slurs.
+- [ ] **0.7.3 N-staff systems** — generalize `GrandStaff` from 2 → N staves
+      with brackets and nested part groups. Unblocks choral (SATB) and
+      organ/orchestral literature and a large slice of real-world
+      MusicXML. Largest structural item.
+- [ ] **0.7.4 Pedagogy breadth** — model note-coloring (pitch /
+      Boomwhacker / custom set), cue notes, notehead shapes, extra
+      articulations + dynamics, multiple lyric verses, rendered measure
+      numbers, cautionary accidentals.
+- [ ] **0.7.5 MIDI export** — off the existing playback timeline. Cheap,
+      high ecosystem value, contract-safe (no audio).
+- [ ] **0.7.6 Output & ingest** (demand-driven) — PNG/SVG export, ABC
+      import, alternate SMuFL fonts.
+
+Each item ships the full pipeline exactly as v0.3–v0.6 did: model + layout
++ unit tests in `partitura_core`, painting + goldens + interaction tests in
+`partitura`, gallery entry where visual, CONTRACT/CHANGELOG updates, gates
+green (`dart format`, analyze zero issues, all tests), push.
+
+---
+
+# Part II — original v0.1–v0.6 parity plan (2026-07-10, historical)
+
+Gap analysis against the three JavaScript incumbents — **VexFlow**,
+**OSMD** and **abcjs** — and the plan to close the gaps that matter.
+Written at v0.2. **All items below are now implemented** (v0.3–v0.6); the
+section is retained as the record of what shipped.
 
 ## Where we stand
 

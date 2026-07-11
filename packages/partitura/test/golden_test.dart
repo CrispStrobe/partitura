@@ -663,4 +663,18 @@ void main() {
       ),
     );
   });
+
+  testWidgets('44 navigation marks', (tester) async {
+    await golden(
+      tester,
+      '44_navigation_marks',
+      theme: const PartituraTheme(textFontFamily: 'Roboto'),
+      Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: '!nav=segno c4:q e4 g4 e4 | !nav=fine g4:q e4 c4 r | '
+            '!nav=coda c4:q e4 g4 c5 | !nav=dalSegnoAlFine g4:h e4',
+      ),
+      staffSpace: 9,
+    );
+  });
 }

@@ -199,6 +199,7 @@ Score _slice(
         endRepeat: measure.endRepeat,
         volta: measure.volta,
         multiRest: measure.multiRest,
+        navigation: measure.navigation,
       );
     }
     measures.add(measure);

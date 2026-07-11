@@ -56,6 +56,54 @@ class TupletSpan {
   String toString() => 'TupletSpan($startIndex..$endIndex, $actual:$normal)';
 }
 
+/// A navigation / repeat-structure mark drawn above the staff (v0.7.1).
+///
+/// Targets ([segno], [coda]) sit at the **start** of their measure; every
+/// jump instruction sits at the measure's **end**. A measure carries at
+/// most one, via [Measure.navigation]; the pair that a real score needs on
+/// the *same* bar (e.g. a coda target that is also a jump-from point) is
+/// modelled by putting the target on the bar and the instruction on the
+/// preceding one, as engravers do.
+///
+/// This is a rendering/model concern only: like repeats and voltas, the
+/// layout engine draws the marks but does not *execute* the jumps — that is
+/// the playback layer's job (see `playbackTimeline`).
+enum NavigationMark {
+  /// Segno sign (𝄋) — the target of a *dal segno* jump.
+  segno,
+
+  /// Coda sign (𝄌) — the target of a *to coda* jump.
+  coda,
+
+  /// "To Coda" — on the repeat, jump from here to the [coda].
+  toCoda,
+
+  /// "D.C." (da capo) — repeat from the beginning.
+  daCapo,
+
+  /// "D.C. al Fine" — repeat from the beginning, then stop at [fine].
+  daCapoAlFine,
+
+  /// "D.C. al Coda" — repeat from the beginning, then jump to the coda.
+  daCapoAlCoda,
+
+  /// "D.S." (dal segno) — repeat from the [segno].
+  dalSegno,
+
+  /// "D.S. al Fine" — repeat from the [segno], then stop at [fine].
+  dalSegnoAlFine,
+
+  /// "D.S. al Coda" — repeat from the [segno], then jump to the coda.
+  dalSegnoAlCoda,
+
+  /// "Fine" — the stopping point of a *da capo / dal segno al fine*.
+  fine;
+
+  /// Whether the mark is a jump *target* ([segno]/[coda]), drawn at the
+  /// start of its measure. The rest are instructions, drawn at the end.
+  bool get isTarget => this == segno || this == coda;
+}
+
 /// One measure: an ordered list of notes, chords and rests, with optional
 /// tuplet spans over contiguous element ranges and optional mid-score
 /// changes taking effect at this measure.
@@ -96,6 +144,10 @@ class Measure {
   /// ≥ 2 and requires empty [elements]/[voice2].
   final int? multiRest;
 
+  /// Navigation / repeat-structure mark drawn above the staff (v0.7.1), or
+  /// null. Targets sit at the measure start, instructions at its end.
+  final NavigationMark? navigation;
+
   /// Creates a measure from [elements] (treat the lists as immutable).
   const Measure(
     this.elements, {
@@ -108,6 +160,7 @@ class Measure {
     this.endRepeat = false,
     this.volta,
     this.multiRest,
+    this.navigation,
   })  : assert(volta == null || volta >= 1, 'volta must be >= 1'),
         assert(multiRest == null || multiRest >= 2, 'multiRest must be >= 2'),
         assert(multiRest == null || elements.length == 0,
@@ -153,7 +206,8 @@ class Measure {
       other.startRepeat == startRepeat &&
       other.endRepeat == endRepeat &&
       other.volta == volta &&
-      other.multiRest == multiRest;
+      other.multiRest == multiRest &&
+      other.navigation == navigation;
 
   @override
   int get hashCode => Object.hash(
@@ -166,7 +220,8 @@ class Measure {
       startRepeat,
       endRepeat,
       volta,
-      multiRest);
+      multiRest,
+      navigation);
 
   @override
   String toString() => 'Measure(${elements.length} elements'

@@ -35,6 +35,19 @@ void main() {
     );
 
     roundTrips(
+      'navigation targets (segno, coda)',
+      Score.simple(notes: '!nav=segno c4:q | !nav=coda d4:q'),
+    );
+
+    roundTrips(
+      'navigation instructions (D.C., D.S., To Coda, Fine)',
+      Score.simple(
+        notes: 'c4:q | !nav=toCoda d4:q | !nav=dalSegnoAlCoda e4:q | '
+            '!nav=daCapoAlFine f4:q | !nav=fine g4:q',
+      ),
+    );
+
+    roundTrips(
       'key, time, bass clef',
       Score.simple(
         clef: Clef.bass,
