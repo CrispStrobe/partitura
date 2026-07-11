@@ -327,6 +327,14 @@ final List<GalleryItem> galleryItems = [
     ),
     theme: const PartituraTheme(textFontFamily: 'Roboto'),
   ),
+  GalleryItem(
+    'Fingering numbers',
+    Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'c4:q=1 d4:q=2 e4:q=3 f4:q=4 | g4:q=5 e4:q=3 c4:q=1 r:q | '
+          'c4+e4+g4:h=1,3,5 r:h',
+    ),
+  ),
 ];
 
 /// Scrollable gallery of the corpus (plus grand-staff and multi-system

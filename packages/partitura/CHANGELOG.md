@@ -2,6 +2,9 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Fingering numbers** rendered (v0.7.2, via `partitura_core`): SMuFL
+  `fingering0`–`fingering9` glyphs above the note; golden scene 45,
+  gallery entry.
 - **Navigation marks** rendered (v0.7.1, via `partitura_core`): segno/coda
   glyphs and D.C./D.S./To Coda/Fine words above the staff (reusing the
   existing `GlyphPrimitive`/`TextPrimitive` paint paths — no new painter);

@@ -91,10 +91,16 @@ class Score {
   ///   `c4:q>'`).
   /// - Ornament markers (one per note, drawn above): `%` trill, `\$`
   ///   short trill (upper mordent), `&` mordent, `?` turn.
+  /// - Fingering: an `=` suffix with one digit (`c4:q=3`) or a
+  ///   comma-separated list for a chord (`c4+e4+g4:h=1,3,5`); may sit
+  ///   before other trailing markers (`c4:q=2~`).
   /// - Measure directives (tokens starting with `!`, conventionally first
   ///   in the measure): `!clef=bass`, `!key=-2`, `!time=3/4`, `!repeat`
   ///   (start repeat), `!endrepeat`, `!volta=1`, `!mrest=4` (a
-  ///   multi-measure rest standing for 4 silent measures; no notes).
+  ///   multi-measure rest standing for 4 silent measures; no notes),
+  ///   `!nav=<mark>` (navigation mark: `segno`, `coda`, `toCoda`,
+  ///   `daCapo`, `daCapoAlFine`, `daCapoAlCoda`, `dalSegno`,
+  ///   `dalSegnoAlFine`, `dalSegnoAlCoda`, `fine`).
   /// - A `;` splits a measure into two voices (`c5:q d5 ; c4:h`): voice 1
   ///   (before, stems up) and voice 2 (after, stems down). Directives and
   ///   tuplets belong to voice 1; ids keep counting across voices.
@@ -231,6 +237,18 @@ class Score {
             openTuplet = (elements.length, actual, normal);
             token = token.substring(tupletMatch[0]!.length);
           }
+          // Fingering `=N` (single digit) or `=1,3,5` for a chord. Anchored
+          // to the `=` (unique in a note token), so it may sit before other
+          // trailing markers (`c4:q=2~`, `c4:q>=3`).
+          var fingerings = const <int>[];
+          final fingerMatch = RegExp(r'=([0-9](?:,[0-9])*)').firstMatch(token);
+          if (fingerMatch != null) {
+            fingerings = [
+              for (final d in fingerMatch[1]!.split(',')) int.parse(d)
+            ];
+            token = token.substring(0, fingerMatch.start) +
+                token.substring(fingerMatch.end);
+          }
           var tied = false;
           var opensSlur = false;
           var closesSlur = false;
@@ -318,6 +336,9 @@ class Score {
               throw FormatException(
                   'A rest cannot carry grace notes: "$token"');
             }
+            if (fingerings.isNotEmpty) {
+              throw FormatException('A rest cannot carry fingerings: "$token"');
+            }
             target.add(RestElement(duration, id: id));
           } else {
             final sources = parts[0].split('+');
@@ -331,6 +352,7 @@ class Score {
               articulations: articulations,
               graceNotes: graceNotes,
               ornament: ornament,
+              fingerings: fingerings,
               id: id,
             ));
             if (closesSlur) {
@@ -500,6 +522,7 @@ class Score {
               articulations: element.articulations,
               graceNotes: element.graceNotes.map(move).toList(),
               ornament: element.ornament,
+              fingerings: element.fingerings,
               id: element.id,
             ),
           RestElement() => element,

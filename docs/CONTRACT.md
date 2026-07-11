@@ -90,7 +90,9 @@ value-based, invalid constructor arguments fail asserts in debug builds.
   `tieToNext` ties to the next note element — identical pitches only,
   a tie into a rest draws nothing; `articulations`: staccato, tenuto,
   accent, marcato, fermata; `graceNotes`: an acciaccatura group drawn as
-  small slashed eighths before the element) or `RestElement`.
+  small slashed eighths before the element; `fingerings`: digits 0–9
+  stacked above the note, list order from the notehead upward) or
+  `RestElement`.
 - `Score.slurs`: `Slur(startId, endId)` phrasing curves between note
   elements; unknown or reversed ids throw at layout time.
 - `Score.dynamics` (`DynamicMarking(elementId, pp…ff)`) and
@@ -122,6 +124,8 @@ artic    := trailing markers: ' staccato, _ tenuto, > accent,
             ^ marcato, @ fermata (combinable: c4:q>')
 ornament := trailing marker (one per note): % trill, \$ short trill,
             & mordent, ? turn
+finger   := '=' digit(s) suffix: =3 one finger, =1,3,5 per chord tone
+            (c4:q=3, c4+e4+g4:h=1,3,5); may precede other markers (c4:q=2~)
 grace    := '{pitch,pitch}' prefix before the chord ({g4}a4:q)
 directive:= measure-level tokens: !clef=bass, !key=-2, !time=3/4,
             !repeat, !endrepeat, !volta=1, !mrest=N,
@@ -217,7 +221,8 @@ beam windows follow the current state) · repeat barlines with SMuFL
 repeat dots · volta brackets with ending numbers above the staff ·
 navigation marks on one shared line above the staff per system (segno/coda
 glyphs at the measure start, D.C./D.S./To Coda/Fine words right-aligned at
-its end).
+its end) · fingering digits stacked above the note (clear of the notehead,
+stem and any articulation/ornament ink).
 
 Caveat: interaction quantization (`StaffTarget.pitchFor`) takes an
 explicit clef — apps using mid-score clef changes must map per measure.

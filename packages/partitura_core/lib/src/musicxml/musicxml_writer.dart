@@ -357,6 +357,11 @@ class _PartWriter {
     if (marks.isNotEmpty) {
       parts.add('<articulations>${marks.join()}</articulations>');
     }
+    if (element.fingerings.isNotEmpty) {
+      final fingers =
+          element.fingerings.map((f) => '<fingering>$f</fingering>').join();
+      parts.add('<technical>$fingers</technical>');
+    }
     return parts.isEmpty ? '' : '<notations>${parts.join()}</notations>';
   }
 

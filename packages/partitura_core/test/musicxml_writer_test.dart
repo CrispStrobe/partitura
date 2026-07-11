@@ -35,6 +35,11 @@ void main() {
     );
 
     roundTrips(
+      'fingerings on notes and chords',
+      Score.simple(notes: 'c4:q=1 d4:q=3 | e4+g4+c5:h=1,3,5 r:h'),
+    );
+
+    roundTrips(
       'navigation targets (segno, coda)',
       Score.simple(notes: '!nav=segno c4:q | !nav=coda d4:q'),
     );

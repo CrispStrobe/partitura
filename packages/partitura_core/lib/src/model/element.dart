@@ -82,6 +82,11 @@ class NoteElement extends MusicElement {
   /// Ornament drawn above the element (above a fermata when both exist).
   final Ornament? ornament;
 
+  /// Fingering digits (0–9) stacked above the note, in list order from the
+  /// notehead upward. Usually one per pitch of a chord, but the length is
+  /// not tied to [pitches]; an empty list draws nothing.
+  final List<int> fingerings;
+
   /// Creates a note or chord from [pitches] and a [duration].
   ///
   /// [pitches] must be non-empty. (Not asserted: list lengths cannot be
@@ -94,6 +99,7 @@ class NoteElement extends MusicElement {
     this.articulations = const {},
     this.graceNotes = const [],
     this.ornament,
+    this.fingerings = const [],
     super.id,
   });
 
@@ -106,6 +112,7 @@ class NoteElement extends MusicElement {
     Set<Articulation> articulations = const {},
     List<Pitch> graceNotes = const [],
     Ornament? ornament,
+    List<int> fingerings = const [],
     String? id,
   }) : this(
           pitches: [pitch],
@@ -115,6 +122,7 @@ class NoteElement extends MusicElement {
           articulations: articulations,
           graceNotes: graceNotes,
           ornament: ornament,
+          fingerings: fingerings,
           id: id,
         );
 
@@ -128,7 +136,8 @@ class NoteElement extends MusicElement {
       other.id == id &&
       listEquals(other.pitches, pitches) &&
       setEquals(other.articulations, articulations) &&
-      listEquals(other.graceNotes, graceNotes);
+      listEquals(other.graceNotes, graceNotes) &&
+      listEquals(other.fingerings, fingerings);
 
   @override
   int get hashCode => Object.hash(
@@ -139,13 +148,15 @@ class NoteElement extends MusicElement {
       id,
       Object.hashAll(pitches),
       Object.hashAllUnordered(articulations),
-      Object.hashAll(graceNotes));
+      Object.hashAll(graceNotes),
+      Object.hashAll(fingerings));
 
   @override
   String toString() =>
       'NoteElement(${pitches.join('+')}, $duration${tieToNext ? ', tied' : ''}'
       '${articulations.isEmpty ? '' : ', ${articulations.map((a) => a.name).join('+')}'}'
       '${graceNotes.isEmpty ? '' : ', grace: ${graceNotes.join('+')}'}'
+      '${fingerings.isEmpty ? '' : ', fingers: ${fingerings.join(',')}'}'
       '${id == null ? '' : ', id: $id'})';
 }
 

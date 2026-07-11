@@ -533,6 +533,7 @@ class _LayoutBuilder {
       }
     }
     _layoutArticulations(measure.elements, tieIndexOf);
+    _layoutFingerings(measure.elements, tieIndexOf);
     _layoutTuplets(measure, tieIndexOf);
   }
 
@@ -667,6 +668,7 @@ class _LayoutBuilder {
         }
       }
       _layoutArticulations(voices[v], tieIndexPerVoice[v]);
+      _layoutFingerings(voices[v], tieIndexPerVoice[v]);
     }
     _layoutTuplets(measure, tieIndexPerVoice[0]);
   }
@@ -725,6 +727,33 @@ class _LayoutBuilder {
         final box = meta.bBoxOf(glyph);
         _addGlyph(glyph, centerX - box.swX - box.width / 2, top - 0.4,
             elementId: element.id);
+      }
+    }
+  }
+
+  /// v0.7.2: fingering digits stacked above the note, from the topmost
+  /// notehead upward (first entry nearest the note).
+  void _layoutFingerings(
+    List<MusicElement> elements,
+    Map<int, int> tieIndexOf,
+  ) {
+    for (var i = 0; i < elements.length; i++) {
+      final element = elements[i];
+      if (element is! NoteElement || element.fingerings.isEmpty) continue;
+      final info = _tieInfos[tieIndexOf[i]!];
+      final centerX = (info.left + info.right) / 2;
+      // Start above the current ink over the note (heads, stem, ornaments,
+      // articulations already placed) so digits never collide with them.
+      final bounds = element.id == null ? null : _elementBounds[element.id];
+      final headTop = info.heads.map((h) => h.$4).reduce(min);
+      var y = min(bounds?.minY ?? headTop, headTop) - 0.6;
+      for (final finger in element.fingerings) {
+        if (finger < 0 || finger > 9) continue;
+        final glyph = SmuflGlyph.fingeringDigit(finger);
+        final box = meta.bBoxOf(glyph);
+        _addGlyph(glyph, centerX - box.swX - box.width / 2, y,
+            elementId: element.id);
+        y -= box.height + 0.2;
       }
     }
   }

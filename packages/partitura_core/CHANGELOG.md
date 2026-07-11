@@ -2,6 +2,11 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Fingering numbers** (v0.7.2): `NoteElement.fingerings` (digits 0–9)
+  stacked above the note from the notehead upward. DSL `=N` / `=1,3,5`
+  suffix (may precede other markers, e.g. `c4:q=2~`); MusicXML
+  `<technical><fingering>` round-trips (one per chord tone). Also fixes a
+  latent bug where a chord's ornament was dropped on MusicXML import.
 - **Navigation marks** (v0.7.1 long-tail parity): `Measure.navigation`
   (`NavigationMark`) — segno/coda targets and the D.C./D.S./To Coda/Fine
   instruction words (incl. *al Coda*/*al Fine*). DSL `!nav=<mark>`; drawn on

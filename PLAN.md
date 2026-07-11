@@ -81,6 +81,10 @@ reuses the existing model → layout → paint pipeline.
       Playback jump execution deferred)
 - [ ] 0.7.2 Piano / technical layer (pedal marks, fingering numbers,
       tremolo, arpeggio, glissando)
+      - [x] 0.7.2a Fingering numbers (`NoteElement.fingerings`, DSL `=N`,
+            SMuFL fingering glyphs, MusicXML `<technical>`; golden 45)
+      - [ ] 0.7.2b arpeggio · 0.7.2c glissando · 0.7.2d tremolo ·
+            0.7.2e pedal marks
 - [ ] 0.7.3 N-staff systems (generalize `GrandStaff` 2 → N, brackets +
       nested part groups; unblocks SATB/organ/orchestral)
 - [ ] 0.7.4 Pedagogy breadth (model note-coloring incl. Boomwhacker, cue

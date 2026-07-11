@@ -240,6 +240,8 @@ class _PartReader {
                   tieToNext: last.tieToNext || _startsTie(node),
                   articulations: last.articulations,
                   graceNotes: last.graceNotes,
+                  ornament: last.ornament,
+                  fingerings: last.fingerings,
                   id: last.id,
                 );
               }
@@ -264,6 +266,7 @@ class _PartReader {
               articulations: _articulationsOf(node),
               graceNotes: pendingGraces.isEmpty ? const [] : pendingGraces,
               ornament: _ornamentOf(node),
+              fingerings: _fingeringsOf(node),
               id: id,
             ));
             pendingGraces = <Pitch>[];
@@ -444,6 +447,19 @@ class _PartReader {
       }
     }
     return result.isEmpty ? const {} : result;
+  }
+
+  List<int> _fingeringsOf(XmlNode note) {
+    final result = <int>[];
+    for (final notations in _notations(note)) {
+      final technical = notations.child('technical');
+      if (technical == null) continue;
+      for (final mark in technical.childrenNamed('fingering')) {
+        final value = int.tryParse(mark.text.trim());
+        if (value != null) result.add(value);
+      }
+    }
+    return result.isEmpty ? const [] : result;
   }
 
   Ornament? _ornamentOf(XmlNode note) {
