@@ -27,36 +27,40 @@ ships* at the end for the mechanics.
   piano/technical layer. All green.
 - **In progress (partial):**
   - **Phase 1.4 (advanced beaming):** feathered beams (`FeatheredBeam`,
-    golden 50) and forced beam slant (`BeamSlant`, golden 51) done. Left:
-    beam subdivision, beams-over-rests, cross-measure.
+    golden 50), forced beam slant (`BeamSlant`, golden 51) and **beams over
+    rests** (golden 64) done. Left: beam subdivision, cross-measure.
   - **Phase 6 (guitar tablature)** — *pulled forward on request.* Done:
     `Tuning` + `fretFor`; `TabLayoutEngine` + `TabStaffView` (N-line staff,
     TAB clef, fret numbers, broken lines, barlines); rhythm (stems/flags/
     per-beat beams); techniques so far — slides (reuse `glissandos`),
     hammer-on/pull-off (reuse `slurs`), string bends (`Bend`), vibrato
     (`Vibrato`), palm mute / let ring (`PalmMute`/`LetRing`), dead / ghost
-    notes and natural harmonics (`TabNoteMark`). Goldens 52–59. Contract
+    notes, natural + **artificial + pinch** harmonics (`TabNoteMark` /
+    `TabNoteStyle`), tapping (`Tap`), tremolo bar (`TremoloBar`), chord
+    diagrams (`ChordDiagram`/`PlacedChordDiagram`). Goldens 52–63. Contract
     "tablature out" clause lifted.
-- **Test counts:** 594 core + 129 widget, all gates green.
+  - **Phase 7.3/7.4 (interchange):** MusicXML, MIDI, GPIF and the full Guitar
+    Pro binary line (GP3/4/5) + GP6 `.gpx` + GP7/8 `.gp` all import, with the
+    common techniques; nested repeats now expand in `playbackTimeline`.
+- **Test counts:** 701 core + 141 widget + 39 CLI, all gates green.
 
 ### ▶ Where the next agent picks up
 
-Two open threads; either is a valid continuation (ask the owner which):
+Remaining, roughly by leverage:
 
-1. **Finish Phase 6 tab techniques** (the owner asked for tab "fully").
-   Vibrato, palm mute / let ring, dead / ghost notes and natural harmonics
-   are done (goldens 56–59). Next batch — artificial/pinch harmonics (a label
-   next to the bracketed fret), tapping ("T"/"+" marker), tremolo bar,
-   rasgueado, then chord/fretboard diagrams, then import of the common
-   tablature
-   interchange formats (see Phase 7.3). Model each like `Bend` (a
-   `Score.<list>` keyed by note id, rendered in `TabLayoutEngine`) or reuse an
-   existing span. All tab code: `theory/tuning.dart`,
-   `layout/tab_layout.dart`, `rendering/tab_staff_view.dart`.
-2. **Resume the Phase sequence** at Phase 1.4's remainder, then Phase 2
-   (structure / N-staff — also unblocks tab-paired-with-notation), Phase 3
-   (interaction moat), Phase 4 (theory moat), Phase 5 (breadth), Phase 7
-   (interchange).
+1. **More tab techniques** (Phase 6.4 tail) — tremolo picking, grace notes,
+   trill, staccato/accent, slap/pop (bass), p-i-m-a fingering, rasgueado.
+   Model each like `Bend` (a `Score.<list>` keyed by note id, rendered in
+   `TabLayoutEngine`) or reuse an existing span. The GP binary/GPIF readers
+   already parse most of these bytes — wire them through as you add each mark.
+   Tab code: `theory/tuning.dart`, `layout/tab_layout.dart`,
+   `rendering/tab_staff_view.dart`.
+2. **Resume the Phase sequence** at Phase 1.4's remainder (beam subdivision,
+   cross-measure beams), then Phase 2 (structure / N-staff — also unblocks
+   tab-paired-with-notation, Phase 6.3), Phase 3 (interaction moat), Phase 4
+   (theory moat), Phase 5 (breadth).
+3. **Interchange tail** — `.ptb` (PowerTab) is blocked on a freely-licensed
+   test corpus; Braille export (7.5) is the last unstarted 7.x item.
 
 **Note — a correction the next agent should trust:** Phase 1.1 "optical
 spacing" is **already implemented** (`layout_engine.dart` `_advance` spaces
@@ -138,9 +142,9 @@ Raises the quality of everything already rendered. Slice order:
       subdivision at metric points, custom slope / independent beam-end
       heights, beams over rests, cross-measure beaming. (Cross-staff beaming
       lands with Phase 2.) **Done:** feathered beams (`FeatheredBeam`; golden
-      50), forced beam slant / force-horizontal (`BeamSlant`; golden 51).
-      **Left:** beam subdivision, beams over rests (a default-behavior change —
-      needs per-case golden verification), cross-measure.
+      50), forced beam slant / force-horizontal (`BeamSlant`; golden 51),
+      beams over rests (a rest inside a beat no longer breaks the beam; golden
+      64). **Left:** beam subdivision, cross-measure.
 
 ### Phase 2 — Score structure (multi-staff)
 - [ ] **2.1 N-staff systems** — generalize the grand staff from 2 → N staves,
@@ -264,9 +268,11 @@ pitch → (string, fret) assignment. Also requires lifting the current
       fretboard diagrams (`ChordDiagram` + `layoutChordDiagram` — grid, dots,
       x·o, barre, base-fret label; `PlacedChordDiagram` places them above the
       notation or tab staff over a note — golden 62); tapping (`Tap` — "T") and
-      tremolo-bar
-      (`TremoloBar` — whammy V) — golden 61. **Left:** artificial/pinch
-      harmonics, tremolo picking, rasgueado, and the rest of the checklist.
+      tremolo-bar (`TremoloBar` — whammy V) — golden 61; artificial + pinch
+      harmonics (`TabNoteStyle.artificialHarmonic`/`.pinchHarmonic` — bracketed
+      fret + "A.H."/"P.H." label) — golden 63. **Left:** tremolo picking, grace
+      notes, trill, staccato/accent, slap/pop, fingering, rasgueado, and the
+      rest of the checklist.
 - [ ] **6.5 Tunings & other fretted instruments** (bass, drop-D, DADGAD…;
       7/8-string, banjo, ukulele, mandolin).
 
@@ -301,18 +307,26 @@ enum encodings so files round-trip cleanly), tiered by importance:
       (`asciiTabToScore`); Guitar Pro import **and** export (`scoreFromGpif` /
       `scoreToGpif` GPIF subset + the `.gp` ZIP container in `partitura_cli`).
       GP import also reads the common playing techniques (HO/PO, slides, bends,
-      vibrato, dead, harmonic) into the tab marks. All formats round-trip
-      transparently through the shared `Score` model for the data they share.
-      GP6 `.gpx` (BCFZ/BCFS container over the same gpif) and GP5 `.gp5` (a
-      from-scratch binary reader) both import via the CLI. **Left:** the older
-      binary `.gp3/.gp4` versions (share GP5's structure) and `.ptb` (PowerTab,
-      no freely-licensed test corpus).
+      vibrato, palm mute, let ring, dead, natural/artificial/pinch harmonic)
+      into the tab marks. All formats round-trip transparently through the
+      shared `Score` model for the data they share. The full Guitar Pro binary
+      line imports via `gp_binary_reader.dart` — GP3 (`.gp3`), GP4 (`.gp4`),
+      GP5 (`.gp5`), a from-scratch byte-exact reader — plus GP6 `.gpx`
+      (BCFZ/BCFS) and GP7/8 `.gp` (GPIF-in-ZIP), all wired into the CLI and
+      regression-tested against real vendored alphaTab fixtures
+      (`partitura_cli/test/gp_fixtures_test.dart`; GP3/4/5 agree note-for-note
+      on the shared techniques). **Left:** `.ptb` (PowerTab, no freely-licensed
+      test corpus).
 - [x] **7.4 Repeat unfolding** — `playbackTimeline` linearizes repeats /
       voltas / D.C. / D.S. / To Coda / al Fine / al Coda into performance
-      order, executing the navigation jumps (one level; after a D.C./D.S.
-      return the score plays straight through — inner repeats not re-taken).
-      **Closes the playback jump execution deferred in 0.7.1.** *Left:*
-      nested/second-level repeats and repeat-inside-return re-expansion.
+      order, executing the navigation jumps. Repeat barlines expand with a
+      stack, so **nested** `|: … |: … :| … :|` unfolds correctly (inner
+      completes before the outer jumps back); voltas select by the enclosing
+      repeat's pass. After a D.C./D.S. return the score plays straight through.
+      **Closes the playback jump execution deferred in 0.7.1.** *Left:* a
+      repeat-count model field (every `:|` currently repeats once); volta
+      brackets that are also inner-repeat starts (ambiguous); repeat
+      re-expansion after a D.C./D.S. return.
 - [ ] **7.5 Braille music export** — rare in this space; a real accessibility
       differentiator.
 - [x] **7.6 CLI tool** (`partitura_cli`) — a pure-Dart command line for
