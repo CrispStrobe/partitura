@@ -245,5 +245,9 @@ Score _slice(
       for (final gliss in score.glissandos)
         if (ids.contains(gliss.startId) && ids.contains(gliss.endId)) gliss,
     ],
+    pedals: [
+      for (final pedal in score.pedals)
+        if (ids.contains(pedal.startId) && ids.contains(pedal.endId)) pedal,
+    ],
   );
 }

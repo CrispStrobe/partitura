@@ -51,6 +51,9 @@ class Score {
   /// Glissando/slide lines between note elements (model-only).
   final List<Glissando> glissandos;
 
+  /// Sustain-pedal spans between note elements (model-only).
+  final List<Pedal> pedals;
+
   /// Creates a score (treat the lists as immutable).
   const Score({
     required this.clef,
@@ -64,6 +67,7 @@ class Score {
     this.annotations = const [],
     this.ottavas = const [],
     this.glissandos = const [],
+    this.pedals = const [],
   });
 
   /// Builds a score from a terse note string, for tests and games.
@@ -564,6 +568,7 @@ class Score {
       annotations: annotations,
       ottavas: ottavas,
       glissandos: glissandos,
+      pedals: pedals,
     );
   }
 
@@ -623,7 +628,8 @@ class Score {
       listEquals(other.lyrics, lyrics) &&
       listEquals(other.annotations, annotations) &&
       listEquals(other.ottavas, ottavas) &&
-      listEquals(other.glissandos, glissandos);
+      listEquals(other.glissandos, glissandos) &&
+      listEquals(other.pedals, pedals);
 
   @override
   int get hashCode => Object.hash(
@@ -638,6 +644,7 @@ class Score {
         Object.hashAll(annotations),
         Object.hashAll(ottavas),
         Object.hashAll(glissandos),
+        Object.hashAll(pedals),
       );
 
   @override

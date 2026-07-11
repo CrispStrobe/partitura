@@ -99,6 +99,9 @@ value-based, invalid constructor arguments fail asserts in debug builds.
   elements; unknown or reversed ids throw at layout time.
 - `Score.glissandos`: `Glissando(startId, endId)` straight slide lines
   between two notes (model-only); same id/order rules as slurs.
+- `Score.pedals`: `Pedal(startId, endId)` sustain-pedal spans (model-only);
+  "Ped." under the start note and a release star under the end, below the
+  staff.
 - `Score.dynamics` (`DynamicMarking(elementId, pp…ff)`) and
   `Score.hairpins` (`Hairpin(startId, endId, crescendo|diminuendo)`) —
   model-only (no DSL shorthand); drawn on a dynamics line below the
@@ -229,7 +232,8 @@ its end) · fingering digits stacked above the note (clear of the notehead,
 stem and any articulation/ornament ink) · arpeggio as a vertical wavy line
 (tiled `wiggleArpeggiatoUp`) just left of the chord, capped by an up/down
 direction arrowhead · glissando as a straight line between two noteheads ·
-tremolo strokes (`tremolo1`…`tremolo5`) centered on the stem.
+tremolo strokes (`tremolo1`…`tremolo5`) centered on the stem · sustain-pedal
+"Ped."/release-star marks below the staff.
 
 Caveat: interaction quantization (`StaffTarget.pitchFor`) takes an
 explicit clef — apps using mid-score clef changes must map per measure.

@@ -395,6 +395,22 @@ final List<GalleryItem> galleryItems = [
       ],
     ),
   ),
+  GalleryItem(
+    'Sustain pedal (Ped. … *)',
+    Score(
+      clef: Clef.treble,
+      timeSignature: TimeSignature.fourFour,
+      measures: [
+        Measure([
+          NoteElement.note(Pitch.parse('c4'), NoteDuration.quarter, id: 'a'),
+          NoteElement.note(Pitch.parse('e4'), NoteDuration.quarter),
+          NoteElement.note(Pitch.parse('g4'), NoteDuration.quarter),
+          NoteElement.note(Pitch.parse('c5'), NoteDuration.quarter, id: 'd'),
+        ]),
+      ],
+      pedals: const [Pedal('a', 'd')],
+    ),
+  ),
 ];
 
 /// Scrollable gallery of the corpus (plus grand-staff and multi-system

@@ -91,6 +91,7 @@ class _PartReader {
   final _measures = <Measure>[];
   final _slurs = <Slur>[];
   final _glissandos = <Glissando>[];
+  final _pedals = <Pedal>[];
   final _dynamics = <DynamicMarking>[];
   final _hairpins = <Hairpin>[];
   final _lyrics = <Lyric>[];
@@ -99,6 +100,7 @@ class _PartReader {
   // Open spans keyed by MusicXML "number" attribute.
   final _openSlurs = <String, String>{};
   final _openGliss = <String, String>{};
+  final _openPedals = <String, String>{};
   final _openWedges = <String, (String, HairpinType)>{};
   final _openOttavas = <String, (String, bool)>{};
   final _ottavas = <Ottava>[];
@@ -122,6 +124,7 @@ class _PartReader {
       annotations: _annotations,
       ottavas: _ottavas,
       glissandos: _glissandos,
+      pedals: _pedals,
     );
   }
 
@@ -216,6 +219,8 @@ class _PartReader {
           if (wedge != null) _handleWedge(wedge, elements, voice2);
           final shift = node.child('direction-type')?.child('octave-shift');
           if (shift != null) _handleOctaveShift(shift);
+          final pedal = node.child('direction-type')?.child('pedal');
+          if (pedal != null) _handlePedal(pedal);
           navigation ??= _navigationOf(node);
         case 'harmony':
           pendingHarmony = _harmonyText(node);
@@ -532,6 +537,19 @@ class _PartReader {
             if (start != null) _glissandos.add(Glissando(start, id));
         }
       }
+    }
+  }
+
+  void _handlePedal(XmlNode pedal) {
+    final number = pedal.attributes['number'] ?? '1';
+    switch (pedal.attributes['type']) {
+      case 'start':
+        _openPedals[number] = 'e${idOffset + _nextId}';
+      case 'stop':
+        final start = _openPedals.remove(number);
+        if (start != null) {
+          _pedals.add(Pedal(start, 'e${idOffset + _nextId - 1}'));
+        }
     }
   }
 

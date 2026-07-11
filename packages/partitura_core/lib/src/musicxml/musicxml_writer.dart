@@ -267,6 +267,12 @@ class _PartWriter {
                 'size="8"/></direction-type></direction>');
           }
         }
+        for (final pedal in score.pedals) {
+          if (pedal.startId == id) {
+            out.writeln('      <direction><direction-type>'
+                '<pedal type="start" line="no"/></direction-type></direction>');
+          }
+        }
         final annotation = _annotationsById[id];
         if (annotation != null) {
           out.writeln('      <harmony><root><root-step>'
@@ -323,6 +329,12 @@ class _PartWriter {
             out.writeln('      <direction><direction-type>'
                 '<octave-shift type="stop" size="8"/>'
                 '</direction-type></direction>');
+          }
+        }
+        for (final pedal in score.pedals) {
+          if (pedal.endId == id) {
+            out.writeln('      <direction><direction-type>'
+                '<pedal type="stop" line="no"/></direction-type></direction>');
           }
         }
       }

@@ -2,6 +2,10 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Sustain-pedal marks** (v0.7.2): `Score.pedals` (`Pedal(startId, endId)`)
+  — "Ped." under the start note and a release star under the end, on a line
+  below the staff. Model-only; MusicXML `<pedal type=start/stop>`
+  round-trips. **Completes the v0.7.2 piano/technical cluster.**
 - **Tremolo** (v0.7.2): `NoteElement.tremolo` (1–5 strokes) drawn through
   the stem of a stemmed, unbeamed note. Model-only; MusicXML
   `<ornaments><tremolo type="single">` round-trips (coexists with a trill/

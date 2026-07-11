@@ -79,8 +79,7 @@ reuses the existing model → layout → paint pipeline.
       Fine; measure-level `NavigationMark`, shared-baseline glyphs/words
       above staff, DSL `!nav=`, MusicXML round trip; golden 44 + gallery.
       Playback jump execution deferred)
-- [ ] 0.7.2 Piano / technical layer (pedal marks, fingering numbers,
-      tremolo, arpeggio, glissando)
+- [x] 0.7.2 Piano / technical layer — **complete**
       - [x] 0.7.2a Fingering numbers (`NoteElement.fingerings`, DSL `=N`,
             SMuFL fingering glyphs, MusicXML `<technical>`; golden 45)
       - [x] 0.7.2b Arpeggio (`NoteElement.arpeggio` up/down, wavy line +
@@ -89,7 +88,8 @@ reuses the existing model → layout → paint pipeline.
             MusicXML `<slide>`; golden 47)
       - [x] 0.7.2d Tremolo (`NoteElement.tremolo` 1–5 strokes through the
             stem, model-only, MusicXML `<tremolo>`; golden 48)
-      - [ ] 0.7.2e pedal marks
+      - [x] 0.7.2e Pedal marks (`Score.pedals`, Ped./release star below the
+            staff, model-only, MusicXML `<pedal>`; golden 49)
 - [ ] 0.7.3 N-staff systems (generalize `GrandStaff` 2 → N, brackets +
       nested part groups; unblocks SATB/organ/orchestral)
 - [ ] 0.7.4 Pedagogy breadth (model note-coloring incl. Boomwhacker, cue

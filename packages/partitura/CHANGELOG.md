@@ -2,6 +2,8 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Sustain-pedal marks** rendered (v0.7.2, via `partitura_core`):
+  "Ped." … release star below the staff; golden scene 49, gallery entry.
 - **Tremolo** rendered (v0.7.2, via `partitura_core`): 1–5 stroke glyphs
   through the stem; golden scene 48, gallery entry.
 - **Glissando / slide** rendered (v0.7.2, via `partitura_core`): straight

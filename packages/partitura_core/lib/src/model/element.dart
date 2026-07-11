@@ -242,6 +242,30 @@ class Glissando {
   String toString() => 'Glissando($startId -> $endId)';
 }
 
+/// A sustain-pedal span: "Ped." under the start note and a release star
+/// under the end note, referenced by their ids. Same id/order rules as
+/// [Slur]/[Glissando]. Model-only (no DSL shorthand).
+class Pedal {
+  /// Id of the note the pedal presses on.
+  final String startId;
+
+  /// Id of the note the pedal releases on.
+  final String endId;
+
+  /// Creates a pedal span from [startId] to [endId].
+  const Pedal(this.startId, this.endId);
+
+  @override
+  bool operator ==(Object other) =>
+      other is Pedal && other.startId == startId && other.endId == endId;
+
+  @override
+  int get hashCode => Object.hash(startId, endId);
+
+  @override
+  String toString() => 'Pedal($startId -> $endId)';
+}
+
 /// A rest.
 class RestElement extends MusicElement {
   /// Creates a rest of [duration].

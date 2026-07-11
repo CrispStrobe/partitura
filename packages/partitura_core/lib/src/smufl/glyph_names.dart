@@ -229,6 +229,12 @@ abstract final class SmuflGlyph {
     return 'tremolo$strokes';
   }
 
+  /// Piano sustain-pedal "Ped." mark (pedal down).
+  static const String keyboardPedalPed = 'keyboardPedalPed';
+
+  /// Piano sustain-pedal release star (pedal up).
+  static const String keyboardPedalUp = 'keyboardPedalUp';
+
   /// Arpeggio wiggle segment; tiles vertically to form the rolled-chord line.
   static const String wiggleArpeggiatoUp = 'wiggleArpeggiatoUp';
 

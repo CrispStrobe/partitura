@@ -107,10 +107,9 @@ span/attachment infrastructure already built for slurs/hairpins/ottava.
       `<direction>`/`<sound>` round-trip. **Playback jump execution
       deferred** — the marks render and round-trip but the timeline does not
       yet follow them; that state machine is its own slice.
-- [~] **0.7.2 Piano / technical layer** — pedal marks + fingering numbers +
-      tremolo + arpeggio + glissando. One cluster; shares the
-      span/attach infra from hairpins and slurs. **Done:** fingerings
-      (0.7.2a), arpeggio (0.7.2b). **Left:** glissando, tremolo, pedal.
+- [x] **0.7.2 Piano / technical layer** — **complete:** fingerings (0.7.2a),
+      arpeggio (0.7.2b), glissando (0.7.2c), tremolo (0.7.2d), pedal marks
+      (0.7.2e). All share the span/attach infra from hairpins and slurs.
 - [ ] **0.7.3 N-staff systems** — generalize `GrandStaff` from 2 → N staves
       with brackets and nested part groups. Unblocks choral (SATB) and
       organ/orchestral literature and a large slice of real-world

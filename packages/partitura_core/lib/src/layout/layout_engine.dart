@@ -270,6 +270,7 @@ class _LayoutBuilder {
     _layoutGlissandos();
     _layoutOttavas();
     _layoutDynamics();
+    _layoutPedals();
     _layoutLyrics();
     _layoutNavigation();
     _layoutAnnotations();
@@ -1513,6 +1514,40 @@ class _LayoutBuilder {
       final tipX = hairpin.type == HairpinType.crescendo ? x1 : x2;
       _addLine(Point(tipX, midY), Point(openX, midY - halfOpening), thickness);
       _addLine(Point(tipX, midY), Point(openX, midY + halfOpening), thickness);
+    }
+  }
+
+  /// v0.7.2: sustain-pedal marks — "Ped." under the start note and a release
+  /// star under the end note, on a line below the staff and any dynamics.
+  void _layoutPedals() {
+    for (final pedal in score.pedals) {
+      final startIdx =
+          _tieInfos.indexWhere((i) => i.note != null && i.id == pedal.startId);
+      final endIdx =
+          _tieInfos.indexWhere((i) => i.note != null && i.id == pedal.endId);
+      if (startIdx < 0 || endIdx < 0) {
+        throw ArgumentError('$pedal references an unknown note element id');
+      }
+      if (endIdx < startIdx) {
+        throw ArgumentError('$pedal must run forward in reading order');
+      }
+      final start = _tieInfos[startIdx];
+      final end = _tieInfos[endIdx];
+      // Below all spanned ink and clear of the dynamics line.
+      var y = 8.0;
+      for (final info in _tieInfos.sublist(startIdx, endIdx + 1)) {
+        final bounds = info.id == null ? null : _elementBounds[info.id];
+        if (bounds != null) y = max(y, bounds.maxY + 1.2);
+      }
+      void mark(String glyph, _TieInfo info, String id) {
+        final box = meta.bBoxOf(glyph);
+        _addGlyph(
+            glyph, (info.left + info.right) / 2 - box.swX - box.width / 2, y,
+            elementId: id);
+      }
+
+      mark(SmuflGlyph.keyboardPedalPed, start, pedal.startId);
+      mark(SmuflGlyph.keyboardPedalUp, end, pedal.endId);
     }
   }
 

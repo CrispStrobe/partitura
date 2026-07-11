@@ -757,4 +757,25 @@ void main() {
       staffSpace: 10,
     );
   });
+
+  testWidgets('49 pedal marks', (tester) async {
+    await golden(
+      tester,
+      '49_pedal',
+      Score(
+        clef: Clef.treble,
+        timeSignature: TimeSignature.fourFour,
+        measures: [
+          Measure([
+            NoteElement.note(Pitch.parse('c4'), NoteDuration.quarter, id: 'a'),
+            NoteElement.note(Pitch.parse('e4'), NoteDuration.quarter),
+            NoteElement.note(Pitch.parse('g4'), NoteDuration.quarter),
+            NoteElement.note(Pitch.parse('c5'), NoteDuration.quarter, id: 'd'),
+          ]),
+        ],
+        pedals: const [Pedal('a', 'd')],
+      ),
+      staffSpace: 10,
+    );
+  });
 }
