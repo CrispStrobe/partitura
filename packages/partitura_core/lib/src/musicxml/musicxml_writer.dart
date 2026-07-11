@@ -109,6 +109,9 @@ class _PartWriter {
   late final Map<String, DynamicLevel> _dynamicsById = {
     for (final marking in score.dynamics) marking.elementId: marking.level,
   };
+  late final Map<String, JazzArticulation> _jazzById = {
+    for (final mark in score.jazzMarks) mark.noteId: mark.type,
+  };
   late final Map<String, String> _slurStartsById = {
     for (var i = 0; i < score.slurs.length; i++)
       score.slurs[i].startId: '${i % 6 + 1}',
@@ -401,12 +404,17 @@ class _PartWriter {
     if (ornamentTag.isNotEmpty || tremoloTag.isNotEmpty) {
       parts.add('<ornaments>$ornamentTag$tremoloTag</ornaments>');
     }
+    final jazz = id == null ? null : _jazzById[id];
     final marks = <String>[
       if (element.articulations.contains(Articulation.staccato)) '<staccato/>',
       if (element.articulations.contains(Articulation.tenuto)) '<tenuto/>',
       if (element.articulations.contains(Articulation.accent)) '<accent/>',
       if (element.articulations.contains(Articulation.marcato))
         '<strong-accent/>',
+      if (jazz == JazzArticulation.scoop) '<scoop/>',
+      if (jazz == JazzArticulation.plop) '<plop/>',
+      if (jazz == JazzArticulation.doit) '<doit/>',
+      if (jazz == JazzArticulation.fall) '<falloff/>',
     ];
     if (marks.isNotEmpty) {
       parts.add('<articulations>${marks.join()}</articulations>');

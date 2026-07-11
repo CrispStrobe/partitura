@@ -75,6 +75,18 @@ abstract final class SmuflGlyph {
   /// Circled-X notehead ([NoteheadShape.circleX]).
   static const String noteheadCircleX = 'noteheadCircleX';
 
+  /// Jazz scoop — slides up into the note ([JazzArticulation.scoop]).
+  static const String brassScoop = 'brassScoop';
+
+  /// Jazz doit — a short upward flick off the note ([JazzArticulation.doit]).
+  static const String brassDoitMedium = 'brassDoitMedium';
+
+  /// Jazz fall / falloff — drops away below the note ([JazzArticulation.fall]).
+  static const String brassFallLipShort = 'brassFallLipShort';
+
+  /// Jazz plop — drops into the note from above ([JazzArticulation.plop]).
+  static const String brassPlop = 'brassPlop';
+
   /// Eighth-note flag for an upward stem.
   static const String flag8thUp = 'flag8thUp';
 

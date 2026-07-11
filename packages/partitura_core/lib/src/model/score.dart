@@ -90,6 +90,9 @@ class Score {
   /// notation and tab staves).
   final List<PlacedChordDiagram> chordDiagrams;
 
+  /// Jazz / brass articulations (scoop, doit, fall, plop) on note elements.
+  final List<JazzMark> jazzMarks;
+
   /// Creates a score (treat the lists as immutable).
   const Score({
     required this.clef,
@@ -115,6 +118,7 @@ class Score {
     this.taps = const [],
     this.tremoloBars = const [],
     this.chordDiagrams = const [],
+    this.jazzMarks = const [],
   });
 
   /// Builds a score from a terse note string, for tests and games.
@@ -588,6 +592,7 @@ class Score {
               fingerings: element.fingerings,
               arpeggio: element.arpeggio,
               tremolo: element.tremolo,
+              notehead: element.notehead,
               id: element.id,
             ),
           RestElement() => element,
@@ -614,6 +619,7 @@ class Score {
             volta: measure.volta,
             multiRest: measure.multiRest,
             navigation: measure.navigation,
+            barline: measure.barline,
           ),
       ],
       slurs: slurs,
@@ -635,6 +641,7 @@ class Score {
       taps: taps,
       tremoloBars: tremoloBars,
       chordDiagrams: chordDiagrams,
+      jazzMarks: jazzMarks,
     );
   }
 
@@ -706,7 +713,8 @@ class Score {
       listEquals(other.tabVoicings, tabVoicings) &&
       listEquals(other.taps, taps) &&
       listEquals(other.tremoloBars, tremoloBars) &&
-      listEquals(other.chordDiagrams, chordDiagrams);
+      listEquals(other.chordDiagrams, chordDiagrams) &&
+      listEquals(other.jazzMarks, jazzMarks);
 
   @override
   int get hashCode => Object.hash(
@@ -736,6 +744,7 @@ class Score {
           Object.hashAll(taps),
           Object.hashAll(tremoloBars),
           Object.hashAll(chordDiagrams),
+          Object.hashAll(jazzMarks),
         ),
       );
 

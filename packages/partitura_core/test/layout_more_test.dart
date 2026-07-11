@@ -357,6 +357,60 @@ void main() {
     });
   });
 
+  group('jazz articulations', () {
+    test('each mark draws its brass glyph beside the note', () {
+      final base = Score.simple(notes: 'g4:q b4 d5 g5');
+      final layout = layoutOf(Score(
+        clef: base.clef,
+        measures: base.measures,
+        jazzMarks: const [
+          JazzMark('e0', JazzArticulation.scoop),
+          JazzMark('e1', JazzArticulation.doit),
+          JazzMark('e2', JazzArticulation.fall),
+          JazzMark('e3', JazzArticulation.plop),
+        ],
+      ));
+      final glyphs = layout.primitives
+          .whereType<GlyphPrimitive>()
+          .map((g) => g.smuflName)
+          .toSet();
+      expect(
+          glyphs,
+          containsAll(<String>[
+            SmuflGlyph.brassScoop,
+            SmuflGlyph.brassDoitMedium,
+            SmuflGlyph.brassFallLipShort,
+            SmuflGlyph.brassPlop,
+          ]));
+    });
+
+    test('before-marks sit left of the note, after-marks right', () {
+      final base = Score.simple(notes: 'g4:q');
+      final scoop = layoutOf(Score(
+        clef: base.clef,
+        measures: base.measures,
+        jazzMarks: const [JazzMark('e0', JazzArticulation.scoop)],
+      ));
+      final doit = layoutOf(Score(
+        clef: base.clef,
+        measures: base.measures,
+        jazzMarks: const [JazzMark('e0', JazzArticulation.doit)],
+      ));
+      double noteX(ScoreLayout l) => l.primitives
+          .whereType<GlyphPrimitive>()
+          .firstWhere((g) => g.smuflName.startsWith('notehead'))
+          .position
+          .x;
+      double markX(ScoreLayout l, String name) => l.primitives
+          .whereType<GlyphPrimitive>()
+          .firstWhere((g) => g.smuflName == name)
+          .position
+          .x;
+      expect(markX(scoop, SmuflGlyph.brassScoop), lessThan(noteX(scoop)));
+      expect(markX(doit, SmuflGlyph.brassDoitMedium), greaterThan(noteX(doit)));
+    });
+  });
+
   group('notehead shapes', () {
     Set<String> noteheadsOf(ScoreLayout layout) => layout.primitives
         .whereType<GlyphPrimitive>()

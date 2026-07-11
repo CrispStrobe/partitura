@@ -289,7 +289,10 @@ No peer renderer does any of this; all build on the existing pitch / interval
 - [ ] **5.7 Time-signature breadth** — common/cut symbols, additive/composite
       meters, local per-staff meters.
 - [ ] **5.8 Custom / atonal key signatures + cancelling-naturals policy.**
-- [ ] **5.9 Jazz articulations** — scoops, falls, doits, plops, flips, smears.
+- [~] **5.9 Jazz articulations** — **Done:** scoop, doit, fall (falloff), plop
+      (`JazzMark`/`JazzArticulation`, brass glyphs before/after the notehead,
+      MusicXML `<articulations>` round-trip, golden 69). **Left:** lift, flip,
+      smear, bend (render-only; not standard MusicXML articulations).
 - [ ] **5.10 Microtonal accidentals + remappable alteration glyphs**
       (quarter tones; non-Western systems). *Requires lifting the current
       "microtonal out" clause — a conscious contract change.*

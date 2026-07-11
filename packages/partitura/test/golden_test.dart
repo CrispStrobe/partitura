@@ -1078,6 +1078,29 @@ void main() {
     );
   });
 
+  testWidgets('69 jazz articulations: scoop, doit, fall, plop', (tester) async {
+    final base = Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'g4:q b4 d5 g5',
+    );
+    await golden(
+      tester,
+      '69_jazz_articulations',
+      Score(
+        clef: base.clef,
+        timeSignature: base.timeSignature,
+        measures: base.measures,
+        jazzMarks: const [
+          JazzMark('e0', JazzArticulation.scoop), // before, rises in
+          JazzMark('e1', JazzArticulation.doit), // after, flicks up
+          JazzMark('e2', JazzArticulation.fall), // after, drops
+          JazzMark('e3', JazzArticulation.plop), // before, drops in
+        ],
+      ),
+      staffSpace: 12,
+    );
+  });
+
   testWidgets('68 multi-verse lyrics stack below the staff', (tester) async {
     final base = Score.simple(
       timeSignature: TimeSignature.fourFour,

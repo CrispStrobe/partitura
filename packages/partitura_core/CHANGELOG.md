@@ -2,6 +2,13 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Jazz articulations** (Phase 5.9): `JazzMark` / `JazzArticulation` — scoop,
+  doit, fall (falloff) and plop — draw a brass glyph just before or after the
+  notehead (golden 69). They round-trip as standard MusicXML `<articulations>`
+  (`<scoop>` / `<doit>` / `<falloff>` / `<plop>`).
+- **Fix — `transposedBy` dropped new note/measure fields**: transposing a score
+  silently lost notehead shapes and barline styles (added earlier this cycle).
+  Both are now carried through (regression-tested), along with jazz marks.
 - **Multi-verse lyrics** (Phase 5.4): `Lyric.verse` (1-based) stacks verses on
   their own baselines below the staff (golden 68). Each verse de-overlaps
   independently and its hyphens/extenders align to its own syllables. Reads and

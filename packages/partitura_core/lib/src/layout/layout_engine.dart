@@ -279,6 +279,7 @@ class _LayoutBuilder {
     _layoutLyrics();
     _layoutNavigation();
     _layoutAnnotations();
+    _layoutJazzArticulations();
     _layoutChordDiagrams();
     final width = _addFinalBarline();
 
@@ -1787,6 +1788,39 @@ class _LayoutBuilder {
         centerX + halfWidth,
         baselineY + 0.25 * size,
       );
+    }
+  }
+
+  /// Jazz / brass articulations (scoop, doit, fall, plop): a small brass
+  /// glyph just before or after the notehead, at the notehead's height.
+  void _layoutJazzArticulations() {
+    if (score.jazzMarks.isEmpty) return;
+    final infoOf = <String, _TieInfo>{
+      for (final info in _tieInfos)
+        if (info.id != null) info.id!: info,
+    };
+    for (final mark in score.jazzMarks) {
+      final info = infoOf[mark.noteId];
+      if (info == null || info.note == null || info.heads.isEmpty) {
+        throw ArgumentError('$mark references an unknown note element id');
+      }
+      // Vertical anchor: the notehead nearest the gesture — the top head for
+      // marks that rise (doit/plop), the bottom head for those that fall.
+      final ys = [for (final h in info.heads) h.$4];
+      final topY = ys.reduce(min);
+      final bottomY = ys.reduce(max);
+      final glyph = switch (mark.type) {
+        JazzArticulation.scoop => SmuflGlyph.brassScoop,
+        JazzArticulation.doit => SmuflGlyph.brassDoitMedium,
+        JazzArticulation.fall => SmuflGlyph.brassFallLipShort,
+        JazzArticulation.plop => SmuflGlyph.brassPlop,
+      };
+      final rises = mark.type == JazzArticulation.doit ||
+          mark.type == JazzArticulation.plop;
+      final y = rises ? topY - 0.4 : bottomY + 0.4;
+      final w = _glyphWidth(glyph);
+      final x = mark.type.isBefore ? info.left - 0.3 - w : info.right + 0.3;
+      _addGlyph(glyph, x, y, elementId: mark.noteId);
     }
   }
 

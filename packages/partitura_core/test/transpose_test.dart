@@ -106,6 +106,32 @@ void main() {
       expect(score.transposedBy(Interval.perfectUnison), score);
     });
 
+    test('preserves notehead shapes, barline styles and jazz marks', () {
+      final base = Score.simple(notes: 'c4:q d4');
+      final score = Score(
+        clef: base.clef,
+        measures: [
+          Measure(
+            [
+              NoteElement.note(
+                  const Pitch(Step.c, octave: 4), NoteDuration.quarter,
+                  notehead: NoteheadShape.diamond, id: 'e0'),
+              NoteElement.note(
+                  const Pitch(Step.d, octave: 4), NoteDuration.quarter,
+                  id: 'e1'),
+            ],
+            barline: BarlineStyle.doubleBar,
+          ),
+        ],
+        jazzMarks: const [JazzMark('e0', JazzArticulation.scoop)],
+      );
+      final up = score.transposedBy(Interval.majorSecond);
+      final note0 = up.measures.single.elements.first as NoteElement;
+      expect(note0.notehead, NoteheadShape.diamond);
+      expect(up.measures.single.barline, BarlineStyle.doubleBar);
+      expect(up.jazzMarks, const [JazzMark('e0', JazzArticulation.scoop)]);
+    });
+
     test('up then down a fifth is identity', () {
       final score = Score.simple(
         keySignature: const KeySignature(1),

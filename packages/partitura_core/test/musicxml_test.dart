@@ -315,6 +315,27 @@ void main() {
       expect(m2.timeChange, const TimeSignature(3, 4));
     });
 
+    test('jazz articulations round-trip through MusicXML', () {
+      final base = Score.simple(notes: 'c4:q d4 e4 f4');
+      final score = Score(
+        clef: base.clef,
+        measures: base.measures,
+        jazzMarks: const [
+          JazzMark('e0', JazzArticulation.scoop),
+          JazzMark('e1', JazzArticulation.doit),
+          JazzMark('e2', JazzArticulation.fall),
+          JazzMark('e3', JazzArticulation.plop),
+        ],
+      );
+      final xml = scoreToMusicXml(score);
+      expect(xml, contains('<scoop/>'));
+      expect(xml, contains('<doit/>'));
+      expect(xml, contains('<falloff/>'));
+      expect(xml, contains('<plop/>'));
+      final back = scoreFromMusicXml(xml);
+      expect(back.jazzMarks, score.jazzMarks);
+    });
+
     test('multi-verse lyrics round-trip through MusicXML', () {
       final base = Score.simple(notes: 'c4:q d4 e4 f4');
       final score = Score(

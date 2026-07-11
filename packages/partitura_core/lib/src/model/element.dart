@@ -893,6 +893,50 @@ class Annotation {
   String toString() => 'Annotation($elementId: "$text")';
 }
 
+/// A jazz / brass articulation attached to a note — a short gestural line
+/// drawn just before or after the notehead (from a SMuFL brass glyph). These
+/// round-trip as standard MusicXML `<articulations>`.
+enum JazzArticulation {
+  /// Scoop — slides up into the note from below (drawn before the notehead).
+  scoop,
+
+  /// Doit — a short upward flick off the end of the note (drawn after).
+  doit,
+
+  /// Fall (falloff) — drops away below the note at its end (drawn after).
+  fall,
+
+  /// Plop — drops into the note from above (drawn before the notehead).
+  plop;
+
+  /// Whether the mark is drawn before (left of) the notehead rather than
+  /// after it.
+  bool get isBefore => this == scoop || this == plop;
+}
+
+/// Marks a note element with a [JazzArticulation], referenced by its id.
+/// Rendered by the notation engine (not tab).
+class JazzMark {
+  /// Id of the marked note.
+  final String noteId;
+
+  /// Which jazz articulation to draw.
+  final JazzArticulation type;
+
+  /// Marks [noteId] with [type].
+  const JazzMark(this.noteId, this.type);
+
+  @override
+  bool operator ==(Object other) =>
+      other is JazzMark && other.noteId == noteId && other.type == type;
+
+  @override
+  int get hashCode => Object.hash(noteId, type);
+
+  @override
+  String toString() => 'JazzMark($noteId, ${type.name})';
+}
+
 /// An ottava bracket: the spanned elements are written an octave off
 /// their sounding pitch, with a dashed bracket marking the range.
 class Ottava {

@@ -96,6 +96,7 @@ class _PartReader {
   final _hairpins = <Hairpin>[];
   final _lyrics = <Lyric>[];
   final _annotations = <Annotation>[];
+  final _jazzMarks = <JazzMark>[];
 
   // Open spans keyed by MusicXML "number" attribute.
   final _openSlurs = <String, String>{};
@@ -125,6 +126,7 @@ class _PartReader {
       ottavas: _ottavas,
       glissandos: _glissandos,
       pedals: _pedals,
+      jazzMarks: _jazzMarks,
     );
   }
 
@@ -309,6 +311,8 @@ class _PartReader {
             }
             _readSpans(node, id);
             _readLyric(node, id);
+            final jazz = _jazzOf(node);
+            if (jazz != null) _jazzMarks.add(JazzMark(id, jazz));
           }
 
           // Tuplets (voice 1 only, mirroring the DSL).
@@ -455,6 +459,24 @@ class _PartReader {
       note.childrenNamed('tie').any((tie) => tie.attributes['type'] == 'start');
 
   Iterable<XmlNode> _notations(XmlNode note) => note.childrenNamed('notations');
+
+  JazzArticulation? _jazzOf(XmlNode note) {
+    for (final notations in _notations(note)) {
+      final articulations = notations.child('articulations');
+      if (articulations == null) continue;
+      for (final mark in articulations.children) {
+        final jazz = switch (mark.name) {
+          'scoop' => JazzArticulation.scoop,
+          'plop' => JazzArticulation.plop,
+          'doit' => JazzArticulation.doit,
+          'falloff' => JazzArticulation.fall,
+          _ => null,
+        };
+        if (jazz != null) return jazz;
+      }
+    }
+    return null;
+  }
 
   Set<Articulation> _articulationsOf(XmlNode note) {
     final result = <Articulation>{};
