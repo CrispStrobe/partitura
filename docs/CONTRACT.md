@@ -244,6 +244,16 @@ highlight (rests excluded). `secondsFor(wholeNotes, quarterBpm:)` maps
 musical time to seconds. **No audio, ever** — apps bring their own
 synth and drive `highlightedIds` from this timeline.
 
+## 5d. Transposition (`partitura_core`)
+
+`score.transposedBy(interval, descending: false)` → a new `Score` with
+every pitch (chords, both voices, grace notes), the key signature and
+mid-score key changes moved; keys beyond ±7 accidentals wrap to the
+enharmonic equivalent. Ids, rhythm, spans, lyrics and annotation text
+stay unchanged, so highlights/taps/playback keep working. Note:
+Flutter's `material.dart` also exports an `Interval` — `hide Interval`
+on the material import when using both.
+
 ## 6. Rendering (`partitura`)
 
 - `Bravura.load()` — parses the bundled font metadata once (async,

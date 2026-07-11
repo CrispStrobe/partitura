@@ -3,10 +3,11 @@
 **Status (2026-07-11):** v0.1–v0.3 complete; 0.4.1 (two voices), 0.4.2
 (grand staff), 0.4.3 (line breaking + justification), 0.4.4 (lyrics)
 and 0.4.5 (chord symbols / annotations) shipped — **v0.4 complete**;
-0.5.1/0.5.2 (MusicXML import + export) and 0.5.3 (playback-cursor
-API) shipped (versions 0.4.0-dev.1). 460 core + 111 widget + 5 example
-tests, 39 golden scenes + hero, on-device integration test — all
-green. Next: 0.5.4 Score.transposedBy.
+0.5.1/0.5.2 (MusicXML import + export), 0.5.3 (playback-cursor API)
+and 0.5.4 (Score.transposedBy) shipped — **v0.5 complete** (versions
+0.4.0-dev.1). 469 core + 113 widget + 5 example tests, 39 golden
+scenes + hero, on-device integration test — all green. Next: v0.6
+engraving polish.
 
 Working checklist for the feature-parity plan. Analysis and per-item
 design notes live in [docs/ROADMAP.md](docs/ROADMAP.md); check items off

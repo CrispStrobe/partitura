@@ -2,6 +2,11 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Transposition**: `Score.transposedBy(interval, descending:)` moves
+  every pitch (chords, both voices, grace notes) plus the key signature
+  and mid-score key changes; out-of-range keys wrap enharmonically
+  (G♯ major → A♭ major). Ids, rhythm, spans, lyrics unchanged;
+  chord-symbol text is not rewritten.
 - **Playback-cursor API** (no audio, ever): `playbackTimeline(score)`
   flattens a score into `PlaybackNote`s — exact whole-note `Fraction`
   onsets/durations (tuplet-scaled), rests flagged, two voices in

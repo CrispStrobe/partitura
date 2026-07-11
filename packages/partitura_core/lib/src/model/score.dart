@@ -4,6 +4,7 @@ library;
 import '../internal/util.dart';
 import '../theory/clef.dart';
 import '../theory/duration.dart';
+import '../theory/interval.dart';
 import '../theory/key_signature.dart';
 import '../theory/pitch.dart';
 import '../theory/time_signature.dart';
@@ -439,6 +440,100 @@ class Score {
       _durationLetters[match[1]]!,
       dots: match[2]!.length,
     );
+  }
+
+  /// This score transposed by [interval] (ascending unless
+  /// [descending]): every pitch — chords, both voices, grace notes —
+  /// plus the key signature and any mid-score key changes move
+  /// together. Out-of-range keys wrap enharmonically (e.g. G♯ major
+  /// becomes A♭ major). Ids, rhythm, spans and lyrics are unchanged;
+  /// chord-symbol annotation **text** is not rewritten.
+  Score transposedBy(Interval interval, {bool descending = false}) {
+    Pitch move(Pitch pitch) =>
+        pitch.transposeBy(interval, descending: descending);
+    MusicElement moveElement(MusicElement element) => switch (element) {
+          NoteElement() => NoteElement(
+              pitches: element.pitches.map(move).toList(),
+              duration: element.duration,
+              showAccidental: element.showAccidental,
+              tieToNext: element.tieToNext,
+              articulations: element.articulations,
+              graceNotes: element.graceNotes.map(move).toList(),
+              id: element.id,
+            ),
+          RestElement() => element,
+        };
+    return Score(
+      clef: clef,
+      keySignature:
+          _transposedKey(keySignature, interval, descending: descending),
+      timeSignature: timeSignature,
+      measures: [
+        for (final measure in measures)
+          Measure(
+            measure.elements.map(moveElement).toList(),
+            voice2: measure.voice2.map(moveElement).toList(),
+            tuplets: measure.tuplets,
+            clefChange: measure.clefChange,
+            keyChange: measure.keyChange == null
+                ? null
+                : _transposedKey(measure.keyChange!, interval,
+                    descending: descending),
+            timeChange: measure.timeChange,
+            startRepeat: measure.startRepeat,
+            endRepeat: measure.endRepeat,
+            volta: measure.volta,
+          ),
+      ],
+      slurs: slurs,
+      dynamics: dynamics,
+      hairpins: hairpins,
+      lyrics: lyrics,
+      annotations: annotations,
+    );
+  }
+
+  /// Transposes [key] by moving its major tonic along the line of
+  /// fifths; results beyond ±7 wrap to the enharmonic key.
+  static KeySignature _transposedKey(KeySignature key, Interval interval,
+      {required bool descending}) {
+    const stepOfFifth = {
+      0: Step.c,
+      1: Step.g,
+      2: Step.d,
+      3: Step.a,
+      4: Step.e,
+      5: Step.b,
+      6: Step.f, // -1 mapped via the 6 → -1 shift below
+    };
+    var base = ((key.fifths % 7) + 7) % 7;
+    var shift = 0;
+    if (base == 6) {
+      base = 6;
+      shift = -1; // 6 on the circle is F, one fifth below C
+    }
+    final step = stepOfFifth[base]!;
+    final baseIndex = shift == -1 ? -1 : base;
+    final alter = (key.fifths - baseIndex) ~/ 7;
+    final tonic = Pitch(step, alter: alter);
+    final moved = tonic.transposeBy(interval, descending: descending);
+    const indexOfStep = {
+      Step.c: 0,
+      Step.d: 2,
+      Step.e: 4,
+      Step.f: -1,
+      Step.g: 1,
+      Step.a: 3,
+      Step.b: 5,
+    };
+    var fifths = indexOfStep[moved.step]! + 7 * moved.alter;
+    while (fifths > 7) {
+      fifths -= 12;
+    }
+    while (fifths < -7) {
+      fifths += 12;
+    }
+    return KeySignature(fifths);
   }
 
   @override

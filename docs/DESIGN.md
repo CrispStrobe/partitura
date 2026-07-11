@@ -393,6 +393,18 @@ terse is fine. See HANDOVER.md §6.
 - Empty measures advance by the running meter (time changes followed
   in playback order), so cursor and barlines stay aligned.
 
+## v0.5.4 transposition (2026-07-11)
+
+- Key signatures transpose by moving the **major tonic** along the
+  line of fifths (step index + 7·alter), then wrapping anything beyond
+  ±7 by ±12 to its enharmonic key — exact, no semitone arithmetic.
+- Everything except pitches and key signatures is carried over
+  untouched, so ids (and with them highlights, taps, playback
+  timelines, span attachments) survive transposition.
+- Gotcha for consumers: Flutter's `material.dart` also exports an
+  `Interval` (animation curve) — apps combining both should
+  `import 'package:flutter/material.dart' hide Interval;`.
+
 ## Blockers
 
 (none)
