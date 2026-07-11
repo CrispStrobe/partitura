@@ -43,6 +43,8 @@ Common:
 render options:
   --tab                                Render as guitar/bass tablature
   --tuning <std|dropD|bass>            Tab tuning (default std)
+  --infer-rhythm                       Guess note durations from tab spacing
+                                       (plain-text tab input)
   --staff-space <px>                   Pixels per staff space (default 12)
   --metadata <path>                    SMuFL font metadata JSON
   --no-embed-font                      Do not embed the engraving font
@@ -88,7 +90,7 @@ int _run(List<String> argv) {
 }
 
 /// Flags that never take a value (so they don't swallow a following argument).
-const _booleanFlags = {'tab', 'no-embed-font', 'no-expand'};
+const _booleanFlags = {'tab', 'no-embed-font', 'no-expand', 'infer-rhythm'};
 
 int _info(List<String> args) {
   final (positional, options) = _parse(args);
@@ -199,8 +201,11 @@ Score _loadScore(String path, Map<String, String> options) {
     case 'midi':
       return scoreFromMidi(file.readAsBytesSync());
     case 'asciitab':
-      return asciiTabToScore(file.readAsStringSync(),
-          tuning: _tuningOf(options['tuning']));
+      return asciiTabToScore(
+        file.readAsStringSync(),
+        tuning: _tuningOf(options['tuning']),
+        inferRhythm: options.containsKey('infer-rhythm'),
+      );
     default:
       throw _CliError('unknown input format for $path (use --from)');
   }

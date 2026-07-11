@@ -21,7 +21,9 @@ Input formats are inferred from file extensions — `.xml`/`.musicxml`,
 `.mid`/`.midi`, and plain-text tab `.tab`/`.crd`/`.txt` — and can be overridden
 with `--from` (`musicxml` / `midi` / `asciitab`). Output formats use `--to` or
 the output extension (`.svg`, `.png`, `.mid`, `.musicxml`). Plain-text tab is a
-lossy import (no rhythm); use `--tuning` to set its tuning.
+lossy import; use `--tuning` to set its tuning, and `--infer-rhythm` to guess
+note durations from the tab's horizontal spacing (otherwise all notes are
+eighths).
 
 ### `render` options
 

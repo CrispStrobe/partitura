@@ -154,6 +154,54 @@ E|---|
     expect(score.measures.single.elements.single, isA<RestElement>());
   });
 
+  List<NoteDuration> durations(Score s) => s.measures
+      .expand((m) => m.elements)
+      .whereType<NoteElement>()
+      .map((n) => n.duration)
+      .toList();
+
+  test('inferRhythm reads durations from horizontal spacing', () {
+    // Gaps of 2, 4, 2 columns → the smallest (2) is an eighth, so the second
+    // note (gap 4 = 2×) is a quarter.
+    final score = asciiTabToScore('''
+e|-0--2----3--5-|
+B|--------------|
+G|--------------|
+D|--------------|
+A|--------------|
+E|--------------|
+''', inferRhythm: true);
+    final d = durations(score);
+    expect(d[0], NoteDuration.eighth); // gap 2 = base
+    expect(d[1], NoteDuration.quarter); // gap 4 = 2×
+    expect(d[2], NoteDuration.eighth); // gap 2
+  });
+
+  test('without inferRhythm every event is the fixed duration', () {
+    final score = asciiTabToScore('''
+e|-0--2----3-|
+B|-----------|
+G|-----------|
+D|-----------|
+A|-----------|
+E|-----------|
+''', duration: NoteDuration.quarter);
+    expect(durations(score), everyElement(NoteDuration.quarter));
+  });
+
+  test('a wide gap infers a longer (dotted/whole) value', () {
+    // First gap is the unit (2); the big gap (8 = 4×) → a half note.
+    final score = asciiTabToScore('''
+e|-0--2--------------3-|
+B|--------------------|
+G|--------------------|
+D|--------------------|
+A|--------------------|
+E|--------------------|
+''', inferRhythm: true);
+    expect(durations(score)[1], NoteDuration.half);
+  });
+
   test('the result renders as tab (pitches recover frets)', () {
     // Round-trip the pitches through the tab engine: fret 3 on the high E.
     final score = asciiTabToScore('''

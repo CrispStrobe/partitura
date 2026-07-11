@@ -344,8 +344,12 @@ Both are dependency-free (`dart:typed_data`) and deterministic.
 `asciiTabToScore(text, {tuning, duration})` → `Score` parses the informal
 web-shared guitar/bass tab (N dashed string lines with fret numbers) into a
 pitched score for a `Tuning` (default standard guitar). It is **lossy**: ASCII
-tab has no reliable rhythm, so every event takes the same `duration` (default
-an eighth) and the score is unmetered; barlines come from `|` columns;
+tab has no reliable rhythm, so by default every event takes the same
+`duration` (default an eighth) and the score is unmetered — or, with
+`inferRhythm: true`, durations are **interpreted from the horizontal spacing**
+(smallest inter-event gap = an eighth; wider gaps scale to quarter/dotted/half/
+whole), a heuristic that recovers plausible rhythm from well-spaced tabs.
+Barlines come from `|` columns;
 `(string, fret)` becomes a pitch; simultaneous columns become chords.
 Recognized techniques (single-note events): `h`/`p` → a slur, `/`/`\` → a
 glissando, `b` → a `Bend`, `~` → a `Vibrato`, `x` → a dead `TabNoteMark`.

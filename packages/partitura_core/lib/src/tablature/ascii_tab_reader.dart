@@ -48,18 +48,47 @@ class _Event {
 }
 
 /// Parses plain-text tablature [text] into a [Score] for [tuning]
-/// (default [Tuning.standardGuitar]). Every event takes [duration]
-/// (default an eighth). See the library doc for the recognized techniques
-/// and the lossiness caveats. Returns a single-measure whole-rest score if no
-/// tab lines are found.
+/// (default [Tuning.standardGuitar]).
+///
+/// By default every event takes [duration] (default an eighth). With
+/// [inferRhythm] the durations are instead *interpreted from the horizontal
+/// spacing* — the smallest gap between successive events is taken as an eighth
+/// and wider gaps scale up (2× → quarter, 3× → dotted quarter, 4× → half, …).
+/// This is a heuristic reading of well-spaced tabs; badly spaced tabs give
+/// arbitrary rhythm. See the library doc for the techniques and lossiness.
+/// Returns a single-measure whole-rest score if no tab lines are found.
 Score asciiTabToScore(
   String text, {
   Tuning? tuning,
   NoteDuration duration = NoteDuration.eighth,
+  bool inferRhythm = false,
 }) {
   final tune = tuning ?? Tuning.standardGuitar;
   final n = tune.stringCount;
   final blocks = _blocks(text.split(RegExp(r'\r?\n')), n);
+
+  // Flatten the stacked blocks into one left-to-right event stream, keeping a
+  // global column so spacing (and barlines) read continuously across wraps.
+  final events = <_Event>[];
+  final barCols = <int>[];
+  var blockOffset = 0;
+  for (final block in blocks) {
+    final width =
+        block.fold<int>(0, (w, line) => line.length > w ? line.length : w);
+    for (final event in _events(block, n)) {
+      events.add(_Event(blockOffset + event.col)..tokens.addAll(event.tokens));
+    }
+    for (final bc in _barlineColumns(block, n)) {
+      barCols.add(blockOffset + bc);
+    }
+    blockOffset += width + 1;
+  }
+  events.sort((a, b) => a.col.compareTo(b.col));
+  barCols.sort();
+
+  final durations = inferRhythm
+      ? _inferDurations(events)
+      : List.filled(events.length, duration);
 
   final measures = <Measure>[];
   final slurs = <Slur>[];
@@ -74,6 +103,7 @@ Score asciiTabToScore(
   // technique linking it to the next note on that string.
   final prevIdOnString = List<String?>.filled(n, null);
   final pendingLink = List<String?>.filled(n, null);
+  var barPtr = 0;
 
   void closeMeasure() {
     if (current.isNotEmpty) {
@@ -82,80 +112,75 @@ Score asciiTabToScore(
     }
   }
 
-  for (final block in blocks) {
-    final events = _events(block, n);
-    final barCols = _barlineColumns(block, n);
-    var barPtr = 0;
+  for (var e = 0; e < events.length; e++) {
+    final event = events[e];
+    while (barPtr < barCols.length && barCols[barPtr] <= event.col) {
+      closeMeasure();
+      barPtr++;
+    }
 
-    for (final event in events) {
-      while (barPtr < barCols.length && barCols[barPtr] <= event.col) {
-        closeMeasure();
-        barPtr++;
+    final pitches = <Pitch>[];
+    final singleString = event.tokens.length == 1;
+    int? soloString;
+    var soloDead = false;
+    event.tokens.forEach((stringIndex, tok) {
+      final open = tune.strings[stringIndex];
+      final fret = tok.fret ?? 0; // a dead note sits at the open string
+      pitches.add(_pitchFromMidi(open.midiNumber + fret));
+      if (singleString) {
+        soloString = stringIndex;
+        soloDead = tok.fret == null;
       }
+    });
+    if (pitches.isEmpty) continue;
+    pitches.sort((a, b) => a.midiNumber.compareTo(b.midiNumber));
 
-      final pitches = <Pitch>[];
-      final singleString = event.tokens.length == 1;
-      int? soloString;
-      var soloDead = false;
-      event.tokens.forEach((stringIndex, tok) {
-        final open = tune.strings[stringIndex];
-        final fret = tok.fret ?? 0; // a dead note sits at the open string
-        pitches.add(_pitchFromMidi(open.midiNumber + fret));
-        if (singleString) {
-          soloString = stringIndex;
-          soloDead = tok.fret == null;
-        }
-      });
-      if (pitches.isEmpty) continue;
-      pitches.sort((a, b) => a.midiNumber.compareTo(b.midiNumber));
+    final noteId = 'e$id';
+    id++;
+    current
+        .add(NoteElement(pitches: pitches, duration: durations[e], id: noteId));
+    if (soloDead) deadNotes.add(TabNoteMark(noteId, TabNoteStyle.dead));
 
-      final noteId = 'e$id';
-      id++;
-      current
-          .add(NoteElement(pitches: pitches, duration: duration, id: noteId));
-      if (soloDead) deadNotes.add(TabNoteMark(noteId, TabNoteStyle.dead));
-
-      // Resolve a pending same-string technique from the previous note.
-      event.tokens.forEach((stringIndex, tok) {
-        final link = pendingLink[stringIndex];
-        final from = prevIdOnString[stringIndex];
-        if (link != null && from != null) {
-          switch (link) {
-            case 'h':
-            case 'p':
-              slurs.add(Slur(from, noteId));
-            case '/':
-            case r'\':
-              glissandos.add(Glissando(from, noteId));
-          }
-        }
-        pendingLink[stringIndex] = null;
-      });
-
-      // Record this note's own suffix technique for the single-note case.
-      if (singleString && soloString != null) {
-        final suffix = event.tokens[soloString!]!.suffix;
-        switch (suffix) {
-          case 'b':
-            bends.add(Bend(noteId));
-          case '~':
-            vibratos.add(Vibrato(noteId));
+    // Resolve a pending same-string technique from the previous note.
+    event.tokens.forEach((stringIndex, tok) {
+      final link = pendingLink[stringIndex];
+      final from = prevIdOnString[stringIndex];
+      if (link != null && from != null) {
+        switch (link) {
           case 'h':
           case 'p':
+            slurs.add(Slur(from, noteId));
           case '/':
           case r'\':
-            pendingLink[soloString!] = suffix;
-        }
-        prevIdOnString[soloString!] = noteId;
-      } else {
-        // A chord breaks per-string technique chains.
-        for (var s = 0; s < n; s++) {
-          if (event.tokens.containsKey(s)) prevIdOnString[s] = null;
+            glissandos.add(Glissando(from, noteId));
         }
       }
+      pendingLink[stringIndex] = null;
+    });
+
+    // Record this note's own suffix technique for the single-note case.
+    if (singleString && soloString != null) {
+      final suffix = event.tokens[soloString!]!.suffix;
+      switch (suffix) {
+        case 'b':
+          bends.add(Bend(noteId));
+        case '~':
+          vibratos.add(Vibrato(noteId));
+        case 'h':
+        case 'p':
+        case '/':
+        case r'\':
+          pendingLink[soloString!] = suffix;
+      }
+      prevIdOnString[soloString!] = noteId;
+    } else {
+      // A chord breaks per-string technique chains.
+      for (var s = 0; s < n; s++) {
+        if (event.tokens.containsKey(s)) prevIdOnString[s] = null;
+      }
     }
-    closeMeasure();
   }
+  closeMeasure();
 
   if (measures.isEmpty) {
     measures.add(Measure([RestElement(NoteDuration.whole, id: 'e0')]));
@@ -170,6 +195,35 @@ Score asciiTabToScore(
     vibratos: vibratos,
     tabNoteMarks: deadNotes,
   );
+}
+
+/// Interprets note durations from the horizontal spacing of [events]: the
+/// smallest inter-event gap is an eighth, and each wider gap scales from
+/// there, snapping to the nearest plain-or-dotted note value.
+List<NoteDuration> _inferDurations(List<_Event> events) {
+  if (events.length <= 1) {
+    return List.filled(events.length, NoteDuration.eighth);
+  }
+  final gaps = <int>[
+    for (var i = 0; i + 1 < events.length; i++)
+      events[i + 1].col - events[i].col,
+  ];
+  final base =
+      gaps.where((g) => g > 0).fold<int>(gaps.first, (m, g) => g < m ? g : m);
+  final unit = base < 1 ? 1 : base;
+  gaps.add(gaps.last); // the final note reuses the previous gap
+  return [for (final g in gaps) _durationForEighths((g / unit).round())];
+}
+
+/// A note value [eighths] eighth-notes long, snapped down to the nearest
+/// plain-or-dotted value (1 = eighth … 8 = whole).
+NoteDuration _durationForEighths(int eighths) {
+  if (eighths >= 8) return NoteDuration.whole;
+  if (eighths >= 6) return const NoteDuration(DurationBase.half, dots: 1);
+  if (eighths >= 4) return NoteDuration.half;
+  if (eighths >= 3) return const NoteDuration(DurationBase.quarter, dots: 1);
+  if (eighths >= 2) return NoteDuration.quarter;
+  return NoteDuration.eighth;
 }
 
 /// Groups tab lines into blocks of [n] consecutive string lines.

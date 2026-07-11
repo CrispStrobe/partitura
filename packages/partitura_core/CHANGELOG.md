@@ -6,9 +6,10 @@
   {tuning, duration})` → `Score` parses the informal web-shared guitar/bass
   tab (dashed string lines + fret numbers) into a pitched, unmetered score:
   chords from aligned columns, barlines from `|`, and techniques `h`/`p` →
-  slur, `/`/`\` → glissando, `b` → bend, `~` → vibrato, `x` → dead note. Lossy
-  (no rhythm; uniform durations). Wired into `partitura_cli` (`.tab`/`.crd`/
-  `.txt`).
+  slur, `/`/`\` → glissando, `b` → bend, `~` → vibrato, `x` → dead note.
+  Durations are uniform by default, or (with `inferRhythm: true`) *interpreted
+  from the horizontal spacing* — smallest gap = an eighth, wider gaps scale up.
+  Wired into `partitura_cli` (`.tab`/`.crd`/`.txt`; `--infer-rhythm`).
 - **SVG export** (Phase 7.2): `scoreToSvg(layout, {…})` renders a
   `ScoreLayout` to a standalone SVG document (works for both notation and
   tablature); optional `@font-face` embedding of the engraving font. The
