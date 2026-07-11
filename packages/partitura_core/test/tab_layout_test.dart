@@ -298,6 +298,38 @@ void main() {
     expect(xs, hasLength(3));
   });
 
+  test('layout bounds cover technique ink above and below the staff', () {
+    final base = Score.simple(notes: 'g4:e a4');
+    final score = Score(
+      clef: base.clef,
+      measures: base.measures,
+      bends: const [Bend('e0', steps: 1.5)], // tall arrow above the staff
+    );
+    final layout =
+        const TabLayoutEngine().layout(score, Tuning.standardGuitar, settings);
+    // Every primitive's y must lie within [top, top + height].
+    final top = layout.top;
+    final bottom = layout.top + layout.height;
+    double lowest = double.infinity, highest = -double.infinity;
+    for (final p in layout.primitives) {
+      final ys = switch (p) {
+        LinePrimitive(:final from, :final to) => [from.y, to.y],
+        CurvePrimitive(:final start, :final end) => [start.y, end.y],
+        BeamPrimitive(:final start, :final end) => [start.y, end.y],
+        TextPrimitive(:final position) => [position.y],
+        GlyphPrimitive(:final position) => [position.y],
+      };
+      for (final y in ys) {
+        lowest = lowest < y ? lowest : y;
+        highest = highest > y ? highest : y;
+      }
+    }
+    expect(top, lessThanOrEqualTo(lowest));
+    expect(bottom, greaterThanOrEqualTo(highest));
+    // The tall bend reaches well above the top string line (y = 0).
+    expect(top, lessThan(-1.0));
+  });
+
   test('deterministic', () {
     String render() => tabOf(Score.simple(notes: 'e2:q a2 d3 g3'))
         .primitives

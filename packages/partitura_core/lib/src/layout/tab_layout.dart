@@ -241,10 +241,46 @@ class TabLayoutEngine {
       }
     }
 
+    // Vertical ink bounds. Technique marks (bends, vibrato, palm-mute / let-
+    // ring labels) extend above the staff and rhythm below it, so derive
+    // top/height from the actual primitives — a fixed constant would clip
+    // them and break the ScoreLayout `top`/`bounds` contract.
+    var minY = 0.0; // the top string line
+    var maxY = bottomY;
+    void span(double a, double b) {
+      minY = min(minY, min(a, b));
+      maxY = max(maxY, max(a, b));
+    }
+
+    for (final p in primitives) {
+      switch (p) {
+        case GlyphPrimitive(:final smuflName, :final position, :final scale):
+          final box = meta.bBoxOf(smuflName);
+          span(position.y - box.neY * scale, position.y - box.swY * scale);
+        case LinePrimitive(:final from, :final to):
+          span(from.y, to.y);
+        case CurvePrimitive(
+            :final start,
+            :final control1,
+            :final control2,
+            :final end
+          ):
+          span(min(min(start.y, control1.y), min(control2.y, end.y)),
+              max(max(start.y, control1.y), max(control2.y, end.y)));
+        case BeamPrimitive(:final start, :final end, :final thickness):
+          span(min(start.y, end.y) - thickness / 2,
+              max(start.y, end.y) + thickness / 2);
+        case TextPrimitive(:final position, :final size):
+          // Center-baseline text: ascenders rise ~0.8 em, descenders ~0.25.
+          span(position.y - 0.8 * size, position.y + 0.25 * size);
+      }
+    }
+    const pad = 0.3;
+
     return ScoreLayout(
       width: width,
-      height: stemBottom + 0.4,
-      top: -0.3,
+      height: maxY - minY + 2 * pad,
+      top: minY - pad,
       primitives: List.unmodifiable(primitives),
       regions: List.unmodifiable(regions),
       measureRegions: List.unmodifiable(measureRegions),
