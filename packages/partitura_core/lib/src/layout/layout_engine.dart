@@ -1984,6 +1984,12 @@ class _LayoutBuilder {
           currentSpan = tuplet;
           runs.add(current);
         }
+      } else if (element is RestElement) {
+        // A rest does not break a beam on its own: if beamable notes continue
+        // within the same beat window, the beam passes over the rest (the
+        // rest's index is never added, so the beam simply spans the gap). The
+        // window/tuplet check when the next note arrives re-attaches it or
+        // starts a fresh run, so a rest at a beat boundary still separates.
       } else {
         current = null;
         currentWindow = null;

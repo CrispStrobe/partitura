@@ -57,7 +57,9 @@ void main() {
 
   group('layout: unbeamed', () {
     test('flags for 32nd and 64th match the stem direction', () {
-      final layout = layoutOf(Score.simple(notes: 'c5:t r:t a4:x r:x c5:h'));
+      // Each note alone in its measure so it flags (rather than beaming over
+      // an intervening rest — see the beams-over-rests test).
+      final layout = layoutOf(Score.simple(notes: 'c5:t | a4:x | c5:h'));
       final flags = layout.primitives
           .whereType<GlyphPrimitive>()
           .where((g) => g.smuflName.startsWith('flag'))

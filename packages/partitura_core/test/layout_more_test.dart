@@ -280,4 +280,32 @@ void main() {
       expect(layout.regions, hasLength(7));
     });
   });
+
+  group('beams over rests', () {
+    Iterable<GlyphPrimitive> flagsOf(ScoreLayout layout) => layout.primitives
+        .whereType<GlyphPrimitive>()
+        .where((g) => g.smuflName.startsWith('flag'));
+
+    test('a rest within a beat does not break the beam', () {
+      // 16th, 16th rest, 16th, 16th — one quarter beat. The beam spans the
+      // rest; the notes do not flag individually.
+      final layout = layoutOf(Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'c5:s r:s c5:s c5:s',
+      ));
+      expect(beamsOf(layout), isNotEmpty);
+      expect(flagsOf(layout), isEmpty);
+    });
+
+    test('a rest at a beat boundary still separates beams', () {
+      // Two eighths fill beat 1; an eighth rest then a lone eighth in beat 2.
+      // The lone eighth flags — the beam does not reach back over the boundary.
+      final layout = layoutOf(Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'c5:e c5:e r:e c5:e',
+      ));
+      expect(beamsOf(layout), isNotEmpty); // beat 1's pair
+      expect(flagsOf(layout), isNotEmpty); // beat 2's lone eighth
+    });
+  });
 }

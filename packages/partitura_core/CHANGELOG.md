@@ -2,6 +2,10 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Beams over rests** (Phase 1.4): a rest inside a beat no longer breaks a
+  beam — the beam spans the gap (golden 64), matching standard engraving (and
+  now, e.g., a triplet `[8th, rest, 8th]` beams under its bracket instead of
+  flagging). A rest at a beat boundary still separates, so beats stay distinct.
 - **Artificial & pinch harmonics** (Phase 6.4): `TabNoteStyle` gains
   `artificialHarmonic` and `pinchHarmonic` (helper `isHarmonicStyle`). The tab
   engine draws all three harmonic variants with the angle-bracketed fret and

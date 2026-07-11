@@ -1078,6 +1078,21 @@ void main() {
     );
   });
 
+  testWidgets('64 beams over rests', (tester) async {
+    // Rests inside a beat do not break the beam (it spans the gap); a rest at
+    // a beat boundary still separates. Beat 1: 16th, 16th-rest, two 16ths.
+    // Beat 2: 8th, 8th. Beat 3: two 8ths split by an 8th-rest (each flags).
+    await golden(
+      tester,
+      '64_beams_over_rests',
+      Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'g4:s r:s a4:s b4:s c5:e c5 g4:e r:e a4:e r:e',
+      ),
+      staffSpace: 12,
+    );
+  });
+
   testWidgets('63 guitar tab: artificial + pinch harmonics', (tester) async {
     // Natural (⟨12⟩), artificial ("A.H.") and pinch ("P.H.") harmonics — all
     // show the bracketed fret; the two synthetic ones add a label above.
