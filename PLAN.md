@@ -303,11 +303,11 @@ enum encodings so files round-trip cleanly), tiered by importance:
       nested/second-level repeats and repeat-inside-return re-expansion.
 - [ ] **7.5 Braille music export** — rare in this space; a real accessibility
       differentiator.
-- [~] **7.6 CLI tool** (`partitura_cli`) — a pure-Dart command line for
-      `info` / `timeline` / `convert` (MusicXML ↔ MIDI) / `render` (SVG,
-      notation or `--tab`), with live process tests. PNG is available as the
-      `renderLayoutToPng` Flutter API (7.2). **Left:** a Flutter-backed
-      `render …png` command, and reading the DSL / more input formats.
+- [x] **7.6 CLI tool** (`partitura_cli`) — a pure-Dart command line for
+      `info` / `timeline` / `convert` (MusicXML ↔ MIDI) / `render` (SVG or,
+      by delegating to the Flutter SDK, PNG; notation or `--tab`), with live
+      process tests. *Left (nice-to-have):* reading the DSL / more input
+      formats.
 
 ---
 

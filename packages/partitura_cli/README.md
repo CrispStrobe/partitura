@@ -31,8 +31,12 @@ Formats are inferred from file extensions (`.xml`/`.musicxml`, `.mid`/`.midi`,
 | `--no-embed-font` | Do not embed the engraving font in the SVG |
 
 By default the engraving font is embedded via `@font-face`, so the SVG renders
-anywhere. **PNG** output rides the Flutter renderer in the `partitura` package
-and is not part of this pure-Dart tool.
+anywhere.
+
+**PNG**: give the output a `.png` extension. Rasterizing needs a font
+rasterizer, so the tool delegates to the Flutter SDK (it runs
+`flutter test tool/render_png.dart` in the `partitura` package, located
+automatically). The Flutter SDK must be on `PATH`; SVG needs only the Dart SDK.
 
 ## Examples
 
@@ -40,5 +44,6 @@ and is not part of this pure-Dart tool.
 dart run partitura_cli:partitura info song.musicxml
 dart run partitura_cli:partitura convert song.musicxml song.mid
 dart run partitura_cli:partitura render song.musicxml song.svg
+dart run partitura_cli:partitura render song.musicxml song.png       # needs Flutter
 dart run partitura_cli:partitura render riff.musicxml riff.svg --tab --tuning dropD
 ```

@@ -5,6 +5,16 @@ import 'package:test/test.dart';
 
 /// Live tests: they invoke the real `bin/partitura.dart` as a subprocess and
 /// assert on the files and output it produces.
+
+/// Whether the Flutter SDK is available (PNG rendering delegates to it).
+bool _hasFlutter() {
+  try {
+    return Process.runSync('flutter', ['--version']).exitCode == 0;
+  } on ProcessException {
+    return false;
+  }
+}
+
 void main() {
   late Directory tmp;
   late String samplePath;
@@ -87,6 +97,20 @@ void main() {
     final svg = File(out).readAsStringSync();
     expect(svg, contains(smuflCodepoints['6stringTabClef']!));
   });
+
+  test('render to PNG via the Flutter SDK', () async {
+    if (!_hasFlutter()) {
+      markTestSkipped('flutter not on PATH');
+      return;
+    }
+    final out = '${tmp.path}/out.png';
+    final r = await run(['render', samplePath, out]);
+    expect(r.exitCode, 0, reason: '${r.stdout}\n${r.stderr}');
+    final bytes = File(out).readAsBytesSync();
+    // PNG signature.
+    expect(
+        bytes.sublist(0, 8), [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+  }, timeout: const Timeout(Duration(minutes: 3)));
 
   test('render --no-embed-font omits the font data', () async {
     final out = '${tmp.path}/light.svg';

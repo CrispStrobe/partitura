@@ -10,9 +10,10 @@
 /// ```
 ///
 /// Formats are inferred from file extensions (`.xml`/`.musicxml`, `.mid`/
-/// `.midi`, `.svg`) and can be overridden with `--from` / `--to`. Rendering to
-/// PNG rides the Flutter renderer in the `partitura` package and is not part
-/// of this pure-Dart tool.
+/// `.midi`, `.svg`, `.png`) and can be overridden with `--from` / `--to`.
+/// SVG rendering is pure Dart; PNG rendering delegates to the Flutter SDK
+/// (`flutter test tool/render_png.dart` in the `partitura` package), which the
+/// tool locates and runs automatically.
 library;
 
 import 'dart:convert';
@@ -30,7 +31,9 @@ Commands:
   timeline  <in> [--bpm N] [--no-expand]
                                        Print the playback timeline
   convert   <in> <out>                 Convert between MusicXML and MIDI
-  render    <in> <out.svg> [options]   Render a score to SVG
+  render    <in> <out.(svg|png)> [options]
+                                       Render a score (SVG pure-Dart; PNG via
+                                       the Flutter SDK)
 
 Common:
   --from <musicxml|midi>               Force the input format
@@ -142,10 +145,13 @@ int _convert(List<String> args) {
 int _render(List<String> args) {
   final (positional, options) = _parse(args);
   if (positional.length < 2) {
-    throw _CliError('render needs <in> <out.svg>');
+    throw _CliError('render needs <in> <out.(svg|png)>');
+  }
+  final outPath = positional[1];
+  if (_formatOf(outPath) == 'png') {
+    return _renderPng(positional[0], outPath, options);
   }
   final score = _loadScore(positional[0], options['from']);
-  final outPath = positional[1];
   final staffSpace = double.tryParse(options['staff-space'] ?? '12') ?? 12;
 
   final metadataFile = _findMetadata(options['metadata']);
@@ -204,7 +210,56 @@ String _formatOf(String path) {
   if (lower.endsWith('.mid') || lower.endsWith('.midi')) return 'midi';
   if (lower.endsWith('.xml') || lower.endsWith('.musicxml')) return 'musicxml';
   if (lower.endsWith('.svg')) return 'svg';
+  if (lower.endsWith('.png')) return 'png';
   return 'unknown';
+}
+
+/// Renders to PNG by delegating to the Flutter engine: runs the
+/// `render_png.dart` harness in the `partitura` package via `flutter test`
+/// (the only way to reach `dart:ui` from the command line).
+int _renderPng(String inPath, String outPath, Map<String, String> options) {
+  final pkg = _findPartituraDir();
+  if (pkg == null) {
+    throw _CliError('cannot locate the partitura Flutter package for PNG');
+  }
+  final env = {
+    'PARTITURA_IN': File(inPath).absolute.path,
+    'PARTITURA_OUT': File(outPath).absolute.path,
+    'PARTITURA_TAB': options.containsKey('tab') ? '1' : '0',
+    if (options['tuning'] != null) 'PARTITURA_TUNING': options['tuning']!,
+    if (options['staff-space'] != null)
+      'PARTITURA_STAFF_SPACE': options['staff-space']!,
+  };
+  final ProcessResult result;
+  try {
+    result = Process.runSync(
+      'flutter',
+      ['test', '--reporter', 'compact', 'tool/render_png.dart'],
+      workingDirectory: pkg.path,
+      environment: env,
+    );
+  } on ProcessException {
+    throw _CliError(
+        'PNG rendering needs the Flutter SDK (`flutter` not found)');
+  }
+  if (result.exitCode != 0) {
+    throw _CliError('PNG render failed:\n${result.stdout}\n${result.stderr}');
+  }
+  stdout.writeln('wrote $outPath (png, via Flutter)');
+  return 0;
+}
+
+/// Walks up from the running script to the repo's `packages/partitura`.
+Directory? _findPartituraDir() {
+  var dir = File.fromUri(Platform.script).parent;
+  for (var i = 0; i < 8; i++) {
+    final candidate = Directory('${dir.path}/packages/partitura/tool');
+    if (File('${candidate.path}/render_png.dart').existsSync()) {
+      return Directory('${dir.path}/packages/partitura');
+    }
+    dir = dir.parent;
+  }
+  return null;
 }
 
 /// Finds the SMuFL metadata JSON: the explicit [override], else by walking up
