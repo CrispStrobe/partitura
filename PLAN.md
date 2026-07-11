@@ -87,7 +87,9 @@ reuses the existing model → layout → paint pipeline.
             arrowhead, model-only, MusicXML `<arpeggiate>`; golden 46)
       - [x] 0.7.2c Glissando (`Score.glissandos`, straight line, model-only,
             MusicXML `<slide>`; golden 47)
-      - [ ] 0.7.2d tremolo · 0.7.2e pedal marks
+      - [x] 0.7.2d Tremolo (`NoteElement.tremolo` 1–5 strokes through the
+            stem, model-only, MusicXML `<tremolo>`; golden 48)
+      - [ ] 0.7.2e pedal marks
 - [ ] 0.7.3 N-staff systems (generalize `GrandStaff` 2 → N, brackets +
       nested part groups; unblocks SATB/organ/orchestral)
 - [ ] 0.7.4 Pedagogy breadth (model note-coloring incl. Boomwhacker, cue

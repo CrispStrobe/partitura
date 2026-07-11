@@ -732,4 +732,29 @@ void main() {
       staffSpace: 10,
     );
   });
+
+  testWidgets('48 tremolo', (tester) async {
+    NoteElement trem(String pitch, int strokes) => NoteElement.note(
+          Pitch.parse(pitch),
+          NoteDuration.quarter,
+          tremolo: strokes,
+        );
+    await golden(
+      tester,
+      '48_tremolo',
+      Score(
+        clef: Clef.treble,
+        timeSignature: TimeSignature.fourFour,
+        measures: [
+          Measure([
+            trem('b4', 1),
+            trem('b4', 2),
+            trem('b4', 3),
+            trem('g4', 3),
+          ]),
+        ],
+      ),
+      staffSpace: 10,
+    );
+  });
 }

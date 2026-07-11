@@ -2,6 +2,10 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Tremolo** (v0.7.2): `NoteElement.tremolo` (1–5 strokes) drawn through
+  the stem of a stemmed, unbeamed note. Model-only; MusicXML
+  `<ornaments><tremolo type="single">` round-trips (coexists with a trill/
+  mordent/turn ornament in the same `<ornaments>`).
 - **Glissando / slide** (v0.7.2): `Score.glissandos`
   (`Glissando(startId, endId)`) — a straight line between two notes, same
   id/order validation as slurs. Model-only; MusicXML `<slide>` round-trips.

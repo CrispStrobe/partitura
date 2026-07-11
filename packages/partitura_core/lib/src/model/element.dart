@@ -101,6 +101,10 @@ class NoteElement extends MusicElement {
   /// of the chord, or null. Model-only (no DSL shorthand).
   final Arpeggio? arpeggio;
 
+  /// Single-note tremolo: 1–5 strokes drawn through the stem, or null. Model
+  /// only. Requires a stemmed note (ignored on whole notes and breves).
+  final int? tremolo;
+
   /// Creates a note or chord from [pitches] and a [duration].
   ///
   /// [pitches] must be non-empty. (Not asserted: list lengths cannot be
@@ -115,6 +119,7 @@ class NoteElement extends MusicElement {
     this.ornament,
     this.fingerings = const [],
     this.arpeggio,
+    this.tremolo,
     super.id,
   });
 
@@ -129,6 +134,7 @@ class NoteElement extends MusicElement {
     Ornament? ornament,
     List<int> fingerings = const [],
     Arpeggio? arpeggio,
+    int? tremolo,
     String? id,
   }) : this(
           pitches: [pitch],
@@ -140,6 +146,7 @@ class NoteElement extends MusicElement {
           ornament: ornament,
           fingerings: fingerings,
           arpeggio: arpeggio,
+          tremolo: tremolo,
           id: id,
         );
 
@@ -152,6 +159,7 @@ class NoteElement extends MusicElement {
       other.ornament == ornament &&
       other.id == id &&
       other.arpeggio == arpeggio &&
+      other.tremolo == tremolo &&
       listEquals(other.pitches, pitches) &&
       setEquals(other.articulations, articulations) &&
       listEquals(other.graceNotes, graceNotes) &&
@@ -164,6 +172,7 @@ class NoteElement extends MusicElement {
       tieToNext,
       ornament,
       arpeggio,
+      tremolo,
       id,
       Object.hashAll(pitches),
       Object.hashAllUnordered(articulations),
@@ -177,6 +186,7 @@ class NoteElement extends MusicElement {
       '${graceNotes.isEmpty ? '' : ', grace: ${graceNotes.join('+')}'}'
       '${fingerings.isEmpty ? '' : ', fingers: ${fingerings.join(',')}'}'
       '${arpeggio == null ? '' : ', ${arpeggio!.name} arpeggio'}'
+      '${tremolo == null ? '' : ', tremolo $tremolo'}'
       '${id == null ? '' : ', id: $id'})';
 }
 

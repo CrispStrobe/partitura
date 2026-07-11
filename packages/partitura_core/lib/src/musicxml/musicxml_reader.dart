@@ -246,6 +246,7 @@ class _PartReader {
                   ornament: last.ornament,
                   fingerings: last.fingerings,
                   arpeggio: last.arpeggio,
+                  tremolo: last.tremolo,
                   id: last.id,
                 );
               }
@@ -272,6 +273,7 @@ class _PartReader {
               ornament: _ornamentOf(node),
               fingerings: _fingeringsOf(node),
               arpeggio: _arpeggioOf(node),
+              tremolo: _tremoloOf(node),
               id: id,
             ));
             pendingGraces = <Pitch>[];
@@ -452,6 +454,17 @@ class _PartReader {
       }
     }
     return result.isEmpty ? const {} : result;
+  }
+
+  int? _tremoloOf(XmlNode note) {
+    for (final notations in _notations(note)) {
+      final tremolo = notations.child('ornaments')?.child('tremolo');
+      if (tremolo != null &&
+          (tremolo.attributes['type'] ?? 'single') == 'single') {
+        return int.tryParse(tremolo.text.trim());
+      }
+    }
+    return null;
   }
 
   Arpeggio? _arpeggioOf(XmlNode note) {

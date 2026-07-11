@@ -528,6 +528,7 @@ class Score {
               ornament: element.ornament,
               fingerings: element.fingerings,
               arpeggio: element.arpeggio,
+              tremolo: element.tremolo,
               id: element.id,
             ),
           RestElement() => element,

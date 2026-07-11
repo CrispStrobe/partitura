@@ -380,6 +380,21 @@ final List<GalleryItem> galleryItems = [
       glissandos: const [Glissando('a', 'b')],
     ),
   ),
+  GalleryItem(
+    'Tremolo (1–3 strokes)',
+    Score(
+      clef: Clef.treble,
+      timeSignature: TimeSignature.fourFour,
+      measures: [
+        Measure([
+          NoteElement.note(Pitch.parse('b4'), NoteDuration.quarter, tremolo: 1),
+          NoteElement.note(Pitch.parse('b4'), NoteDuration.quarter, tremolo: 2),
+          NoteElement.note(Pitch.parse('b4'), NoteDuration.quarter, tremolo: 3),
+          NoteElement.note(Pitch.parse('g4'), NoteDuration.quarter, tremolo: 3),
+        ]),
+      ],
+    ),
+  ),
 ];
 
 /// Scrollable gallery of the corpus (plus grand-staff and multi-system

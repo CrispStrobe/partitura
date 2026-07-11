@@ -220,6 +220,15 @@ abstract final class SmuflGlyph {
     return 'fingering$digit';
   }
 
+  /// The combined tremolo-strokes glyph for [strokes] beams (1–5), drawn
+  /// through the stem.
+  static String tremoloStrokes(int strokes) {
+    if (strokes < 1 || strokes > 5) {
+      throw ArgumentError.value(strokes, 'strokes', 'must be 1..5');
+    }
+    return 'tremolo$strokes';
+  }
+
   /// Arpeggio wiggle segment; tiles vertically to form the rolled-chord line.
   static const String wiggleArpeggiatoUp = 'wiggleArpeggiatoUp';
 

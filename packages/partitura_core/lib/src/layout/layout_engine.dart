@@ -1153,6 +1153,23 @@ class _LayoutBuilder {
       }
     }
 
+    // v0.7.2: single-note tremolo — strokes centered on the stem, biased
+    // toward the notehead. Only unbeamed, stemmed notes (deferred/beamed
+    // stems and whole notes carry none).
+    final tremolo = element.tremolo;
+    if (tremolo != null && stemTipY != null) {
+      final glyph = SmuflGlyph.tremoloStrokes(tremolo);
+      final box = meta.bBoxOf(glyph);
+      final noteSideY = stemsDown ? _yOf(top) : _yOf(bottom);
+      final midY = noteSideY + (stemTipY - noteSideY) * 0.4;
+      _addGlyph(
+        glyph,
+        stemX - (box.swX + box.neX) / 2,
+        midY + (box.neY + box.swY) / 2,
+        elementId: id,
+      );
+    }
+
     // Rule 10: augmentation dots right of the notehead; a dot for a
     // notehead on a line sits in the space above.
     var inkRight = maxColX + headWidth;

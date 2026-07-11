@@ -358,9 +358,14 @@ class _PartWriter {
       Ornament.shortTrill => '<inverted-mordent/>',
       Ornament.mordent => '<mordent/>',
       Ornament.turn => '<turn/>',
-      null => null,
+      null => '',
     };
-    if (ornamentTag != null) parts.add('<ornaments>$ornamentTag</ornaments>');
+    final tremoloTag = element.tremolo == null
+        ? ''
+        : '<tremolo type="single">${element.tremolo}</tremolo>';
+    if (ornamentTag.isNotEmpty || tremoloTag.isNotEmpty) {
+      parts.add('<ornaments>$ornamentTag$tremoloTag</ornaments>');
+    }
     final marks = <String>[
       if (element.articulations.contains(Articulation.staccato)) '<staccato/>',
       if (element.articulations.contains(Articulation.tenuto)) '<tenuto/>',
