@@ -352,13 +352,16 @@ class _GpReader {
         c.intByteString(); // marker name
         c.skip(4); // marker colour
       }
-      if (flags & 0x10 != 0) c.u8(); // alternate-ending mask
+      // gp3/gp4 carry the alternate-ending count inline; in gp5 it lives in the
+      // fixed two-byte tail below (the alt-ending value when 0x10 is set, else a
+      // pad byte — followed by the triplet-feel byte), so it is not read here.
+      if (flags & 0x10 != 0 && !v5) c.u8(); // alternate-ending count
       if (flags & 0x40 != 0) {
         c.s8(); // key
         c.u8(); // major/minor
       }
       if (v5 && (flags & 0x03) != 0) c.skip(4); // beam-group bytes
-      if (v5) c.skip(2); // triplet-feel + padding
+      if (v5) c.skip(2); // alt-ending/pad byte + triplet-feel byte
 
       _measureTime.add(timeChanged ? TimeSignature(num, den) : null);
     }
@@ -368,7 +371,7 @@ class _GpReader {
 
   void _readTracks() {
     for (var t = 0; t < trackCount; t++) {
-      if (v5) c.u8(); // leading flag byte
+      if (v5 && t == 0) c.u8(); // leading byte, only ahead of the first track
       c.u8(); // track flags
       c.fixedString(40); // name
       c.i32(); // string count
@@ -380,7 +383,11 @@ class _GpReader {
       c.i32(); // capo
       c.skip(4); // colour
       if (v5) {
-        c.skip(49); // RSE / track properties
+        // RSE / track properties. v5.10 carries a 16-byte RSE instrument block
+        // plus a 4-byte equalizer and two RSE effect strings; v5.00 has a
+        // 15-byte instrument block, no equalizer and no effect strings.
+        // (The v5.00 layout is documented but unverified — no v5.00 fixture.)
+        c.skip(v510 ? 49 : 44);
         if (v510) {
           c.intByteString(); // RSE effect name
           c.intByteString(); // RSE effect category
@@ -388,7 +395,12 @@ class _GpReader {
       }
       _tunings.add(tuning);
     }
-    if (v5 && !c.atEnd) c.u8(); // pre-body padding
+    // Padding between the track list and the beat data: one byte in v5.10, two
+    // in v5.00.
+    final padding = v510 ? 1 : 2;
+    for (var i = 0; i < padding && v5 && !c.atEnd; i++) {
+      c.u8();
+    }
   }
 
   List<int> get _tuning => trackIndex < _tunings.length
@@ -449,7 +461,11 @@ class _GpReader {
         notes.add(_readNote(s));
       }
     }
-    if (v5) c.skip(2); // beat display flags
+    if (v5) {
+      // Beat trailer: a two-byte display-flags word; bit 0x0800 adds one byte.
+      final beatFlags2 = c.i16();
+      if (beatFlags2 & 0x0800 != 0) c.u8();
+    }
 
     if (!primary || target == null) return;
 
