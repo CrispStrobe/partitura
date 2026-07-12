@@ -387,6 +387,20 @@ w:Mar- y had a lit- tle lamb whose fleece was white as snow.
       expect(score.measures, hasLength(1));
     });
 
+    test('a dotted barline ".|" reads and round-trips', () {
+      final s = scoreFromAbc('X:1\nM:4/4\nL:1/4\nK:C\nC D E F.|G A B c|\n');
+      expect(s.measures[0].barline, BarlineStyle.dotted);
+      final back = scoreFromAbc(scoreToAbc(s));
+      expect(back.measures[0].barline, BarlineStyle.dotted);
+    });
+
+    test('a lone "." is still staccato, not a dotted bar', () {
+      final s = scoreFromAbc('X:1\nL:1/4\nK:C\n.C D E F|\n');
+      final n = s.measures.single.elements.cast<NoteElement>();
+      expect(n[0].articulations, {Articulation.staccato});
+      expect(s.measures[0].barline, BarlineStyle.normal);
+    });
+
     test('in a multi-voice tune the tempo sits on the top staff only', () {
       final sys = staffSystemFromAbc('X:1\nM:4/4\nL:1/4\nQ:1/4=100\nK:C\n'
           'V:1\nCDEF|\n'

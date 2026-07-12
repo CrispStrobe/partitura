@@ -1205,6 +1205,40 @@ void main() {
     );
   });
 
+  testWidgets('78 nested brackets: an outer bracket over an inner brace',
+      (tester) async {
+    final system = StaffSystem([
+      Score.simple(clef: Clef.treble, notes: 'c5:q d5 e5 f5'),
+      Score.simple(clef: Clef.treble, notes: 'e4:q f4 g4 a4'),
+      Score.simple(clef: Clef.bass, notes: 'c3:q d3 e3 f3'),
+    ], brackets: const [
+      // A section bracket over all three, with a piano brace on the lower two.
+      StaffBracket(0, 2),
+      StaffBracket(1, 2, kind: StaffBracketKind.brace),
+    ]);
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Colors.white,
+          body: Center(
+            child: RepaintBoundary(
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(12),
+                child: StaffSystemView(system: system, staffSpace: 12),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await expectLater(
+      find.byType(RepaintBoundary).last,
+      matchesGoldenFile('goldens/78_nested_brackets.png'),
+    );
+  });
+
   testWidgets('74 beat-count overlay (with note names)', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

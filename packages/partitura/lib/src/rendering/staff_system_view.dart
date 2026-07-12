@@ -264,9 +264,25 @@ class RenderStaffSystemView extends RenderBox {
     _paintBrackets(canvas, origins);
   }
 
+  /// How many other brackets strictly contain [b] — its nesting depth. Deeper
+  /// (more-contained) groups sit nearer the staff; outer groups shift left.
+  int _depthOf(StaffBracket b) => _system.brackets
+      .where((a) =>
+          !identical(a, b) &&
+          a.first <= b.first &&
+          b.last <= a.last &&
+          (a.last - a.first) > (b.last - b.first))
+      .length;
+
   void _paintBrackets(Canvas canvas, List<Offset> origins) {
     final layout = _layout!;
+    if (_system.brackets.isEmpty) return;
+    // Innermost sits at the base position; each enclosing level steps left.
+    const step = 0.6; // staff spaces per nesting level
+    final maxDepth =
+        _system.brackets.map(_depthOf).fold(0, (m, d) => d > m ? d : m);
     for (final group in _system.brackets) {
+      final shift = (maxDepth - _depthOf(group)) * step * _scale;
       final top = origins[group.first].dy; // top line of the first staff
       final bottom = origins[group.last].dy + 4 * _scale;
       final x = origins.first.dx;
@@ -277,7 +293,7 @@ class RenderStaffSystemView extends RenderBox {
               layout.staffTop(group.last) + 4 - layout.staffTop(group.first);
           _painter.paintGlyph(
             canvas,
-            Offset(x, origins[group.last].dy),
+            Offset(x - shift, origins[group.last].dy),
             'brace',
             math.Point(-leftInset + 0.35, 4.0),
             _theme.staffColor,
@@ -287,7 +303,7 @@ class RenderStaffSystemView extends RenderBox {
       } else {
         // A square bracket: a thick line just left of the staves, with short
         // horizontal serifs top and bottom.
-        final bx = x - 0.5 * _scale;
+        final bx = x - 0.5 * _scale - shift;
         final paint = Paint()
           ..color = _theme.staffColor
           ..strokeWidth = 0.4 * _scale;

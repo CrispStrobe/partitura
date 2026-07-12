@@ -202,8 +202,9 @@ Raises the quality of everything already rendered. Slice order:
       (golden 75, a four-staff SATB system). ABC multi-voice (`V:`) imports as a
       system via `staffSystemFromAbc` (golden 76); MusicXML multi-part /
       multi-staff imports via `staffSystemFromMusicXml`, with `<part-group>`
-      brackets and per-part braces (golden 77). **Left:** nested-bracket
-      rendering offsets and the hard-coded 5-line-staff generalization (tab
+      brackets and per-part braces (golden 77). Nested brackets render with
+      per-depth leftward offsets so an outer bracket clears an inner brace
+      (golden 78). **Left:** the hard-coded 5-line-staff generalization (tab
       already has its own N-line engine).
 - [ ] **2.2 Cross-staff notes / stems / beams** — a chord or beam spanning
       both staves of a keyboard system.
@@ -460,8 +461,10 @@ are executed **one after another, each with tests**. Status: `[x]` done,
 - [x] Header `X T M L K V w`; other metadata fields ignored (harmless)
 - [x] `Q:` tempo (header + mid-tune → metronome annotation `♩ = n`), `P:` part
       labels (→ annotations), line continuation `\`
+- [x] Dotted bar `.|` → `BarlineStyle.dotted` (round-trips; a lone `.` is still
+      staccato)
 - [ ] `U:` redefinable symbols, `m:` macros, `s:` symbol lines, `W:` unaligned
-      words, `u`/`v` up/down-bow (needs a bowing articulation), dotted bar `.|`
+      words, `u`/`v` up/down-bow (needs a bowing articulation)
 - [x] `%` comments; `%%` stylesheet directives ignored (rendering-hint only)
 
 **Structure**

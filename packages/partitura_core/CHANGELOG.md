@@ -19,10 +19,15 @@
   `<part-group>`s from the `<part-list>` become `StaffBracket`s (bracket/brace/
   square/line), and multi-staff parts (piano) are braced; ids get disjoint
   per-staff spaces (golden 77).
-- **ABC `Q:` tempo / `P:` parts / line continuation**: header and mid-tune `Q:`
-  tempo import as a metronome annotation (`♩ = 120`, with an optional quoted
-  label) above the top staff's first note; mid-tune `P:` part labels import as
-  annotations; a trailing `\` line-continuation is honored.
+- **ABC `Q:` tempo / `P:` parts / line continuation / dotted bar**: header and
+  mid-tune `Q:` tempo import as a metronome annotation (`♩ = 120`, with an
+  optional quoted label) above the top staff's first note; mid-tune `P:` part
+  labels import as annotations; a trailing `\` line-continuation is honored; a
+  dotted barline `.|` maps to `BarlineStyle.dotted` and round-trips (a lone `.`
+  is still staccato).
+- **Nested staff brackets** render with per-depth leftward offsets in
+  `StaffSystemView`, so an outer section bracket clears an inner piano brace
+  instead of painting over it (golden 78).
 - **ABC import — toward abcjs parity** (Phase 7.3): the reader now handles
   **variant endings / voltas** (`|1 |2`, `[1 [2`, `:|2` → `Measure.volta`),
   **decorations** (`!trill!`/`!fermata!`/`!accent!`… → articulations, ornaments

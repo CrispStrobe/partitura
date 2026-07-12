@@ -147,6 +147,7 @@ String scoreToAbc(
       body.write(switch (measure.barline) {
         BarlineStyle.doubleBar => '||',
         BarlineStyle.finalBar => m == score.measures.length - 1 ? '|]' : '|',
+        BarlineStyle.dotted => '.|',
         _ => '|',
       });
     }

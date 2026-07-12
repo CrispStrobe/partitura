@@ -383,6 +383,7 @@ class _AbcBody {
   List<_Rec> _recs = [];
   final List<TupletSpan> _tuplets = [];
   bool _nextStartRepeat = false;
+  bool _nextBarDotted = false;
   int? _nextVolta;
   KeySignature? _pendingKeyChange;
   TimeSignature? _pendingTimeChange;
@@ -433,6 +434,9 @@ class _AbcBody {
       } else if (c == '!') {
         _pos++;
         _readDecoration();
+      } else if (c == '.' && _pos + 1 < src.length && src[_pos + 1] == '|') {
+        _pos++; // ".|" — the following barline is drawn dotted
+        _nextBarDotted = true;
       } else if (c == '.') {
         _pos++;
         _pendingArtic.add(Articulation.staccato);
@@ -653,11 +657,15 @@ class _AbcBody {
     final t = src.substring(start, _pos);
     final endRepeat = t.replaceAll('[', '').startsWith(':');
     final startRepeat = t.endsWith(':');
-    final style = t.contains(']')
+    var style = t.contains(']')
         ? BarlineStyle.finalBar
         : (t.replaceAll(RegExp('[:\\[]'), '') == '||'
             ? BarlineStyle.doubleBar
             : BarlineStyle.normal);
+    if (_nextBarDotted && style == BarlineStyle.normal) {
+      style = BarlineStyle.dotted;
+    }
+    _nextBarDotted = false;
     _closeMeasure(style, endRepeat: endRepeat);
     _nextStartRepeat = startRepeat;
     noteOrder.add('|');
