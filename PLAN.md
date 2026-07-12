@@ -442,7 +442,9 @@ are executed **one after another, each with tests**. Status: `[x]` done,
 - [x] `!…!` decorations → articulations (fermata, accent, tenuto, marcato) and
       ornaments (trill, mordent, uppermordent, turn); dynamics `!p!`…`!ff!`
 - [x] Shorthand `~ H T M P` → ornaments / fermata
-- [ ] Bowing `u`/`v`, emphasis `L`, segno/coda `S`/`O` (no model equivalent yet)
+- [x] Navigation `!segno!` `!coda!` `!D.C.!` `!D.S.!` `!fine!` (+ al fine/coda)
+      → `Measure.navigation` (drives the `playbackTimeline` jumps)
+- [ ] Bowing `u`/`v`, emphasis `L` (no model equivalent yet)
 
 **Text, symbols, inline fields**
 - [x] `"C"` chord symbols → annotations; `w:` lyrics with `- _ * |`

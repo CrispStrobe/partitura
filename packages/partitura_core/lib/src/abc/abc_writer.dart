@@ -52,6 +52,20 @@ String scoreToAbc(
     final measure = score.measures[m];
     if (measure.startRepeat) body.write('|:');
     if (measure.volta != null) body.write('[${measure.volta}');
+    if (measure.navigation != null) {
+      body.write(switch (measure.navigation!) {
+        NavigationMark.segno => '!segno!',
+        NavigationMark.coda => '!coda!',
+        NavigationMark.toCoda => '!dacoda!',
+        NavigationMark.daCapo => '!D.C.!',
+        NavigationMark.daCapoAlFine => '!D.C.alfine!',
+        NavigationMark.daCapoAlCoda => '!D.C.alcoda!',
+        NavigationMark.dalSegno => '!D.S.!',
+        NavigationMark.dalSegnoAlFine => '!D.S.alfine!',
+        NavigationMark.dalSegnoAlCoda => '!D.S.alcoda!',
+        NavigationMark.fine => '!fine!',
+      });
+    }
     // Mid-tune key / meter / unit changes, and multi-measure rests.
     if (measure.keyChange != null) {
       body.write('[K:${_keyName(measure.keyChange!)}]');

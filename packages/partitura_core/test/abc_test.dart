@@ -91,6 +91,15 @@ void main() {
       expect(n[4].ornament, Ornament.shortTrill); // P
     });
 
+    test('navigation decorations !segno! !D.S.! drive the playback jump', () {
+      final s = scoreFromAbc(
+          'X:1\nM:4/4\nL:1/4\nK:C\n!segno!A B C D|E F G A !D.S.!|\n');
+      expect(s.measures[0].navigation, NavigationMark.segno);
+      expect(s.measures[1].navigation, NavigationMark.dalSegno);
+      // The D.S. replays from the segno: 8 notes then both bars again.
+      expect(playbackTimeline(s), hasLength(16));
+    });
+
     test('inline fields [K:] [M:] [L:] change key/meter/length mid-tune', () {
       final s = scoreFromAbc(
           'X:1\nM:4/4\nL:1/8\nK:C\nCDEF|[K:D]DEFG|[M:3/4][L:1/4]A B c|\n');

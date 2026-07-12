@@ -1,17 +1,20 @@
 /// ABC notation import.
 ///
 /// ABC is a plain-text music format widespread for folk and traditional tunes.
-/// This reads the common tune features into a partitura [Score] (pure Dart,
-/// web-safe): the `M`/`L`/`K` header fields, then a tune body of pitched notes
-/// (accidentals, octave marks, `L`-relative durations), rests, chords
-/// (`[CEG]`), **broken rhythm** (`>`/`<`), **ties** (`-`), **tuplets** (`(3`),
-/// **slurs** (`(…)`), **grace notes** (`{…}`), staccato (`.`), quoted `"C"`
-/// chord symbols → annotations, bar lines / repeats / double & final bars, and
-/// `w:` **lyrics** aligned to the notes.
+/// This reads a broad slice of ABC 2.1 into a partitura [Score] (pure Dart,
+/// web-safe): the `M`/`L`/`K` header, then a tune body of pitched notes
+/// (accidentals from the key + in-measure state, octave marks, `L`-relative and
+/// fractional lengths), rests, chords, broken rhythm (`>`/`<`), ties, tuplets,
+/// slurs, grace notes (incl. `{/…}`), decorations (`!…!` and shorthand
+/// `. ~ H T M P` → articulations / ornaments / dynamics), navigation
+/// (`!segno!`/`!D.C.!`/`!D.S.!`/`!fine!`…), quoted `"C"`/positioned `"^…"`
+/// annotations, bar lines (repeats, double/final, variant endings `|1`/`[2`),
+/// multi-measure rests (`Z`), inline fields (`[K:…]`/`[M:…]`/`[L:…]`), and `w:`
+/// lyrics aligned to the notes.
 ///
 /// Multi-voice tunes import their **first** voice (partitura is single-staff
-/// here). Decorations other than staccato (`!…!`), inline non-voice fields and
-/// `%%` directives are skipped so real tunes still import.
+/// here); `Q:`/`P:` and unmodeled decorations are skipped so real tunes still
+/// import. PLAN.md tracks the full ABC coverage toward abcjs parity.
 library;
 
 import '../model/element.dart';
@@ -216,6 +219,7 @@ class _AbcBody {
   KeySignature? _pendingKeyChange;
   TimeSignature? _pendingTimeChange;
   Clef? _pendingClefChange;
+  NavigationMark? _pendingNavigation;
   int? _pendingMultiRest;
 
   String? _pendingChordSymbol;
@@ -401,6 +405,24 @@ class _AbcBody {
       _pendingOrnament = ornament;
       return;
     }
+    final nav =
+        switch (name.toLowerCase().replaceAll('.', '').replaceAll(' ', '')) {
+      'segno' => NavigationMark.segno,
+      'coda' => NavigationMark.coda,
+      'dacoda' || 'tocoda' => NavigationMark.toCoda,
+      'dacapo' || 'dc' => NavigationMark.daCapo,
+      'dacapoalfine' || 'dcalfine' => NavigationMark.daCapoAlFine,
+      'dacapoalcoda' || 'dcalcoda' => NavigationMark.daCapoAlCoda,
+      'dalsegno' || 'ds' => NavigationMark.dalSegno,
+      'dalsegnoalfine' || 'dsalfine' => NavigationMark.dalSegnoAlFine,
+      'dalsegnoalcoda' || 'dsalcoda' => NavigationMark.dalSegnoAlCoda,
+      'fine' => NavigationMark.fine,
+      _ => null,
+    };
+    if (nav != null) {
+      _pendingNavigation = nav;
+      return;
+    }
     _pendingDynamic ??= DynamicLevel.values.asNameMap()[name];
   }
 
@@ -529,6 +551,7 @@ class _AbcBody {
       startRepeat: _nextStartRepeat,
       endRepeat: endRepeat,
       volta: _nextVolta,
+      navigation: _pendingNavigation,
       barline: style,
     ));
     _recs = [];
@@ -538,6 +561,7 @@ class _AbcBody {
     _pendingKeyChange = null;
     _pendingTimeChange = null;
     _pendingClefChange = null;
+    _pendingNavigation = null;
   }
 
   void _readTuplet() {

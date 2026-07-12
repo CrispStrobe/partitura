@@ -8,7 +8,9 @@
   and dynamics; shorthand `~ H T M P`), **inline mid-tune fields** (`[K:…]`
   `[M:…]` `[L:…]` → key/meter/unit changes, with the new key sharpening unmarked
   notes), **multi-measure rests** (`Z`/`Zn` → `Measure.multiRest`), **positioned
-  annotations** (`"^…"` `"_…"`), and **acciaccatura grace** (`{/…}`). The writer
+  annotations** (`"^…"` `"_…"`), **acciaccatura grace** (`{/…}`), and
+  **navigation** (`!segno!`/`!D.C.!`/`!D.S.!`/`!fine!`… → `Measure.navigation`,
+  which drives the `playbackTimeline` jumps). The writer
   round-trips voltas, decorations, inline key/meter changes and multi-rests. A
   fidelity harness imports the abcjs example tunes as regressions. (PLAN.md
   tracks the remaining ABC constructs and what's gated on Phase 2.1 / 5.10.)
