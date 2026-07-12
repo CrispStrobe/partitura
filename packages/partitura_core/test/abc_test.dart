@@ -282,4 +282,67 @@ w:Mar- y had a lit- tle lamb whose fleece was white as snow.
       roundTrips('X:1\nM:4/4\nL:1/4\nK:Eb\nE F G A|B c d e|\n');
     });
   });
+
+  group('multi-voice → StaffSystem', () {
+    test('single-voice tune yields a one-staff system', () {
+      final sys = staffSystemFromAbc('X:1\nM:4/4\nL:1/4\nK:C\nCDEF|\n');
+      expect(sys.staves, hasLength(1));
+      expect(_pitches(sys.staves.first), ['c0/4', 'd0/4', 'e0/4', 'f0/4']);
+    });
+
+    test('field-line voices become separate staves with their own clefs', () {
+      final sys = staffSystemFromAbc('X:1\nM:4/4\nL:1/4\n'
+          'V:1 clef=treble\n'
+          'V:2 clef=bass\n'
+          'K:C\n'
+          'V:1\n'
+          'CDEF|\n'
+          'V:2\n'
+          'C,D,E,F,|\n');
+      expect(sys.staves, hasLength(2));
+      expect(sys.staves[0].clef, Clef.treble);
+      expect(sys.staves[1].clef, Clef.bass);
+      expect(_pitches(sys.staves[0]), ['c0/4', 'd0/4', 'e0/4', 'f0/4']);
+      expect(_pitches(sys.staves[1]), ['c0/3', 'd0/3', 'e0/3', 'f0/3']);
+    });
+
+    test('inline [V:n] prefixes split the body by voice', () {
+      final sys = staffSystemFromAbc('X:1\nM:4/4\nL:1/4\nK:C\n'
+          '[V:1] CDEF|\n'
+          '[V:2] G,A,B,C|\n'
+          '[V:1] GABc|\n');
+      expect(sys.staves, hasLength(2));
+      expect(_pitches(sys.staves[0]),
+          ['c0/4', 'd0/4', 'e0/4', 'f0/4', 'g0/4', 'a0/4', 'b0/4', 'c0/5']);
+      expect(_pitches(sys.staves[1]), ['g0/3', 'a0/3', 'b0/3', 'c0/4']);
+    });
+
+    test('element ids are unique across voices', () {
+      final sys = staffSystemFromAbc('X:1\nM:4/4\nL:1/4\nK:C\n'
+          'V:1\nCDEF|\n'
+          'V:2\nGABc|\n');
+      final ids = [
+        for (final s in sys.staves)
+          for (final m in s.measures)
+            for (final e in m.elements) e.id,
+      ];
+      expect(ids.toSet(), hasLength(ids.length), reason: 'no id collisions');
+    });
+
+    test('scoreFromAbc still returns the first voice', () {
+      final score = scoreFromAbc('X:1\nM:4/4\nL:1/4\nK:C\n'
+          'V:1\nCDEF|\n'
+          'V:2\nGABc|\n');
+      expect(_pitches(score), ['c0/4', 'd0/4', 'e0/4', 'f0/4']);
+    });
+
+    test('per-voice lyrics align to their own voice', () {
+      final sys = staffSystemFromAbc('X:1\nM:4/4\nL:1/4\nK:C\n'
+          'V:1\nCDEF|\nw:one two three four\n'
+          'V:2\nGABc|\nw:la la la la\n');
+      expect(sys.staves[0].lyrics.map((l) => l.text),
+          containsAll(['one', 'two', 'three', 'four']));
+      expect(sys.staves[1].lyrics.map((l) => l.text), everyElement('la'));
+    });
+  });
 }

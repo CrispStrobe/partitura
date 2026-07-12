@@ -1124,6 +1124,42 @@ void main() {
     );
   });
 
+  testWidgets('76 two-voice ABC tune as a staff system', (tester) async {
+    final system = staffSystemFromAbc('X:1\nM:4/4\nL:1/4\n'
+        'V:1 clef=treble\n'
+        'V:2 clef=bass\n'
+        'K:G\n'
+        'V:1\n'
+        'G A B c | d2 e2 |\n'
+        'V:2\n'
+        'G,2 B,2 | C2 D2 |\n');
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Colors.white,
+          body: Center(
+            child: RepaintBoundary(
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(12),
+                child: StaffSystemView(
+                  system: StaffSystem(system.staves,
+                      brackets: const [StaffBracket(0, 1)]),
+                  staffSpace: 12,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await expectLater(
+      find.byType(RepaintBoundary).last,
+      matchesGoldenFile('goldens/76_abc_two_voice_system.png'),
+    );
+  });
+
   testWidgets('74 beat-count overlay (with note names)', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

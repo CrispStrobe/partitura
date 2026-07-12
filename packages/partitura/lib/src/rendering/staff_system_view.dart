@@ -198,8 +198,9 @@ class RenderStaffSystemView extends RenderBox {
 
   @override
   void handleEvent(PointerEvent event, covariant BoxHitTestEntry entry) {
-    if (event is PointerDownEvent && onElementTap != null)
+    if (event is PointerDownEvent && onElementTap != null) {
       _tap.addPointer(event);
+    }
   }
 
   void _handleTapUp(TapUpDetails details) {

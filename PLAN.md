@@ -199,9 +199,10 @@ Raises the quality of everything already rendered. Slice order:
       `StaffBracket` brace/bracket groups) + `layoutStaffSystem` align barlines
       across the system (column-wise-max widths); `StaffSystemView` stacks them
       with connected barlines and left brackets/braces, cross-staff hit-testing
-      (golden 75, a four-staff SATB system). **Left:** nested brackets, the
-      hard-coded 5-line-staff generalization (tab already has its own N-line
-      engine), and wiring MusicXML multi-part / ABC multi-voice into a system.
+      (golden 75, a four-staff SATB system). ABC multi-voice (`V:`) now imports
+      as a system via `staffSystemFromAbc` (golden 76). **Left:** nested
+      brackets, the hard-coded 5-line-staff generalization (tab already has its
+      own N-line engine), and wiring MusicXML multi-part into a system.
 - [ ] **2.2 Cross-staff notes / stems / beams** — a chord or beam spanning
       both staves of a keyboard system.
 - [ ] **2.3 Hide-empty / ossia / divisi / cutaway staves** — dynamic staff
@@ -461,8 +462,10 @@ are executed **one after another, each with tests**. Status: `[x]` done,
 
 **Structure**
 - [x] Multi-measure rest `Z`/`Zn` → `Measure.multiRest`
-- [~] Multi-voice `V:` — first voice only
-- ⛔ Multi-voice → **multiple staves / grand staff** — needs Phase 2.1 N-staff
+- [x] Multi-voice `V:` — `scoreFromAbc` takes the first voice
+- [x] Multi-voice → **multiple staves / system** — `staffSystemFromAbc` imports
+      each `V:` voice as its own staff (own clef + lyrics, unique ids), aligned
+      as a `StaffSystem` (golden 76); field-line and inline `[V:n]` styles
 - [ ] Parts `P:` section ordering
 
 **Fidelity harness**

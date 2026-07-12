@@ -9,6 +9,11 @@
   The Flutter `StaffSystemView` stacks them with connected barlines and left
   brackets/braces, with cross-staff tap hit-testing (golden 75 — a four-staff
   SATB system). *Unblocks multi-voice ABC and tab-paired-with-notation.*
+- **ABC multi-voice → staff system**: `staffSystemFromAbc` imports each `V:`
+  voice as its own staff — keeping its clef (`V:… clef=…` or the `K:` header)
+  and lyrics, with per-voice element-id prefixes so ids stay unique — aligned as
+  a `StaffSystem` (golden 76). Both the field-line (`V:1` … `V:2` …) and inline
+  (`[V:1]` …) styles are honored; `scoreFromAbc` still returns the first voice.
 - **ABC import — toward abcjs parity** (Phase 7.3): the reader now handles
   **variant endings / voltas** (`|1 |2`, `[1 [2`, `:|2` → `Measure.volta`),
   **decorations** (`!trill!`/`!fermata!`/`!accent!`… → articulations, ornaments

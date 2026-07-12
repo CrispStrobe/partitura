@@ -12,11 +12,13 @@
 /// multi-measure rests (`Z`), inline fields (`[K:…]`/`[M:…]`/`[L:…]`), and `w:`
 /// lyrics aligned to the notes.
 ///
-/// Multi-voice tunes import their **first** voice (partitura is single-staff
-/// here); `Q:`/`P:` and unmodeled decorations are skipped so real tunes still
+/// Multi-voice tunes (`V:`) import each voice as its own staff via
+/// [staffSystemFromAbc] (one aligned system); [scoreFromAbc] takes the first
+/// voice. `Q:`/`P:` and unmodeled decorations are skipped so real tunes still
 /// import. PLAN.md tracks the full ABC coverage toward abcjs parity.
 library;
 
+import '../layout/staff_system.dart';
 import '../model/element.dart';
 import '../model/measure.dart';
 import '../model/score.dart';
@@ -27,24 +29,117 @@ import '../theory/key_signature.dart';
 import '../theory/pitch.dart';
 import '../theory/time_signature.dart';
 
-/// Parses an ABC tune [abc] into a [Score] (the first tune if several).
+/// Parses an ABC tune [abc] into a [Score] (the first tune, first voice if
+/// several). For multi-voice tunes rendered as a system, see
+/// [staffSystemFromAbc].
 ///
 /// Throws [FormatException] if no tune body / `K:` field is found.
 Score scoreFromAbc(String abc) {
+  final tune = _collectTune(abc);
+  return tune.buildScore(tune.order.first);
+}
+
+/// Parses an ABC tune [abc] into a [StaffSystem] — one notation staff per `V:`
+/// voice, top to bottom in declaration order, aligned as a system. A
+/// single-voice tune yields a one-staff system. Each voice keeps its own clef
+/// (from `V:… clef=…` or the `K:` header) and lyrics; element ids are prefixed
+/// per voice so they stay unique across staves.
+///
+/// Throws [FormatException] if no tune body / `K:` field is found.
+StaffSystem staffSystemFromAbc(String abc) {
+  final tune = _collectTune(abc);
+  return StaffSystem([
+    for (final id in tune.order) tune.buildScore(id),
+  ]);
+}
+
+/// Accumulates a tune's shared header (`M`/`L`/`K`) and its per-voice bodies,
+/// clefs, and lyric lines, so both [scoreFromAbc] and [staffSystemFromAbc] can
+/// build [Score]s from the same parse.
+class _Tune {
+  final TimeSignature? meter;
+  final Fraction unit;
+  final KeySignature key;
+  final Clef headerClef;
+
+  /// Voice ids in declaration order (at least one — an implicit voice when the
+  /// tune has no `V:` field at all).
+  final List<String> order;
+  final Map<String, Clef> clefs;
+  final Map<String, StringBuffer> bodies;
+  final Map<String, List<String>> lyrics;
+
+  _Tune(this.meter, this.unit, this.key, this.headerClef, this.order,
+      this.clefs, this.bodies, this.lyrics);
+
+  /// Builds the [Score] for one voice [id].
+  Score buildScore(String id) {
+    final clef = clefs[id] ?? headerClef;
+    // Prefix ids per voice so a multi-voice system keeps them unique.
+    final prefix = order.length > 1 ? 'v${order.indexOf(id)}e' : 'e';
+    final parser = _AbcBody(bodies[id]!.toString(), unit, key, idPrefix: prefix)
+      ..parse();
+    final measures = parser.measures.isEmpty
+        ? [
+            Measure([RestElement(NoteDuration.whole, id: '${prefix}0')])
+          ]
+        : parser.measures;
+    final voiceLyrics = _alignLyrics(lyrics[id] ?? const [], parser.noteOrder);
+    return Score(
+      clef: clef,
+      keySignature: key,
+      timeSignature: meter,
+      measures: measures,
+      annotations: parser.annotations,
+      slurs: parser.slurs,
+      dynamics: parser.dynamics,
+      lyrics: voiceLyrics,
+    );
+  }
+}
+
+_Tune _collectTune(String abc) {
   TimeSignature? meter;
   Fraction? unitLen;
   var key = const KeySignature(0);
-  var clef = Clef.treble;
+  var headerClef = Clef.treble;
   var sawKey = false;
-  final body = StringBuffer();
-  final lyricLines = <String>[];
-  String? firstVoice; // id of the first V: voice, when the tune is multi-voice
+
+  final order = <String>[];
+  final clefs = <String, Clef>{};
+  final bodies = <String, StringBuffer>{};
+  final lyrics = <String, List<String>>{};
+  String? current; // the voice body lines are currently attributed to
+
+  void ensure(String id) {
+    if (bodies.containsKey(id)) return;
+    order.add(id);
+    bodies[id] = StringBuffer();
+    lyrics[id] = <String>[];
+  }
+
+  // Resolve the voice to attribute body content / lyrics to.
+  String active() {
+    if (current != null) return current!;
+    if (order.isNotEmpty) return current = order.first;
+    ensure('');
+    return current = '';
+  }
+
+  // Declares/updates a voice from a `V:` value ("1 clef=bass name=…").
+  void declareVoice(String value, {bool switchTo = false}) {
+    final (id, clef) = _parseVoiceHeader(value);
+    ensure(id);
+    if (clef != null) clefs[id] = clef;
+    if (switchTo) current = id;
+  }
 
   for (final raw in abc.split('\n')) {
     final line = raw.trim();
     if (line.isEmpty || line.startsWith('%')) continue;
     final isField =
         line.length >= 2 && line[1] == ':' && _isFieldLetter(line[0]);
+
     if (!sawKey && isField) {
       final value = line.substring(2).trim();
       switch (line[0]) {
@@ -53,11 +148,11 @@ Score scoreFromAbc(String abc) {
         case 'L':
           unitLen = _parseUnitLength(value);
         case 'V':
-          firstVoice ??= value.split(RegExp(r'\s')).first;
+          declareVoice(value); // header declaration; body switches later
         case 'K':
           final parsed = _parseKey(value);
           key = parsed.$1;
-          clef = parsed.$2 ?? clef;
+          headerClef = parsed.$2 ?? headerClef;
           sawKey = true; // the K field ends the header; the body follows
       }
       continue;
@@ -67,24 +162,27 @@ Score scoreFromAbc(String abc) {
     if (isField) {
       final value = line.substring(2).trim();
       if (line[0] == 'w') {
-        lyricLines.add(value);
+        lyrics[active()]!.add(value);
       } else if (line[0] == 'V') {
-        firstVoice ??= value.split(RegExp(r'\s')).first;
+        declareVoice(value, switchTo: true);
       }
       continue; // mid-tune field line
     }
 
-    // A body line. Honor only the first voice when the tune is multi-voice.
-    final noComment = line.split('%').first;
+    // A body line. An inline `[V:x]` prefix switches the active voice.
+    var noComment = line.split('%').first;
     final voiceMatch = RegExp(r'^\[V:\s*([^\]]+)\]').firstMatch(noComment);
-    if (firstVoice != null && voiceMatch != null) {
-      if (voiceMatch[1]!.trim() != firstVoice) continue;
+    if (voiceMatch != null) {
+      declareVoice(voiceMatch[1]!, switchTo: true);
+      noComment = noComment.substring(voiceMatch.end);
     }
-    body.write(noComment);
-    body.write('\n');
+    final buffer = bodies[active()]!;
+    buffer.write(noComment);
+    buffer.write('\n');
   }
 
   if (!sawKey) throw const FormatException('no ABC tune (missing K: field)');
+  if (order.isEmpty) ensure(''); // a tune with a K: but no body content
 
   // Default note length: 1/8, or 1/16 when the meter is "short" (< 3/4).
   final unit = unitLen ??
@@ -92,24 +190,27 @@ Score scoreFromAbc(String abc) {
           ? Fraction(1, 16)
           : Fraction(1, 8));
 
-  final parser = _AbcBody(body.toString(), unit, key)..parse();
-  final measures = parser.measures.isEmpty
-      ? [
-          Measure([RestElement(NoteDuration.whole, id: 'e0')])
-        ]
-      : parser.measures;
-  final lyrics = _alignLyrics(lyricLines, parser.noteOrder);
+  return _Tune(meter, unit, key, headerClef, order, clefs, bodies, lyrics);
+}
 
-  return Score(
-    clef: clef,
-    keySignature: key,
-    timeSignature: meter,
-    measures: measures,
-    annotations: parser.annotations,
-    slurs: parser.slurs,
-    dynamics: parser.dynamics,
-    lyrics: lyrics,
-  );
+/// Parses a `V:` value ("1 clef=bass name=…") into its id and optional clef.
+(String, Clef?) _parseVoiceHeader(String value) {
+  final id = value.trim().split(RegExp(r'\s')).first;
+  Clef? clef;
+  final cm = RegExp(r'clef\s*=\s*"?([A-Za-z]+)').firstMatch(value);
+  if (cm != null) {
+    final c = cm[1]!.toLowerCase();
+    if (c.startsWith('bass')) {
+      clef = Clef.bass;
+    } else if (c.startsWith('alto')) {
+      clef = Clef.alto;
+    } else if (c.startsWith('tenor')) {
+      clef = Clef.tenor;
+    } else if (c.startsWith('treble')) {
+      clef = Clef.treble;
+    }
+  }
+  return (id, clef);
 }
 
 bool _isFieldLetter(String c) {
@@ -199,6 +300,7 @@ class _AbcBody {
   // Mutable so inline fields ([L:…], [K:…]) can change them mid-tune.
   Fraction unit;
   KeySignature key;
+  final String _idPfx;
   int _pos = 0;
   int _id = 0;
 
@@ -210,7 +312,8 @@ class _AbcBody {
   /// string for each barline so `w:` bar breaks can be honored.
   final List<String> noteOrder = [];
 
-  _AbcBody(this.src, this.unit, this.key);
+  _AbcBody(this.src, this.unit, this.key, {String idPrefix = 'e'})
+      : _idPfx = idPrefix;
 
   List<_Rec> _recs = [];
   final List<TupletSpan> _tuplets = [];
@@ -253,7 +356,7 @@ class _AbcBody {
         _readTuplet();
       } else if (c == '(') {
         _pos++;
-        _openSlurs.add('e$_id'); // slur starts on the next note
+        _openSlurs.add('$_idPfx$_id'); // slur starts on the next note
       } else if (c == ')') {
         _pos++;
         _closeSlur();
@@ -519,7 +622,7 @@ class _AbcBody {
       _pendingMultiRest = null;
       measures.add(count >= 2
           ? Measure(const [], multiRest: count, barline: style)
-          : Measure([RestElement(NoteDuration.whole, id: 'e${_id++}')],
+          : Measure([RestElement(NoteDuration.whole, id: '$_idPfx${_id++}')],
               barline: style));
       _nextStartRepeat = false;
       _nextVolta = null;
@@ -599,7 +702,7 @@ class _AbcBody {
   void _readRest() {
     _pos++;
     final dur = _applyPending(_readDuration());
-    _add(_Rec(null, dur, 'e${_id++}'));
+    _add(_Rec(null, dur, '$_idPfx${_id++}'));
   }
 
   void _readChord() {
@@ -629,7 +732,7 @@ class _AbcBody {
   }
 
   _Rec _makeRec(List<Pitch> pitches, Fraction dur) {
-    final rec = _Rec(pitches, dur, 'e${_id++}',
+    final rec = _Rec(pitches, dur, '$_idPfx${_id++}',
         articulations: _pendingArtic.isEmpty ? null : Set.of(_pendingArtic),
         grace: _pendingGrace.isEmpty ? null : List.of(_pendingGrace),
         ornament: _pendingOrnament);
