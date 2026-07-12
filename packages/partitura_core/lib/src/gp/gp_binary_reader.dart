@@ -4,8 +4,8 @@
 /// **publicly documented** byte layout of the Guitar Pro container — the
 /// community reverse-engineering references (dGuitar's *GP4 File Format
 /// Description*, the editor-on-fire *GP5.10 format* notes, TadaoYamaoka's
-/// Kaitai `gp5_file_format` spec, the alphaTab *Guitar Pro 3-5* notes and the
-/// TuxGuitar file-format documentation) — cross-checked byte-for-byte against
+/// Kaitai `gp5_file_format` spec and the TuxGuitar file-format
+/// documentation) — cross-checked byte-for-byte against
 /// the vendored fixture corpus in `partitura_cli/test/data/gp`. A file format's
 /// on-disk layout is factual, not authored; nothing here is derived from any
 /// particular decoder's source code.

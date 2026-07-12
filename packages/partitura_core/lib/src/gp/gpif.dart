@@ -4,7 +4,7 @@
 /// formats (`.gpx` is a compressed container, `.gp` a zip — both hold a
 /// `score.gpif`).
 /// This is a **subset** codec, pure Dart (web-safe): it reads/writes the
-/// reference structure — track tuning, master bars, bars → voices → beats →
+/// GPIF document structure — track tuning, master bars, bars → voices → beats →
 /// notes (string+fret), rhythms and the common playing techniques — into a
 /// partitura [Score]. On **import**, hammer-on/pull-off (`HopoOrigin`) → a
 /// slur, slides (`Slide`) → a glissando, bends (`Bended`/`BendDestinationValue`,
@@ -14,11 +14,15 @@
 /// properties back, so a round-trip keeps techniques.
 /// Multi-track files import one track at a time (`trackIndex`; see
 /// [gpifTrackNames]). It reads real `.gp` (v7) files correctly — validated
-/// against the alphaTab `.gp` (v7) test corpus (pitches, chords, rhythm, techniques,
-/// multi-track).
+/// against the vendored `.gp` (v7) fixtures (pitches, chords, rhythm,
+/// techniques, multi-track; fixture provenance in
+/// `partitura_cli/test/data/gp/README.md`).
 ///
-/// The zip/`.gp` container wrapping lives in `interchange/gp_container.dart`
-/// (web-safe); this module works on the `score.gpif` XML string directly.
+/// The GPIF vocabulary here is the format's own XML tag set (factual); the
+/// parsing and mapping code is original — not derived from any decoder's
+/// source. The zip/`.gp` container wrapping lives in
+/// `interchange/gp_container.dart` (web-safe); this module works on the
+/// `score.gpif` XML string directly.
 library;
 
 import '../model/element.dart';
