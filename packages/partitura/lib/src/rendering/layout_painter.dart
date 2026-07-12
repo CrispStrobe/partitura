@@ -73,8 +73,8 @@ class LayoutPainter {
         text: TextSpan(
           text: character ?? '',
           style: TextStyle(
-            fontFamily: 'Bravura',
-            package: 'partitura',
+            fontFamily: theme.musicFont.family,
+            package: theme.musicFont.package,
             // SMuFL convention: font size = 4 x staff space.
             fontSize: 4 * scale * glyphScale,
             color: color,

@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import 'music_font.dart';
+
 /// Visual styling and ergonomics for `StaffView` and `InteractiveStaff`.
 class PartituraTheme {
   /// Color of staff furniture: staff lines, barlines, clef, signatures.
@@ -34,6 +36,10 @@ class PartituraTheme {
   /// renders as glyphs instead of the test framework's box font.
   final String? textFontFamily;
 
+  /// The SMuFL music font used to draw notation glyphs (default: Bravura).
+  /// Switching it swaps the whole engraving face — see [MusicFont].
+  final MusicFont musicFont;
+
   /// Creates a theme; defaults are ink-on-paper black.
   const PartituraTheme({
     this.staffColor = const Color(0xFF1A1A1A),
@@ -44,6 +50,7 @@ class PartituraTheme {
     this.hitSlop = 0.5,
     this.lineBoost = 1.0,
     this.textFontFamily,
+    this.musicFont = MusicFont.bravura,
   });
 
   /// The default theme.
@@ -67,6 +74,7 @@ class PartituraTheme {
     double? hitSlop,
     double? lineBoost,
     String? textFontFamily,
+    MusicFont? musicFont,
   }) =>
       PartituraTheme(
         staffColor: staffColor ?? this.staffColor,
@@ -77,6 +85,7 @@ class PartituraTheme {
         hitSlop: hitSlop ?? this.hitSlop,
         lineBoost: lineBoost ?? this.lineBoost,
         textFontFamily: textFontFamily ?? this.textFontFamily,
+        musicFont: musicFont ?? this.musicFont,
       );
 
   @override
@@ -89,6 +98,7 @@ class PartituraTheme {
       other.hitSlop == hitSlop &&
       other.lineBoost == lineBoost &&
       other.textFontFamily == textFontFamily &&
+      other.musicFont == musicFont &&
       mapEquals(other.elementColors, elementColors);
 
   @override
@@ -100,6 +110,7 @@ class PartituraTheme {
         hitSlop,
         lineBoost,
         textFontFamily,
+        musicFont,
         Object.hashAllUnordered(
           elementColors.entries.map((e) => Object.hash(e.key, e.value)),
         ),

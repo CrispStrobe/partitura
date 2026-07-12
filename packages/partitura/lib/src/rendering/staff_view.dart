@@ -6,8 +6,8 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:partitura_core/partitura_core.dart';
 
-import 'bravura.dart';
 import 'layout_painter.dart';
+import 'music_font.dart';
 import 'theme.dart';
 
 /// Renders a [Score] as a single staff.
@@ -17,9 +17,10 @@ import 'theme.dart';
 /// whose id is in [highlightedIds] are painted in the theme's highlight
 /// color — changing highlights repaints but never relayouts.
 ///
-/// The bundled Bravura font's metadata loads asynchronously on first use;
-/// until it arrives the widget paints nothing. Await [Bravura.load] up
-/// front (e.g. in `main()`) to avoid the one-frame gap.
+/// The music font's metadata (Bravura by default; see
+/// [PartituraTheme.musicFont]) loads asynchronously on first use; until it
+/// arrives the widget paints nothing. Await [MusicFonts.load] up front (e.g. in
+/// `main()`) to avoid the one-frame gap.
 class StaffView extends LeafRenderObjectWidget {
   /// The score to render.
   final Score score;
@@ -186,7 +187,8 @@ class RenderStaffView extends RenderBox {
   PartituraTheme get theme => _theme;
   set theme(PartituraTheme value) {
     if (value == _theme) return;
-    final needsLayout = value.lineBoost != _theme.lineBoost;
+    final needsLayout = value.lineBoost != _theme.lineBoost ||
+        value.musicFont != _theme.musicFont;
     _theme = value;
     _painter.theme = value;
     if (needsLayout) {
@@ -297,7 +299,7 @@ class RenderStaffView extends RenderBox {
   }
 
   Size _measure(BoxConstraints constraints) {
-    final metadata = Bravura.metadataOrNull;
+    final metadata = MusicFonts.metadataOrNull(_theme.musicFont);
     if (metadata == null) {
       _layout = null;
       final space = _staffSpace ?? _fallbackStaffSpace;
@@ -321,8 +323,8 @@ class RenderStaffView extends RenderBox {
 
   @override
   void performLayout() {
-    if (Bravura.metadataOrNull == null) {
-      Bravura.load().then((_) {
+    if (MusicFonts.metadataOrNull(_theme.musicFont) == null) {
+      MusicFonts.load(_theme.musicFont).then((_) {
         if (attached) markNeedsLayout();
       });
     }
@@ -446,7 +448,7 @@ class RenderStaffView extends RenderBox {
     };
     final color = _theme.highlightColor.withValues(alpha: 0.45);
     final y = (8 - ghost.staffPosition) / 2;
-    final metadata = Bravura.metadataOrNull;
+    final metadata = MusicFonts.metadataOrNull(_theme.musicFont);
     final width = metadata?.bBoxOf(glyph).width ?? 1.18;
     final origin = offset + Offset(0, -(_layout?.top ?? 0) * _scale);
     _painter.paintGlyph(
