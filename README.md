@@ -43,7 +43,7 @@ neutral percussion clef.
 symbols, jazz articulations, breath marks, custom noteheads and per-element
 coloring, and full guitar **tablature** with techniques.
 
-**Interchange.** MusicXML (plain and compressed `.mxl`), MIDI, MuseScore
+**Interchange.** MusicXML (plain and compressed `.mxl`), MEI, MIDI, MuseScore
 (`.mscx`/`.mscz`), the `.gp3`–`.gp5`/`.gpx`/`.gp` tablature family (with GPIF),
 and ABC — all importing and (where applicable) exporting through the one
 `Score` model, so any pair round-trips for shared data.

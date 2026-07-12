@@ -39,10 +39,13 @@ ships* at the end for the mechanics.
     `TabNoteStyle`), tapping (`Tap`), tremolo bar (`TremoloBar`), chord
     diagrams (`ChordDiagram`/`PlacedChordDiagram`). Goldens 52–63. Contract
     "tablature out" clause lifted.
-  - **Phase 7.3/7.4 (interchange):** MusicXML, MIDI, MuseScore (`.mscx`/`.mscz`),
-    GPIF and the full `.gp3`–`.gp` binary line (`.gp3`/`.gp4`/`.gp5`) +
-    `.gpx` (v6) + `.gp` (v7/8) all import (MusicXML/MuseScore/GPIF also export),
-    with the common techniques; nested repeats now expand in `playbackTimeline`.
+  - **Phase 7.3/7.4 (interchange):** MusicXML (+ compressed `.mxl`), MEI, MIDI,
+    MuseScore (`.mscx`/`.mscz`), GPIF and the full `.gp3`–`.gp` binary line
+    (`.gp3`/`.gp4`/`.gp5`) + `.gpx` (v6) + `.gp` (v7/8) all import
+    (MusicXML/`.mxl`/MEI/MuseScore/GPIF also export), with the common
+    techniques; nested repeats now expand in `playbackTimeline`. The container
+    codecs (ZIP + BCFS) and DEFLATE are pure Dart, so the whole surface is
+    web-safe / WASM-compilable.
 - **Test counts:** 701 core + 141 widget + 39 CLI, all gates green.
 
 ### ▶ Where the next agent picks up

@@ -2,6 +2,15 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **MEI (Music Encoding Initiative) import & export** (Phase 7.3): `scoreToMei`
+  / `scoreFromMei` write and read an `<mei>` (v5) document — the open,
+  standards-body notation XML used across digital musicology (Verovio,
+  music21). A **subset** codec (clef with mid-score changes as inline
+  `<clef>`/`<keySig>`/`<meterSig>`, key/time signatures incl. **common/cut and
+  additive**, measures, notes/chords, rests, durations breve…64th + dots, two
+  voices/layers, ties, pickup via `@metcon`), pure Dart (web-safe). Pitch
+  spelling round-trips through gestural accidentals (`@accid.ges`), so C♯ stays
+  C♯. Slurs, tuplets, articulations, lyrics and dynamics are out of scope.
 - **Compressed MusicXML (`.mxl`) import & export** (Phase 7.3): `.mxl` — the
   zipped MusicXML that Sibelius, Finale, Dorico and MuseScore all read and write
   — pairs the existing MusicXML codec with the new web-safe ZIP.

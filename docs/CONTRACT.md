@@ -402,6 +402,17 @@ compress on write and decompress on read without `dart:io`.
 Pitches, rhythm and structure round-trip through the
 shared `Score` model.
 
+### MEI (`.mei`) import & export
+
+`scoreToMei(score, {title})` / `scoreFromMei(mei)` write and read an `<mei>`
+(v5) document — a **subset** (clef with mid-score changes via inline
+`<clef>`/`<keySig>`/`<meterSig>`, key/time signatures incl. common/cut and
+additive, measures, notes/chords, rests, durations breve…64th with dots, two
+voices as `<layer>`s, ties, pickup via `@metcon="false"`), pure Dart. Pitch
+spelling round-trips through gestural accidentals (`@accid.ges`), so enharmonics
+are preserved; written accidentals (`@accid`) map to `showAccidental`. Slurs,
+tuplets, articulations, lyrics and dynamics are out of scope.
+
 ### Plain-text (ASCII) tablature import
 
 `asciiTabToScore(text, {tuning, duration})` → `Score` parses the informal

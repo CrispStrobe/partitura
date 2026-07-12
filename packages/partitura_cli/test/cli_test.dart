@@ -110,6 +110,21 @@ void main() {
     expect(pitches, containsAll(['C4', 'D4', 'E4', 'F4', 'G4', 'A4']));
   });
 
+  test('convert MusicXML → .mei → MusicXML round-trips the pitches', () async {
+    final mei = '${tmp.path}/out.mei';
+    final xml = '${tmp.path}/rt3.musicxml';
+    expect((await run(['convert', samplePath, mei])).exitCode, 0);
+    expect(File(mei).readAsStringSync(), contains('<mei'));
+    expect((await run(['convert', mei, xml])).exitCode, 0);
+    final pitches = scoreFromMusicXml(File(xml).readAsStringSync())
+        .measures
+        .expand((m) => m.elements)
+        .whereType<NoteElement>()
+        .expand((n) => n.pitches)
+        .map((p) => p.toString());
+    expect(pitches, containsAll(['C4', 'D4', 'E4', 'F4', 'G4', 'A4']));
+  });
+
   test('render writes an SVG with the clef glyph', () async {
     final out = '${tmp.path}/out.svg';
     final r =

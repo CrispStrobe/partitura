@@ -36,6 +36,7 @@ void main() {
   // Every codec funnels through the one Score, so each round-trips its subset.
   final musicXml = scoreFromMusicXml(scoreToMusicXml(source));
   final musescore = scoreFromMscx(scoreToMscx(source));
+  final mei = scoreFromMei(scoreToMei(source));
   final abc = scoreFromAbc(scoreToAbc(source));
   final midi = scoreFromMidi(scoreToMidi(source));
   final gpif = scoreFromGpif(scoreToGpif(source));
@@ -62,6 +63,7 @@ void main() {
   final checks = <String, bool>{
     'MusicXML round-trip': noteCount(musicXml) == noteCount(source),
     'MuseScore round-trip': noteCount(musescore) == noteCount(source),
+    'MEI round-trip': noteCount(mei) == noteCount(source),
     'ABC round-trip': noteCount(abc) >= 5,
     'MIDI round-trip': noteCount(midi) >= 5,
     'GPIF round-trip': noteCount(gpif) >= 1,
