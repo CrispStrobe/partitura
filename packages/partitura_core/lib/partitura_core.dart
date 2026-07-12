@@ -19,6 +19,7 @@ export 'src/layout/layout_engine.dart' show LayoutEngine;
 export 'src/layout/layout_settings.dart';
 export 'src/layout/multi_system.dart';
 export 'src/layout/score_layout.dart';
+export 'src/layout/staff_system.dart';
 export 'src/layout/tab_layout.dart';
 export 'src/midi/midi_reader.dart';
 export 'src/midi/midi_writer.dart';
