@@ -136,7 +136,11 @@ class _KernReader {
   Score read() {
     for (final raw in lines) {
       final line = raw.trimRight();
-      if (line.isEmpty || line.startsWith('!')) continue; // blank / comment
+      if (line.isEmpty) continue;
+      if (line.startsWith('!')) {
+        if (line.startsWith('!!!')) _reference(line);
+        continue; // reference records handled; other comments skipped
+      }
       final token = line.split('\t')[_columnFor(line)];
       if (token == '**kern') continue; // exclusive-interpretation header
       if (token.startsWith('**')) continue; // some other exclusive spine
@@ -156,7 +160,34 @@ class _KernReader {
       keySignature: _leadingKey,
       timeSignature: _leadingTime,
       measures: withDetectedPickup(_measures, _leadingTime),
+      metadata: ScoreMetadata(
+        title: _title,
+        composer: _composer,
+        lyricist: _lyricist,
+        copyright: _copyright,
+        instrument: _instrument,
+      ),
     );
+  }
+
+  String? _title, _composer, _lyricist, _copyright, _instrument;
+
+  /// Parses a `!!!KEY: value` bibliographic reference record.
+  void _reference(String line) {
+    final match = RegExp(r'^!!!([A-Za-z0-9]+):\s?(.*)$').firstMatch(line);
+    if (match == null) return;
+    final value = match[2]!.trim();
+    if (value.isEmpty) return;
+    switch (match[1]) {
+      case 'OTL':
+        _title = value;
+      case 'COM':
+        _composer = value;
+      case 'LYR':
+        _lyricist = value;
+      case 'YEC':
+        _copyright = value;
+    }
   }
 
   // Leading (document-initial) signatures, captured before the first note.
@@ -194,6 +225,9 @@ class _KernReader {
       _apply(time: _meterOf(token.substring(2)));
     } else if (token.startsWith('*met(')) {
       _apply(symbol: token.contains('C|') ? TimeSymbol.cut : TimeSymbol.common);
+    } else if (token.startsWith('*I"')) {
+      final name = token.substring(3).trim();
+      if (name.isNotEmpty) _instrument = name;
     }
   }
 
