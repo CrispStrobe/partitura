@@ -375,6 +375,22 @@ gpif) is also read by the CLI (validated against the alphaTab `.gpx` corpus).
 (`gp5ToScore`; pitches/chords/durations/measures/tunings + the note
 techniques), validated against the alphaTab `.gp5` corpus.
 
+### MuseScore (`.mscx` / `.mscz`) import & export
+
+`scoreToMscx(score, {partName})` / `scoreFromMscx(mscx, {staffIndex})` write and
+read a MuseScore-4 `.mscx` document — a **subset** (clef with mid-score changes,
+key/time signatures, measures, notes/chords, rests, durations breve…64th with
+dots, two voices, ties, pickup measures), pure Dart. Pitch spelling round-trips
+through the MuseScore tonal-pitch-class (`tpcOf`), so enharmonics are preserved.
+Common/cut time degrades to numeric; slurs, tuplets, articulations, lyrics,
+dynamics, ornaments, grace notes and repeat/navigation structure are out of
+scope. The reader also accepts the shapes real MuseScore 3/4 files use for the
+supported subset (`<KeySig>` as `concertKey`/`accidental`/`subtype`,
+whole-measure `durationType>measure` rests). The `.mscz` container is a ZIP of
+the `.mscx`; the CLI reads/writes it (`readMscxFromMscz` / `writeMsczFromMscx`,
+which need `dart:io`). Pitches, rhythm and structure round-trip through the
+shared `Score` model.
+
 ### Plain-text (ASCII) tablature import
 
 `asciiTabToScore(text, {tuning, duration})` → `Score` parses the informal

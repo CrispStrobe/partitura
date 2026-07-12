@@ -39,6 +39,12 @@ void main() {
     expect(durations(back), durations(source));
   });
 
+  test('MuseScore (.mscx) round-trip preserves pitches and rhythm', () {
+    final back = scoreFromMscx(scoreToMscx(source));
+    expect(pitches(back), pitches(source));
+    expect(durations(back), durations(source));
+  });
+
   test('MIDI round-trip preserves pitches and (quantized) rhythm', () {
     final back = scoreFromMidi(scoreToMidi(source));
     expect(pitches(back), pitches(source));

@@ -27,6 +27,8 @@ export 'src/midi/midi_writer.dart';
 export 'src/model/element.dart';
 export 'src/model/measure.dart';
 export 'src/model/score.dart';
+export 'src/musescore/musescore_reader.dart';
+export 'src/musescore/musescore_writer.dart';
 export 'src/musicxml/musicxml_reader.dart';
 export 'src/musicxml/musicxml_writer.dart';
 export 'src/playback/playback_timeline.dart';

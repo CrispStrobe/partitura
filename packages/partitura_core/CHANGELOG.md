@@ -2,6 +2,20 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **MuseScore (`.mscx` / `.mscz`) import & export** (Phase 7.3): `scoreToMscx`
+  / `scoreFromMscx` write and read a MuseScore-4 `.mscx` document — a **subset**
+  codec (clef with mid-score changes, key/time signatures, measures,
+  notes/chords, rests, durations breve…64th + dots, two voices, ties, pickup
+  measures), pure Dart (web-safe). Spelling round-trips via the MuseScore
+  tonal-pitch-class (`tpcOf`), so C♯ stays C♯. The `.mscz` ZIP container is
+  handled in `partitura_cli` (`readMscxFromMscz` / `writeMsczFromMscx`, needs
+  `dart:io`), which also gains `.mscx`/`.mscz` input+output. Common/cut meters
+  degrade to numeric on this hop; slurs, tuplets, articulations, lyrics and
+  dynamics are out of scope. The reader also accepts the shapes real MuseScore
+  3/4 files use (`KeySig` as `concertKey`/`accidental`/`subtype`, whole-measure
+  `durationType>measure` rests). Because every codec funnels through the one
+  `Score`, `.mscx` round-trips transparently with MusicXML, MIDI, ABC and the
+  `.gp` line for the data they share.
 - **Per-column skyline collision avoidance** (Phase 1.2): the layout engine
   records every glyph's ink and exposes `_skylineTop`/`_skylineBottom` queries,
   so above-/below-staff marks clear only the ink in their own horizontal span
