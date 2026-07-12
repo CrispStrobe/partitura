@@ -595,9 +595,10 @@ Marked `[cheap]` (an additive field/enum, low blast radius) or `[deep]`
 - **Work / score metadata** — title, composer, lyricist, copyright. **✓ Done:**
   `ScoreMetadata` on `Score`, carried through the MusicXML/MEI/MuseScore/kern/
   LilyPond headers (`interchange_metadata_test.dart`).
-- **Structured tempo / metronome marks** — `♩ = 120` as data (MusicXML
-  `<metronome>`, MEI `<tempo>`). The model has only free-text `annotations` and
-  a playback-time `bpm` argument; no first-class tempo event. `[cheap]`
+- **Structured tempo / metronome marks** — `♩ = 120` as data. **✓ Done:** a
+  `Tempo` (bpm + beat unit + dots) on `Score`, through MusicXML/MEI/MuseScore/
+  kern/LilyPond (`interchange_tempo_test.dart`). *Left:* mid-score tempo changes
+  (initial tempo only today) and drawing it in the layout engine.
 - **Instrument / part identity** — **✓ name done** (`ScoreMetadata.instrument`,
   via the same headers); MIDI program/channel + abbreviation still deferred.
   `[cheap]`

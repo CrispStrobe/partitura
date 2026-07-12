@@ -91,8 +91,13 @@ String scoreToMei(Score score, {String title = 'Music'}) {
   final meterAttrs = score.timeSignature == null
       ? ''
       : ' ${_meterAttrs(score.timeSignature!, dotted: true)}';
+  final t = score.tempo;
+  final mm = t == null
+      ? ''
+      : ' mm="${_bpm(t.bpm)}" mm.unit="${_durValues[t.beatUnit]}"'
+          '${t.dots == 0 ? '' : ' mm.dots="${t.dots}"'}';
   out.writeln('    <scoreDef keysig="${meiKeySig(score.keySignature)}"'
-      '$meterAttrs>');
+      '$meterAttrs$mm>');
   final label = score.metadata.instrument == null
       ? ''
       : ' label="${_escape(score.metadata.instrument!)}"';
@@ -244,3 +249,7 @@ String _escape(String text) => text
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;');
+
+/// A bpm as a compact string (no trailing `.0`).
+String _bpm(double bpm) =>
+    bpm == bpm.roundToDouble() ? bpm.round().toString() : bpm.toString();

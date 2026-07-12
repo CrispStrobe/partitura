@@ -110,6 +110,11 @@ class Score {
   /// engine ignores it.
   final ScoreMetadata metadata;
 
+  /// The initial tempo (metronome mark), or null if unspecified. Carried
+  /// through interchange and available to playback; the layout engine does not
+  /// yet draw it.
+  final Tempo? tempo;
+
   /// Creates a score (treat the lists as immutable).
   const Score({
     required this.clef,
@@ -140,6 +145,7 @@ class Score {
     this.breathMarks = const [],
     this.transposition,
     this.metadata = const ScoreMetadata(),
+    this.tempo,
   });
 
   /// Builds a score from a terse note string, for tests and games.
@@ -214,6 +220,7 @@ class Score {
     String? lyrics,
     String? annotations,
     ScoreMetadata metadata = const ScoreMetadata(),
+    Tempo? tempo,
   }) {
     var duration = NoteDuration.quarter;
     var nextId = 0;
@@ -509,6 +516,7 @@ class Score {
           ? const []
           : _parseAnnotations(annotations, measures),
       metadata: metadata,
+      tempo: tempo,
     );
   }
 
@@ -672,6 +680,7 @@ class Score {
       breathMarks: breathMarks,
       transposition: keepTransposition ? transposition : null,
       metadata: metadata,
+      tempo: tempo,
     );
   }
 
@@ -766,7 +775,8 @@ class Score {
       listEquals(other.figuredBass, figuredBass) &&
       listEquals(other.breathMarks, breathMarks) &&
       other.transposition == transposition &&
-      other.metadata == metadata;
+      other.metadata == metadata &&
+      other.tempo == tempo;
 
   @override
   int get hashCode => Object.hash(
@@ -801,6 +811,7 @@ class Score {
           Object.hashAll(breathMarks),
           transposition,
           metadata,
+          tempo,
         ),
       );
 
@@ -872,4 +883,37 @@ class ScoreMetadata {
     ];
     return 'ScoreMetadata(${parts.join(', ')})';
   }
+}
+
+/// A metronome mark: [bpm] beats per minute, where one beat is a [beatUnit]
+/// note (with [dots] augmentation dots). `♩ = 120` is
+/// `Tempo(120)`; `♩. = 80` is `Tempo(80, beatUnit: DurationBase.quarter,
+/// dots: 1)`. Carried through interchange and usable by playback; the layout
+/// engine does not yet draw the mark.
+class Tempo {
+  /// Beats per minute (the [beatUnit] note gets this many per minute).
+  final double bpm;
+
+  /// The note value of one beat (default a quarter).
+  final DurationBase beatUnit;
+
+  /// Augmentation dots on the beat unit (0–2; a dotted-quarter beat is 1).
+  final int dots;
+
+  /// Creates a metronome mark of [bpm] per [beatUnit] note.
+  const Tempo(this.bpm, {this.beatUnit = DurationBase.quarter, this.dots = 0})
+      : assert(dots >= 0 && dots <= 2, 'dots must be 0..2');
+
+  @override
+  bool operator ==(Object other) =>
+      other is Tempo &&
+      other.bpm == bpm &&
+      other.beatUnit == beatUnit &&
+      other.dots == dots;
+
+  @override
+  int get hashCode => Object.hash(bpm, beatUnit, dots);
+
+  @override
+  String toString() => 'Tempo($bpm, ${beatUnit.name}${'.' * dots})';
 }

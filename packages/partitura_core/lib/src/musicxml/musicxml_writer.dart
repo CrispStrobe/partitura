@@ -70,6 +70,29 @@ String _escape(String text) => text
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;');
 
+/// MusicXML note-type name per [DurationBase].
+const _typeNames = {
+  DurationBase.breve: 'breve',
+  DurationBase.whole: 'whole',
+  DurationBase.half: 'half',
+  DurationBase.quarter: 'quarter',
+  DurationBase.eighth: 'eighth',
+  DurationBase.sixteenth: '16th',
+  DurationBase.thirtySecond: '32nd',
+  DurationBase.sixtyFourth: '64th',
+};
+String _typeName(DurationBase base) => _typeNames[base]!;
+
+/// A bpm as a compact string (no trailing `.0`).
+String _bpmStr(double bpm) =>
+    bpm == bpm.roundToDouble() ? bpm.round().toString() : bpm.toString();
+
+/// The value of a (possibly dotted) beat unit in quarter notes.
+double _beatQuarters(DurationBase base, int dots) {
+  final f = NoteDuration(base, dots: dots).toFraction();
+  return f.numerator * 4 / f.denominator;
+}
+
 /// Divisions per quarter: the least common multiple of every duration's
 /// quarter-denominator, so all `<duration>` values are integers.
 int _divisionsFor(Score score) {
@@ -239,6 +262,18 @@ class _PartWriter {
             '${measure.multiRest}</multiple-rest></measure-style>');
       }
       out.writeln('      </attributes>');
+    }
+
+    // The initial tempo (metronome mark) opens the first measure.
+    if (index == 0 && score.tempo != null) {
+      final t = score.tempo!;
+      final unit = _typeName(t.beatUnit);
+      final dotTags = '<beat-unit-dot/>' * t.dots;
+      final sound = _bpmStr(t.bpm * _beatQuarters(t.beatUnit, t.dots));
+      out.writeln('      <direction placement="above"><direction-type>'
+          '<metronome><beat-unit>$unit</beat-unit>$dotTags'
+          '<per-minute>${_bpmStr(t.bpm)}</per-minute></metronome>'
+          '</direction-type><sound tempo="$sound"/></direction>');
     }
 
     if (measure.startRepeat) {

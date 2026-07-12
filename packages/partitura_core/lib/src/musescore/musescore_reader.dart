@@ -113,6 +113,7 @@ class _StaffReader {
   Clef _leadingClef = Clef.treble;
   KeySignature? _key;
   TimeSignature? _time;
+  Tempo? _tempo;
 
   final _measures = <Measure>[];
 
@@ -127,6 +128,7 @@ class _StaffReader {
       keySignature: _key ?? const KeySignature(0),
       timeSignature: _time,
       measures: _measures,
+      tempo: _tempo,
       metadata: metadata,
     );
   }
@@ -177,6 +179,10 @@ class _StaffReader {
             elements.add(_chordOf(node));
           case 'Rest':
             elements.add(RestElement(_durationOf(node), id: _newId()));
+          case 'Tempo':
+            // <tempo> is quarter-notes per second → bpm.
+            final v = double.tryParse(node.childText('tempo') ?? '');
+            if (v != null) _tempo ??= Tempo(v * 60);
           default:
             break; // Beam, Spanner, StaffText, Dynamic, Tuplet, …: ignored
         }

@@ -2,6 +2,13 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Structured tempo** (Score-model lacuna): a first-class `Tempo` (bpm + beat
+  unit + dots) on `Score` (and `Score.simple`), replacing the "text-only /
+  playback-arg" gap. Carried through MusicXML (`<metronome>`+`<sound tempo>`),
+  MEI (`scoreDef @mm`/`@mm.unit`), MuseScore (`<Tempo>`), Humdrum (`*MM`) and
+  LilyPond (`\tempo`). Beat unit + dots round-trip through MusicXML/MEI/LilyPond;
+  kern and MuseScore store the quarter-note-per-minute equivalent, so a
+  quarter-beat tempo round-trips exactly there. Layout does not draw it yet.
 - **Score metadata** (first Score-model lacuna implemented): a new
   `ScoreMetadata` on `Score` — title, composer, lyricist, copyright and
   instrument name — carried through the MusicXML (`<work>`/`<identification>`),

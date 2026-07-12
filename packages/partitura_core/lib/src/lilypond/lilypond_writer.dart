@@ -81,6 +81,12 @@ String scoreToLilyPond(Score score) {
   if (score.timeSignature != null) {
     body.write('${_time(score.timeSignature!)} ');
   }
+  if (score.tempo != null) {
+    final t = score.tempo!;
+    final bpm =
+        t.bpm == t.bpm.roundToDouble() ? t.bpm.round().toString() : '${t.bpm}';
+    body.write('\\tempo ${_durValues[t.beatUnit]}${'.' * t.dots} = $bpm ');
+  }
 
   for (var m = 0; m < score.measures.length; m++) {
     final measure = score.measures[m];
