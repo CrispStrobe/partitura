@@ -4,9 +4,9 @@
 /// is no importer. Generated from the documented syntax (no LilyPond code is
 /// used), pure Dart. Covers clef (with mid-score changes), key/time
 /// signatures, notes/chords, rests, durations (breve…64th with dots), two
-/// voices, ties and pickup (`\partial`). Slurs, tuplets, articulations,
-/// lyrics, dynamics and repeat structure are out of scope. Pitch names use
-/// LilyPond's default Dutch note language.
+/// voices, ties, pickup (`\partial`), articulations and ornaments. Slurs,
+/// tuplets, lyrics, dynamics and repeat structure are out of scope. Pitch
+/// names use LilyPond's default Dutch note language.
 library;
 
 import '../model/element.dart';
@@ -120,13 +120,22 @@ String _element(MusicElement element) {
   }
   final note = element as NoteElement;
   final tie = note.tieToNext ? '~' : '';
-  final artic = _artic(note.articulations);
+  final marks = '${_artic(note.articulations)}${_ornament(note.ornament)}';
   if (note.pitches.length == 1) {
-    return '${_pitch(note.pitches.single)}${_dur(note.duration)}$artic$tie';
+    return '${_pitch(note.pitches.single)}${_dur(note.duration)}$marks$tie';
   }
   final inner = note.pitches.map(_pitch).join(' ');
-  return '<$inner>${_dur(note.duration)}$artic$tie';
+  return '<$inner>${_dur(note.duration)}$marks$tie';
 }
+
+/// LilyPond ornament script appended to a note.
+String _ornament(Ornament? ornament) => switch (ornament) {
+      Ornament.trill => '\\trill',
+      Ornament.shortTrill => '\\prall',
+      Ornament.mordent => '\\mordent',
+      Ornament.turn => '\\turn',
+      null => '',
+    };
 
 /// LilyPond articulation scripts appended to a note.
 String _artic(Set<Articulation> a) {

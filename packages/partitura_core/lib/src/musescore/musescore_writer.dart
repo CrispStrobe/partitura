@@ -4,10 +4,11 @@
 /// Covers the shared musical data: clef (with mid-score changes), key and
 /// time signatures (numeric; `.common`/`.cut` degrade to numeric 4/4 · 2/2),
 /// measures, notes/chords, rests, durations (breve…64th with dots), two
-/// voices, ties and pickup measures. Slurs, tuplets, articulations, lyrics,
-/// dynamics, ornaments, grace notes and repeat/navigation structure are out
-/// of scope (dropped on this hop). Pure Dart (web-safe); the `.mscz` ZIP
-/// container is handled in `partitura_cli`.
+/// voices, ties, pickup measures, articulations and ornaments (both as
+/// `<Articulation>` SMuFL subtypes). Slurs, tuplets, lyrics, dynamics, grace
+/// notes and repeat/navigation structure are out of scope (dropped on this
+/// hop). Pure Dart (web-safe); the `.mscz` ZIP container is handled in
+/// `partitura_cli`.
 library;
 
 import '../model/element.dart';
@@ -58,6 +59,14 @@ const museScoreArtic = {
   Articulation.fermata: 'fermataAbove',
   Articulation.upBow: 'stringsUpBow',
   Articulation.downBow: 'stringsDownBow',
+};
+
+/// MuseScore stores ornaments as `<Articulation>` subtypes too (SMuFL names).
+const museScoreOrnament = {
+  Ornament.trill: 'ornamentTrill',
+  Ornament.shortTrill: 'ornamentShortTrill',
+  Ornament.mordent: 'ornamentMordent',
+  Ornament.turn: 'ornamentTurn',
 };
 
 /// Serializes [score] as a single-part, single-staff MuseScore `.mscx`
@@ -161,7 +170,8 @@ class _MscxWriter {
         out.writeln('          <Rest>${_durationXml(element.duration)}</Rest>');
       } else if (element is NoteElement) {
         out.write('          <Chord>${_durationXml(element.duration)}'
-            '${_articXml(element.articulations)}');
+            '${_articXml(element.articulations)}'
+            '${_ornamentXml(element.ornament)}');
         for (final pitch in element.pitches) {
           out.write('<Note>');
           if (element.tieToNext) {
@@ -194,6 +204,13 @@ class _MscxWriter {
       }
     }
     return buf.toString();
+  }
+
+  static String _ornamentXml(Ornament? ornament) {
+    final subtype = museScoreOrnament[ornament];
+    return subtype == null
+        ? ''
+        : '<Articulation><subtype>$subtype</subtype></Articulation>';
   }
 
   /// A whole-note [fraction] as MuseScore's `n/d` string (already reduced).

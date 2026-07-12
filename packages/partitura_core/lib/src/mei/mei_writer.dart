@@ -5,9 +5,10 @@
 /// musicology (Verovio, music21). Covered subset: clef (with mid-score
 /// changes), key and time signatures (numeric + common/cut + additive),
 /// measures, notes/chords, rests, durations (breve…64th with dots), two
-/// voices (layers), ties and pickup measures. Pitch spelling round-trips via
-/// gestural accidentals (`accid.ges`). Slurs, tuplets, articulations, lyrics
-/// and dynamics are out of scope. Pure Dart (web-safe).
+/// voices (layers), ties, pickup measures, articulations (`@artic`/`@fermata`)
+/// and ornaments (`<trill>`/`<mordent>`/`<turn>` control events). Pitch
+/// spelling round-trips via gestural accidentals (`accid.ges`). Slurs, tuplets,
+/// lyrics and dynamics are out of scope. Pure Dart (web-safe).
 library;
 
 import '../model/element.dart';
@@ -132,8 +133,27 @@ void _writeMeasure(StringBuffer out, Score score, int index) {
     _writeLayer(out, 2, measure.voice2, '');
   }
   out.writeln('        </staff>');
+
+  // Ornaments are control events anchored to a note by its xml:id.
+  final controls = StringBuffer();
+  for (final element in [...measure.elements, ...measure.voice2]) {
+    if (element is NoteElement &&
+        element.ornament != null &&
+        element.id != null) {
+      controls.write(_ornamentEvent(element.ornament!, element.id!));
+    }
+  }
+  if (controls.isNotEmpty) out.writeln('        $controls');
   out.writeln('      </measure>');
 }
+
+/// A `<trill>`/`<mordent>`/`<turn>` control event anchored to note [id].
+String _ornamentEvent(Ornament ornament, String id) => switch (ornament) {
+      Ornament.trill => '<trill startid="#$id"/>',
+      Ornament.shortTrill => '<mordent form="upper" startid="#$id"/>',
+      Ornament.mordent => '<mordent form="lower" startid="#$id"/>',
+      Ornament.turn => '<turn startid="#$id"/>',
+    };
 
 /// Measures number sequentially from 1, skipping pickups.
 int _measureNumber(Score score, int index) =>
@@ -148,12 +168,13 @@ void _writeLayer(
     } else if (element is NoteElement) {
       final tie = element.tieToNext ? ' tie="i"' : '';
       final artic = _articAttrs(element.articulations);
+      final xmlId = element.id == null ? '' : ' xml:id="${element.id}"';
       if (element.pitches.length == 1) {
-        out.write('<note ${_durAttrs(element.duration)} '
+        out.write('<note$xmlId ${_durAttrs(element.duration)} '
             '${_pitchAttrs(element.pitches.single, element.showAccidental)}'
             '$tie$artic/>');
       } else {
-        out.write('<chord ${_durAttrs(element.duration)}$tie$artic>');
+        out.write('<chord$xmlId ${_durAttrs(element.duration)}$tie$artic>');
         for (final pitch in element.pitches) {
           out.write('<note ${_pitchAttrs(pitch, element.showAccidental)}/>');
         }

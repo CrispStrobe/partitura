@@ -2,6 +2,14 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Interchange enrichment — articulations & ornaments** (Phase 7.3): the MEI,
+  MuseScore and Humdrum `**kern` codecs now round-trip **articulations**
+  (staccato/tenuto/accent/marcato/fermata + up/down-bow) and **ornaments**
+  (trill/short-trill/mordent/turn), and LilyPond export emits both — closing
+  that gap with the MusicXML reference. MEI ornaments use `<trill>`/`<mordent>`/
+  `<turn>` control events anchored by `xml:id`; MuseScore and kern attach them
+  per note. See PLAN.md "Interchange parity & Score-model lacunae" for the full
+  coverage matrix, enrichment backlog and the model lacunae.
 - **Humdrum `**kern` import & export** (Phase 7.3): `scoreToKern` /
   `scoreFromKern` write and read a single-spine `**kern` document — the open,
   documented representation used in computational musicology (spec is public;

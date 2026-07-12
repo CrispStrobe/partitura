@@ -2,11 +2,12 @@
 ///
 /// Reads the same shared subset the writer emits — clef (with mid-score
 /// changes), key/time signatures, measures, notes/chords, rests, durations
-/// (breve…64th with dots), two voices, ties and pickup measures — plus the
-/// common shapes real MuseScore 3/4 files use for those (e.g. `<KeySig>`
-/// stored as `concertKey`, `accidental` or `subtype`; whole-measure rests as
-/// `durationType>measure`). Unsupported markup (slurs, tuplets, articulations,
-/// lyrics, dynamics, beams, spanners) is ignored. Pure Dart (web-safe); the
+/// (breve…64th with dots), two voices, ties, pickup measures, articulations
+/// and ornaments — plus the common shapes real MuseScore 3/4 files use for
+/// those (e.g. `<KeySig>` stored as `concertKey`, `accidental` or `subtype`;
+/// whole-measure rests as `durationType>measure`; MuseScore-3 articulation
+/// names). Unsupported markup (slurs, tuplets, lyrics, dynamics, beams,
+/// spanners) is ignored. Pure Dart (web-safe); the
 /// `.mscz` ZIP container is unwrapped in `partitura_cli`.
 library;
 
@@ -194,8 +195,28 @@ class _StaffReader {
       duration: duration,
       tieToNext: tie,
       articulations: _articOf(chord),
+      ornament: _ornamentOf(chord),
       id: _newId(),
     );
+  }
+
+  static const _ornamentMap = {
+    'ornamentTrill': Ornament.trill,
+    'trill': Ornament.trill,
+    'ornamentShortTrill': Ornament.shortTrill,
+    'prall': Ornament.shortTrill,
+    'ornamentMordent': Ornament.mordent,
+    'mordent': Ornament.mordent,
+    'ornamentTurn': Ornament.turn,
+    'turn': Ornament.turn,
+  };
+
+  static Ornament? _ornamentOf(XmlNode chord) {
+    for (final node in chord.childrenNamed('Articulation')) {
+      final o = _ornamentMap[node.childText('subtype')];
+      if (o != null) return o;
+    }
+    return null;
   }
 
   /// MuseScore `<Articulation>` subtypes → articulations. Accepts both the
