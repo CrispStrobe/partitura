@@ -36,14 +36,15 @@ Commands:
                                        the Flutter SDK)
 
 Common:
-  --from <musicxml|mxl|mei|midi|abc|asciitab|mscx|mscz|gp|gpx|gp5|gp4|gp3|gpif>
+  --from <musicxml|mxl|mei|kern|midi|abc|asciitab|mscx|mscz|gp|gpx|gp5|gp4|gp3|gpif>
                                        Force the input format (.mxl = zipped
-                                       MusicXML; .mei = MEI; .abc = ABC;
-                                       .tab/.crd/.txt are plain-text tab;
-                                       .mscx/.mscz = MuseScore XML / zip;
-                                       .gp = v7/8, .gpx = v6,
+                                       MusicXML; .mei = MEI; .krn = Humdrum
+                                       kern; .abc = ABC; .tab/.crd/.txt are
+                                       plain-text tab; .mscx/.mscz = MuseScore
+                                       XML / zip; .gp = v7/8, .gpx = v6,
                                        .gp5/.gp4/.gp3 = binary tab)
-  --to   <musicxml|mxl|mei|midi|abc|mscx|mscz|gp|gpif>
+  --to   <musicxml|mxl|mei|kern|ly|midi|abc|mscx|mscz|gp|gpif>
+                                       (.ly = LilyPond, export only)
                                        Force the convert output format
 
 render options:
@@ -159,6 +160,10 @@ int _convert(List<String> args) {
           .writeAsBytesSync(writeMusicXmlToMxl(scoreToMusicXml(score)));
     case 'mei':
       File(outPath).writeAsStringSync(scoreToMei(score));
+    case 'kern':
+      File(outPath).writeAsStringSync(scoreToKern(score));
+    case 'ly':
+      File(outPath).writeAsStringSync(scoreToLilyPond(score));
     case 'midi':
       File(outPath).writeAsBytesSync(scoreToMidi(score));
     case 'abc':
@@ -237,6 +242,8 @@ Score _loadScore(String path, Map<String, String> options) {
       return scoreFromMusicXml(readMusicXmlFromMxl(file.readAsBytesSync()));
     case 'mei':
       return scoreFromMei(file.readAsStringSync());
+    case 'kern':
+      return scoreFromKern(file.readAsStringSync());
     case 'midi':
       return scoreFromMidi(file.readAsBytesSync());
     case 'abc':
@@ -285,6 +292,8 @@ String _formatOf(String path) {
   if (lower.endsWith('.mid') || lower.endsWith('.midi')) return 'midi';
   if (lower.endsWith('.mxl')) return 'mxl';
   if (lower.endsWith('.mei')) return 'mei';
+  if (lower.endsWith('.krn') || lower.endsWith('.kern')) return 'kern';
+  if (lower.endsWith('.ly')) return 'ly';
   if (lower.endsWith('.xml') || lower.endsWith('.musicxml')) return 'musicxml';
   if (lower.endsWith('.svg')) return 'svg';
   if (lower.endsWith('.png')) return 'png';

@@ -2,6 +2,20 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Humdrum `**kern` import & export** (Phase 7.3): `scoreToKern` /
+  `scoreFromKern` write and read a single-spine `**kern` document — the open,
+  documented representation used in computational musicology (spec is public;
+  no toolkit code used). A **subset** (clef with mid-score changes, key/time
+  incl. common/cut and additive, measures, notes/chords, rests, durations
+  breve…64th + dots, ties), pure Dart. Enharmonic spelling and (natural)
+  courtesy accidentals round-trip; pickup is detected from a short first bar.
+  Two voices, slurs, tuplets and lyrics are out of scope.
+- **LilyPond (`.ly`) export** (Phase 7.3): `scoreToLilyPond` emits a `.ly`
+  source for the LilyPond engraver (best-in-class output). **Export only** — its
+  input is a full language — generated from the documented syntax (no LilyPond
+  code used), pure Dart. Covers clef (with changes), key/time, notes/chords,
+  rests, durations breve…64th + dots, two voices (`<< \\ >>`), ties and pickup
+  (`\partial`). Dutch note names; 4/4 · 2/2 render as C · cut-C by default.
 - **MEI (Music Encoding Initiative) import & export** (Phase 7.3): `scoreToMei`
   / `scoreFromMei` write and read an `<mei>` (v5) document — the open,
   standards-body notation XML used across digital musicology (Verovio,

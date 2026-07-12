@@ -125,6 +125,30 @@ void main() {
     expect(pitches, containsAll(['C4', 'D4', 'E4', 'F4', 'G4', 'A4']));
   });
 
+  test('convert MusicXML → .krn → MusicXML round-trips the pitches', () async {
+    final krn = '${tmp.path}/out.krn';
+    final xml = '${tmp.path}/rt4.musicxml';
+    expect((await run(['convert', samplePath, krn])).exitCode, 0);
+    expect(File(krn).readAsStringSync(), startsWith('**kern'));
+    expect((await run(['convert', krn, xml])).exitCode, 0);
+    final pitches = scoreFromMusicXml(File(xml).readAsStringSync())
+        .measures
+        .expand((m) => m.elements)
+        .whereType<NoteElement>()
+        .expand((n) => n.pitches)
+        .map((p) => p.toString());
+    expect(pitches, containsAll(['C4', 'D4', 'E4', 'F4', 'G4', 'A4']));
+  });
+
+  test('convert MusicXML → .ly writes a LilyPond source (export only)',
+      () async {
+    final ly = '${tmp.path}/out.ly';
+    expect((await run(['convert', samplePath, ly])).exitCode, 0);
+    final text = File(ly).readAsStringSync();
+    expect(text, contains('\\version'));
+    expect(text, contains('\\new Staff'));
+  });
+
   test('render writes an SVG with the clef glyph', () async {
     final out = '${tmp.path}/out.svg';
     final r =

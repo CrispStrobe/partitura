@@ -413,6 +413,25 @@ spelling round-trips through gestural accidentals (`@accid.ges`), so enharmonics
 are preserved; written accidentals (`@accid`) map to `showAccidental`. Slurs,
 tuplets, articulations, lyrics and dynamics are out of scope.
 
+### Humdrum `**kern` (`.krn`) import & export
+
+`scoreToKern(score)` / `scoreFromKern(kern)` write and read a single-spine
+`**kern` document — a **subset** (clef with mid-score changes, key/time incl.
+common/cut and additive, measures, notes/chords, rests, durations breve…64th
+with dots, ties), pure Dart. Enharmonic spelling and natural courtesy
+accidentals round-trip; a short first measure is read back as a pickup. Two
+voices, slurs, tuplets and lyrics are out of scope.
+
+### LilyPond (`.ly`) export
+
+`scoreToLilyPond(score)` emits a LilyPond `.ly` source — **export only** (its
+input is a full language, so there is no importer), generated from the
+documented syntax. Covers clef (with changes), key/time signatures,
+notes/chords, rests, durations breve…64th with dots, two voices, ties and
+pickup (`\partial`). Uses Dutch note names; 4/4 and 2/2 engrave as the C /
+cut-C symbols by LilyPond default (numeric meters force numerals). Slurs,
+tuplets, articulations, lyrics and repeat structure are out of scope.
+
 ### Plain-text (ASCII) tablature import
 
 `asciiTabToScore(text, {tuning, duration})` → `Score` parses the informal

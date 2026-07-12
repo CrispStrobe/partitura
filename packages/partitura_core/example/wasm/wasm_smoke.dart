@@ -37,6 +37,8 @@ void main() {
   final musicXml = scoreFromMusicXml(scoreToMusicXml(source));
   final musescore = scoreFromMscx(scoreToMscx(source));
   final mei = scoreFromMei(scoreToMei(source));
+  final kern = scoreFromKern(scoreToKern(source));
+  final lily = scoreToLilyPond(source); // export-only
   final abc = scoreFromAbc(scoreToAbc(source));
   final midi = scoreFromMidi(scoreToMidi(source));
   final gpif = scoreFromGpif(scoreToGpif(source));
@@ -64,6 +66,9 @@ void main() {
     'MusicXML round-trip': noteCount(musicXml) == noteCount(source),
     'MuseScore round-trip': noteCount(musescore) == noteCount(source),
     'MEI round-trip': noteCount(mei) == noteCount(source),
+    // kern is single-spine, so it keeps voice 1 (the source has a 2nd voice).
+    'Humdrum kern round-trip': noteCount(kern) >= 6,
+    'LilyPond export': lily.contains('\\version') && lily.contains('\\clef'),
     'ABC round-trip': noteCount(abc) >= 5,
     'MIDI round-trip': noteCount(midi) >= 5,
     'GPIF round-trip': noteCount(gpif) >= 1,
