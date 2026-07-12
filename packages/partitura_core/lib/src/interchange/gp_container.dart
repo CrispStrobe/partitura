@@ -8,6 +8,7 @@ library;
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'deflate.dart';
 import 'inflate.dart';
 
 /// Extracts the `score.gpif` XML from a `.gp` archive's [bytes].
@@ -43,28 +44,29 @@ String readGpifFromGp(Uint8List bytes) {
   throw const FormatException('Content/score.gpif not found in .gp');
 }
 
-/// Packs [gpif] into a minimal `.gp` archive (a ZIP with a single stored
+/// Packs [gpif] into a minimal `.gp` archive (a ZIP with a single deflated
 /// `Content/score.gpif` entry).
 Uint8List writeGpFromGpif(String gpif) {
   final name = ascii.encode('Content/score.gpif');
   final data = utf8.encode(gpif);
+  final comp = deflate(Uint8List.fromList(data));
   final crc = _crc32(data);
   final out = BytesBuilder();
 
-  // Local file header (method 0 = stored).
+  // Local file header (method 8 = deflate).
   out.add(_le32(0x04034b50));
   out.add(_le16(20)); // version needed
   out.add(_le16(0)); // flags
-  out.add(_le16(0)); // method: stored
+  out.add(_le16(8)); // method: deflate
   out.add(_le16(0)); // mod time
   out.add(_le16(0x21)); // mod date (valid non-zero)
   out.add(_le32(crc));
-  out.add(_le32(data.length)); // compressed size
+  out.add(_le32(comp.length)); // compressed size
   out.add(_le32(data.length)); // uncompressed size
   out.add(_le16(name.length));
   out.add(_le16(0)); // extra length
   out.add(name);
-  out.add(data);
+  out.add(comp);
 
   final cdOffset = out.length;
   // Central directory record.
@@ -72,11 +74,11 @@ Uint8List writeGpFromGpif(String gpif) {
   out.add(_le16(20)); // version made by
   out.add(_le16(20)); // version needed
   out.add(_le16(0)); // flags
-  out.add(_le16(0)); // method
+  out.add(_le16(8)); // method: deflate
   out.add(_le16(0)); // mod time
   out.add(_le16(0x21)); // mod date
   out.add(_le32(crc));
-  out.add(_le32(data.length));
+  out.add(_le32(comp.length));
   out.add(_le32(data.length));
   out.add(_le16(name.length));
   out.add(_le16(0)); // extra

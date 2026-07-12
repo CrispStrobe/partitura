@@ -2,6 +2,13 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Pure-Dart DEFLATE encoder**: `deflate` (RFC 1951 — greedy LZ77 over a 32 KB
+  hash-chain window + fixed Huffman) completes the compression pair with
+  `inflate`. The `.gp`/`.mscz` ZIP writers now emit **compressed** (method-8)
+  entries instead of stored, so written archives are smaller — with no
+  `dart:io`, so it works in the browser / WASM too. Validated against `dart:io`'s
+  `ZLibDecoder` (its output is standard DEFLATE) and via a randomised
+  deflate→inflate sweep.
 - **Web-safe interchange containers** (pure-Dart DEFLATE): a from-scratch
   `inflate` (RFC 1951 — stored / fixed / dynamic Huffman) replaces `dart:io`'s
   `ZLibDecoder`, so the `.gp`/`.gpx`/`.mscz` ZIP + BCFS container reading no

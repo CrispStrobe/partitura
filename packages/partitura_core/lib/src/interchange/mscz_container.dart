@@ -9,6 +9,7 @@ library;
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'deflate.dart';
 import 'inflate.dart';
 
 /// Extracts the `.mscx` XML from a `.mscz` archive's [bytes]. Handles both
@@ -52,48 +53,49 @@ const _containerXml = '<?xml version="1.0" encoding="UTF-8"?>\n'
     '</rootfiles></container>\n';
 
 /// Packs [mscx] into a minimal `.mscz` archive: `META-INF/container.xml`
-/// pointing at a stored `score.mscx`.
-Uint8List writeMsczFromMscx(String mscx) => _zipStored([
+/// pointing at a deflated `score.mscx`.
+Uint8List writeMsczFromMscx(String mscx) => _zip([
       ('META-INF/container.xml', utf8.encode(_containerXml)),
       ('score.mscx', utf8.encode(mscx)),
     ]);
 
-/// Builds a ZIP archive of [entries] (name, bytes) using stored (uncompressed)
-/// records — enough for MuseScore to open, and dependency-free.
-Uint8List _zipStored(List<(String, List<int>)> entries) {
+/// Builds a ZIP archive of [entries] (name, bytes) with deflated records —
+/// readable by MuseScore and any ZIP tool, and dependency-free.
+Uint8List _zip(List<(String, List<int>)> entries) {
   final out = BytesBuilder();
   final directory = BytesBuilder();
   var count = 0;
   for (final (path, data) in entries) {
     final name = utf8.encode(path);
+    final comp = deflate(Uint8List.fromList(data));
     final crc = _crc32(data);
     final localOffset = out.length;
 
-    // Local file header (method 0 = stored).
+    // Local file header (method 8 = deflate).
     out.add(_le32(0x04034b50));
     out.add(_le16(20)); // version needed
     out.add(_le16(0)); // flags
-    out.add(_le16(0)); // method: stored
+    out.add(_le16(8)); // method: deflate
     out.add(_le16(0)); // mod time
     out.add(_le16(0x21)); // mod date (valid non-zero)
     out.add(_le32(crc));
-    out.add(_le32(data.length)); // compressed size
+    out.add(_le32(comp.length)); // compressed size
     out.add(_le32(data.length)); // uncompressed size
     out.add(_le16(name.length));
     out.add(_le16(0)); // extra length
     out.add(name);
-    out.add(data);
+    out.add(comp);
 
     // Central directory record.
     directory.add(_le32(0x02014b50));
     directory.add(_le16(20)); // version made by
     directory.add(_le16(20)); // version needed
     directory.add(_le16(0)); // flags
-    directory.add(_le16(0)); // method
+    directory.add(_le16(8)); // method: deflate
     directory.add(_le16(0)); // mod time
     directory.add(_le16(0x21)); // mod date
     directory.add(_le32(crc));
-    directory.add(_le32(data.length));
+    directory.add(_le32(comp.length));
     directory.add(_le32(data.length));
     directory.add(_le16(name.length));
     directory.add(_le16(0)); // extra

@@ -364,9 +364,9 @@ Both are dependency-free (`dart:typed_data`) and deterministic.
 rhythms; single voice/track; techniques out of scope), pure Dart. Pitches are
 fretted on the `Tuning` for export and recovered from string+fret on import,
 so pitches and rhythm round-trip. The `.gp` container is a ZIP of the gpif,
-read/written by `readGpifFromGp`/`writeGpFromGpif` — pure Dart (web-safe),
-inflating deflated entries through the in-repo `inflate`. Import also reads the
-common
+read/written by `readGpifFromGp`/`writeGpFromGpif` — pure Dart (web-safe), using
+the in-repo `inflate`/`deflate` (RFC 1951) so entries compress on write and
+decompress on read without `dart:io`. Import also reads the common
 playing techniques into the tab marks (HO/PO → slur, slide → glissando, bend →
 `Bend`, whammy vibrato → `Vibrato`, dead/harmonic → `TabNoteMark`). Validated
 against the alphaTab `.gp` (v7) test corpus — pitches/chords/rhythm and those
@@ -390,7 +390,8 @@ scope. The reader also accepts the shapes real MuseScore 3/4 files use for the
 supported subset (`<KeySig>` as `concertKey`/`accidental`/`subtype`,
 whole-measure `durationType>measure` rests). The `.mscz` container is a ZIP of
 the `.mscx`, read/written by `readMscxFromMscz` / `writeMsczFromMscx` — pure
-Dart (web-safe), inflating deflated entries through the in-repo `inflate`.
+Dart (web-safe), using the in-repo `inflate`/`deflate` (RFC 1951) so entries
+compress on write and decompress on read without `dart:io`.
 Pitches, rhythm and structure round-trip through the
 shared `Score` model.
 
