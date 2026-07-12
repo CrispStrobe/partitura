@@ -561,11 +561,14 @@ notes/chords/rests, durations+dots, ties, two voices, pickup) and are being
 enriched toward it, one feature-group per commit.
 
 - **Done:** base subset for all four; **articulations** (staccato/tenuto/
-  accent/marcato/fermata + up/down-bow) now round-trip in MEI/MuseScore/kern
-  and emit in LilyPond (`interchange_articulations_test.dart`).
+  accent/marcato/fermata + up/down-bow) and **ornaments** (trill/short-trill/
+  mordent/turn) now round-trip in MEI/MuseScore/kern and emit in LilyPond
+  (`interchange_articulations_test.dart`, `interchange_ornaments_test.dart`).
+  MEI ornaments use `<trill>`/`<mordent>`/`<turn>` control events by `xml:id` —
+  the note-anchoring mechanism slurs/dynamics will reuse.
 - **Enrichment backlog** (each already in the model, MusicXML-only today —
-  ordered by leverage): **ornaments** (trill/mordent/turn), **grace notes**,
-  **slurs**, **tuplets**, **dynamics + hairpins**, **lyrics**, then the
+  ordered by leverage): **grace notes**, **slurs**, **tuplets**,
+  **dynamics + hairpins**, **lyrics**, then the
   MusicXML-only long tail — **fingerings, arpeggio, single-note tremolo,
   notehead shape, ottavas, glissandos, pedals, jazz marks, figured bass, breath
   marks, transposition**, and the measure-structure set (**repeats, voltas,
