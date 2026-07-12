@@ -256,9 +256,11 @@ No peer renderer does any of this; all build on the existing pitch / interval
       defining teaching-library feature.
 - [ ] **4.3 Key finding** — weighted pitch-class correlation (+ windowed local
       key for modulation).
-- [ ] **4.4 Chord identification from a pitch set** — root/inversion/quality,
-      seventh and augmented-sixth recognition (the inverse of triad
-      construction).
+- [~] **4.4 Chord identification from a pitch set** — **Done:**
+      `identifyChord` / `chordSymbolFor` — root, quality (triads, sevenths,
+      sixths, sus) and inversion (as a slash chord) from a pitch set, spelled
+      from the input, bass disambiguating (C6 vs Am7). **Left:** extended
+      chords (9/11/13), augmented-sixth recognition, alternate spellings.
 - [ ] **4.5 Post-tonal set theory** — normal order, prime form, set-class
       number, interval-class vector, Z-relation.
 - [ ] **4.6 Figured-bass realization** — SATB completion with a voice-leading

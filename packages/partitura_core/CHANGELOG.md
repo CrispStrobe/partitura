@@ -2,6 +2,12 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Chord identification** (Phase 4.4): `identifyChord(pitches)` /
+  `chordSymbolFor(pitches)` — the inverse of `Triad`: names a set of pitches by
+  matching its pitch-class set against the common triad / seventh / sixth / sus
+  templates, spelling the root from the input and reporting the inversion as a
+  slash chord (`C`, `Am7`, `G7`, `Bm7b5`, `C/E`). When two roots fit (C6 vs
+  Am7), the bass wins. Pure theory, part of the analysis moat.
 - **ABC notation import + export** (Phase 7.3): `scoreFromAbc` /
   `scoreToAbc` — the plain-text format ubiquitous for folk/traditional tunes,
   pure Dart. The reader handles the `M`/`L`/`K` header (meter, unit length,
