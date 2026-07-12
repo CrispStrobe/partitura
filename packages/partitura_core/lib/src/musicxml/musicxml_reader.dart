@@ -1,4 +1,5 @@
-/// MusicXML import (subset): score-partwise → [Score] / [GrandStaff].
+/// MusicXML import (subset): score-partwise → [Score] / [GrandStaff] /
+/// [StaffSystem].
 ///
 /// Covers the v0.3/v0.4 feature set: pitches/chords/rests, durations
 /// (breve…64th, dots), accidentals, ties, slurs, tuplets, articulations,
@@ -8,6 +9,7 @@
 library;
 
 import '../layout/grand_staff.dart';
+import '../layout/staff_system.dart';
 import '../model/element.dart';
 import '../model/measure.dart';
 import '../model/score.dart';
@@ -53,6 +55,89 @@ GrandStaff grandStaffFromMusicXml(String xml) {
     upper: _PartReader(parts.first, staff: 1).read(),
     lower: _PartReader(parts[1], staff: 1, idOffset: 1000).read(),
   );
+}
+
+/// Parses a `score-partwise` document into a [StaffSystem] — every part, and
+/// every staff of a multi-staff part, becomes one aligned staff. Multi-staff
+/// parts (e.g. piano) are joined by a brace; `<part-group>`s in the
+/// `<part-list>` (with a `bracket`/`brace`/`square`/`line` group-symbol)
+/// become the corresponding [StaffBracket]s. Element ids are given disjoint
+/// spaces per staff so they stay unique across the system.
+///
+/// Throws [FormatException] on documents this subset cannot represent.
+StaffSystem staffSystemFromMusicXml(String xml) {
+  final root = parseXml(xml);
+  final parts = _partsOf(root);
+
+  final staves = <Score>[];
+  final brackets = <StaffBracket>[];
+  // Staff index where each part starts, and how many staves it spans.
+  final partStart = <int>[];
+  final partSpan = <int>[];
+  var idBase = 0;
+  for (final part in parts) {
+    final n =
+        int.tryParse(_firstAttributes(part)?.childText('staves') ?? '1') ?? 1;
+    partStart.add(staves.length);
+    partSpan.add(n);
+    final first = staves.length;
+    for (var s = 1; s <= n; s++) {
+      staves.add(_PartReader(part, staff: s, idOffset: idBase).read());
+      idBase += 1000;
+    }
+    if (n >= 2) {
+      // A multi-staff part (piano/organ) is braced together.
+      brackets.add(
+          StaffBracket(first, staves.length - 1, kind: StaffBracketKind.brace));
+    }
+  }
+
+  brackets.addAll(_partGroupBrackets(root, partStart, partSpan));
+  return StaffSystem(staves, brackets: brackets);
+}
+
+/// Reads `<part-group>` start/stop pairs from the `<part-list>` and maps each
+/// to a [StaffBracket] over the staff range of the `<score-part>`s it wraps.
+/// `<score-part>` order matches `<part>` order in the body.
+List<StaffBracket> _partGroupBrackets(
+    XmlNode root, List<int> partStart, List<int> partSpan) {
+  final list = root.child('part-list');
+  if (list == null) return const [];
+  final result = <StaffBracket>[];
+  final openStart = <String, int>{}; // group number -> first staff index
+  final openSymbol = <String, String>{};
+  var ordinal = 0; // index of the next score-part to be seen
+  for (final node in list.children) {
+    if (node.name == 'score-part') {
+      ordinal++;
+    } else if (node.name == 'part-group') {
+      final number = node.attributes['number'] ?? '1';
+      final type = node.attributes['type'];
+      if (type == 'start') {
+        if (ordinal < partStart.length) {
+          openStart[number] = partStart[ordinal];
+          openSymbol[number] = node.childText('group-symbol') ?? 'bracket';
+        }
+      } else if (type == 'stop') {
+        final first = openStart.remove(number);
+        final symbol = openSymbol.remove(number);
+        final lastPart = ordinal - 1;
+        if (first == null || lastPart < 0 || lastPart >= partStart.length) {
+          continue;
+        }
+        final last = partStart[lastPart] + partSpan[lastPart] - 1;
+        if (last < first) continue;
+        final kind = symbol == 'brace'
+            ? StaffBracketKind.brace
+            : StaffBracketKind.bracket;
+        // `line`/`square`/`bracket` all render as a square bracket; a `none`
+        // symbol groups without a visible sign, so we skip it.
+        if (symbol == 'none') continue;
+        result.add(StaffBracket(first, last, kind: kind));
+      }
+    }
+  }
+  return result;
 }
 
 List<XmlNode> _partsOf(XmlNode root) {

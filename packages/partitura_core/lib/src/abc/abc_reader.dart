@@ -9,8 +9,9 @@
 /// `. ~ H T M P` → articulations / ornaments / dynamics), navigation
 /// (`!segno!`/`!D.C.!`/`!D.S.!`/`!fine!`…), quoted `"C"`/positioned `"^…"`
 /// annotations, bar lines (repeats, double/final, variant endings `|1`/`[2`),
-/// multi-measure rests (`Z`), inline fields (`[K:…]`/`[M:…]`/`[L:…]`), and `w:`
-/// lyrics aligned to the notes.
+/// multi-measure rests (`Z`), inline fields (`[K:…]`/`[M:…]`/`[L:…]`), `w:`
+/// lyrics aligned to the notes, `Q:` tempo and `P:` part labels (as
+/// annotations), and line continuation (`\`).
 ///
 /// Multi-voice tunes (`V:`) import each voice as its own staff via
 /// [staffSystemFromAbc] (one aligned system); [scoreFromAbc] takes the first
@@ -62,6 +63,9 @@ class _Tune {
   final KeySignature key;
   final Clef headerClef;
 
+  /// Header `Q:` tempo, rendered above the first note of the top voice.
+  final String? tempo;
+
   /// Voice ids in declaration order (at least one — an implicit voice when the
   /// tune has no `V:` field at all).
   final List<String> order;
@@ -69,8 +73,8 @@ class _Tune {
   final Map<String, StringBuffer> bodies;
   final Map<String, List<String>> lyrics;
 
-  _Tune(this.meter, this.unit, this.key, this.headerClef, this.order,
-      this.clefs, this.bodies, this.lyrics);
+  _Tune(this.meter, this.unit, this.key, this.headerClef, this.tempo,
+      this.order, this.clefs, this.bodies, this.lyrics);
 
   /// Builds the [Score] for one voice [id].
   Score buildScore(String id) {
@@ -85,12 +89,22 @@ class _Tune {
           ]
         : parser.measures;
     final voiceLyrics = _alignLyrics(lyrics[id] ?? const [], parser.noteOrder);
+
+    // The header tempo sits above the first note of the top staff.
+    var annotations = parser.annotations;
+    if (tempo != null && id == order.first) {
+      final firstNote =
+          parser.noteOrder.firstWhere((s) => s != '|', orElse: () => '');
+      if (firstNote.isNotEmpty) {
+        annotations = [Annotation(firstNote, tempo!), ...annotations];
+      }
+    }
     return Score(
       clef: clef,
       keySignature: key,
       timeSignature: meter,
       measures: measures,
-      annotations: parser.annotations,
+      annotations: annotations,
       slurs: parser.slurs,
       dynamics: parser.dynamics,
       lyrics: voiceLyrics,
@@ -103,6 +117,7 @@ _Tune _collectTune(String abc) {
   Fraction? unitLen;
   var key = const KeySignature(0);
   var headerClef = Clef.treble;
+  String? tempo;
   var sawKey = false;
 
   final order = <String>[];
@@ -149,6 +164,8 @@ _Tune _collectTune(String abc) {
           unitLen = _parseUnitLength(value);
         case 'V':
           declareVoice(value); // header declaration; body switches later
+        case 'Q':
+          tempo = _parseTempo(value);
         case 'K':
           final parsed = _parseKey(value);
           key = parsed.$1;
@@ -165,6 +182,13 @@ _Tune _collectTune(String abc) {
         lyrics[active()]!.add(value);
       } else if (line[0] == 'V') {
         declareVoice(value, switchTo: true);
+      } else if (line[0] == 'P' && value.isNotEmpty) {
+        // A part label ("P:A") → an above-note annotation on the next note.
+        bodies[active()]!.write('"^$value" ');
+      } else if (line[0] == 'Q') {
+        // A mid-tune tempo change → an above-note annotation.
+        final t = _parseTempo(value);
+        if (t != null) bodies[active()]!.write('"^$t" ');
       }
       continue; // mid-tune field line
     }
@@ -176,6 +200,9 @@ _Tune _collectTune(String abc) {
       declareVoice(voiceMatch[1]!, switchTo: true);
       noComment = noComment.substring(voiceMatch.end);
     }
+    // A trailing `\` continues the line; newlines are already token separators,
+    // so dropping it is enough to join the lines.
+    noComment = noComment.replaceFirst(RegExp(r'\\\s*$'), '');
     final buffer = bodies[active()]!;
     buffer.write(noComment);
     buffer.write('\n');
@@ -190,7 +217,45 @@ _Tune _collectTune(String abc) {
           ? Fraction(1, 16)
           : Fraction(1, 8));
 
-  return _Tune(meter, unit, key, headerClef, order, clefs, bodies, lyrics);
+  return _Tune(
+      meter, unit, key, headerClef, tempo, order, clefs, bodies, lyrics);
+}
+
+/// Parses a `Q:` value into readable tempo text — an optional quoted label and
+/// a `beat=bpm` metronome mark (e.g. `Q:"Allegro" 1/4=120` → `Allegro ♩ = 120`,
+/// `Q:1/4=120` → `♩ = 120`, bare `Q:120` → `♩ = 120`). Returns null if empty.
+String? _parseTempo(String value) {
+  final v = value.trim();
+  if (v.isEmpty) return null;
+  final buf = StringBuffer();
+  final quoted = RegExp(r'"([^"]*)"').firstMatch(v);
+  if (quoted != null) buf.write(quoted[1]!.trim());
+
+  final beat = RegExp(r'(\d+)\s*/\s*(\d+)\s*=\s*(\d+)').firstMatch(v);
+  String? metro;
+  if (beat != null) {
+    final sym = _tempoNote(int.parse(beat[1]!), int.parse(beat[2]!));
+    metro = '$sym = ${beat[3]}';
+  } else {
+    final bpm = RegExp(r'=\s*(\d+)').firstMatch(v)?.group(1) ??
+        RegExp(r'^\s*(\d+)\s*$').firstMatch(v)?.group(1);
+    if (bpm != null) metro = '${_tempoNote(1, 4)} = $bpm';
+  }
+  if (metro != null) {
+    if (buf.isNotEmpty) buf.write(' ');
+    buf.write(metro);
+  }
+  final out = buf.toString().trim();
+  return out.isEmpty ? null : out;
+}
+
+/// A note symbol for a `num/den`-of-a-whole beat unit in a metronome mark,
+/// falling back to the raw fraction for units without a simple glyph.
+String _tempoNote(int num, int den) {
+  if (num == 1 && den == 4) return '♩'; // ♩ quarter
+  if (num == 1 && den == 8) return '♪'; // ♪ eighth
+  if (num == 3 && den == 8) return '♩.'; // dotted quarter
+  return '$num/$den';
 }
 
 /// Parses a `V:` value ("1 clef=bass name=…") into its id and optional clef.

@@ -14,6 +14,15 @@
   and lyrics, with per-voice element-id prefixes so ids stay unique — aligned as
   a `StaffSystem` (golden 76). Both the field-line (`V:1` … `V:2` …) and inline
   (`[V:1]` …) styles are honored; `scoreFromAbc` still returns the first voice.
+- **MusicXML multi-part → staff system**: `staffSystemFromMusicXml` imports
+  every `<part>` (and every staff of a multi-staff part) as an aligned staff.
+  `<part-group>`s from the `<part-list>` become `StaffBracket`s (bracket/brace/
+  square/line), and multi-staff parts (piano) are braced; ids get disjoint
+  per-staff spaces (golden 77).
+- **ABC `Q:` tempo / `P:` parts / line continuation**: header and mid-tune `Q:`
+  tempo import as a metronome annotation (`♩ = 120`, with an optional quoted
+  label) above the top staff's first note; mid-tune `P:` part labels import as
+  annotations; a trailing `\` line-continuation is honored.
 - **ABC import — toward abcjs parity** (Phase 7.3): the reader now handles
   **variant endings / voltas** (`|1 |2`, `[1 [2`, `:|2` → `Measure.volta`),
   **decorations** (`!trill!`/`!fermata!`/`!accent!`… → articulations, ornaments

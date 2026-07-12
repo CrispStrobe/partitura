@@ -345,4 +345,55 @@ w:Mar- y had a lit- tle lamb whose fleece was white as snow.
       expect(sys.staves[1].lyrics.map((l) => l.text), everyElement('la'));
     });
   });
+
+  group('tempo, parts, continuation', () {
+    test('Q: 1/4=120 becomes a metronome annotation on the first note', () {
+      final score = scoreFromAbc('X:1\nM:4/4\nL:1/4\nQ:1/4=120\nK:C\nCDEF|\n');
+      final first = score.measures.first.elements.first;
+      expect(score.annotations, contains(Annotation(first.id!, '♩ = 120')));
+    });
+
+    test('Q: with a quoted label combines label and mark', () {
+      final score =
+          scoreFromAbc('X:1\nM:4/4\nL:1/4\nQ:"Allegro" 1/4=120\nK:C\nCDEF|\n');
+      expect(score.annotations.map((a) => a.text), contains('Allegro ♩ = 120'));
+    });
+
+    test('bare Q:120 assumes a quarter-note beat', () {
+      final score = scoreFromAbc('X:1\nM:4/4\nL:1/4\nQ:120\nK:C\nCDEF|\n');
+      expect(score.annotations.map((a) => a.text), contains('♩ = 120'));
+    });
+
+    test('mid-tune P: part label becomes an annotation', () {
+      final score = scoreFromAbc('X:1\nM:4/4\nL:1/4\nK:C\n'
+          'CDEF|\n'
+          'P:B\n'
+          'GABc|\n');
+      expect(score.annotations.map((a) => a.text), contains('B'));
+    });
+
+    test('mid-tune Q: change becomes an annotation', () {
+      final score = scoreFromAbc('X:1\nM:4/4\nL:1/4\nQ:1/4=120\nK:C\n'
+          'CDEF|\n'
+          'Q:1/4=90\n'
+          'GABc|\n');
+      expect(score.annotations.map((a) => a.text),
+          containsAll(['♩ = 120', '♩ = 90']));
+    });
+
+    test('a trailing backslash continues the line without a stray token', () {
+      final score = scoreFromAbc('X:1\nM:4/4\nL:1/4\nK:C\nCD\\\nEF|\n');
+      expect(_pitches(score), ['c0/4', 'd0/4', 'e0/4', 'f0/4']);
+      expect(score.measures, hasLength(1));
+    });
+
+    test('in a multi-voice tune the tempo sits on the top staff only', () {
+      final sys = staffSystemFromAbc('X:1\nM:4/4\nL:1/4\nQ:1/4=100\nK:C\n'
+          'V:1\nCDEF|\n'
+          'V:2\nGABc|\n');
+      expect(sys.staves[0].annotations.map((a) => a.text), contains('♩ = 100'));
+      expect(sys.staves[1].annotations.map((a) => a.text),
+          isNot(contains('♩ = 100')));
+    });
+  });
 }

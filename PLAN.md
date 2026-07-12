@@ -199,10 +199,12 @@ Raises the quality of everything already rendered. Slice order:
       `StaffBracket` brace/bracket groups) + `layoutStaffSystem` align barlines
       across the system (column-wise-max widths); `StaffSystemView` stacks them
       with connected barlines and left brackets/braces, cross-staff hit-testing
-      (golden 75, a four-staff SATB system). ABC multi-voice (`V:`) now imports
-      as a system via `staffSystemFromAbc` (golden 76). **Left:** nested
-      brackets, the hard-coded 5-line-staff generalization (tab already has its
-      own N-line engine), and wiring MusicXML multi-part into a system.
+      (golden 75, a four-staff SATB system). ABC multi-voice (`V:`) imports as a
+      system via `staffSystemFromAbc` (golden 76); MusicXML multi-part /
+      multi-staff imports via `staffSystemFromMusicXml`, with `<part-group>`
+      brackets and per-part braces (golden 77). **Left:** nested-bracket
+      rendering offsets and the hard-coded 5-line-staff generalization (tab
+      already has its own N-line engine).
 - [ ] **2.2 Cross-staff notes / stems / beams** — a chord or beam spanning
       both staves of a keyboard system.
 - [ ] **2.3 Hide-empty / ossia / divisi / cutaway staves** — dynamic staff
@@ -456,8 +458,10 @@ are executed **one after another, each with tests**. Status: `[x]` done,
 - [x] **Inline fields** `[K:…]` (key/clef) `[M:…]` (meter) `[L:…]` (unit)
       mid-tune → `Measure.keyChange`/`timeChange`/`clefChange`
 - [x] Header `X T M L K V w`; other metadata fields ignored (harmless)
-- [ ] `Q:` tempo, `P:` parts, `U:` redefinable symbols, `m:` macros, `s:`
-      symbol lines, `W:` unaligned words, line continuation `\`
+- [x] `Q:` tempo (header + mid-tune → metronome annotation `♩ = n`), `P:` part
+      labels (→ annotations), line continuation `\`
+- [ ] `U:` redefinable symbols, `m:` macros, `s:` symbol lines, `W:` unaligned
+      words, `u`/`v` up/down-bow (needs a bowing articulation), dotted bar `.|`
 - [x] `%` comments; `%%` stylesheet directives ignored (rendering-hint only)
 
 **Structure**
@@ -466,7 +470,8 @@ are executed **one after another, each with tests**. Status: `[x]` done,
 - [x] Multi-voice → **multiple staves / system** — `staffSystemFromAbc` imports
       each `V:` voice as its own staff (own clef + lyrics, unique ids), aligned
       as a `StaffSystem` (golden 76); field-line and inline `[V:n]` styles
-- [ ] Parts `P:` section ordering
+- [~] Parts `P:` — mid-tune labels import as annotations; full `P:AABB`
+      section-ordering / playback expansion is not modeled
 
 **Fidelity harness**
 - [x] The abcjs example tunes (Money Lost, Pretty Little Liza, Mary) import

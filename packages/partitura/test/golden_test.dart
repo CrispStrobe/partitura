@@ -1160,6 +1160,51 @@ void main() {
     );
   });
 
+  testWidgets('77 MusicXML multi-part as a bracketed system', (tester) async {
+    String part(String id, String step, int octave, String sign) => '''
+<part id="$id"><measure number="1">
+  <attributes><divisions>2</divisions><key><fifths>0</fifths></key>
+    <time><beats>4</beats><beat-type>4</beat-type></time>
+    <clef><sign>$sign</sign><line>${sign == 'F' ? 4 : 2}</line></clef>
+  </attributes>
+  <note><pitch><step>$step</step><octave>$octave</octave></pitch>
+    <duration>4</duration><type>half</type></note>
+  <note><pitch><step>$step</step><octave>$octave</octave></pitch>
+    <duration>4</duration><type>half</type></note>
+</measure></part>''';
+    final system = staffSystemFromMusicXml('''
+<score-partwise version="4.0">
+  <part-list>
+    <part-group type="start" number="1"><group-symbol>bracket</group-symbol></part-group>
+    <score-part id="P1"/><score-part id="P2"/>
+    <part-group type="stop" number="1"/>
+  </part-list>
+  ${part('P1', 'E', 5, 'G')}${part('P2', 'C', 3, 'F')}
+</score-partwise>
+''');
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Colors.white,
+          body: Center(
+            child: RepaintBoundary(
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(12),
+                child: StaffSystemView(system: system, staffSpace: 12),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await expectLater(
+      find.byType(RepaintBoundary).last,
+      matchesGoldenFile('goldens/77_musicxml_multipart_system.png'),
+    );
+  });
+
   testWidgets('74 beat-count overlay (with note names)', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:partitura_core/partitura_core.dart';
 import 'package:partitura_core/src/musicxml/xml_reader.dart';
 import 'package:test/test.dart';
@@ -494,6 +497,92 @@ void main() {
         () => scoreFromMusicXml(doc('<measure number="1"/>'), partIndex: 3),
         throwsFormatException,
       );
+    });
+  });
+
+  group('staff system (multi-part)', () {
+    // A score-partwise document with an arbitrary part-list and parts.
+    String multi(String partList, String parts) => '''
+<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list>$partList</part-list>
+  $parts
+</score-partwise>
+''';
+
+    String simplePart(String id, String step, int octave, String sign) => '''
+<part id="$id">
+  <measure number="1">
+    <attributes><divisions>2</divisions><key><fifths>0</fifths></key>
+      <time><beats>4</beats><beat-type>4</beat-type></time>
+      <clef><sign>$sign</sign><line>${sign == 'F' ? 4 : 2}</line></clef>
+    </attributes>
+    ${note(step, octave, 'whole', duration: 8)}
+  </measure>
+</part>''';
+
+    test('two parts become two staves with disjoint id spaces', () {
+      final sys = staffSystemFromMusicXml(multi(
+        '<score-part id="P1"/><score-part id="P2"/>',
+        '${simplePart('P1', 'C', 5, 'G')}${simplePart('P2', 'C', 3, 'F')}',
+      ));
+      expect(sys.staves, hasLength(2));
+      expect(sys.staves[0].clef, Clef.treble);
+      expect(sys.staves[1].clef, Clef.bass);
+      expect(sys.staves[0].measures.single.elements.single.id, 'e0');
+      expect(sys.staves[1].measures.single.elements.single.id, 'e1000');
+    });
+
+    test('a two-staff part is braced', () {
+      final sys = staffSystemFromMusicXml(multi(
+        '<score-part id="P1"/>',
+        '''
+<part id="P1">
+  <measure number="1">
+    <attributes><divisions>2</divisions><key><fifths>0</fifths></key>
+      <time><beats>4</beats><beat-type>4</beat-type></time>
+      <staves>2</staves>
+      <clef number="1"><sign>G</sign><line>2</line></clef>
+      <clef number="2"><sign>F</sign><line>4</line></clef>
+    </attributes>
+    ${note('C', 5, 'whole', duration: 8, extra: '<staff>1</staff>')}
+    <backup><duration>8</duration></backup>
+    ${note('C', 3, 'whole', duration: 8, extra: '<staff>2</staff>')}
+  </measure>
+</part>''',
+      ));
+      expect(sys.staves, hasLength(2));
+      expect(sys.brackets,
+          contains(const StaffBracket(0, 1, kind: StaffBracketKind.brace)));
+    });
+
+    test('a part-group bracket wraps its parts', () {
+      final sys = staffSystemFromMusicXml(multi(
+        '<part-group type="start" number="1">'
+            '<group-symbol>bracket</group-symbol></part-group>'
+            '<score-part id="P1"/><score-part id="P2"/>'
+            '<part-group type="stop" number="1"/>'
+            '<score-part id="P3"/>',
+        '${simplePart('P1', 'C', 5, 'G')}'
+            '${simplePart('P2', 'E', 4, 'G')}'
+            '${simplePart('P3', 'C', 3, 'F')}',
+      ));
+      expect(sys.staves, hasLength(3));
+      expect(sys.brackets,
+          contains(const StaffBracket(0, 1, kind: StaffBracketKind.bracket)));
+    });
+
+    test('lays out as an aligned system', () {
+      final meta = SmuflMetadata.fromJson(jsonDecode(
+          File('../partitura/assets/smufl/bravura_metadata.json')
+              .readAsStringSync()) as Map<String, Object?>);
+      final sys = staffSystemFromMusicXml(multi(
+        '<score-part id="P1"/><score-part id="P2"/>',
+        '${simplePart('P1', 'C', 5, 'G')}${simplePart('P2', 'C', 3, 'F')}',
+      ));
+      final layout = layoutStaffSystem(sys, LayoutSettings(metadata: meta));
+      expect(layout.staves, hasLength(2));
+      expect(layout.width, greaterThan(0));
     });
   });
 }
