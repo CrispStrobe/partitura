@@ -160,6 +160,7 @@ class _KernReader {
       keySignature: _leadingKey,
       timeSignature: _leadingTime,
       measures: withDetectedPickup(_measures, _leadingTime),
+      tempo: _tempo,
       metadata: ScoreMetadata(
         title: _title,
         composer: _composer,
@@ -171,6 +172,7 @@ class _KernReader {
   }
 
   String? _title, _composer, _lyricist, _copyright, _instrument;
+  Tempo? _tempo;
 
   /// Parses a `!!!KEY: value` bibliographic reference record.
   void _reference(String line) {
@@ -228,6 +230,9 @@ class _KernReader {
     } else if (token.startsWith('*I"')) {
       final name = token.substring(3).trim();
       if (name.isNotEmpty) _instrument = name;
+    } else if (token.startsWith('*MM')) {
+      final bpm = double.tryParse(token.substring(3));
+      if (bpm != null) _tempo ??= Tempo(bpm);
     }
   }
 

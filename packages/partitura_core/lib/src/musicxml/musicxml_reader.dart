@@ -223,6 +223,28 @@ class _PartReader {
   KeySignature? _key;
   TimeSignature? _time;
   Transposition? _transposition;
+  Tempo? _tempo;
+
+  static const _beatUnits = {
+    'breve': DurationBase.breve,
+    'whole': DurationBase.whole,
+    'half': DurationBase.half,
+    'quarter': DurationBase.quarter,
+    'eighth': DurationBase.eighth,
+    '16th': DurationBase.sixteenth,
+    '32nd': DurationBase.thirtySecond,
+    '64th': DurationBase.sixtyFourth,
+  };
+
+  /// A `<metronome>` (beat-unit + per-minute) into a [Tempo].
+  static Tempo? _tempoOf(XmlNode metronome) {
+    final base = _beatUnits[metronome.childText('beat-unit')];
+    final perMinute = double.tryParse(metronome.childText('per-minute') ?? '');
+    if (base == null || perMinute == null) return null;
+    final dots = metronome.childrenNamed('beat-unit-dot').length.clamp(0, 2);
+    return Tempo(perMinute, beatUnit: base, dots: dots);
+  }
+
   bool _leadingSet = false;
 
   final _measures = <Measure>[];
@@ -270,6 +292,7 @@ class _PartReader {
       breathMarks: _breathMarks,
       transposition: _transposition,
       metadata: metadata,
+      tempo: _tempo,
     );
   }
 
@@ -446,6 +469,8 @@ class _PartReader {
           if (shift != null) _handleOctaveShift(shift);
           final pedal = node.child('direction-type')?.child('pedal');
           if (pedal != null) _handlePedal(pedal);
+          final metronome = node.child('direction-type')?.child('metronome');
+          if (metronome != null) _tempo ??= _tempoOf(metronome);
           navigation ??= _navigationOf(node);
         case 'harmony':
           pendingHarmony = _harmonyText(node);

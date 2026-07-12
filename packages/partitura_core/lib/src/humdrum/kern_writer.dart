@@ -80,6 +80,16 @@ String scoreToKern(Score score) {
   if (score.timeSignature != null) {
     lines.addAll(_meterLines(score.timeSignature!));
   }
+  final t = score.tempo;
+  if (t != null) {
+    // kern *MM is quarter-notes per minute; store the quarter-equivalent.
+    final f = NoteDuration(t.beatUnit, dots: t.dots).toFraction();
+    final quarters = t.bpm * f.numerator * 4 / f.denominator;
+    final s = quarters == quarters.roundToDouble()
+        ? quarters.round().toString()
+        : quarters.toString();
+    lines.add('*MM$s');
+  }
 
   // Element-level ties need to know the previous note's tie state.
   var prevTie = false;

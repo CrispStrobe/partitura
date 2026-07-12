@@ -119,11 +119,21 @@ class _MeiReader {
     }
 
     final instrument = staffDef?.attributes['label'];
+    Tempo? tempo;
+    final mm = double.tryParse(scoreDef?.attributes['mm'] ?? '');
+    if (mm != null) {
+      tempo = Tempo(mm,
+          beatUnit: _durBases[scoreDef!.attributes['mm.unit'] ?? '4'] ??
+              DurationBase.quarter,
+          dots: (int.tryParse(scoreDef.attributes['mm.dots'] ?? '0') ?? 0)
+              .clamp(0, 2));
+    }
     return Score(
       clef: leadingClef,
       keySignature: leadingKey,
       timeSignature: leadingTime,
       measures: measures,
+      tempo: tempo,
       metadata: ScoreMetadata(
         title: headMeta.title,
         composer: headMeta.composer,
