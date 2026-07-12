@@ -122,6 +122,27 @@ void main() {
     expect(File(out).readAsStringSync(), isNot(contains('@font-face')));
   });
 
+  test('reads an ABC tune and converts it (and round-trips to ABC)', () async {
+    final abc = '${tmp.path}/tune.abc';
+    File(abc).writeAsStringSync(
+        'X:1\nT:Test\nM:4/4\nL:1/8\nK:G\nGABc d2e2|f2 ^f2 g4|\n');
+    final info = await run(['info', abc]);
+    expect(info.exitCode, 0, reason: '${info.stdout}\n${info.stderr}');
+    expect(info.stdout, contains('meter:      4/4'));
+
+    // ABC -> MusicXML.
+    final xml = '${tmp.path}/tune.musicxml';
+    expect((await run(['convert', abc, xml])).exitCode, 0);
+    expect(File(xml).readAsStringSync(), contains('<note>'));
+
+    // ABC -> ABC keeps the pitches (via the score model).
+    final out = '${tmp.path}/out.abc';
+    expect((await run(['convert', abc, out])).exitCode, 0);
+    final text = File(out).readAsStringSync();
+    expect(text, contains('K:G'));
+    expect(text, contains('G A B c'));
+  });
+
   test('reads a plain-text (.tab) file and converts it', () async {
     final tab = '${tmp.path}/riff.tab';
     File(tab).writeAsStringSync('''

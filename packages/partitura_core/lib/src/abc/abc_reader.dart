@@ -1,0 +1,667 @@
+/// ABC notation import.
+///
+/// ABC is a plain-text music format widespread for folk and traditional tunes.
+/// This reads the common tune features into a partitura [Score] (pure Dart,
+/// web-safe): the `M`/`L`/`K` header fields, then a tune body of pitched notes
+/// (accidentals, octave marks, `L`-relative durations), rests, chords
+/// (`[CEG]`), **broken rhythm** (`>`/`<`), **ties** (`-`), **tuplets** (`(3`),
+/// **slurs** (`(…)`), **grace notes** (`{…}`), staccato (`.`), quoted `"C"`
+/// chord symbols → annotations, bar lines / repeats / double & final bars, and
+/// `w:` **lyrics** aligned to the notes.
+///
+/// Multi-voice tunes import their **first** voice (partitura is single-staff
+/// here). Decorations other than staccato (`!…!`), inline non-voice fields and
+/// `%%` directives are skipped so real tunes still import.
+library;
+
+import '../model/element.dart';
+import '../model/measure.dart';
+import '../model/score.dart';
+import '../theory/clef.dart';
+import '../theory/duration.dart';
+import '../theory/fraction.dart';
+import '../theory/key_signature.dart';
+import '../theory/pitch.dart';
+import '../theory/time_signature.dart';
+
+/// Parses an ABC tune [abc] into a [Score] (the first tune if several).
+///
+/// Throws [FormatException] if no tune body / `K:` field is found.
+Score scoreFromAbc(String abc) {
+  TimeSignature? meter;
+  Fraction? unitLen;
+  var key = const KeySignature(0);
+  var clef = Clef.treble;
+  var sawKey = false;
+  final body = StringBuffer();
+  final lyricLines = <String>[];
+  String? firstVoice; // id of the first V: voice, when the tune is multi-voice
+
+  for (final raw in abc.split('\n')) {
+    final line = raw.trim();
+    if (line.isEmpty || line.startsWith('%')) continue;
+    final isField =
+        line.length >= 2 && line[1] == ':' && _isFieldLetter(line[0]);
+    if (!sawKey && isField) {
+      final value = line.substring(2).trim();
+      switch (line[0]) {
+        case 'M':
+          meter = _parseMeter(value);
+        case 'L':
+          unitLen = _parseUnitLength(value);
+        case 'V':
+          firstVoice ??= value.split(RegExp(r'\s')).first;
+        case 'K':
+          final parsed = _parseKey(value);
+          key = parsed.$1;
+          clef = parsed.$2 ?? clef;
+          sawKey = true; // the K field ends the header; the body follows
+      }
+      continue;
+    }
+    if (!sawKey) continue;
+
+    if (isField) {
+      final value = line.substring(2).trim();
+      if (line[0] == 'w') {
+        lyricLines.add(value);
+      } else if (line[0] == 'V') {
+        firstVoice ??= value.split(RegExp(r'\s')).first;
+      }
+      continue; // mid-tune field line
+    }
+
+    // A body line. Honor only the first voice when the tune is multi-voice.
+    final noComment = line.split('%').first;
+    final voiceMatch = RegExp(r'^\[V:\s*([^\]]+)\]').firstMatch(noComment);
+    if (firstVoice != null && voiceMatch != null) {
+      if (voiceMatch[1]!.trim() != firstVoice) continue;
+    }
+    body.write(noComment);
+    body.write('\n');
+  }
+
+  if (!sawKey) throw const FormatException('no ABC tune (missing K: field)');
+
+  // Default note length: 1/8, or 1/16 when the meter is "short" (< 3/4).
+  final unit = unitLen ??
+      ((meter != null && meter.beats / meter.beatUnit < 0.75)
+          ? Fraction(1, 16)
+          : Fraction(1, 8));
+
+  final parser = _AbcBody(body.toString(), unit, key)..parse();
+  final measures = parser.measures.isEmpty
+      ? [
+          Measure([RestElement(NoteDuration.whole, id: 'e0')])
+        ]
+      : parser.measures;
+  final lyrics = _alignLyrics(lyricLines, parser.noteOrder);
+
+  return Score(
+    clef: clef,
+    keySignature: key,
+    timeSignature: meter,
+    measures: measures,
+    annotations: parser.annotations,
+    slurs: parser.slurs,
+    lyrics: lyrics,
+  );
+}
+
+bool _isFieldLetter(String c) {
+  final u = c.toUpperCase().codeUnitAt(0);
+  return u >= 0x41 && u <= 0x5A;
+}
+
+TimeSignature? _parseMeter(String value) {
+  final v = value.trim();
+  if (v == 'C') return const TimeSignature(4, 4);
+  if (v == 'C|') return const TimeSignature(2, 2);
+  final m = RegExp(r'^(\d+)\s*/\s*(\d+)').firstMatch(v);
+  if (m == null) return null;
+  return TimeSignature(int.parse(m[1]!), int.parse(m[2]!));
+}
+
+Fraction? _parseUnitLength(String value) {
+  final m = RegExp(r'^(\d+)\s*/\s*(\d+)').firstMatch(value.trim());
+  if (m == null) return null;
+  return Fraction(int.parse(m[1]!), int.parse(m[2]!));
+}
+
+/// Parses a `K:` value (tonic + mode, e.g. `G`, `Em`, `Ador`, `Bb mix`) plus an
+/// optional `clef=`/mode-named clef.
+(KeySignature, Clef?) _parseKey(String value) {
+  final v = value.trim();
+  Clef? clef;
+  final low = v.toLowerCase();
+  if (low.contains('bass')) clef = Clef.bass;
+  if (low.contains('alto')) clef = Clef.alto;
+  if (low.contains('tenor')) clef = Clef.tenor;
+
+  // "none" and the bagpipe keys (Hp/HP) carry no standard signature.
+  if (low.startsWith('none') || low.startsWith('hp')) {
+    return (const KeySignature(0), clef);
+  }
+  final m = RegExp(r'^([A-Ga-g])([#b]?)\s*([A-Za-z]*)').firstMatch(v);
+  if (m == null) return (const KeySignature(0), clef);
+  final tonic = '${m[1]!.toUpperCase()}${m[2]}';
+  final base = _tonicFifths[tonic] ?? 0;
+  var fifths = base + _modeAdjust(m[3]!.toLowerCase());
+  if (fifths > 7) fifths -= 12;
+  if (fifths < -7) fifths += 12;
+  return (KeySignature(fifths), clef);
+}
+
+const _tonicFifths = {
+  'C': 0, 'G': 1, 'D': 2, 'A': 3, 'E': 4, 'B': 5, 'F#': 6, 'C#': 7, //
+  'F': -1, 'Bb': -2, 'Eb': -3, 'Ab': -4, 'Db': -5, 'Gb': -6, 'Cb': -7,
+  'G#': -4, 'D#': -3, 'A#': -2,
+};
+
+int _modeAdjust(String mode) {
+  if (mode.isEmpty) return 0;
+  final m = mode.length >= 3 ? mode.substring(0, 3) : mode;
+  return switch (m) {
+    'maj' || 'ion' => 0,
+    'min' || 'aeo' || 'm' => -3,
+    'dor' => -2,
+    'phr' => -4,
+    'lyd' => 1,
+    'mix' => -1,
+    'loc' => -5,
+    _ => mode == 'm' ? -3 : 0,
+  };
+}
+
+/// One parsed note/rest/chord, accumulated so broken rhythm and tuplets can
+/// adjust durations before the immutable elements are built.
+class _Rec {
+  List<Pitch>? pitches; // null = rest
+  Fraction dur;
+  bool tie = false;
+  final Set<Articulation> articulations;
+  final List<Pitch> grace;
+  final String id;
+  _Rec(this.pitches, this.dur, this.id,
+      {Set<Articulation>? articulations, List<Pitch>? grace})
+      : articulations = articulations ?? {},
+        grace = grace ?? [];
+}
+
+/// Tokenizes an ABC tune body into measures + spans.
+class _AbcBody {
+  final String src;
+  final Fraction unit;
+  final KeySignature key;
+  int _pos = 0;
+  int _id = 0;
+
+  final List<Measure> measures = [];
+  final List<Annotation> annotations = [];
+  final List<Slur> slurs = [];
+
+  /// Element ids in performance order (for lyric alignment) — with a `|` marker
+  /// string for each barline so `w:` bar breaks can be honored.
+  final List<String> noteOrder = [];
+
+  _AbcBody(this.src, this.unit, this.key);
+
+  List<_Rec> _recs = [];
+  final List<TupletSpan> _tuplets = [];
+  bool _nextStartRepeat = false;
+
+  String? _pendingChordSymbol;
+  final Set<Articulation> _pendingArtic = {};
+  final List<Pitch> _pendingGrace = [];
+  final Map<String, int> _measureAccidentals = {};
+
+  // Broken rhythm: multiply the next note's duration by this, once.
+  Fraction? _brokenNext;
+  // Slur open note ids awaiting a ')'.
+  final List<String> _openSlurs = [];
+  // Tuplet in progress: notes remaining, and its ratio.
+  int _tupletLeft = 0;
+  int _tupletActual = 0;
+  int _tupletNormal = 0;
+  int _tupletStart = 0;
+
+  void parse() {
+    while (_pos < src.length) {
+      final c = src[_pos];
+      if (c == ' ' || c == '\t' || c == '\n') {
+        _pos++;
+      } else if (c == '"') {
+        _readChordSymbol();
+      } else if (c == '|' || c == ':' && _atRepeatBar() || _atLeftBar()) {
+        _readBarline();
+      } else if (c == '(' && _atTuplet()) {
+        _readTuplet();
+      } else if (c == '(') {
+        _pos++;
+        _openSlurs.add('e$_id'); // slur starts on the next note
+      } else if (c == ')') {
+        _pos++;
+        _closeSlur();
+      } else if (c == '-') {
+        _pos++;
+        if (_recs.isNotEmpty) _recs.last.tie = true;
+      } else if (c == '{') {
+        _readGrace();
+      } else if (c == '!') {
+        _pos++;
+        _readDecoration();
+      } else if (c == '.') {
+        _pos++;
+        _pendingArtic.add(Articulation.staccato);
+      } else if (c == '>' || c == '<') {
+        _readBroken();
+      } else if (c == '[') {
+        _readChord();
+      } else if (c == 'z' || c == 'Z' || c == 'x') {
+        _readRest();
+      } else if (_isNoteStart(c)) {
+        _readNote();
+      } else {
+        _pos++; // unknown token
+      }
+    }
+    _closeMeasure(BarlineStyle.normal, endRepeat: false);
+  }
+
+  bool _atRepeatBar() => _pos + 1 < src.length && src[_pos + 1] == '|'; // ":|"
+
+  bool _atLeftBar() => src[_pos] == '[' && _peekIsBar(); // "[|"
+
+  bool _peekIsBar() => _pos + 1 < src.length && src[_pos + 1] == '|';
+
+  bool _atTuplet() =>
+      _pos + 1 < src.length && _isDigit(src[_pos + 1]); // "(3" etc
+
+  bool _isNoteStart(String c) {
+    final u = c.codeUnitAt(0);
+    return c == '^' ||
+        c == '_' ||
+        c == '=' ||
+        (u >= 0x41 && u <= 0x47) ||
+        (u >= 0x61 && u <= 0x67);
+  }
+
+  void _readChordSymbol() {
+    _pos++;
+    final start = _pos;
+    while (_pos < src.length && src[_pos] != '"') {
+      _pos++;
+    }
+    final text = src.substring(start, _pos);
+    if (_pos < src.length) _pos++;
+    if (text.isNotEmpty &&
+        !text.startsWith('^') &&
+        !text.startsWith('_') &&
+        !text.startsWith('<') &&
+        !text.startsWith('>') &&
+        !text.startsWith('@')) {
+      _pendingChordSymbol = text;
+    }
+  }
+
+  void _readDecoration() {
+    while (_pos < src.length && src[_pos] != '!') {
+      _pos++;
+    }
+    if (_pos < src.length) _pos++;
+  }
+
+  void _readGrace() {
+    _pos++; // '{'
+    while (_pos < src.length && src[_pos] != '}') {
+      if (_isNoteStart(src[_pos])) {
+        final p = _readPitch();
+        _readDuration(); // grace durations are ignored
+        if (p != null) _pendingGrace.add(p);
+      } else {
+        _pos++;
+      }
+    }
+    if (_pos < src.length) _pos++; // '}'
+  }
+
+  void _readBroken() {
+    var count = 0;
+    final ch = src[_pos];
+    while (_pos < src.length && src[_pos] == ch) {
+      count++;
+      _pos++;
+    }
+    // a>b : a *= (2 - 2^-n); b *= 2^-n. '<' swaps the two.
+    final small = Fraction(1, 1 << count);
+    final big = Fraction((1 << (count + 1)) - 1, 1 << count);
+    final (firstF, nextF) = ch == '>' ? (big, small) : (small, big);
+    if (_recs.isNotEmpty) _recs.last.dur = _recs.last.dur * firstF;
+    _brokenNext = nextF;
+  }
+
+  void _readBarline() {
+    final start = _pos;
+    while (_pos < src.length && '|:[]'.contains(src[_pos])) {
+      _pos++;
+    }
+    final t = src.substring(start, _pos);
+    final endRepeat = t.startsWith(':');
+    final startRepeat = t.endsWith(':');
+    final style = t.contains(']')
+        ? BarlineStyle.finalBar
+        : (t.replaceAll(RegExp('[:\\[]'), '') == '||'
+            ? BarlineStyle.doubleBar
+            : BarlineStyle.normal);
+    _closeMeasure(style, endRepeat: endRepeat);
+    _nextStartRepeat = startRepeat;
+    noteOrder.add('|');
+  }
+
+  void _closeMeasure(BarlineStyle style, {required bool endRepeat}) {
+    _measureAccidentals.clear();
+    if (_recs.isEmpty && measures.isEmpty) return;
+    if (_recs.isEmpty && !endRepeat && style == BarlineStyle.normal) return;
+    final elements = <MusicElement>[
+      for (final r in _recs)
+        if (r.pitches == null)
+          RestElement(_durationOf(r.dur), id: r.id)
+        else
+          NoteElement(
+            pitches: r.pitches!,
+            duration: _durationOf(r.dur),
+            tieToNext: r.tie,
+            articulations: r.articulations,
+            graceNotes: r.grace,
+            id: r.id,
+          ),
+    ];
+    measures.add(Measure(
+      elements,
+      tuplets: List.of(_tuplets),
+      startRepeat: _nextStartRepeat,
+      endRepeat: endRepeat,
+      barline: style,
+    ));
+    _recs = [];
+    _tuplets.clear();
+    _nextStartRepeat = false;
+  }
+
+  void _readTuplet() {
+    _pos++; // '('
+    final numStart = _pos;
+    while (_pos < src.length && _isDigit(src[_pos])) {
+      _pos++;
+    }
+    final p = int.parse(src.substring(numStart, _pos));
+    var q = switch (p) { 2 => 3, 3 => 2, 4 => 3, 6 => 2, 8 => 3, _ => 2 };
+    var r = p;
+    // Optional :q:r.
+    if (_pos < src.length && src[_pos] == ':') {
+      _pos++;
+      q = _readInt(q);
+      if (_pos < src.length && src[_pos] == ':') {
+        _pos++;
+        r = _readInt(r);
+      }
+    }
+    _tupletActual = p;
+    _tupletNormal = q;
+    _tupletLeft = r;
+    _tupletStart = _recs.length;
+  }
+
+  int _readInt(int fallback) {
+    final start = _pos;
+    while (_pos < src.length && _isDigit(src[_pos])) {
+      _pos++;
+    }
+    return _pos > start ? int.parse(src.substring(start, _pos)) : fallback;
+  }
+
+  void _readRest() {
+    _pos++;
+    final dur = _applyPending(_readDuration());
+    _add(_Rec(null, dur, 'e${_id++}'));
+  }
+
+  void _readChord() {
+    _pos++; // '['
+    final pitches = <Pitch>[];
+    while (_pos < src.length && src[_pos] != ']') {
+      if (_isNoteStart(src[_pos])) {
+        final p = _readPitch();
+        _readDuration();
+        if (p != null) pitches.add(p);
+      } else {
+        _pos++;
+      }
+    }
+    if (_pos < src.length) _pos++;
+    final dur = _applyPending(_readDuration());
+    if (pitches.isEmpty) return;
+    pitches.sort((a, b) => a.midiNumber.compareTo(b.midiNumber));
+    _add(_makeRec(pitches, dur));
+  }
+
+  void _readNote() {
+    final pitch = _readPitch();
+    if (pitch == null) return;
+    final dur = _applyPending(_readDuration());
+    _add(_makeRec([pitch], dur));
+  }
+
+  _Rec _makeRec(List<Pitch> pitches, Fraction dur) {
+    final rec = _Rec(pitches, dur, 'e${_id++}',
+        articulations: _pendingArtic.isEmpty ? null : Set.of(_pendingArtic),
+        grace: _pendingGrace.isEmpty ? null : List.of(_pendingGrace));
+    _pendingArtic.clear();
+    _pendingGrace.clear();
+    // A slur that opened on this note now knows its start id.
+    if (_pendingChordSymbol != null) {
+      annotations.add(Annotation(rec.id, _pendingChordSymbol!));
+      _pendingChordSymbol = null;
+    }
+    return rec;
+  }
+
+  void _add(_Rec rec) {
+    _recs.add(rec);
+    noteOrder.add(rec.id);
+    // Tuplet span accounting.
+    if (_tupletLeft > 0) {
+      _tupletLeft--;
+      if (_tupletLeft == 0) {
+        _tuplets.add(TupletSpan(
+          _tupletStart,
+          _recs.length - 1,
+          actual: _tupletActual,
+          normal: _tupletNormal,
+        ));
+      }
+    }
+  }
+
+  Fraction _applyPending(Fraction dur) {
+    if (_brokenNext != null) {
+      dur = dur * _brokenNext!;
+      _brokenNext = null;
+    }
+    return dur;
+  }
+
+  void _closeSlur() {
+    if (_openSlurs.isEmpty || _recs.isEmpty) return;
+    final startId = _openSlurs.removeLast();
+    final endId = _recs.last.id;
+    if (startId != endId) slurs.add(Slur(startId, endId));
+  }
+
+  Pitch? _readPitch() {
+    var alter = 0;
+    var explicit = false;
+    while (_pos < src.length && '^_='.contains(src[_pos])) {
+      explicit = true;
+      alter += switch (src[_pos]) { '^' => 1, '_' => -1, _ => -alter };
+      _pos++;
+    }
+    if (_pos >= src.length) return null;
+    final letter = src[_pos];
+    final code = letter.codeUnitAt(0);
+    final isLower = code >= 0x61 && code <= 0x67;
+    final isUpper = code >= 0x41 && code <= 0x47;
+    if (!isLower && !isUpper) return null;
+    _pos++;
+
+    var octave = isLower ? 5 : 4;
+    while (_pos < src.length && (src[_pos] == ',' || src[_pos] == "'")) {
+      octave += src[_pos] == "'" ? 1 : -1;
+      _pos++;
+    }
+    final step = _stepOf(letter.toUpperCase());
+    final upper = letter.toUpperCase();
+    if (explicit) {
+      _measureAccidentals[upper] = alter;
+    } else if (_measureAccidentals.containsKey(upper)) {
+      alter = _measureAccidentals[upper]!;
+    } else {
+      alter = _keyAlter(step);
+    }
+    return Pitch(step, alter: alter, octave: octave);
+  }
+
+  int _keyAlter(Step step) {
+    if (!key.alteredSteps.contains(step)) return 0;
+    return key.fifths >= 0 ? 1 : -1;
+  }
+
+  Fraction _readDuration() {
+    var num = 1;
+    var den = 1;
+    final numStart = _pos;
+    while (_pos < src.length && _isDigit(src[_pos])) {
+      _pos++;
+    }
+    if (_pos > numStart) num = int.parse(src.substring(numStart, _pos));
+    while (_pos < src.length && src[_pos] == '/') {
+      _pos++;
+      final dStart = _pos;
+      while (_pos < src.length && _isDigit(src[_pos])) {
+        _pos++;
+      }
+      den *= _pos > dStart ? int.parse(src.substring(dStart, _pos)) : 2;
+    }
+    return unit * Fraction(num, den);
+  }
+
+  bool _isDigit(String c) => c.codeUnitAt(0) >= 0x30 && c.codeUnitAt(0) <= 0x39;
+}
+
+/// Aligns `w:` syllable lines to the note ids in [noteOrder] (which contains
+/// `|` markers at barlines, matching the `|` advance in `w:`).
+List<Lyric> _alignLyrics(List<String> lines, List<String> noteOrder) {
+  if (lines.isEmpty) return const [];
+  // Flatten every w: line into a stream of syllable tokens.
+  final tokens = <String>[];
+  for (final line in lines) {
+    for (final t in _splitSyllables(line)) {
+      tokens.add(t);
+    }
+  }
+  final lyrics = <Lyric>[];
+  var ti = 0;
+  for (final id in noteOrder) {
+    if (ti >= tokens.length) break;
+    if (id == '|') {
+      // Advance syllables to the next '|' only if the token stream uses them.
+      while (ti < tokens.length && tokens[ti] == '|') {
+        ti++;
+      }
+      continue;
+    }
+    var tok = tokens[ti];
+    while (tok == '|' && ti + 1 < tokens.length) {
+      ti++;
+      tok = tokens[ti];
+    }
+    ti++;
+    if (tok == '*' || tok == '|' || tok.isEmpty) continue; // skip this note
+    final hyphen = tok.endsWith('-');
+    final text = (hyphen ? tok.substring(0, tok.length - 1) : tok)
+        .replaceAll('~', ' ')
+        .replaceAll(r'\-', '-');
+    if (text.isEmpty) continue;
+    lyrics.add(Lyric(id, text, hyphenToNext: hyphen));
+  }
+  return lyrics;
+}
+
+Iterable<String> _splitSyllables(String line) sync* {
+  final buf = StringBuffer();
+  for (var i = 0; i < line.length; i++) {
+    final c = line[i];
+    if (c == ' ') {
+      if (buf.isNotEmpty) {
+        yield buf.toString();
+        buf.clear();
+      }
+    } else if (c == '-') {
+      buf.write('-');
+      yield buf.toString();
+      buf.clear();
+    } else if (c == '|') {
+      if (buf.isNotEmpty) {
+        yield buf.toString();
+        buf.clear();
+      }
+      yield '|';
+    } else {
+      buf.write(c);
+    }
+  }
+  if (buf.isNotEmpty) yield buf.toString();
+}
+
+Step _stepOf(String letter) => switch (letter) {
+      'C' => Step.c,
+      'D' => Step.d,
+      'E' => Step.e,
+      'F' => Step.f,
+      'G' => Step.g,
+      'A' => Step.a,
+      _ => Step.b,
+    };
+
+/// Maps a whole-note [fraction] to the nearest notated duration (base + dots).
+NoteDuration _durationOf(Fraction fraction) {
+  const bases = [
+    (DurationBase.breve, 2.0),
+    (DurationBase.whole, 1.0),
+    (DurationBase.half, 0.5),
+    (DurationBase.quarter, 0.25),
+    (DurationBase.eighth, 0.125),
+    (DurationBase.sixteenth, 0.0625),
+    (DurationBase.thirtySecond, 0.03125),
+    (DurationBase.sixtyFourth, 0.015625),
+  ];
+  const dotMul = [1.0, 1.5, 1.75];
+  final target = fraction.numerator / fraction.denominator;
+  for (var dots = 0; dots < dotMul.length; dots++) {
+    for (final (base, value) in bases) {
+      if ((value * dotMul[dots] - target).abs() < 1e-9) {
+        return NoteDuration(base, dots: dots);
+      }
+    }
+  }
+  var best = bases.first;
+  var bestDiff = double.infinity;
+  for (final b in bases) {
+    final d = (b.$2 - target).abs();
+    if (d < bestDiff) {
+      bestDiff = d;
+      best = b;
+    }
+  }
+  return NoteDuration(best.$1);
+}

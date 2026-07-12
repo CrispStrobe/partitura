@@ -37,11 +37,12 @@ Commands:
                                        the Flutter SDK)
 
 Common:
-  --from <musicxml|midi|asciitab|gp|gpx|gp5|gp4|gp3|gpif>
-                                       Force the input format (.tab/.crd/.txt
-                                       are plain-text tab; .gp = Guitar Pro 7/8,
-                                       .gpx = GP6, .gp5/.gp4/.gp3 = GP5/4/3)
-  --to   <musicxml|midi|gp|gpif>       Force the convert output format
+  --from <musicxml|midi|abc|asciitab|gp|gpx|gp5|gp4|gp3|gpif>
+                                       Force the input format (.abc = ABC;
+                                       .tab/.crd/.txt are plain-text tab;
+                                       .gp = Guitar Pro 7/8, .gpx = GP6,
+                                       .gp5/.gp4/.gp3 = GP5/4/3)
+  --to   <musicxml|midi|abc|gp|gpif>   Force the convert output format
 
 render options:
   --tab                                Render as guitar/bass tablature
@@ -153,6 +154,8 @@ int _convert(List<String> args) {
       File(outPath).writeAsStringSync(scoreToMusicXml(score));
     case 'midi':
       File(outPath).writeAsBytesSync(scoreToMidi(score));
+    case 'abc':
+      File(outPath).writeAsStringSync(scoreToAbc(score));
     case 'gpif':
       File(outPath).writeAsStringSync(
           scoreToGpif(score, tuning: _tuningOf(options['tuning'])));
@@ -221,6 +224,8 @@ Score _loadScore(String path, Map<String, String> options) {
       return scoreFromMusicXml(file.readAsStringSync());
     case 'midi':
       return scoreFromMidi(file.readAsBytesSync());
+    case 'abc':
+      return scoreFromAbc(file.readAsStringSync());
     case 'asciitab':
       return asciiTabToScore(
         file.readAsStringSync(),
@@ -262,6 +267,7 @@ String _formatOf(String path) {
   if (lower.endsWith('.xml') || lower.endsWith('.musicxml')) return 'musicxml';
   if (lower.endsWith('.svg')) return 'svg';
   if (lower.endsWith('.png')) return 'png';
+  if (lower.endsWith('.abc')) return 'abc';
   if (lower.endsWith('.tab') ||
       lower.endsWith('.crd') ||
       lower.endsWith('.txt')) {

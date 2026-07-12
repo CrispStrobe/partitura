@@ -2,6 +2,18 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **ABC notation import + export** (Phase 7.3): `scoreFromAbc` /
+  `scoreToAbc` — the plain-text format ubiquitous for folk/traditional tunes,
+  pure Dart. The reader handles the `M`/`L`/`K` header (meter, unit length,
+  key + modes → key signature, clef), then a tune body of pitched notes
+  (accidentals with key + measure state, octave marks, `L`-relative and
+  fractional lengths), rests, chords, **broken rhythm** (`>`/`<`), ties,
+  **tuplets** (`(3`), **slurs**, **grace notes**, staccato, quoted `"C"` chord
+  symbols → annotations, bar lines (repeats, double/final), `w:` **lyrics**,
+  and multi-voice tunes (first voice). The writer emits the same, so a score
+  round-trips through ABC for the data it shares (13 unit + round-trip tests).
+  Wired into the CLI (`.abc` in/out, `--from`/`--to abc`). Validated against
+  the abcjs example tune-book.
 - **Note-name overlay** (Phase 3.2): a `showNoteNames` layout option draws the
   pitch letter (with accidental — `C`, `F#`, `Bb`) under each note in a row
   below the staff, a chord stacking its letters — the ubiquitous teaching aid.

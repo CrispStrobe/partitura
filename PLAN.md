@@ -379,8 +379,17 @@ enum encodings so files round-trip cleanly), tiered by importance:
       (BCFZ/BCFS) and GP7/8 `.gp` (GPIF-in-ZIP), all wired into the CLI and
       regression-tested against real vendored alphaTab fixtures
       (`partitura_cli/test/gp_fixtures_test.dart`; GP3/4/5 agree note-for-note
-      on the shared techniques). **Left:** `.ptb` (PowerTab, no freely-licensed
-      test corpus).
+      on the shared techniques). **ABC notation import + export**
+      (`scoreFromAbc` / `scoreToAbc`) — the folk/traditional plain-text format:
+      `M`/`L`/`K` header (meter, unit length, key + church modes, clef), notes
+      with accidentals (key + in-measure state), octave marks and fractional /
+      broken-rhythm (`>`/`<`) lengths, rests, chords, ties, tuplets (`(3`),
+      slurs, grace notes, staccato, `"C"` chord symbols → annotations, bar
+      lines (repeats, double/final), `w:` lyrics, and multi-voice (first voice);
+      round-trips through the score model, wired into the CLI (`.abc`),
+      validated against the abcjs example tune-book. **Left:** the ABC subset's
+      tail (decorations beyond staccato, multi-voice → grand staff, symbol
+      lines); `.ptb` (PowerTab, no freely-licensed test corpus).
 - [x] **7.4 Repeat unfolding** — `playbackTimeline` linearizes repeats /
       voltas / D.C. / D.S. / To Coda / al Fine / al Coda into performance
       order, executing the navigation jumps. Repeat barlines expand with a

@@ -10,6 +10,8 @@
 /// in staff-space coordinates.
 library;
 
+export 'src/abc/abc_reader.dart';
+export 'src/abc/abc_writer.dart';
 export 'src/gp/gp_binary_reader.dart';
 export 'src/gp/gpif.dart';
 export 'src/layout/grand_staff.dart';
