@@ -2,6 +2,12 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Common / cut time symbols** (Phase 5.7): `TimeSymbol` (numeric/common/cut)
+  on `TimeSignature`, with `TimeSignature.commonTime` (4/4 drawn as C) and
+  `cutTime` (2/2 drawn as ¢) — rendered from the SMuFL `timeSigCommon`/
+  `timeSigCutCommon` glyphs centered on the middle line. MusicXML `<time
+  symbol="common"/"cut">` and ABC `M:C`/`M:C|` read/write and round-trip
+  (golden 82).
 - **Pagination / page layout** (Phase 2.5): `layoutPages` groups the
   line-broken systems into pages of a `PageMetrics` box (page size + margins,
   in staff spaces), packing systems by content height and vertically justifying

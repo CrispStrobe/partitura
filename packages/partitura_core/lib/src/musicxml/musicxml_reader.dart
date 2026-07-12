@@ -315,9 +315,15 @@ class _PartReader {
           }
           final time = node.child('time');
           if (time != null) {
+            final symbol = switch (time.attributes['symbol']) {
+              'common' => TimeSymbol.common,
+              'cut' => TimeSymbol.cut,
+              _ => TimeSymbol.numeric,
+            };
             final signature = TimeSignature(
               int.parse(time.childText('beats')!),
               int.parse(time.childText('beat-type')!),
+              symbol: symbol,
             );
             if (!_leadingSet) {
               _time = signature;

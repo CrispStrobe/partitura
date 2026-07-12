@@ -30,7 +30,8 @@ String scoreToAbc(
   b.writeln('X:$index');
   if (title != null) b.writeln('T:$title');
   final ts = score.timeSignature;
-  if (ts != null) b.writeln('M:${ts.beats}/${ts.beatUnit}');
+  // TimeSignature.toString() is C / C| / beats/beatUnit — exactly the ABC form.
+  if (ts != null) b.writeln('M:$ts');
   b.writeln('L:${unit.numerator}/${unit.denominator}');
   b.writeln('K:${_keyName(score.keySignature)}');
 
@@ -71,8 +72,7 @@ String scoreToAbc(
       body.write('[K:${_keyName(measure.keyChange!)}]');
     }
     if (measure.timeChange != null) {
-      body.write(
-          '[M:${measure.timeChange!.beats}/${measure.timeChange!.beatUnit}]');
+      body.write('[M:${measure.timeChange}]');
     }
     if (measure.multiRest != null) {
       body.write('Z${measure.multiRest} |');

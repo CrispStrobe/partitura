@@ -285,8 +285,8 @@ bool _isFieldLetter(String c) {
 
 TimeSignature? _parseMeter(String value) {
   final v = value.trim();
-  if (v == 'C') return const TimeSignature(4, 4);
-  if (v == 'C|') return const TimeSignature(2, 2);
+  if (v == 'C') return TimeSignature.commonTime;
+  if (v == 'C|') return TimeSignature.cutTime;
   final m = RegExp(r'^(\d+)\s*/\s*(\d+)').firstMatch(v);
   if (m == null) return null;
   return TimeSignature(int.parse(m[1]!), int.parse(m[2]!));

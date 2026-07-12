@@ -323,8 +323,10 @@ No peer renderer does any of this; all build on the existing pitch / interval
       custom-span barlines across staves; laissez-vibrer ties; palm-mute /
       let-ring / vibrato lines (exist in tab; add to notation); trill extension
       line + baroque variants; portamento; system dividers.
-- [ ] **5.7 Time-signature breadth** — common/cut symbols, additive/composite
-      meters, local per-staff meters.
+- [~] **5.7 Time-signature breadth** — **Done:** common/cut symbols
+      (`TimeSymbol`, `TimeSignature.commonTime`/`cutTime` → the C / ¢ glyphs;
+      MusicXML `<time symbol>` and ABC `M:C`/`M:C|` round-trip; golden 82).
+      **Left:** additive/composite meters (3+2/8), local per-staff meters.
 - [ ] **5.8 Custom / atonal key signatures + cancelling-naturals policy.**
 - [~] **5.9 Jazz articulations** — **Done:** scoop, doit, fall (falloff), plop
       (`JazzMark`/`JazzArticulation`, brass glyphs before/after the notehead,

@@ -1214,6 +1214,27 @@ void main() {
     );
   });
 
+  testWidgets('82 common and cut time symbols', (tester) async {
+    await golden(
+      tester,
+      '82_common_time',
+      Score.simple(
+        timeSignature: TimeSignature.commonTime,
+        notes: 'c5:q d5 e5 f5 | g5:h a5:h',
+      ),
+      staffSpace: 12,
+    );
+    await golden(
+      tester,
+      '82_cut_time',
+      Score.simple(
+        timeSignature: TimeSignature.cutTime,
+        notes: 'c5:h g5:h | c6:w',
+      ),
+      staffSpace: 12,
+    );
+  });
+
   testWidgets('81 paginated page with justified systems', (tester) async {
     final score = Score.simple(
       timeSignature: TimeSignature.fourFour,

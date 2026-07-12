@@ -11,6 +11,7 @@ import '../theory/clef.dart';
 import '../theory/duration.dart';
 import '../theory/fraction.dart';
 import '../theory/pitch.dart';
+import '../theory/time_signature.dart';
 
 /// Serializes [score] as a single-part `score-partwise` document.
 String scoreToMusicXml(Score score, {String partName = 'Music'}) =>
@@ -164,7 +165,12 @@ class _PartWriter {
       }
       final time = index == 0 ? score.timeSignature : measure.timeChange;
       if (time != null) {
-        out.writeln('        <time><beats>${time.beats}</beats>'
+        final timeSym = switch (time.symbol) {
+          TimeSymbol.common => ' symbol="common"',
+          TimeSymbol.cut => ' symbol="cut"',
+          TimeSymbol.numeric => '',
+        };
+        out.writeln('        <time$timeSym><beats>${time.beats}</beats>'
             '<beat-type>${time.beatUnit}</beat-type></time>');
       }
       final clef = index == 0 ? score.clef : measure.clefChange;

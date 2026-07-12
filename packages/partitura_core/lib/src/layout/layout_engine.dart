@@ -473,6 +473,15 @@ class _LayoutBuilder {
   void _layoutTimeSignature() {
     final time = _time;
     if (time == null) return;
+    if (time.symbol != TimeSymbol.numeric) {
+      // A single C / ¢ glyph, centered on the middle staff line (y = 2).
+      final glyph = time.symbol == TimeSymbol.cut
+          ? SmuflGlyph.timeSigCutCommon
+          : SmuflGlyph.timeSigCommon;
+      _addGlyph(glyph, _x - meta.bBoxOf(glyph).swX, 2);
+      _x += _glyphWidth(glyph) + s.signatureGap;
+      return;
+    }
     final numerator = _timeSigGlyphs(time.beats);
     final denominator = _timeSigGlyphs(time.beatUnit);
     final numWidth = _rowWidth(numerator);
