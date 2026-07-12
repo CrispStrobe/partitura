@@ -66,6 +66,48 @@ void main() {
       expect(m2[1].articulations, {Articulation.staccato});
     });
 
+    test('decorations: !…! articulations, ornaments and dynamics', () {
+      final s = scoreFromAbc('X:1\nM:4/4\nL:1/4\nK:C\n'
+          '!trill!C !fermata!D !p!E !accent!F|!tenuto!G !marcato!A B d|\n');
+      final n = s.measures
+          .expand((m) => m.elements)
+          .whereType<NoteElement>()
+          .toList();
+      expect(n[0].ornament, Ornament.trill); // C
+      expect(n[1].articulations, {Articulation.fermata}); // D
+      expect(n[3].articulations, {Articulation.accent}); // F
+      expect(n[4].articulations, {Articulation.tenuto}); // G
+      expect(n[5].articulations, {Articulation.marcato}); // A
+      expect(s.dynamics.single.level, DynamicLevel.p); // on E (n[2])
+    });
+
+    test('shorthand decorations ~ H T M P', () {
+      final s = scoreFromAbc('X:1\nL:1/4\nK:C\n~C HD TE MF Pc|\n');
+      final n = s.measures.single.elements.cast<NoteElement>();
+      expect(n[0].ornament, Ornament.turn); // ~
+      expect(n[1].articulations, {Articulation.fermata}); // H
+      expect(n[2].ornament, Ornament.trill); // T
+      expect(n[3].ornament, Ornament.mordent); // M
+      expect(n[4].ornament, Ornament.shortTrill); // P
+    });
+
+    test('inline fields [K:] [M:] [L:] change key/meter/length mid-tune', () {
+      final s = scoreFromAbc(
+          'X:1\nM:4/4\nL:1/8\nK:C\nCDEF|[K:D]DEFG|[M:3/4][L:1/4]A B c|\n');
+      expect(s.measures[1].keyChange?.fifths, 2); // D major
+      // The new key sharpens unmarked F in that measure.
+      expect(
+          s.measures[1].elements
+              .cast<NoteElement>()
+              .firstWhere((n) => n.pitches.single.step == Step.f)
+              .pitches
+              .single
+              .alter,
+          1);
+      expect(s.measures[2].timeChange, const TimeSignature(3, 4));
+      expect(s.measures[2].elements.first.duration, NoteDuration.quarter);
+    });
+
     test('slurs and quoted chord symbols', () {
       final s = scoreFromAbc('X:1\nL:1/4\nK:C\n"C"(CE) "G"G z|\n');
       expect(s.slurs, hasLength(1));
@@ -80,11 +122,52 @@ void main() {
       expect(s.measures[2].barline, BarlineStyle.finalBar);
     });
 
+    test('variant endings (voltas), both |1 and [1 forms', () {
+      for (final abc in [
+        'X:1\nM:4/4\nL:1/4\nK:C\n|:A B|C D|1E F:|2G A|]\n',
+        'X:1\nM:4/4\nL:1/4\nK:C\n|:A B|C D|[1E F:|[2G A|]\n',
+      ]) {
+        final s = scoreFromAbc(abc);
+        expect(s.measures[0].startRepeat, isTrue);
+        final v1 = s.measures.firstWhere((m) => m.volta == 1);
+        expect(v1.endRepeat, isTrue);
+        expect(s.measures.any((m) => m.volta == 2), isTrue);
+        expect(s.measures.last.barline, BarlineStyle.finalBar);
+      }
+    });
+
+    test('a bar directly before a chord is not eaten', () {
+      final s = scoreFromAbc('X:1\nL:1/4\nK:C\nC|[EG]|\n');
+      expect(s.measures[1].elements.single, isA<NoteElement>());
+      expect(
+          (s.measures[1].elements.single as NoteElement).pitches, hasLength(2));
+    });
+
     test('w: lyrics align to notes with hyphens', () {
       final s = scoreFromAbc('X:1\nL:1/4\nK:G\nB A G A|\n'
           'w:Ma- ry had a\n');
       expect(s.lyrics.map((l) => l.text), ['Ma', 'ry', 'had', 'a']);
       expect(s.lyrics.first.hyphenToNext, isTrue);
+    });
+
+    test('multi-measure rest Z becomes a multi-rest measure', () {
+      final s = scoreFromAbc('X:1\nM:4/4\nL:1/4\nK:C\nC D E F|Z4|G A B c|\n');
+      expect(s.measures[1].multiRest, 4);
+      expect(s.measures[1].elements, isEmpty);
+      // Round-trips.
+      final back = scoreFromAbc(scoreToAbc(s));
+      expect(back.measures[1].multiRest, 4);
+    });
+
+    test('positioned annotations "^…"/"_…" strip the position marker', () {
+      final s = scoreFromAbc('X:1\nL:1/4\nK:C\n"_pizz."C "^arco"D E F|\n');
+      expect(s.annotations.map((a) => a.text), ['pizz.', 'arco']);
+    });
+
+    test('acciaccatura grace {/…} reads its notes', () {
+      final s = scoreFromAbc('X:1\nL:1/4\nK:C\n{/g}C D|\n');
+      expect((s.measures.single.elements.first as NoteElement).graceNotes,
+          hasLength(1));
     });
 
     test('multi-voice imports the first voice', () {
@@ -99,6 +182,67 @@ void main() {
     test('a missing K: field is a FormatException', () {
       expect(
           () => scoreFromAbc('X:1\nT:No key\nCDEF\n'), throwsFormatException);
+    });
+  });
+
+  group('fidelity: the abcjs example tune-book', () {
+    // Real tunes from docs.abcjs.net/analysis/tune-book.html — they must import
+    // without error (features we don't model yet are skipped, not fatal).
+    const moneyLost = '''
+X: 1
+T:Money Lost
+M:3/4
+L:1/8
+Q:1/4=100
+K:Dm
+Ade|:"Dm"(f2d)e gf|"A7"e2^c4|"Gm"B>>^c BA BG|"A"A3Ade|"Dm"(f2d)e gf|"A7"e2^c4|
+"Gm"A>>B "A7"AG FE|1"Dm"D3Ade:|2"Dm"D3DEF||:"Gm"(G2D)E FG|"Dm"A2F4|"Gm"B>>c "A7"BA BG|
+"Dm"A3 DEF|"Gm"(G2D)EFG|"Dm"A2F4|"E7"E>>F "A7"ED^C2|1"Dm"D3DEF:|2"Dm"D6||
+''';
+    const prettyLiza = '''
+X: 32
+T:Pretty Little Liza
+M:4/4
+L:1/8
+Q:1/2=106
+K:Am
+"Am"A2AA c2dd|e2eg e2dc|A2AA c2dd|e2cc A2cc|"Em"B2BB B2BB|
+B2BB B2BB|"Am"A2AA c2dd|e2eg e2c2|"D"d2dd d2dd|d2dd d2cd|
+"Am"e2cc A2c2|"G"BAG2 BAG2|"Am"A2AA A2AA|A2AA A2AA|:"Am"e4 a3e|"G"g2d2- d2eg|
+"Am"a2aa ged2|"Em"e2ee e2ee|"Am"e4 a3e|"G"g2d2- d2Bc|"Em"d2e2 dcB2|"Am"A2AA A2AA:|
+''';
+    const mary = '''
+X:77
+T:Mary
+M:C
+L:1/4
+K:G
+BAGA| BBB2|AAA2| Bdd2|
+w:Mar- y had a lit- tle lamb, lit- tle lamb, lit- tle lamb,
+BAGA| BBBB|AABA |G|]
+w:Mar- y had a lit- tle lamb whose fleece was white as snow.
+''';
+
+    test('Money Lost imports with its bars, chords and endings', () {
+      final s = scoreFromAbc(moneyLost);
+      expect(s.keySignature.fifths, -1); // D minor
+      expect(s.timeSignature, const TimeSignature(3, 4));
+      expect(s.measures.length, greaterThan(10));
+      expect(s.annotations, isNotEmpty); // "Dm" "A7" …
+      expect(s.measures.any((m) => m.volta == 1), isTrue); // |1 …:|2
+    });
+
+    test('Pretty Little Liza imports with a mid-tune repeat', () {
+      final s = scoreFromAbc(prettyLiza);
+      expect(s.keySignature.fifths, 0); // A minor
+      expect(s.measures.any((m) => m.startRepeat), isTrue);
+    });
+
+    test('Mary imports with its two lyric lines', () {
+      final s = scoreFromAbc(mary);
+      expect(s.keySignature.fifths, 1); // G
+      expect(s.lyrics, isNotEmpty);
+      expect(s.lyrics.map((l) => l.text), contains('Mar'));
     });
   });
 

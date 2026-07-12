@@ -37,6 +37,9 @@ String scoreToAbc(
   final chordSymbols = {
     for (final a in score.annotations) a.elementId: a.text,
   };
+  final dynamicsById = {
+    for (final d in score.dynamics) d.elementId: d.level,
+  };
   final slurStarts = <String, int>{};
   final slurEnds = <String, int>{};
   for (final s in score.slurs) {
@@ -48,6 +51,19 @@ String scoreToAbc(
   for (var m = 0; m < score.measures.length; m++) {
     final measure = score.measures[m];
     if (measure.startRepeat) body.write('|:');
+    if (measure.volta != null) body.write('[${measure.volta}');
+    // Mid-tune key / meter / unit changes, and multi-measure rests.
+    if (measure.keyChange != null) {
+      body.write('[K:${_keyName(measure.keyChange!)}]');
+    }
+    if (measure.timeChange != null) {
+      body.write(
+          '[M:${measure.timeChange!.beats}/${measure.timeChange!.beatUnit}]');
+    }
+    if (measure.multiRest != null) {
+      body.write('Z${measure.multiRest} |');
+      continue;
+    }
     // Which element index each tuplet starts/ends at.
     // A tuplet in ABC is marked by `(p` before its first note and closes
     // implicitly after p notes, so only the start index is needed.
@@ -70,9 +86,27 @@ String scoreToAbc(
         if (id != null && element.graceNotes.isNotEmpty) {
           body.write('{${element.graceNotes.map(_bareNote).join()}}');
         }
-        if (element.articulations.contains(Articulation.staccato)) {
-          body.write('.');
+        if (id != null && dynamicsById.containsKey(id)) {
+          body.write('!${dynamicsById[id]!.name}!');
         }
+        // Decorations: `.` for staccato, `!…!` for the rest and ornaments.
+        for (final a in element.articulations) {
+          body.write(switch (a) {
+            Articulation.staccato => '.',
+            Articulation.accent => '!accent!',
+            Articulation.tenuto => '!tenuto!',
+            Articulation.marcato => '!marcato!',
+            Articulation.fermata => '!fermata!',
+          });
+        }
+        final orn = switch (element.ornament) {
+          Ornament.trill => '!trill!',
+          Ornament.shortTrill => '!uppermordent!',
+          Ornament.mordent => '!lowermordent!',
+          Ornament.turn => '!turn!',
+          null => '',
+        };
+        body.write(orn);
         for (var k = 0; k < (id == null ? 0 : slurStarts[id] ?? 0); k++) {
           body.write('(');
         }

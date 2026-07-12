@@ -104,6 +104,7 @@ Score scoreFromAbc(String abc) {
     measures: measures,
     annotations: parser.annotations,
     slurs: parser.slurs,
+    dynamics: parser.dynamics,
     lyrics: lyrics,
   );
 }
@@ -181,9 +182,10 @@ class _Rec {
   bool tie = false;
   final Set<Articulation> articulations;
   final List<Pitch> grace;
+  final Ornament? ornament;
   final String id;
   _Rec(this.pitches, this.dur, this.id,
-      {Set<Articulation>? articulations, List<Pitch>? grace})
+      {Set<Articulation>? articulations, List<Pitch>? grace, this.ornament})
       : articulations = articulations ?? {},
         grace = grace ?? [];
 }
@@ -191,8 +193,9 @@ class _Rec {
 /// Tokenizes an ABC tune body into measures + spans.
 class _AbcBody {
   final String src;
-  final Fraction unit;
-  final KeySignature key;
+  // Mutable so inline fields ([L:…], [K:…]) can change them mid-tune.
+  Fraction unit;
+  KeySignature key;
   int _pos = 0;
   int _id = 0;
 
@@ -209,10 +212,18 @@ class _AbcBody {
   List<_Rec> _recs = [];
   final List<TupletSpan> _tuplets = [];
   bool _nextStartRepeat = false;
+  int? _nextVolta;
+  KeySignature? _pendingKeyChange;
+  TimeSignature? _pendingTimeChange;
+  Clef? _pendingClefChange;
+  int? _pendingMultiRest;
 
   String? _pendingChordSymbol;
   final Set<Articulation> _pendingArtic = {};
   final List<Pitch> _pendingGrace = [];
+  Ornament? _pendingOrnament;
+  DynamicLevel? _pendingDynamic;
+  final List<DynamicMarking> dynamics = [];
   final Map<String, int> _measureAccidentals = {};
 
   // Broken rhythm: multiply the next note's duration by this, once.
@@ -255,14 +266,25 @@ class _AbcBody {
         _pendingArtic.add(Articulation.staccato);
       } else if (c == '>' || c == '<') {
         _readBroken();
+      } else if (c == '[' && _peekIsDigit()) {
+        _pos++; // '[' of a variant ending "[1", "[2"
+        _readVoltaNumber();
+      } else if (c == '[' && _peekIsInlineField()) {
+        _readInlineField();
       } else if (c == '[') {
         _readChord();
-      } else if (c == 'z' || c == 'Z' || c == 'x') {
+      } else if (c == 'Z') {
+        _pos++; // multi-measure rest "Z" / "Zn"
+        _pendingMultiRest = _readInt(1);
+      } else if (c == 'z' || c == 'x') {
         _readRest();
+      } else if ('~HTMP'.contains(c)) {
+        _pos++;
+        _applyShorthand(c);
       } else if (_isNoteStart(c)) {
         _readNote();
       } else {
-        _pos++; // unknown token
+        _pos++; // unknown token (bowing u/v, emphasis L, y spacer, …)
       }
     }
     _closeMeasure(BarlineStyle.normal, endRepeat: false);
@@ -273,6 +295,42 @@ class _AbcBody {
   bool _atLeftBar() => src[_pos] == '[' && _peekIsBar(); // "[|"
 
   bool _peekIsBar() => _pos + 1 < src.length && src[_pos + 1] == '|';
+
+  bool _peekIsDigit() => _pos + 1 < src.length && _isDigit(src[_pos + 1]);
+
+  /// True for an inline field like `[K:D]`, `[M:3/4]`, `[L:1/8]`, `[V:2]`.
+  bool _peekIsInlineField() =>
+      _pos + 2 < src.length &&
+      _isFieldLetter(src[_pos + 1]) &&
+      src[_pos + 2] == ':';
+
+  /// Applies a mid-tune inline field: `[K:…]` (key/clef change), `[M:…]`
+  /// (meter), `[L:…]` (unit length); others are ignored. The change takes
+  /// effect from the current measure.
+  void _readInlineField() {
+    _pos++; // '['
+    final field = src[_pos];
+    _pos += 2; // letter + ':'
+    final start = _pos;
+    while (_pos < src.length && src[_pos] != ']' && src[_pos] != '\n') {
+      _pos++;
+    }
+    final value = src.substring(start, _pos).trim();
+    if (_pos < src.length && src[_pos] == ']') _pos++;
+    switch (field) {
+      case 'K':
+        final parsed = _parseKey(value);
+        key = parsed.$1;
+        _pendingKeyChange = key;
+        if (parsed.$2 != null) _pendingClefChange = parsed.$2;
+      case 'M':
+        final m = _parseMeter(value);
+        if (m != null) _pendingTimeChange = m;
+      case 'L':
+        final l = _parseUnitLength(value);
+        if (l != null) unit = l;
+    }
+  }
 
   bool _atTuplet() =>
       _pos + 1 < src.length && _isDigit(src[_pos + 1]); // "(3" etc
@@ -292,27 +350,80 @@ class _AbcBody {
     while (_pos < src.length && src[_pos] != '"') {
       _pos++;
     }
-    final text = src.substring(start, _pos);
+    var text = src.substring(start, _pos);
     if (_pos < src.length) _pos++;
-    if (text.isNotEmpty &&
-        !text.startsWith('^') &&
-        !text.startsWith('_') &&
-        !text.startsWith('<') &&
-        !text.startsWith('>') &&
-        !text.startsWith('@')) {
-      _pendingChordSymbol = text;
+    // A leading position marker (`^` above, `_` below, `<`/`>` left/right,
+    // `@` free) makes it a text annotation rather than a chord symbol; strip
+    // it (partitura annotations carry no ABC position). `@x,y` drops coords.
+    if (text.isNotEmpty && '^_<>@'.contains(text[0])) {
+      text = text.substring(1);
+      if (text.startsWith(RegExp(r'-?\d'))) {
+        text =
+            text.replaceFirst(RegExp(r'^-?\d+(\.\d+)?,-?\d+(\.\d+)?\s*'), '');
+      }
     }
+    if (text.isNotEmpty) _pendingChordSymbol = text;
   }
 
   void _readDecoration() {
-    while (_pos < src.length && src[_pos] != '!') {
+    final start = _pos;
+    while (_pos < src.length && src[_pos] != '!' && src[_pos] != '\n') {
       _pos++;
     }
-    if (_pos < src.length) _pos++;
+    final name = src.substring(start, _pos);
+    if (_pos < src.length && src[_pos] == '!') _pos++; // closing '!'
+    _applyDecoration(name);
+  }
+
+  /// Maps an ABC decoration name (from `!…!`) to a pending articulation,
+  /// ornament or dynamic on the next note. Unknown names are ignored.
+  void _applyDecoration(String name) {
+    final artic = switch (name) {
+      'fermata' || 'invertedfermata' => Articulation.fermata,
+      'accent' || '>' || 'emphasis' => Articulation.accent,
+      'tenuto' => Articulation.tenuto,
+      'marcato' || '^' => Articulation.marcato,
+      'staccato' || '.' => Articulation.staccato,
+      _ => null,
+    };
+    if (artic != null) {
+      _pendingArtic.add(artic);
+      return;
+    }
+    final ornament = switch (name) {
+      'trill' || 'tr' => Ornament.trill,
+      'mordent' || 'lowermordent' => Ornament.mordent,
+      'uppermordent' || 'pralltriller' => Ornament.shortTrill,
+      'turn' || 'turnx' => Ornament.turn,
+      _ => null,
+    };
+    if (ornament != null) {
+      _pendingOrnament = ornament;
+      return;
+    }
+    _pendingDynamic ??= DynamicLevel.values.asNameMap()[name];
+  }
+
+  /// The legacy single-character decorations (`~ H T M P`, and the bowing /
+  /// emphasis letters which have no model equivalent yet).
+  void _applyShorthand(String c) {
+    switch (c) {
+      case '~':
+        _pendingOrnament = Ornament.turn; // general ornament / roll
+      case 'H':
+        _pendingArtic.add(Articulation.fermata);
+      case 'T':
+        _pendingOrnament = Ornament.trill;
+      case 'M':
+        _pendingOrnament = Ornament.mordent;
+      case 'P':
+        _pendingOrnament = Ornament.shortTrill;
+    }
   }
 
   void _readGrace() {
     _pos++; // '{'
+    if (_pos < src.length && src[_pos] == '/') _pos++; // acciaccatura "{/…}"
     while (_pos < src.length && src[_pos] != '}') {
       if (_isNoteStart(src[_pos])) {
         final p = _readPitch();
@@ -342,11 +453,15 @@ class _AbcBody {
 
   void _readBarline() {
     final start = _pos;
-    while (_pos < src.length && '|:[]'.contains(src[_pos])) {
+    // A leading '[' only as part of "[|"; then a run of '|'/':'; then a
+    // trailing ']' as part of "|]" — so an adjacent "[chord" is not eaten.
+    if (src[_pos] == '[' && _peekIsBar()) _pos++;
+    while (_pos < src.length && (src[_pos] == '|' || src[_pos] == ':')) {
       _pos++;
     }
+    if (_pos < src.length && src[_pos] == ']') _pos++;
     final t = src.substring(start, _pos);
-    final endRepeat = t.startsWith(':');
+    final endRepeat = t.replaceAll('[', '').startsWith(':');
     final startRepeat = t.endsWith(':');
     final style = t.contains(']')
         ? BarlineStyle.finalBar
@@ -356,10 +471,38 @@ class _AbcBody {
     _closeMeasure(style, endRepeat: endRepeat);
     _nextStartRepeat = startRepeat;
     noteOrder.add('|');
+    // A variant-ending number may follow the bar directly ("|1", ":|2").
+    _readVoltaNumber();
+  }
+
+  /// Reads a variant-ending number (e.g. `1`, `2`, or a `1,3` / `1-2` list —
+  /// only the first is kept, since a measure carries a single volta) and marks
+  /// it on the next measure.
+  void _readVoltaNumber() {
+    final start = _pos;
+    while (_pos < src.length &&
+        (_isDigit(src[_pos]) || src[_pos] == ',' || src[_pos] == '-')) {
+      _pos++;
+    }
+    if (_pos == start) return;
+    final first = RegExp(r'\d+').firstMatch(src.substring(start, _pos));
+    if (first != null) _nextVolta = int.parse(first[0]!);
   }
 
   void _closeMeasure(BarlineStyle style, {required bool endRepeat}) {
     _measureAccidentals.clear();
+    // A multi-measure rest ("Z" / "Zn") is its own empty measure.
+    if (_pendingMultiRest != null && _recs.isEmpty) {
+      final count = _pendingMultiRest!;
+      _pendingMultiRest = null;
+      measures.add(count >= 2
+          ? Measure(const [], multiRest: count, barline: style)
+          : Measure([RestElement(NoteDuration.whole, id: 'e${_id++}')],
+              barline: style));
+      _nextStartRepeat = false;
+      _nextVolta = null;
+      return;
+    }
     if (_recs.isEmpty && measures.isEmpty) return;
     if (_recs.isEmpty && !endRepeat && style == BarlineStyle.normal) return;
     final elements = <MusicElement>[
@@ -373,19 +516,28 @@ class _AbcBody {
             tieToNext: r.tie,
             articulations: r.articulations,
             graceNotes: r.grace,
+            ornament: r.ornament,
             id: r.id,
           ),
     ];
     measures.add(Measure(
       elements,
       tuplets: List.of(_tuplets),
+      clefChange: _pendingClefChange,
+      keyChange: _pendingKeyChange,
+      timeChange: _pendingTimeChange,
       startRepeat: _nextStartRepeat,
       endRepeat: endRepeat,
+      volta: _nextVolta,
       barline: style,
     ));
     _recs = [];
     _tuplets.clear();
     _nextStartRepeat = false;
+    _nextVolta = null;
+    _pendingKeyChange = null;
+    _pendingTimeChange = null;
+    _pendingClefChange = null;
   }
 
   void _readTuplet() {
@@ -455,10 +607,15 @@ class _AbcBody {
   _Rec _makeRec(List<Pitch> pitches, Fraction dur) {
     final rec = _Rec(pitches, dur, 'e${_id++}',
         articulations: _pendingArtic.isEmpty ? null : Set.of(_pendingArtic),
-        grace: _pendingGrace.isEmpty ? null : List.of(_pendingGrace));
+        grace: _pendingGrace.isEmpty ? null : List.of(_pendingGrace),
+        ornament: _pendingOrnament);
     _pendingArtic.clear();
     _pendingGrace.clear();
-    // A slur that opened on this note now knows its start id.
+    _pendingOrnament = null;
+    if (_pendingDynamic != null) {
+      dynamics.add(DynamicMarking(rec.id, _pendingDynamic!));
+      _pendingDynamic = null;
+    }
     if (_pendingChordSymbol != null) {
       annotations.add(Annotation(rec.id, _pendingChordSymbol!));
       _pendingChordSymbol = null;

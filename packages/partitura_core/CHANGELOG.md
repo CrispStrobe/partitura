@@ -2,6 +2,16 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **ABC import — toward abcjs parity** (Phase 7.3): the reader now handles
+  **variant endings / voltas** (`|1 |2`, `[1 [2`, `:|2` → `Measure.volta`),
+  **decorations** (`!trill!`/`!fermata!`/`!accent!`… → articulations, ornaments
+  and dynamics; shorthand `~ H T M P`), **inline mid-tune fields** (`[K:…]`
+  `[M:…]` `[L:…]` → key/meter/unit changes, with the new key sharpening unmarked
+  notes), **multi-measure rests** (`Z`/`Zn` → `Measure.multiRest`), **positioned
+  annotations** (`"^…"` `"_…"`), and **acciaccatura grace** (`{/…}`). The writer
+  round-trips voltas, decorations, inline key/meter changes and multi-rests. A
+  fidelity harness imports the abcjs example tunes as regressions. (PLAN.md
+  tracks the remaining ABC constructs and what's gated on Phase 2.1 / 5.10.)
 - **Chord identification** (Phase 4.4): `identifyChord(pitches)` /
   `chordSymbolFor(pitches)` — the inverse of `Triad`: names a set of pitches by
   matching its pitch-class set against the common triad / seventh / sixth / sus
