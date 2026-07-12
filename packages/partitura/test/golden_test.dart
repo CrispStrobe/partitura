@@ -1298,7 +1298,7 @@ void main() {
       Score.simple(
         timeSignature: TimeSignature.fourFour,
         notes: "c#5:s' d#5' e5' f#5' g#5:s' a#5' b5' c#6' | "
-            "f#4:e a#4 c#5 e5 g#5:e b5 d#6 f#6",
+            'f#4:e a#4 c#5 e5 g#5:e b5 d#6 f#6',
       ),
       staffSpace: 12,
     );
