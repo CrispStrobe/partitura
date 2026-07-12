@@ -1,16 +1,26 @@
-/// `.gp3`/`.gp4`/`.gp5` binary import.
+/// Reader for the legacy Guitar Pro binary formats `.gp3`, `.gp4` and `.gp5`.
 ///
-/// These are version-tagged **binary** formats (unlike the `.gpx`/`.gp` gpif
-/// XML), so this is a from-scratch byte/bit-exact reader — ported from the
-/// reference layout in PyGuitarPro. It parses the essential musical data
-/// (measures, time signatures, per-track tunings, and notes as string+fret →
-/// pitch, with the common note techniques) into a partitura [Score]; the many
-/// effect/RSE/mix structures are parsed only far enough to stay byte-aligned,
-/// then discarded. The three versions share most of their layout; `.gp3`/`.gp4`
-/// are handled by [gp3ToScore]/[gp4ToScore] (a version-delta on the `.gp5` path
-/// — one voice per measure, no RSE/page-setup/lyrics-in-`.gp3`, different
-/// beat/note effect flags).
-/// Pure Dart (web-safe). Validated against the alphaTab / PyGuitarPro corpora.
+/// This is an independent, clean-room implementation written from the
+/// **publicly documented** byte layout of the Guitar Pro container — the
+/// community reverse-engineering references (dGuitar's *GP4 File Format
+/// Description*, the editor-on-fire *GP5.10 format* notes, TadaoYamaoka's
+/// Kaitai `gp5_file_format` spec, the alphaTab *Guitar Pro 3-5* notes and the
+/// TuxGuitar file-format documentation) — cross-checked byte-for-byte against
+/// the vendored fixture corpus in `partitura_cli/test/data/gp`. A file format's
+/// on-disk layout is factual, not authored; nothing here is derived from any
+/// particular decoder's source code.
+///
+/// The reader decodes the version header, the (skipped-but-aligned) score-info,
+/// notice, lyric, RSE, page-setup and mix-table blocks, per-track tunings, the
+/// master-bar table (time signatures and repeats) and, per beat, notes as
+/// **string + fret → pitch** through each track's tuning — with durations,
+/// rests, chords and the common playing techniques (bend, slide → glissando,
+/// hammer-on/pull-off → slur, vibrato, palm-mute, let-ring, dead note and the
+/// natural / artificial / pinch harmonics). Blocks the model does not represent
+/// are parsed only as far as needed to stay byte-aligned, then discarded.
+///
+/// Web-safe: depends only on `dart:typed_data` and the repository's own model
+/// and theory libraries.
 library;
 
 import 'dart:typed_data';
@@ -23,830 +33,101 @@ import '../theory/duration.dart';
 import '../theory/pitch.dart';
 import '../theory/time_signature.dart';
 
-/// Parses `.gp5` [bytes] into a [Score] (the [trackIndex]-th track).
-///
-/// Throws [FormatException] if the file is not a recognizable `.gp5` document.
-Score gp5ToScore(Uint8List bytes, {int trackIndex = 0}) {
-  final r = _Reader(bytes);
-  final version = r.byteSizeString(30);
-  if (!version.contains('v5.')) {
-    throw FormatException('not a .gp5 file ("$version")');
-  }
-  final v510 = version.contains('5.10');
+/// Parses a `.gp5` file (version tag `v5.x`) into a [Score], reading the
+/// [trackIndex]-th track (default 0).
+Score gp5ToScore(Uint8List bytes, {int trackIndex = 0}) =>
+    _GpReader(bytes, trackIndex).read();
 
-  // Score info: title..instructions (9 strings) + notices.
-  for (var i = 0; i < 9; i++) {
-    r.intByteSizeString();
-  }
-  final noticeCount = r.i32();
-  for (var i = 0; i < noticeCount; i++) {
-    r.intByteSizeString();
-  }
-
-  // Lyrics: track choice + 5 lines (measure int + int-size string).
-  r.i32();
-  for (var i = 0; i < 5; i++) {
-    r.i32();
-    r.skip(r.i32());
-  }
-
-  // RSE master effect (5.10+ only): volume, reserved, equalizer(11).
-  if (v510) {
-    r.i32();
-    r.i32();
-    r.skip(11);
-  }
-
-  _readPageSetup(r);
-  r.intByteSizeString(); // tempo name
-  r.i32(); // tempo
-  if (v510) r.u8(); // hide tempo
-  r.i8(); // key
-  r.i32(); // octave
-  _readMidiChannels(r);
-  r.skip(19 * 2); // directions (19 shorts)
-  r.i32(); // master reverb
-  final measureCount = r.i32();
-  final trackCount = r.i32();
-
-  // Measure headers → time signatures per measure.
-  final timeSigs = <TimeSignature>[];
-  var num = 4, den = 4;
-  for (var m = 0; m < measureCount; m++) {
-    if (m > 0) r.skip(1);
-    final flags = r.u8();
-    if (flags & 0x01 != 0) num = r.i8();
-    if (flags & 0x02 != 0) den = r.i8();
-    if (flags & 0x04 != 0) {} // repeat open
-    if (flags & 0x08 != 0) r.i8(); // repeat close
-    if (flags & 0x20 != 0) {
-      r.intByteSizeString(); // marker title
-      r.skip(4); // marker color
-    }
-    if (flags & 0x40 != 0) r.skip(2); // key sig root+type
-    if (flags & 0x10 != 0) r.u8(); // repeat alternative
-    if (flags & 0x03 != 0) r.skip(4); // beams
-    if (flags & 0x10 == 0) r.skip(1);
-    r.u8(); // triplet feel
-    timeSigs.add(TimeSignature(num, den));
-  }
-
-  // Tracks → tunings (MIDI number per string, string 1 first).
-  final tunings = <List<int>>[];
-  for (var t = 0; t < trackCount; t++) {
-    if (t == 0 || !v510) r.skip(1);
-    r.u8(); // flags1
-    r.byteSizeString(40); // name
-    final stringCount = r.i32();
-    final strings = <int>[];
-    for (var i = 0; i < 7; i++) {
-      final tuning = r.i32();
-      if (i < stringCount) strings.add(tuning);
-    }
-    tunings.add(strings);
-    r.i32(); // port
-    r.i32(); // channel index
-    r.i32(); // effect channel
-    r.i32(); // fret count
-    r.i32(); // capo
-    r.skip(4); // color
-    r.i16(); // flags2
-    r.u8(); // auto accentuation
-    r.u8(); // bank
-    r.u8(); // humanize
-    r.i32(); // clef transpose
-    r.i32(); // clef transpose secondary
-    r.i32(); // ???
-    r.skip(12); // ???
-    _readRseInstrument(r, v510);
-    if (v510) {
-      r.skip(4); // equalizer(4)
-      r.intByteSizeString(); // rse effect
-      r.intByteSizeString(); // rse effect category
-    }
-  }
-  r.skip(v510 ? 1 : 2); // after tracks
-
-  // Measures: for each header, for each track, read the (two-voice) measure.
-  // We keep only the requested track's first voice.
-  final builder = _ScoreBuilder();
-  final track = tunings.isEmpty ? 0 : trackIndex.clamp(0, tunings.length - 1);
-  final tuning = tunings.isEmpty ? _standard : tunings[track];
-  for (var m = 0; m < measureCount; m++) {
-    for (var t = 0; t < trackCount; t++) {
-      final keep = t == track;
-      builder.startMeasure(keep);
-      for (var voice = 0; voice < 2; voice++) {
-        final beats = r.i32();
-        for (var b = 0; b < beats; b++) {
-          _readBeat(r, tuning, keep && voice == 0, builder, v510);
-        }
-      }
-      r.u8(); // line break
-    }
-  }
-
-  return builder.build(timeSigs);
-}
-
-const _standard = [64, 59, 55, 50, 45, 40];
-
-/// Parses `.gp3` [bytes] into a [Score] (the [trackIndex]-th track).
-///
-/// Throws [FormatException] if the file is not a recognizable `.gp3` document.
-Score gp3ToScore(Uint8List bytes, {int trackIndex = 0}) =>
-    _gp3or4ToScore(bytes, trackIndex, gp4: false);
-
-/// Parses `.gp4` [bytes] into a [Score] (the [trackIndex]-th track).
-///
-/// Throws [FormatException] if the file is not a recognizable `.gp4` document.
+/// Parses a `.gp4` file (version tag `v4.x`) into a [Score].
 Score gp4ToScore(Uint8List bytes, {int trackIndex = 0}) =>
-    _gp3or4ToScore(bytes, trackIndex, gp4: true);
+    _GpReader(bytes, trackIndex).read();
 
-/// `.gp3` and `.gp4` share a layout; [gp4] selects the (small) v4 additions:
-/// lyrics and an octave byte in the header, two-byte beat/note effect flags,
-/// and the richer chord diagram. `.gp3` has a single voice per measure and stores
-/// harmonics at the beat rather than the note level.
-Score _gp3or4ToScore(Uint8List bytes, int trackIndex, {required bool gp4}) {
-  final r = _Reader(bytes);
-  final version = r.byteSizeString(30);
-  final tag = gp4 ? 'v4.' : 'v3.';
-  if (!version.contains(tag)) {
-    throw FormatException('not a .gp${gp4 ? 4 : 3} file ("$version")');
-  }
+/// Parses a `.gp3` file (version tag `v3.x`) into a [Score].
+Score gp3ToScore(Uint8List bytes, {int trackIndex = 0}) =>
+    _GpReader(bytes, trackIndex).read();
 
-  // Score info: title..instructions (8 strings) + notices.
-  for (var i = 0; i < 8; i++) {
-    r.intByteSizeString();
-  }
-  final noticeCount = r.i32();
-  for (var i = 0; i < noticeCount; i++) {
-    r.intByteSizeString();
-  }
-  r.u8(); // triplet feel (bool)
-  if (gp4) {
-    // Lyrics: track choice + 5 lines (measure int + int-size string).
-    r.i32();
-    for (var i = 0; i < 5; i++) {
-      r.i32();
-      r.skip(r.i32()); // int-size string body (no leading byte count)
+/// Sequential little-endian cursor over a Guitar Pro byte buffer. Reading past
+/// the end throws a [FormatException] rather than returning zeros or looping.
+class _Cursor {
+  final Uint8List _b;
+  int _p = 0;
+
+  _Cursor(this._b);
+
+  bool get atEnd => _p >= _b.length;
+
+  int _need(int n) {
+    if (_p + n > _b.length) {
+      throw FormatException(
+          'Guitar Pro data ends mid-record (need $n byte(s) at offset $_p)');
     }
-  }
-  r.i32(); // tempo
-  r.i32(); // key
-  if (gp4) r.i8(); // octave (reserved)
-  _readMidiChannels(r);
-  final measureCount = r.i32();
-  final trackCount = r.i32();
-
-  // Measure headers → time signatures per measure.
-  final timeSigs = <TimeSignature>[];
-  var num = 4, den = 4;
-  for (var m = 0; m < measureCount; m++) {
-    final flags = r.u8();
-    if (flags & 0x01 != 0) num = r.i8();
-    if (flags & 0x02 != 0) den = r.i8();
-    // 0x04 repeat open — presence only.
-    if (flags & 0x08 != 0) r.i8(); // repeat close
-    if (flags & 0x10 != 0) r.u8(); // repeat alternative
-    if (flags & 0x20 != 0) {
-      r.intByteSizeString(); // marker title
-      r.skip(4); // marker color
-    }
-    if (flags & 0x40 != 0) r.skip(2); // key sig root+type
-    // 0x80 double bar — presence only.
-    timeSigs.add(TimeSignature(num, den));
+    return _p;
   }
 
-  // Tracks → tunings (MIDI number per string, string 1 first).
-  final tunings = <List<int>>[];
-  for (var t = 0; t < trackCount; t++) {
-    r.u8(); // flags
-    r.byteSizeString(40); // name
-    final stringCount = r.i32();
-    final strings = <int>[];
-    for (var i = 0; i < 7; i++) {
-      final tuning = r.i32();
-      if (i < stringCount) strings.add(tuning);
-    }
-    tunings.add(strings);
-    r.i32(); // port
-    r.i32(); // channel index
-    r.i32(); // effect channel
-    r.i32(); // fret count
-    r.i32(); // capo
-    r.skip(4); // color
+  int u8() {
+    final at = _need(1);
+    _p += 1;
+    return _b[at];
   }
 
-  // Measures: for each header, for each track, one voice of beats.
-  final builder = _ScoreBuilder();
-  final track = tunings.isEmpty ? 0 : trackIndex.clamp(0, tunings.length - 1);
-  final tuning = tunings.isEmpty ? _standard : tunings[track];
-  for (var m = 0; m < measureCount; m++) {
-    for (var t = 0; t < trackCount; t++) {
-      final keep = t == track;
-      builder.startMeasure(keep);
-      final beats = r.i32();
-      for (var b = 0; b < beats; b++) {
-        _readBeatGp34(r, tuning, keep, builder, gp4: gp4);
-      }
-    }
+  int s8() {
+    final v = u8();
+    return v >= 128 ? v - 256 : v;
   }
 
-  return builder.build(timeSigs);
-}
-
-void _readBeatGp34(
-    _Reader r, List<int> tuning, bool keep, _ScoreBuilder builder,
-    {required bool gp4}) {
-  final flags = r.u8();
-  var status = 1; // normal
-  if (flags & 0x40 != 0) status = r.u8(); // 0 empty, 1 normal, 2 rest
-  final durByte = r.i8();
-  final dotted = flags & 0x01 != 0;
-  if (flags & 0x20 != 0) r.i32(); // tuplet
-  if (flags & 0x02 != 0) _readChordGp34(r, gp4: gp4);
-  if (flags & 0x04 != 0) r.intByteSizeString(); // text
-  var beatHarmonic = false, beatBar = false, beatVibrato = false;
-  if (flags & 0x08 != 0) {
-    final e = _readBeatEffectsGp34(r, gp4: gp4);
-    beatHarmonic = e.harmonic;
-    beatBar = e.bar;
-    beatVibrato = e.vibrato;
-  }
-  if (flags & 0x10 != 0) _readMixTableChangeGp34(r, gp4: gp4);
-  // Notes: one bit per string (string 1 = bit 6 … string 7 = bit 0).
-  final stringFlags = r.u8();
-  final pitches = <Pitch>[];
-  var dead = false, harmonic = beatHarmonic, hammer = false, slide = false;
-  var bend = false, vibrato = beatVibrato, palmMute = false, letRing = false;
-  var harmonicStyle = TabNoteStyle.harmonic;
-  double bendSteps = 0;
-  for (var s = 1; s <= tuning.length; s++) {
-    if (stringFlags & (1 << (7 - s)) == 0) continue;
-    final note = _readNoteGp34(r, s, tuning, gp4: gp4);
-    if (note == null) continue;
-    if (note.dead) {
-      dead = true;
-    } else {
-      pitches.add(note.pitch);
-    }
-    if (note.harmonic) {
-      harmonic = true;
-      harmonicStyle = note.harmonicStyle;
-    }
-    hammer = hammer || note.hammer;
-    slide = slide || note.slide;
-    vibrato = vibrato || note.vibrato;
-    palmMute = palmMute || note.palmMute;
-    letRing = letRing || note.letRing;
-    if (note.bendSteps > 0) {
-      bend = true;
-      bendSteps = note.bendSteps > bendSteps ? note.bendSteps : bendSteps;
-    }
+  int i16() {
+    final at = _need(2);
+    _p += 2;
+    return _b[at] | (_b[at + 1] << 8);
   }
 
-  if (beatBar) bend = true; // whammy/tremolo-bar → a bend mark
-  final duration = _durationOf(durByte, dotted);
-  if (!keep) return;
-  builder.addBeat(
-    status: status,
-    duration: duration,
-    pitches: pitches,
-    dead: dead,
-    harmonic: harmonic,
-    hammer: hammer,
-    slide: slide,
-    bend: bend,
-    bendSteps: bendSteps > 0 ? bendSteps : (bend ? 1.0 : 0),
-    vibrato: vibrato,
-    palmMute: palmMute,
-    letRing: letRing,
-    harmonicStyle: harmonicStyle,
-  );
-}
+  int i32() {
+    final at = _need(4);
+    _p += 4;
+    final v =
+        _b[at] | (_b[at + 1] << 8) | (_b[at + 2] << 16) | (_b[at + 3] << 24);
+    return v >= 0x80000000 ? v - 0x100000000 : v;
+  }
 
-class _BeatEffectsGp34 {
-  final bool harmonic; // .gp3 stores natural/artificial harmonic on the beat
-  final bool bar; // tremolo/whammy bar
-  final bool vibrato; // .gp3 stores note vibrato on the beat
-  _BeatEffectsGp34(this.harmonic, this.bar, {this.vibrato = false});
-}
+  void skip(int n) {
+    _need(n);
+    _p += n;
+  }
 
-_BeatEffectsGp34 _readBeatEffectsGp34(_Reader r, {required bool gp4}) {
-  if (!gp4) {
-    final f1 = r.u8();
-    var bar = false;
-    if (f1 & 0x20 != 0) {
-      final slap = r.u8();
-      r.i32(); // tremolo-bar dip value, or slap/tap/pop payload
-      if (slap == 0) bar = true;
-    }
-    if (f1 & 0x40 != 0) r.skip(2); // beat stroke (down/up)
-    final harmonic = f1 & 0x04 != 0 || f1 & 0x08 != 0; // natural/artificial
-    final vibrato = f1 & 0x01 != 0 || f1 & 0x02 != 0; // note/wide vibrato
-    return _BeatEffectsGp34(harmonic, bar, vibrato: vibrato);
+  /// A byte-length-prefixed string stored in a fixed [field]-byte area: one
+  /// length byte, then exactly [field] content bytes (the string is the first
+  /// `length` of them).
+  String fixedString(int field) {
+    final len = u8();
+    _need(field);
+    final take = len < field ? len : field;
+    final s = String.fromCharCodes(_b, _p, _p + take);
+    _p += field;
+    return s;
   }
-  final f1 = r.i8();
-  final f2 = r.i8();
-  var bar = false;
-  final vibrato = f1 & 0x02 != 0; // wide vibrato (beat-level in .gp4)
-  if (f1 & 0x20 != 0) r.i8(); // slap effect
-  if (f2 & 0x04 != 0) {
-    _readBend(r); // tremolo bar (full bend envelope in .gp4)
-    bar = true;
-  }
-  if (f1 & 0x40 != 0) r.skip(2); // beat stroke
-  if (f2 & 0x02 != 0) r.i8(); // pick stroke
-  // .gp4 harmonics are per-note; wide vibrato is beat-level.
-  return _BeatEffectsGp34(false, bar, vibrato: vibrato);
-}
 
-void _readMixTableChangeGp34(_Reader r, {required bool gp4}) {
-  r.i8(); // instrument
-  final vals = <int>[]; // volume,balance,chorus,reverb,phaser,tremolo
-  for (var i = 0; i < 6; i++) {
-    vals.add(r.i8());
+  /// A string prefixed by a 32-bit total length and an inner byte length
+  /// (`int totalLen`, `byte strLen`, `strLen` bytes). Common to the score-info
+  /// and template blocks.
+  String intByteString() {
+    i32();
+    final len = u8();
+    _need(len);
+    final s = String.fromCharCodes(_b, _p, _p + len);
+    _p += len;
+    return s;
   }
-  final tempo = r.i32();
-  for (final v in vals) {
-    if (v >= 0) r.i8(); // duration for each changed item
-  }
-  if (tempo >= 0) r.i8();
-  if (gp4) r.i8(); // "apply to all tracks" flags
-}
 
-_NoteData? _readNoteGp34(_Reader r, int stringNumber, List<int> tuning,
-    {required bool gp4}) {
-  final flags = r.u8();
-  var type = 1;
-  if (flags & 0x20 != 0) type = r.u8(); // 1 normal, 2 tie, 3 dead
-  if (flags & 0x01 != 0) {
-    r.i8(); // duration
-    r.i8(); // tuplet
-  }
-  if (flags & 0x10 != 0) r.i8(); // dynamics
-  var fret = 0;
-  if (flags & 0x20 != 0) fret = r.i8();
-  if (flags & 0x80 != 0) {
-    r.i8(); // left-hand fingering
-    r.i8(); // right-hand fingering
-  }
-  var harmonic = false, hammer = false, slide = false;
-  var vibrato = false, palmMute = false, letRing = false;
-  var harmonicStyle = TabNoteStyle.harmonic;
-  double bendSteps = 0;
-  if (flags & 0x08 != 0) {
-    final e = gp4 ? _readNoteEffectsGp4(r) : _readNoteEffectsGp3(r);
-    harmonic = e.harmonic;
-    hammer = e.hammer;
-    slide = e.slide;
-    bendSteps = e.bendSteps;
-    vibrato = e.vibrato;
-    palmMute = e.palmMute;
-    letRing = e.letRing;
-    harmonicStyle = e.harmonicStyle;
-  }
-  final dead = type == 3;
-  final open = stringNumber - 1 < tuning.length
-      ? tuning[stringNumber - 1]
-      : _standard[(stringNumber - 1).clamp(0, 5)];
-  final midi = (open + (fret >= 0 && fret < 100 ? fret : 0)).clamp(0, 127);
-  return _NoteData(_pitchFromMidi(midi),
-      dead: dead,
-      harmonic: harmonic,
-      hammer: hammer,
-      slide: slide,
-      bendSteps: bendSteps,
-      vibrato: vibrato,
-      palmMute: palmMute,
-      letRing: letRing,
-      harmonicStyle: harmonicStyle);
-}
-
-_NoteEffects _readNoteEffectsGp3(_Reader r) {
-  final f = r.u8();
-  final hammer = f & 0x02 != 0;
-  final letRing = f & 0x08 != 0;
-  double bendSteps = 0;
-  if (f & 0x01 != 0) bendSteps = _readBend(r);
-  if (f & 0x10 != 0) r.skip(4); // grace (fret, velocity, duration, transition)
-  final slide = f & 0x04 != 0; // .gp3 slide carries no extra bytes
-  return _NoteEffects(false, hammer, slide, bendSteps, letRing: letRing);
-}
-
-_NoteEffects _readNoteEffectsGp4(_Reader r) {
-  final f1 = r.i8();
-  final f2 = r.i8();
-  final hammer = f1 & 0x02 != 0;
-  final letRing = f1 & 0x08 != 0;
-  double bendSteps = 0;
-  if (f1 & 0x01 != 0) bendSteps = _readBend(r);
-  if (f1 & 0x10 != 0) r.skip(4); // grace
-  if (f2 & 0x04 != 0) r.i8(); // tremolo picking
-  final slide = f2 & 0x08 != 0;
-  if (slide) r.i8(); // slide type
-  var harmonic = false;
-  var harmonicStyle = TabNoteStyle.harmonic;
-  if (f2 & 0x10 != 0) {
-    harmonic = true;
-    // 1 natural, 3 tapped, 4 pinch, 5 semi, 15/17/22 artificial (fret offset).
-    harmonicStyle = switch (r.i8()) {
-      4 => TabNoteStyle.pinchHarmonic,
-      15 || 17 || 22 => TabNoteStyle.artificialHarmonic,
-      _ => TabNoteStyle.harmonic,
-    };
-  }
-  if (f2 & 0x20 != 0) r.skip(2); // trill (fret + period)
-  final palmMute = f2 & 0x02 != 0;
-  final vibrato = f2 & 0x40 != 0;
-  return _NoteEffects(harmonic, hammer, slide, bendSteps,
-      vibrato: vibrato,
-      palmMute: palmMute,
-      letRing: letRing,
-      harmonicStyle: harmonicStyle);
-}
-
-void _readChordGp34(_Reader r, {required bool gp4}) {
-  final newFormat = r.u8() != 0;
-  if (!newFormat) {
-    // .gp3 legacy chord: name + first fret + (if set) 6 fret positions.
-    r.intByteSizeString();
-    final firstFret = r.i32();
-    if (firstFret != 0) {
-      for (var i = 0; i < 6; i++) {
-        r.i32();
-      }
-    }
-    return;
-  }
-  r.u8(); // sharp
-  r.skip(3);
-  if (!gp4) {
-    r.i32(); // root
-    r.i32(); // type
-    r.i32(); // extension
-  } else {
-    r.u8(); // root
-    r.u8(); // type
-    r.u8(); // extension
-  }
-  r.i32(); // bass
-  r.i32(); // tonality
-  r.u8(); // add
-  r.byteSizeString(22); // name
-  if (!gp4) {
-    r.i32(); // fifth
-    r.i32(); // ninth
-    r.i32(); // eleventh
-  } else {
-    r.u8(); // fifth
-    r.u8(); // ninth
-    r.u8(); // eleventh
-  }
-  r.i32(); // first fret
-  final fretCount = gp4 ? 7 : 6;
-  for (var i = 0; i < fretCount; i++) {
-    r.i32(); // frets
-  }
-  if (!gp4) {
-    r.i32(); // barre count
-    r.skip(2 * 4 * 3); // barre frets/starts/ends (2 ints each)
-    r.skip(7); // omissions
-    r.skip(1);
-  } else {
-    r.u8(); // barre count
-    r.skip(5 * 3); // barre frets/starts/ends (5 bytes each)
-    r.skip(7); // omissions
-    r.skip(1);
-    r.skip(7); // fingerings
-    r.u8(); // show
+  /// A string prefixed only by a 32-bit length (`int len`, `len` bytes) — the
+  /// lyric-line encoding.
+  void skipIntString() {
+    final len = i32();
+    if (len > 0) skip(len);
   }
 }
 
-void _readPageSetup(_Reader r) {
-  r.skip(4 * 2); // page size
-  r.skip(4 * 4); // margins
-  r.i32(); // score size proportion
-  r.i16(); // header/footer
-  for (var i = 0; i < 6; i++) {
-    r.intByteSizeString(); // title..music
-  }
-  r.intByteSizeString(); // words and music
-  r.intByteSizeString(); // copyright line 1
-  r.intByteSizeString(); // copyright line 2
-  r.intByteSizeString(); // page number
-}
-
-void _readMidiChannels(_Reader r) {
-  for (var i = 0; i < 64; i++) {
-    r.i32(); // instrument
-    r.skip(6); // volume,balance,chorus,reverb,phaser,tremolo
-    r.skip(2); // blank
-  }
-}
-
-void _readRseInstrument(_Reader r, bool v510) {
-  r.i32(); // instrument
-  r.i32(); // unknown
-  r.i32(); // sound bank
-  if (v510) {
-    r.i32(); // effect number
-  } else {
-    r.i16();
-    r.skip(1);
-  }
-}
-
-void _readBeat(
-    _Reader r, List<int> tuning, bool keep, _ScoreBuilder builder, bool v510) {
-  final flags = r.u8();
-  var status = 1; // normal
-  if (flags & 0x40 != 0) status = r.u8(); // 0 empty, 1 normal, 2 rest
-  // Duration.
-  final durByte = r.i8();
-  final dotted = flags & 0x01 != 0;
-  if (flags & 0x20 != 0) r.i32(); // tuplet
-  if (flags & 0x02 != 0) _readChord(r); // chord diagram
-  if (flags & 0x04 != 0) r.intByteSizeString(); // text
-  var beatBend = false, beatVibrato = false;
-  if (flags & 0x08 != 0) {
-    final e = _readBeatEffects(r);
-    beatBend = e.bar;
-    beatVibrato = e.vibrato;
-  }
-  if (flags & 0x10 != 0) _readMixTableChange(r, v510); // mix table
-  // Notes: one bit per string (string 1 = bit 6 … string 6 = bit 1).
-  final stringFlags = r.u8();
-  final pitches = <Pitch>[];
-  var dead = false, harmonic = false, hammer = false, slide = false;
-  var bend = false, vibrato = beatVibrato, palmMute = false, letRing = false;
-  var harmonicStyle = TabNoteStyle.harmonic;
-  double bendSteps = 0;
-  for (var s = 1; s <= tuning.length; s++) {
-    if (stringFlags & (1 << (7 - s)) == 0) continue;
-    final note = _readNote(r, s, tuning);
-    if (note == null) continue;
-    if (note.dead) {
-      dead = true;
-    } else {
-      pitches.add(note.pitch);
-    }
-    if (note.harmonic) {
-      harmonic = true;
-      harmonicStyle = note.harmonicStyle;
-    }
-    hammer = hammer || note.hammer;
-    slide = slide || note.slide;
-    vibrato = vibrato || note.vibrato;
-    palmMute = palmMute || note.palmMute;
-    letRing = letRing || note.letRing;
-    if (note.bendSteps > 0) {
-      bend = true;
-      bendSteps = note.bendSteps > bendSteps ? note.bendSteps : bendSteps;
-    }
-  }
-  // .gp5 beat trailer.
-  final flags2 = r.i16();
-  if (flags2 & 0x0800 != 0) r.u8();
-
-  if (beatBend) bend = true; // whammy/tremolo-bar → a bend mark
-  final duration = _durationOf(durByte, dotted);
-  if (!keep) return;
-  builder.addBeat(
-    status: status,
-    duration: duration,
-    pitches: pitches,
-    dead: dead,
-    harmonic: harmonic,
-    hammer: hammer,
-    slide: slide,
-    bend: bend,
-    bendSteps: bendSteps > 0 ? bendSteps : (bend ? 1.0 : 0),
-    vibrato: vibrato,
-    palmMute: palmMute,
-    letRing: letRing,
-    harmonicStyle: harmonicStyle,
-  );
-}
-
-({bool bar, bool vibrato}) _readBeatEffects(_Reader r) {
-  final f1 = r.i8();
-  final f2 = r.i8();
-  final vibrato = f1 & 0x02 != 0; // wide vibrato (beat-level in .gp5)
-  if (f1 & 0x20 != 0) r.i8(); // slap
-  var bar = false;
-  if (f2 & 0x04 != 0) {
-    _readBend(r); // tremolo bar
-    bar = true;
-  }
-  if (f1 & 0x40 != 0) r.skip(2); // beat stroke
-  if (f2 & 0x02 != 0) r.i8(); // pick stroke
-  return (bar: bar, vibrato: vibrato);
-}
-
-void _readMixTableChange(_Reader r, bool v510) {
-  r.i8(); // instrument
-  _readRseInstrument(r, v510);
-  if (!v510) r.skip(1);
-  final vals = <bool>[];
-  for (var i = 0; i < 6; i++) {
-    vals.add(r.i8() >= 0); // volume,balance,chorus,reverb,phaser,tremolo
-  }
-  r.intByteSizeString(); // tempo name
-  final tempo = r.i32();
-  // Durations only for the items that were set (>= 0).
-  for (final set in vals) {
-    if (set) r.i8();
-  }
-  if (tempo >= 0) {
-    r.i8();
-    if (v510) r.u8(); // hide tempo
-  }
-  r.i8(); // mix table flags
-  r.i8(); // wah
-  if (v510) {
-    r.intByteSizeString(); // rse effect
-    r.intByteSizeString(); // rse effect category
-  }
-}
-
-class _NoteData {
-  final Pitch pitch;
-  final bool dead;
-  final bool harmonic;
-  final bool hammer;
-  final bool slide;
-  final double bendSteps;
-  final bool vibrato;
-  final bool palmMute;
-  final bool letRing;
-  final TabNoteStyle harmonicStyle;
-  _NoteData(this.pitch,
-      {this.dead = false,
-      this.harmonic = false,
-      this.hammer = false,
-      this.slide = false,
-      this.bendSteps = 0,
-      this.vibrato = false,
-      this.palmMute = false,
-      this.letRing = false,
-      this.harmonicStyle = TabNoteStyle.harmonic});
-}
-
-_NoteData? _readNote(_Reader r, int stringNumber, List<int> tuning) {
-  final flags = r.u8();
-  var type = 1;
-  if (flags & 0x20 != 0) type = r.u8(); // 1 normal, 2 tie, 3 dead
-  if (flags & 0x10 != 0) r.i8(); // velocity
-  var fret = 0;
-  if (flags & 0x20 != 0) fret = r.i8();
-  if (flags & 0x80 != 0) r.skip(2); // fingering
-  if (flags & 0x01 != 0) r.skip(8); // duration percent (f64)
-  r.u8(); // flags2
-  var harmonic = false, hammer = false, slide = false;
-  var vibrato = false, palmMute = false, letRing = false;
-  var harmonicStyle = TabNoteStyle.harmonic;
-  double bendSteps = 0;
-  if (flags & 0x08 != 0) {
-    final e = _readNoteEffects(r);
-    harmonic = e.harmonic;
-    hammer = e.hammer;
-    slide = e.slide;
-    bendSteps = e.bendSteps;
-    vibrato = e.vibrato;
-    palmMute = e.palmMute;
-    letRing = e.letRing;
-    harmonicStyle = e.harmonicStyle;
-  }
-  final dead = type == 3;
-  final open = stringNumber - 1 < tuning.length
-      ? tuning[stringNumber - 1]
-      : _standard[(stringNumber - 1).clamp(0, 5)];
-  final midi = (open + (fret >= 0 && fret < 100 ? fret : 0)).clamp(0, 127);
-  return _NoteData(_pitchFromMidi(midi),
-      dead: dead,
-      harmonic: harmonic,
-      hammer: hammer,
-      slide: slide,
-      bendSteps: bendSteps,
-      vibrato: vibrato,
-      palmMute: palmMute,
-      letRing: letRing,
-      harmonicStyle: harmonicStyle);
-}
-
-class _NoteEffects {
-  final bool harmonic;
-  final bool hammer;
-  final bool slide;
-  final double bendSteps;
-  final bool vibrato;
-  final bool palmMute;
-  final bool letRing;
-
-  /// Which harmonic variant, when [harmonic] — natural / artificial / pinch.
-  final TabNoteStyle harmonicStyle;
-  _NoteEffects(this.harmonic, this.hammer, this.slide, this.bendSteps,
-      {this.vibrato = false,
-      this.palmMute = false,
-      this.letRing = false,
-      this.harmonicStyle = TabNoteStyle.harmonic});
-}
-
-_NoteEffects _readNoteEffects(_Reader r) {
-  final f1 = r.i8();
-  final f2 = r.i8();
-  final hammer = f1 & 0x02 != 0;
-  final letRing = f1 & 0x08 != 0;
-  double bendSteps = 0;
-  if (f1 & 0x01 != 0) bendSteps = _readBend(r);
-  if (f1 & 0x10 != 0) r.skip(5); // grace (.gp5: 5 bytes)
-  if (f2 & 0x04 != 0) r.i8(); // tremolo picking
-  final slide = f2 & 0x08 != 0;
-  if (slide) r.u8(); // slide type
-  var harmonic = false;
-  var harmonicStyle = TabNoteStyle.harmonic;
-  if (f2 & 0x10 != 0) {
-    harmonic = true;
-    harmonicStyle = _readHarmonic(r);
-  }
-  if (f2 & 0x20 != 0) r.skip(2); // trill
-  final palmMute = f2 & 0x02 != 0;
-  final vibrato = f2 & 0x40 != 0;
-  return _NoteEffects(harmonic, hammer, slide, bendSteps,
-      vibrato: vibrato,
-      palmMute: palmMute,
-      letRing: letRing,
-      harmonicStyle: harmonicStyle);
-}
-
-double _readBend(_Reader r) {
-  r.i8(); // type
-  final value = r.i32();
-  final points = r.i32();
-  for (var i = 0; i < points; i++) {
-    r.skip(4 + 4 + 1); // position, value, vibrato
-  }
-  return value / 100.0;
-}
-
-TabNoteStyle _readHarmonic(_Reader r) {
-  final type = r.i8(); // 1 natural, 2 artificial, 3 tapped, 4 pinch, 5 semi
-  if (type == 2) {
-    r.u8();
-    r.i8();
-    r.u8();
-  } else if (type == 3) {
-    r.u8();
-  }
-  return switch (type) {
-    2 => TabNoteStyle.artificialHarmonic,
-    4 => TabNoteStyle.pinchHarmonic,
-    _ => TabNoteStyle.harmonic,
-  };
-}
-
-void _readChord(_Reader r) {
-  final newFormat = r.u8() != 0;
-  if (!newFormat) {
-    throw const FormatException('.gp5 old-format chords unsupported');
-  }
-  r.u8(); // sharp
-  r.skip(3);
-  r.u8(); // root
-  r.u8(); // type
-  r.u8(); // extension
-  r.i32(); // bass
-  r.i32(); // tonality
-  r.u8(); // add
-  r.byteSizeString(22); // name
-  r.u8(); // fifth
-  r.u8(); // ninth
-  r.u8(); // eleventh
-  r.i32(); // first fret
-  r.skip(7 * 4); // frets
-  r.u8(); // barre count
-  r.skip(5 * 3); // barre frets/starts/ends
-  r.skip(7); // omissions
-  r.skip(1);
-  r.skip(7); // fingerings
-  r.u8(); // show
-}
-
-NoteDuration _durationOf(int byte, bool dotted) {
-  final base = switch (byte) {
-    -2 => DurationBase.whole,
-    -1 => DurationBase.half,
-    0 => DurationBase.quarter,
-    1 => DurationBase.eighth,
-    2 => DurationBase.sixteenth,
-    3 => DurationBase.thirtySecond,
-    _ => DurationBase.sixtyFourth,
-  };
-  return NoteDuration(base, dots: dotted ? 1 : 0);
-}
-
+/// The natural-or-sharp spelling of a MIDI note number, matching the rest of
+/// the importer stack (C, C♯, D, … B).
 Pitch _pitchFromMidi(int key) {
   const table = [
     (Step.c, 0), (Step.c, 1), (Step.d, 0), (Step.d, 1), //
@@ -857,183 +138,548 @@ Pitch _pitchFromMidi(int key) {
   return Pitch(step, alter: alter, octave: key ~/ 12 - 1);
 }
 
-/// Accumulates the kept track's beats into measures + technique lists.
-class _ScoreBuilder {
-  final List<Measure> measures = [];
-  final List<Slur> slurs = [];
-  final List<Glissando> glissandos = [];
-  final List<Bend> bends = [];
-  final List<TabNoteMark> marks = [];
-  final List<Vibrato> vibratos = [];
-  final List<PalmMute> palmMutes = [];
-  final List<LetRing> letRings = [];
-  List<MusicElement> _current = [];
-  int _id = 0;
-  String? _pendingHammer;
-  String? _pendingSlide;
-  // Palm-mute / let-ring are per-note flags in the binary formats; consecutive
-  // flagged notes coalesce into a single labelled bracket span.
-  String? _palmStart, _palmLast;
-  String? _letStart, _letLast;
-
-  void startMeasure(bool keep) {
-    if (!keep) return;
-    if (_current.isNotEmpty || measures.isNotEmpty) {
-      measures.add(Measure(_current));
-      _current = [];
-    }
-  }
-
-  void addBeat({
-    required int status,
-    required NoteDuration duration,
-    required List<Pitch> pitches,
-    required bool dead,
-    required bool harmonic,
-    required bool hammer,
-    required bool slide,
-    required bool bend,
-    required double bendSteps,
-    bool vibrato = false,
-    bool palmMute = false,
-    bool letRing = false,
-    TabNoteStyle harmonicStyle = TabNoteStyle.harmonic,
-  }) {
-    if (status == 0 && pitches.isEmpty && !dead) return; // empty beat
-    final id = 'e${_id++}';
-    if (pitches.isEmpty && !dead) {
-      // A rest breaks any open palm-mute / let-ring bracket.
-      _flushSpans();
-      _current.add(RestElement(duration, id: id));
-      return;
-    }
-    final ps = dead && pitches.isEmpty ? [_pitchFromMidi(40)] : pitches
-      ..sort((a, b) => a.midiNumber.compareTo(b.midiNumber));
-    _current.add(NoteElement(pitches: ps, duration: duration, id: id));
-
-    final hf = _pendingHammer;
-    if (hf != null) {
-      slurs.add(Slur(hf, id));
-      _pendingHammer = null;
-    }
-    final sf = _pendingSlide;
-    if (sf != null) {
-      glissandos.add(Glissando(sf, id));
-      _pendingSlide = null;
-    }
-    if (harmonic) {
-      marks.add(TabNoteMark(id, harmonicStyle));
-    } else if (dead) {
-      marks.add(TabNoteMark(id, TabNoteStyle.dead));
-    }
-    if (bend && bendSteps > 0) bends.add(Bend(id, steps: bendSteps));
-    if (vibrato) vibratos.add(Vibrato(id));
-    // Extend or (re)open the palm-mute span.
-    if (palmMute) {
-      _palmStart ??= id;
-      _palmLast = id;
-    } else if (_palmStart != null) {
-      palmMutes.add(PalmMute(_palmStart!, _palmLast!));
-      _palmStart = _palmLast = null;
-    }
-    if (letRing) {
-      _letStart ??= id;
-      _letLast = id;
-    } else if (_letStart != null) {
-      letRings.add(LetRing(_letStart!, _letLast!));
-      _letStart = _letLast = null;
-    }
-    if (hammer) _pendingHammer = id;
-    if (slide) _pendingSlide = id;
-  }
-
-  /// Closes any open palm-mute / let-ring bracket at a rest or end of score.
-  void _flushSpans() {
-    if (_palmStart != null) {
-      palmMutes.add(PalmMute(_palmStart!, _palmLast!));
-      _palmStart = _palmLast = null;
-    }
-    if (_letStart != null) {
-      letRings.add(LetRing(_letStart!, _letLast!));
-      _letStart = _letLast = null;
-    }
-  }
-
-  Score build(List<TimeSignature> timeSigs) {
-    _flushSpans();
-    if (_current.isNotEmpty) measures.add(Measure(_current));
-    if (measures.isEmpty) {
-      measures.add(Measure([RestElement(NoteDuration.whole, id: 'e0')]));
-    }
-    return Score(
-      clef: Clef.treble,
-      timeSignature: timeSigs.isNotEmpty ? timeSigs.first : null,
-      measures: measures,
-      slurs: slurs,
-      glissandos: glissandos,
-      bends: bends,
-      tabNoteMarks: marks,
-      vibratos: vibratos,
-      palmMutes: palmMutes,
-      letRings: letRings,
-    );
+/// The rhythmic base for a Guitar Pro duration code (whole = −2 … 64th = 4).
+DurationBase _durationBase(int code) {
+  switch (code) {
+    case -2:
+      return DurationBase.whole;
+    case -1:
+      return DurationBase.half;
+    case 0:
+      return DurationBase.quarter;
+    case 1:
+      return DurationBase.eighth;
+    case 2:
+      return DurationBase.sixteenth;
+    case 3:
+      return DurationBase.thirtySecond;
+    case 4:
+      return DurationBase.sixtyFourth;
+    default:
+      return DurationBase.quarter;
   }
 }
 
-/// Little-endian binary cursor with GP string helpers.
-class _Reader {
-  final Uint8List b;
-  final ByteData _view;
-  int pos = 0;
-  _Reader(this.b) : _view = ByteData.sublistView(b);
+/// Per-note decode result, used to attach techniques after the element (and
+/// its id) exists.
+class _Note {
+  final int string;
+  final int fret;
+  final int type; // 1 normal, 2 tie, 3 dead
+  bool bend = false;
+  bool hammer = false;
+  bool slide = false;
+  bool letRing = false;
+  bool palmMute = false;
+  bool vibrato = false;
+  TabNoteStyle? harmonic;
 
-  // Reads past the end return 0 (.gp5 files carry a trailing byte the layout
-  // doesn't describe; tolerating EOF keeps the last measure intact).
-  int u8() {
-    if (pos < b.length) return b[pos++];
-    pos++;
-    return 0;
+  _Note(this.string, this.fret, this.type);
+}
+
+/// Whether a beat's beat-level effects imply a vibrato and/or a (natural)
+/// harmonic — the form `.gp3` uses for effects that later formats moved onto
+/// the note.
+class _BeatFx {
+  final bool vibrato;
+  final bool harmonic;
+  const _BeatFx(this.vibrato, this.harmonic);
+}
+
+/// A single-pass decoder for one Guitar Pro binary file.
+class _GpReader {
+  final _Cursor c;
+  final int trackIndex;
+
+  late final bool v3;
+  late final bool v4;
+  late final bool v5;
+  late final bool v510;
+
+  int measureCount = 0;
+  int trackCount = 0;
+  final List<TimeSignature?> _measureTime = [];
+
+  // Per-track tunings (MIDI, tuning order: index 0 = highest string).
+  final List<List<int>> _tunings = [];
+
+  // Output accumulators.
+  final List<Measure> _measures = [];
+  final List<Bend> _bends = [];
+  final List<Slur> _slurs = [];
+  final List<Glissando> _glissandos = [];
+  final List<Vibrato> _vibratos = [];
+  final Set<String> _vibratoIds = {};
+  final List<PalmMute> _palmMutes = [];
+  final List<LetRing> _letRings = [];
+  final List<TabNoteMark> _tabNoteMarks = [];
+
+  // A hammer-on/pull-off (slur) or slide (glissando) connects the beat that
+  // carries it to the next note element in reading order.
+  String? _pendingHammer;
+  String? _pendingSlide;
+
+  // Running palm-mute / let-ring bracket spans over consecutive notes.
+  String? _pmStart, _pmPrev;
+  String? _lrStart, _lrPrev;
+
+  int _nextId = 0;
+
+  _GpReader(Uint8List bytes, this.trackIndex) : c = _Cursor(bytes);
+
+  String _newId() => 'e${_nextId++}';
+
+  Score read() {
+    _readHeader();
+    _readMasterBars();
+    _readTracks();
+    _readBody();
+    _flushSpans();
+
+    final measures = _measures.isEmpty
+        ? [
+            const Measure([RestElement(NoteDuration.whole)])
+          ]
+        : _measures;
+    return Score(
+      clef: Clef.treble,
+      timeSignature: _measureTime.isNotEmpty && _measureTime.first != null
+          ? _measureTime.first
+          : TimeSignature.fourFour,
+      measures: measures,
+      bends: _bends,
+      slurs: _slurs,
+      glissandos: _glissandos,
+      vibratos: _vibratos,
+      palmMutes: _palmMutes,
+      letRings: _letRings,
+      tabNoteMarks: _tabNoteMarks,
+    );
   }
 
-  int i8() {
-    if (pos < b.length) return _view.getInt8(pos++);
-    pos++;
-    return 0;
-  }
+  // ---- Header ----------------------------------------------------------------
 
-  int i16() {
-    if (pos + 2 > b.length) {
-      pos += 2;
-      return 0;
+  void _readHeader() {
+    final version = c.fixedString(30);
+    v3 = version.contains('v3.');
+    v4 = version.contains('v4.');
+    v5 = version.contains('v5.');
+    v510 = version.contains('v5.1');
+    if (!v3 && !v4 && !v5) {
+      throw FormatException('not a Guitar Pro file: "$version"');
     }
-    final v = _view.getInt16(pos, Endian.little);
-    pos += 2;
-    return v;
-  }
 
-  int i32() {
-    if (pos + 4 > b.length) {
-      pos += 4;
-      return 0;
+    // Score information: title, subtitle, artist, album, (words, music) or
+    // (author), copyright, tab author, instructions.
+    final infoCount = v5 ? 9 : 8;
+    for (var i = 0; i < infoCount; i++) {
+      c.intByteString();
     }
-    final v = _view.getInt32(pos, Endian.little);
-    pos += 4;
-    return v;
+    final notices = c.i32();
+    for (var i = 0; i < notices; i++) {
+      c.intByteString();
+    }
+    if (!v5) c.u8(); // global triplet-feel flag (gp3/gp4)
+
+    if (v4 || v5) {
+      // Lyrics: associated track, then 5 lines (start bar + int-string).
+      c.i32();
+      for (var i = 0; i < 5; i++) {
+        c.i32();
+        c.skipIntString();
+      }
+    }
+
+    if (v510) {
+      // RSE master effect: master volume, reserved int, 11 EQ/gain bytes.
+      c.i32();
+      c.i32();
+      c.skip(11);
+    }
+
+    if (v5) {
+      // Page setup: metrics, score proportion, header/footer bitmask, then the
+      // header/footer template strings and a tempo-name string.
+      c.skip(24);
+      c.i32();
+      c.i16();
+      for (var i = 0; i < 10; i++) {
+        c.intByteString();
+      }
+      c.intByteString(); // tempo name
+    }
+
+    c.i32(); // tempo
+    if (v510) c.u8(); // hide-tempo flag
+
+    if (v3) {
+      c.i32(); // key signature
+    } else {
+      c.s8(); // key signature
+      c.i32(); // octave
+    }
+
+    c.skip(64 * 12); // 64 MIDI channels × 12 bytes
+
+    if (v5) {
+      c.skip(19 * 2); // musical-direction symbol positions
+      c.i32(); // master reverb
+    }
+
+    measureCount = c.i32();
+    trackCount = c.i32();
   }
 
-  void skip(int n) => pos += n;
+  // ---- Master bars -----------------------------------------------------------
 
-  /// A `size`-byte string in a fixed [count]-byte field.
-  String byteSizeString(int count) {
-    final size = u8();
-    final end = (pos + size <= b.length) ? pos + size : b.length;
-    final s = String.fromCharCodes(b.sublist(pos.clamp(0, b.length), end));
-    pos += count;
-    return s;
+  void _readMasterBars() {
+    var num = 4, den = 4;
+    for (var m = 0; m < measureCount; m++) {
+      if (v5 && m > 0) c.u8(); // inter-bar separator
+
+      final flags = c.u8();
+      var timeChanged = false;
+      if (flags & 0x01 != 0) {
+        num = c.u8();
+        timeChanged = true;
+      }
+      if (flags & 0x02 != 0) {
+        den = c.u8();
+        timeChanged = true;
+      }
+      if (flags & 0x08 != 0) c.u8(); // repeat-close count
+      if (flags & 0x20 != 0) {
+        c.intByteString(); // marker name
+        c.skip(4); // marker colour
+      }
+      if (flags & 0x10 != 0) c.u8(); // alternate-ending mask
+      if (flags & 0x40 != 0) {
+        c.s8(); // key
+        c.u8(); // major/minor
+      }
+      if (v5 && (flags & 0x03) != 0) c.skip(4); // beam-group bytes
+      if (v5) c.skip(2); // triplet-feel + padding
+
+      _measureTime.add(timeChanged ? TimeSignature(num, den) : null);
+    }
   }
 
-  String intByteSizeString() {
-    final count = i32();
-    return byteSizeString(count - 1);
+  // ---- Tracks ----------------------------------------------------------------
+
+  void _readTracks() {
+    for (var t = 0; t < trackCount; t++) {
+      if (v5) c.u8(); // leading flag byte
+      c.u8(); // track flags
+      c.fixedString(40); // name
+      c.i32(); // string count
+      final tuning = [for (var s = 0; s < 7; s++) c.i32()];
+      c.i32(); // port
+      c.i32(); // primary channel
+      c.i32(); // effect channel
+      c.i32(); // fret count
+      c.i32(); // capo
+      c.skip(4); // colour
+      if (v5) {
+        c.skip(49); // RSE / track properties
+        if (v510) {
+          c.intByteString(); // RSE effect name
+          c.intByteString(); // RSE effect category
+        }
+      }
+      _tunings.add(tuning);
+    }
+    if (v5 && !c.atEnd) c.u8(); // pre-body padding
+  }
+
+  List<int> get _tuning => trackIndex < _tunings.length
+      ? _tunings[trackIndex]
+      : const [64, 59, 55, 50, 45, 40, 0];
+
+  int _tuningOf(int string) {
+    final t = _tuning;
+    return string < t.length ? t[string] : 0;
+  }
+
+  // ---- Body ------------------------------------------------------------------
+
+  void _readBody() {
+    final voices = v5 ? 2 : 1;
+    for (var m = 0; m < measureCount; m++) {
+      final elements = <MusicElement>[];
+      final voice2 = <MusicElement>[];
+      for (var t = 0; t < trackCount; t++) {
+        for (var v = 0; v < voices; v++) {
+          final primary = t == trackIndex && v == 0;
+          final target = primary ? elements : (v == 1 ? voice2 : null);
+          final beats = c.i32();
+          for (var b = 0; b < beats; b++) {
+            _readBeat(target, primary);
+          }
+        }
+        if (v5 && !c.atEnd) c.u8(); // per-measure/track separator
+      }
+      _measures.add(Measure(
+        elements,
+        voice2: voice2,
+        timeChange: m < _measureTime.length ? _measureTime[m] : null,
+      ));
+    }
+  }
+
+  void _readBeat(List<MusicElement>? target, bool primary) {
+    final flags = c.u8();
+    var rest = false;
+    if (flags & 0x40 != 0) {
+      c.u8(); // rest / empty status
+      rest = true;
+    }
+    final durCode = c.s8();
+    if (flags & 0x20 != 0) c.i32(); // tuplet
+    if (flags & 0x02 != 0) _skipChord();
+    if (flags & 0x04 != 0) c.intByteString(); // beat text
+
+    var beatFx = const _BeatFx(false, false);
+    if (flags & 0x08 != 0) beatFx = _readBeatEffects();
+    if (flags & 0x10 != 0) _skipMixTable();
+
+    final mask = c.u8();
+    final notes = <_Note>[];
+    for (var s = 0; s < 7; s++) {
+      if (mask & (1 << (6 - s)) != 0) {
+        notes.add(_readNote(s));
+      }
+    }
+    if (v5) c.skip(2); // beat display flags
+
+    if (!primary || target == null) return;
+
+    final duration = NoteDuration(
+      _durationBase(durCode),
+      dots: flags & 0x01 != 0 ? 1 : 0,
+    );
+
+    if (rest || notes.isEmpty) {
+      final id = _newId();
+      target.add(RestElement(duration, id: id));
+      _advanceSpans(id, false, false);
+      return;
+    }
+
+    final pitches = [
+      for (final n in notes) _pitchFromMidi(_tuningOf(n.string) + n.fret)
+    ]..sort((a, b) => a.midiNumber.compareTo(b.midiNumber));
+    final id = _newId();
+    target.add(NoteElement(pitches: pitches, duration: duration, id: id));
+
+    // A pending hammer / slide from an earlier beat resolves onto this note.
+    if (_pendingHammer != null) {
+      _slurs.add(Slur(_pendingHammer!, id));
+      _pendingHammer = null;
+    }
+    if (_pendingSlide != null) {
+      _glissandos.add(Glissando(_pendingSlide!, id));
+      _pendingSlide = null;
+    }
+
+    var elementPalmMute = false, elementLetRing = false;
+    var elementHammer = false, elementSlide = false;
+    for (final n in notes) {
+      if (n.type == 3) _tabNoteMarks.add(TabNoteMark(id, TabNoteStyle.dead));
+      final harmonic =
+          n.harmonic ?? (beatFx.harmonic ? TabNoteStyle.harmonic : null);
+      if (harmonic != null) _tabNoteMarks.add(TabNoteMark(id, harmonic));
+      if (n.bend) _bends.add(Bend(id));
+      if ((n.vibrato || beatFx.vibrato) && _vibratoIds.add(id)) {
+        _vibratos.add(Vibrato(id));
+      }
+      if (n.palmMute) elementPalmMute = true;
+      if (n.letRing) elementLetRing = true;
+      if (n.hammer) elementHammer = true;
+      if (n.slide) elementSlide = true;
+    }
+    if (elementHammer) _pendingHammer = id;
+    if (elementSlide) _pendingSlide = id;
+
+    _advanceSpans(id, elementPalmMute, elementLetRing);
+  }
+
+  // ---- Palm-mute / let-ring bracket spans ------------------------------------
+
+  void _advanceSpans(String id, bool palmMute, bool letRing) {
+    if (palmMute) {
+      _pmStart ??= id;
+      _pmPrev = id;
+    } else if (_pmStart != null) {
+      _palmMutes.add(PalmMute(_pmStart!, _pmPrev!));
+      _pmStart = _pmPrev = null;
+    }
+    if (letRing) {
+      _lrStart ??= id;
+      _lrPrev = id;
+    } else if (_lrStart != null) {
+      _letRings.add(LetRing(_lrStart!, _lrPrev!));
+      _lrStart = _lrPrev = null;
+    }
+  }
+
+  void _flushSpans() {
+    if (_pmStart != null) _palmMutes.add(PalmMute(_pmStart!, _pmPrev!));
+    if (_lrStart != null) _letRings.add(LetRing(_lrStart!, _lrPrev!));
+    _pmStart = _pmPrev = _lrStart = _lrPrev = null;
+  }
+
+  // ---- Notes -----------------------------------------------------------------
+
+  _Note _readNote(int string) {
+    final flags = c.u8();
+    var type = 1;
+    if (flags & 0x20 != 0) type = c.u8();
+    if (flags & 0x01 != 0) c.skip(v5 ? 8 : 2); // time-independent duration
+    if (flags & 0x10 != 0) c.u8(); // dynamic
+    var fret = 0;
+    if (flags & 0x20 != 0) fret = c.u8();
+    if (flags & 0x80 != 0) c.skip(2); // left/right fingering
+    if (v5) c.u8(); // per-note padding
+
+    final note = _Note(string, fret, type);
+    if (flags & 0x08 != 0) _readNoteEffects(note);
+    return note;
+  }
+
+  void _readNoteEffects(_Note note) {
+    if (v3) {
+      final e = c.u8();
+      if (e & 0x01 != 0) {
+        note.bend = true;
+        _skipBend();
+      }
+      if (e & 0x02 != 0) note.hammer = true;
+      if (e & 0x04 != 0) note.slide = true;
+      if (e & 0x08 != 0) note.letRing = true;
+      if (e & 0x10 != 0) c.skip(4); // grace
+      return;
+    }
+
+    final e1 = c.u8();
+    final e2 = c.u8();
+    if (e1 & 0x01 != 0) {
+      note.bend = true;
+      _skipBend();
+    }
+    if (e1 & 0x02 != 0) note.hammer = true;
+    if (e1 & 0x08 != 0) note.letRing = true;
+    if (e1 & 0x10 != 0) c.skip(v5 ? 5 : 4); // grace
+    // e2 & 0x01: staccato (flag only)
+    if (e2 & 0x02 != 0) note.palmMute = true;
+    if (e2 & 0x04 != 0) c.u8(); // tremolo picking
+    if (e2 & 0x08 != 0) {
+      note.slide = true;
+      c.u8(); // slide type
+    }
+    if (e2 & 0x10 != 0) note.harmonic = _readHarmonic();
+    if (e2 & 0x20 != 0) c.skip(2); // trill
+    if (e2 & 0x40 != 0) note.vibrato = true;
+  }
+
+  TabNoteStyle _readHarmonic() {
+    final h = c.u8();
+    if (v5) {
+      // 1 natural, 2 artificial (+3 bytes), 3 tapped (+1), 4 pinch, 5 semi.
+      switch (h) {
+        case 2:
+          c.skip(3);
+          return TabNoteStyle.artificialHarmonic;
+        case 3:
+          c.u8();
+          return TabNoteStyle.harmonic;
+        case 4:
+          return TabNoteStyle.pinchHarmonic;
+        default:
+          return TabNoteStyle.harmonic;
+      }
+    }
+    // gp4: 1 natural, 3 tapped, 4 pinch, 5 semi, 15/17/22 artificial.
+    if (h == 4) return TabNoteStyle.pinchHarmonic;
+    if (h >= 15) return TabNoteStyle.artificialHarmonic;
+    return TabNoteStyle.harmonic;
+  }
+
+  void _skipBend() {
+    c.u8(); // type
+    c.i32(); // value
+    final points = c.i32();
+    for (var i = 0; i < points; i++) {
+      c.i32(); // position
+      c.i32(); // value
+      c.u8(); // vibrato
+    }
+  }
+
+  // ---- Beat sub-blocks -------------------------------------------------------
+
+  _BeatFx _readBeatEffects() {
+    if (v3) {
+      final b = c.u8();
+      if (b & 0x20 != 0) {
+        c.u8(); // string-effect kind
+        c.i32(); // tremolo-bar / effect value
+      }
+      if (b & 0x40 != 0) c.skip(2); // stroke up/down
+      final vibrato = b & 0x03 != 0;
+      final harmonic = b & 0x0C != 0;
+      return _BeatFx(vibrato, harmonic);
+    }
+    final b1 = c.u8();
+    final b2 = c.u8();
+    if (b1 & 0x20 != 0) c.u8(); // string-effect type
+    if (b2 & 0x04 != 0) _skipBend(); // tremolo bar
+    if (b1 & 0x40 != 0) c.skip(2); // stroke
+    if (b2 & 0x02 != 0) c.u8(); // pickstroke
+    return _BeatFx(b1 & 0x03 != 0, false);
+  }
+
+  void _skipMixTable() {
+    c.s8(); // instrument
+    if (v5) c.skip(16); // RSE volume/pan/... ints
+    final vol = c.s8();
+    final pan = c.s8();
+    final chorus = c.s8();
+    final reverb = c.s8();
+    final phaser = c.s8();
+    final tremolo = c.s8();
+    if (v5) c.intByteString(); // tempo name
+    final tempo = c.i32();
+    for (final ch in [vol, pan, chorus, reverb, phaser, tremolo]) {
+      if (ch >= 0) c.u8();
+    }
+    if (tempo >= 0) {
+      c.u8(); // tempo transition
+      if (v5) c.u8(); // hide tempo
+    }
+    if (v4 || v5) c.u8(); // applied-tracks bitmask
+    if (v5) {
+      c.u8(); // padding
+      if (v510) {
+        c.intByteString();
+        c.intByteString();
+      }
+    }
+  }
+
+  void _skipChord() {
+    final format = c.u8();
+    if (format & 0x01 != 0) {
+      // GP4/GP5 "new" chord diagram — a fixed 107-byte record.
+      c.skip(106);
+    } else {
+      // GP3 legacy chord diagram: name, then a first fret; the six per-string
+      // frets are present only when the diagram is anchored (first fret != 0).
+      c.intByteString(); // name
+      if (c.i32() != 0) {
+        for (var s = 0; s < 6; s++) {
+          c.i32(); // fret per string
+        }
+      }
+    }
   }
 }
