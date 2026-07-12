@@ -1,7 +1,8 @@
 /// Humdrum `**kern` import (subset): a `**kern` document → [Score]. Reads the
 /// subset the writer emits — a single spine: clef (with mid-score changes),
 /// key/time signatures (incl. common/cut and additive), measures,
-/// notes/chords, rests, durations (breve…64th with dots) and ties. Multiple
+/// notes/chords, rests, durations (breve…64th with dots), ties, articulations
+/// and ornaments. Multiple
 /// spines beyond the first, and unsupported records, are ignored. Pickup is
 /// detected from a short first measure. Pure Dart.
 library;
@@ -185,8 +186,33 @@ class _KernReader {
       duration: _durationOf(subtokens.first),
       tieToNext: tie,
       showAccidental: showAccidental ? true : null,
+      articulations: _articOf(subtokens.first),
+      ornament: _ornamentOf(subtokens.first),
       id: _newId(),
     );
+  }
+
+  /// Humdrum ornament signifier on a note token (one ornament per note).
+  static Ornament? _ornamentOf(String token) {
+    if (token.contains('T')) return Ornament.trill;
+    if (token.contains('m')) return Ornament.shortTrill;
+    if (token.contains('M')) return Ornament.mordent;
+    if (token.contains('S')) return Ornament.turn;
+    return null;
+  }
+
+  /// Humdrum articulation signifiers on a note token.
+  static Set<Articulation> _articOf(String token) {
+    final result = <Articulation>{};
+    if (token.contains("'")) result.add(Articulation.staccato);
+    if (token.contains('~')) result.add(Articulation.tenuto);
+    if (token.contains('^^')) {
+      result.add(Articulation.marcato);
+    } else if (token.contains('^')) {
+      result.add(Articulation.accent);
+    }
+    if (token.contains(';')) result.add(Articulation.fermata);
+    return result;
   }
 
   NoteDuration _durationOf(String subtoken) {

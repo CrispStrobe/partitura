@@ -5,8 +5,9 @@
 /// musicology (the format spec is public; no toolkit code is used here).
 /// Covered subset: a single voice/spine — clef (with mid-score changes),
 /// key/time signatures (incl. common/cut and additive), measures,
-/// notes/chords, rests, durations (breve…64th with dots) and ties. Two voices,
-/// slurs, tuplets, articulations and lyrics are out of scope. Pure Dart.
+/// notes/chords, rests, durations (breve…64th with dots), ties, articulations
+/// and ornaments. Two voices, slurs, tuplets and lyrics are out of scope. Pure
+/// Dart.
 library;
 
 import '../model/element.dart';
@@ -112,9 +113,36 @@ String _token(MusicElement element, bool tiedFromPrev) {
   final tiedToNext = note.tieToNext;
   final prefix = tiedToNext && !tiedFromPrev ? '[' : '';
   final suffix = tiedFromPrev ? (tiedToNext ? '_' : ']') : '';
+  final marks =
+      '${_kernArtic(note.articulations)}${_kernOrnament(note.ornament)}';
   return note.pitches
-      .map((p) => '$prefix$durStr${_kernPitch(p, note.showAccidental)}$suffix')
+      .map((p) =>
+          '$prefix$durStr${_kernPitch(p, note.showAccidental)}$marks$suffix')
       .join(' ');
+}
+
+/// Humdrum ornament signifier for [ornament].
+String _kernOrnament(Ornament? ornament) => switch (ornament) {
+      Ornament.trill => 'T',
+      Ornament.shortTrill => 'm',
+      Ornament.mordent => 'M',
+      Ornament.turn => 'S',
+      null => '',
+    };
+
+/// Humdrum articulation signifiers appended to a note (marcato `^^` wins over
+/// accent `^` when both are present).
+String _kernArtic(Set<Articulation> a) {
+  final b = StringBuffer();
+  if (a.contains(Articulation.staccato)) b.write("'");
+  if (a.contains(Articulation.tenuto)) b.write('~');
+  if (a.contains(Articulation.marcato)) {
+    b.write('^^');
+  } else if (a.contains(Articulation.accent)) {
+    b.write('^');
+  }
+  if (a.contains(Articulation.fermata)) b.write(';');
+  return b.toString();
 }
 
 String _kernPitch(Pitch pitch, bool? showAccidental) {

@@ -2,11 +2,12 @@
 ///
 /// Reads the same shared subset the writer emits — clef (with mid-score
 /// changes), key/time signatures, measures, notes/chords, rests, durations
-/// (breve…64th with dots), two voices, ties and pickup measures — plus the
-/// common shapes real MuseScore 3/4 files use for those (e.g. `<KeySig>`
-/// stored as `concertKey`, `accidental` or `subtype`; whole-measure rests as
-/// `durationType>measure`). Unsupported markup (slurs, tuplets, articulations,
-/// lyrics, dynamics, beams, spanners) is ignored. Pure Dart (web-safe); the
+/// (breve…64th with dots), two voices, ties, pickup measures, articulations
+/// and ornaments — plus the common shapes real MuseScore 3/4 files use for
+/// those (e.g. `<KeySig>` stored as `concertKey`, `accidental` or `subtype`;
+/// whole-measure rests as `durationType>measure`; MuseScore-3 articulation
+/// names). Unsupported markup (slurs, tuplets, lyrics, dynamics, beams,
+/// spanners) is ignored. Pure Dart (web-safe); the
 /// `.mscz` ZIP container is unwrapped in `partitura_cli`.
 library;
 
@@ -193,8 +194,62 @@ class _StaffReader {
       pitches: pitches,
       duration: duration,
       tieToNext: tie,
+      articulations: _articOf(chord),
+      ornament: _ornamentOf(chord),
       id: _newId(),
     );
+  }
+
+  static const _ornamentMap = {
+    'ornamentTrill': Ornament.trill,
+    'trill': Ornament.trill,
+    'ornamentShortTrill': Ornament.shortTrill,
+    'prall': Ornament.shortTrill,
+    'ornamentMordent': Ornament.mordent,
+    'mordent': Ornament.mordent,
+    'ornamentTurn': Ornament.turn,
+    'turn': Ornament.turn,
+  };
+
+  static Ornament? _ornamentOf(XmlNode chord) {
+    for (final node in chord.childrenNamed('Articulation')) {
+      final o = _ornamentMap[node.childText('subtype')];
+      if (o != null) return o;
+    }
+    return null;
+  }
+
+  /// MuseScore `<Articulation>` subtypes → articulations. Accepts both the
+  /// SMuFL glyph names (MuseScore 4) and the older MuseScore-3 names.
+  static const _articMap = {
+    'articStaccatoAbove': Articulation.staccato,
+    'articStaccatoBelow': Articulation.staccato,
+    'staccato': Articulation.staccato,
+    'articTenutoAbove': Articulation.tenuto,
+    'articTenutoBelow': Articulation.tenuto,
+    'tenuto': Articulation.tenuto,
+    'articAccentAbove': Articulation.accent,
+    'articAccentBelow': Articulation.accent,
+    'sforzato': Articulation.accent,
+    'articMarcatoAbove': Articulation.marcato,
+    'articMarcatoBelow': Articulation.marcato,
+    'marcato': Articulation.marcato,
+    'fermataAbove': Articulation.fermata,
+    'fermataBelow': Articulation.fermata,
+    'fermata': Articulation.fermata,
+    'stringsUpBow': Articulation.upBow,
+    'upbow': Articulation.upBow,
+    'stringsDownBow': Articulation.downBow,
+    'downbow': Articulation.downBow,
+  };
+
+  static Set<Articulation> _articOf(XmlNode chord) {
+    final result = <Articulation>{};
+    for (final node in chord.childrenNamed('Articulation')) {
+      final a = _articMap[node.childText('subtype')];
+      if (a != null) result.add(a);
+    }
+    return result;
   }
 
   /// The pitch for a MuseScore MIDI [midi] with tonal-pitch-class [tpc]. The

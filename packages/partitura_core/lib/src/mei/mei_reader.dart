@@ -2,7 +2,9 @@
 /// [Score]. Reads the subset the writer emits — clef (with mid-score changes
 /// as inline `<clef>`/`<keySig>`/`<meterSig>`), key/time signatures, measures,
 /// notes/chords, rests, durations (breve…64th with dots), two voices (layers),
-/// ties and pickup measures. Pitch spelling is recovered from `@accid.ges`
+/// ties, pickup measures, articulations (`@artic`/`@fermata`) and ornaments
+/// (`<trill>`/`<mordent>`/`<turn>` control events). Pitch spelling is recovered
+/// from `@accid.ges`
 /// (falling back to written `@accid`). Unsupported markup is ignored. Pure
 /// Dart (web-safe).
 library;
@@ -97,8 +99,26 @@ class _MeiReader {
     );
   }
 
+  // Ornament control events for the current measure, keyed by note xml:id.
+  var _ornaments = <String, Ornament>{};
+
   Measure _readMeasure(XmlNode measureNode) {
     final pickup = measureNode.attributes['metcon'] == 'false';
+    _ornaments = {};
+    for (final node in measureNode.children) {
+      final ornament = switch (node.name) {
+        'trill' => Ornament.trill,
+        'mordent' => node.attributes['form'] == 'upper'
+            ? Ornament.shortTrill
+            : Ornament.mordent,
+        'turn' => Ornament.turn,
+        _ => null,
+      };
+      final startid = node.attributes['startid'];
+      if (ornament != null && startid != null) {
+        _ornaments[startid.replaceFirst('#', '')] = ornament;
+      }
+    }
     final staff = measureNode.child('staff');
     final layers = staff?.childrenNamed('layer').toList() ?? const <XmlNode>[];
 
@@ -158,6 +178,8 @@ class _MeiReader {
         duration: _durationFrom(note),
         showAccidental: note.attributes.containsKey('accid') ? true : null,
         tieToNext: _isTieStart(note.attributes['tie']),
+        articulations: _articOf(note),
+        ornament: _ornaments[note.attributes['xml:id']],
         id: _newId(),
       );
 
@@ -169,8 +191,34 @@ class _MeiReader {
       showAccidental:
           notes.any((n) => n.attributes.containsKey('accid')) ? true : null,
       tieToNext: _isTieStart(chord.attributes['tie']),
+      articulations: _articOf(chord),
+      ornament: _ornaments[chord.attributes['xml:id']],
       id: _newId(),
     );
+  }
+
+  static const _articMap = {
+    'stacc': Articulation.staccato,
+    'ten': Articulation.tenuto,
+    'acc': Articulation.accent,
+    'marc': Articulation.marcato,
+    'upbow': Articulation.upBow,
+    'dnbow': Articulation.downBow,
+  };
+
+  static Set<Articulation> _articOf(XmlNode node) {
+    final result = <Articulation>{};
+    final artic = node.attributes['artic'];
+    if (artic != null) {
+      for (final token in artic.split(RegExp(r'\s+'))) {
+        final a = _articMap[token];
+        if (a != null) result.add(a);
+      }
+    }
+    if (node.attributes.containsKey('fermata')) {
+      result.add(Articulation.fermata);
+    }
+    return result;
   }
 
   static bool _isTieStart(String? tie) => tie == 'i' || tie == 'm';
