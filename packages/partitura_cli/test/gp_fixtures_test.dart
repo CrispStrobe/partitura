@@ -4,10 +4,10 @@ import 'package:partitura_cli/src/gp_container.dart';
 import 'package:partitura_core/partitura_core.dart';
 import 'package:test/test.dart';
 
-/// Regression tests against real Guitar Pro binaries (vendored from alphaTab,
+/// Regression tests against real `.gp` binaries (vendored from alphaTab,
 /// MPL-2.0 — see test/data/gp/README.md). These lock the whole read path for
-/// every container format: GP3/GP4/GP5 binary, GP6 `.gpx` (BCFZ/BCFS),
-/// GP7/8 `.gp`.
+/// every container format: `.gp3`/`.gp4`/`.gp5` binary, `.gpx` (v6, BCFZ/BCFS),
+/// `.gp` (v7/8).
 void main() {
   const dir = 'test/data/gp';
 
@@ -35,7 +35,7 @@ void main() {
   Score gp(String name) =>
       scoreFromGpif(readGpifFromGp(File('$dir/$name').readAsBytesSync()));
 
-  group('GP3 (binary)', () {
+  group('.gp3 (binary)', () {
     test('notes: 28 notes and 7 rests in one bar', () {
       final s = gp3('notes.gp3');
       expect(s.measures, hasLength(1));
@@ -60,10 +60,10 @@ void main() {
       expect(s.slurs, hasLength(6));
     });
 
-    test('harmonics: five natural harmonics (beat-level in GP3)', () {
+    test('harmonics: five natural harmonics (beat-level in .gp3)', () {
       final s = gp3('harmonics.gp3');
       expect(noteCount(s), 5);
-      expect(markCount(s, TabNoteStyle.harmonic), 5); // GP3: natural only
+      expect(markCount(s, TabNoteStyle.harmonic), 5); // .gp3: natural only
     });
 
     test('dead: four dead notes', () {
@@ -72,7 +72,7 @@ void main() {
     });
   });
 
-  group('GP4 (binary)', () {
+  group('.gp4 (binary)', () {
     test('notes: 28 notes and 7 rests in one bar', () {
       final s = gp4('notes.gp4');
       expect(s.measures, hasLength(1));
@@ -97,7 +97,7 @@ void main() {
       expect(s.slurs, hasLength(6));
     });
 
-    test('harmonics: five, split natural / artificial / pinch (GP4)', () {
+    test('harmonics: five, split natural / artificial / pinch (.gp4)', () {
       final s = gp4('harmonics.gp4');
       expect(noteCount(s), 5);
       expect(harmonicCount(s), 5);
@@ -112,7 +112,7 @@ void main() {
     });
   });
 
-  group('GP5 (binary)', () {
+  group('.gp5 (binary)', () {
     test('chords: two measures, eight notes', () {
       final s = gp5('chords.gp5');
       expect(s.measures, hasLength(2));
@@ -127,7 +127,7 @@ void main() {
     });
   });
 
-  group('GP6 (.gpx)', () {
+  group('.gpx (v6)', () {
     test('chords: five measures, eight notes', () {
       final s = gpx('chords.gpx');
       expect(s.measures, hasLength(5));
@@ -142,7 +142,7 @@ void main() {
     });
   });
 
-  group('GP7/8 (.gp)', () {
+  group('.gp (v7/8)', () {
     test('chords: five measures, eight notes', () {
       final s = gp('chords.gp');
       expect(s.measures, hasLength(5));
@@ -158,16 +158,17 @@ void main() {
   });
 
   // Effects the binary readers reach but historically discarded: vibrato
-  // (per-note in GP4/5, beat-level in GP3), and palm-mute / let-ring, which
+  // (per-note in .gp4/.gp5, beat-level in .gp3), and palm-mute / let-ring, which
   // are per-note flags coalesced into labelled bracket spans.
   group('note-effect marks (vibrato / palm mute / let ring)', () {
-    test('vibrato: all four notes vibrato in GP3/GP4/GP5 alike', () {
+    test('vibrato: all four notes vibrato in .gp3/.gp4/.gp5 alike', () {
       expect(gp3('vibrato.gp3').vibratos, hasLength(4));
       expect(gp4('vibrato.gp4').vibratos, hasLength(4));
       expect(gp5('vibrato.gp5').vibratos, hasLength(4));
     });
 
-    test('effects bundle: GP4/GP5 agree on 2 palm-mute + 2 let-ring spans', () {
+    test('effects bundle: .gp4/.gp5 agree on 2 palm-mute + 2 let-ring spans',
+        () {
       for (final s in [gp4('effects.gp4'), gp5('effects.gp5')]) {
         expect(s.palmMutes, hasLength(2));
         expect(s.letRings, hasLength(2));
@@ -175,14 +176,14 @@ void main() {
       }
     });
 
-    test('GP3 effects: let-ring + vibrato, but no note-level palm mute', () {
+    test('.gp3 effects: let-ring + vibrato, but no note-level palm mute', () {
       final s = gp3('effects.gp3');
       expect(s.letRings, hasLength(2));
       expect(s.vibratos, hasLength(4));
-      expect(s.palmMutes, isEmpty); // GP3 has no palm-mute note effect
+      expect(s.palmMutes, isEmpty); // .gp3 has no palm-mute note effect
     });
 
-    test('harmonic types: natural / artificial / pinch classified (GP4)', () {
+    test('harmonic types: natural / artificial / pinch classified (.gp4)', () {
       final s = gp4('harmonic-types.gp4');
       expect(markCount(s, TabNoteStyle.harmonic), 3);
       expect(markCount(s, TabNoteStyle.artificialHarmonic), 3);

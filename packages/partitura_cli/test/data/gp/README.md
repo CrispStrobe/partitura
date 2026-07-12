@@ -1,8 +1,8 @@
-# Guitar Pro test fixtures
+# `.gp` test fixtures
 
-These are small, technique-focused Guitar Pro files used as read-path
-regression fixtures for partitura's importers (GP3/GP4/GP5 binary,
-GP6 `.gpx`, GP7/8 `.gp`).
+These are small, technique-focused `.gp` files used as read-path
+regression fixtures for partitura's importers (`.gp3`/`.gp4`/`.gp5` binary,
+`.gpx` (v6), `.gp` (v7/8)).
 
 ## Provenance & license
 
@@ -24,18 +24,18 @@ modify a file, keep it under MPL-2.0.
 
 | File | Version | Exercises |
 |---|---|---|
-| `notes.gp3` / `.gp4` | Guitar Pro 3 / 4 (binary) | a bar of notes + rests |
-| `bends.gp3` / `.gp4` | Guitar Pro 3 / 4 (binary) | string bends |
-| `slides.gp3` / `.gp4` | Guitar Pro 3 / 4 (binary) | slides (glissando) |
-| `hammer.gp3` / `.gp4` | Guitar Pro 3 / 4 (binary) | hammer-on / pull-off (slur) |
-| `harmonics.gp3` / `.gp4` | Guitar Pro 3 / 4 (binary) | harmonics (beat-level in GP3) |
-| `harmonic-types.gp4` | Guitar Pro 4 (binary) | natural / artificial / pinch harmonics |
-| `dead.gp3` / `.gp4` | Guitar Pro 3 / 4 (binary) | dead (muted) notes |
-| `vibrato.gp3` / `.gp4` / `.gp5` | Guitar Pro 3 / 4 / 5 (binary) | vibrato (all three agree) |
-| `effects.gp3` / `.gp4` / `.gp5` | Guitar Pro 3 / 4 / 5 (binary) | mixed bundle: palm mute + let ring spans |
-| `chords.gp5` | Guitar Pro 5 (binary) | multi-note chords across measures |
-| `bends.gp5`  | Guitar Pro 5 (binary) | string bends |
-| `chords.gpx` | Guitar Pro 6 (BCFZ/BCFS) | chords |
-| `slides.gpx` | Guitar Pro 6 (BCFZ/BCFS) | slides (glissando) |
-| `chords.gp`  | Guitar Pro 7/8 (GPIF in ZIP) | chords |
-| `bends.gp`   | Guitar Pro 7/8 (GPIF in ZIP) | string bends |
+| `notes.gp3` / `.gp4` | `.gp3` / `.gp4` (binary) | a bar of notes + rests |
+| `bends.gp3` / `.gp4` | `.gp3` / `.gp4` (binary) | string bends |
+| `slides.gp3` / `.gp4` | `.gp3` / `.gp4` (binary) | slides (glissando) |
+| `hammer.gp3` / `.gp4` | `.gp3` / `.gp4` (binary) | hammer-on / pull-off (slur) |
+| `harmonics.gp3` / `.gp4` | `.gp3` / `.gp4` (binary) | harmonics (beat-level in `.gp3`) |
+| `harmonic-types.gp4` | `.gp4` (binary) | natural / artificial / pinch harmonics |
+| `dead.gp3` / `.gp4` | `.gp3` / `.gp4` (binary) | dead (muted) notes |
+| `vibrato.gp3` / `.gp4` / `.gp5` | `.gp3` / `.gp4` / `.gp5` (binary) | vibrato (all three agree) |
+| `effects.gp3` / `.gp4` / `.gp5` | `.gp3` / `.gp4` / `.gp5` (binary) | mixed bundle: palm mute + let ring spans |
+| `chords.gp5` | `.gp5` (binary) | multi-note chords across measures |
+| `bends.gp5`  | `.gp5` (binary) | string bends |
+| `chords.gpx` | `.gpx` (v6, BCFZ/BCFS) | chords |
+| `slides.gpx` | `.gpx` (v6, BCFZ/BCFS) | slides (glissando) |
+| `chords.gp`  | `.gp` (v7/8, GPIF in ZIP) | chords |
+| `bends.gp`   | `.gp` (v7/8, GPIF in ZIP) | string bends |

@@ -74,7 +74,7 @@ void main() {
   });
 
   test('parses playing techniques into tab marks', () {
-    // A hand-written GPIF (the shape Guitar Pro emits): note 0 hammers to
+    // A hand-written GPIF (the shape the .gp apps emit): note 0 hammers to
     // note 1 which is bent full; note 2 is dead; note 3 is a harmonic.
     const gpif = '''
 <GPIF>

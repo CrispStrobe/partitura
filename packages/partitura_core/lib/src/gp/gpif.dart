@@ -1,7 +1,8 @@
-/// Guitar Pro GPIF (`score.gpif`) import/export.
+/// GPIF (`score.gpif`) import/export.
 ///
-/// GPIF is the XML document at the heart of the Guitar Pro 6/7/8 file formats
-/// (`.gpx` is a compressed container, `.gp` a zip — both hold a `score.gpif`).
+/// GPIF is the XML document at the heart of the `.gpx`/`.gp` (v6/7/8) file
+/// formats (`.gpx` is a compressed container, `.gp` a zip — both hold a
+/// `score.gpif`).
 /// This is a **subset** codec, pure Dart (web-safe): it reads/writes the
 /// reference structure — track tuning, master bars, bars → voices → beats →
 /// notes (string+fret), rhythms and the common playing techniques — into a
@@ -12,8 +13,8 @@
 /// natural/artificial/pinch) notes → `TabNoteMark`s; export writes the same
 /// properties back, so a round-trip keeps techniques.
 /// Multi-track files import one track at a time (`trackIndex`; see
-/// [gpifTrackNames]). It reads real Guitar Pro 7 files correctly — validated
-/// against the alphaTab GP7 test corpus (pitches, chords, rhythm, techniques,
+/// [gpifTrackNames]). It reads real `.gp` (v7) files correctly — validated
+/// against the alphaTab `.gp` (v7) test corpus (pitches, chords, rhythm, techniques,
 /// multi-track).
 ///
 /// The zip/`.gp` container wrapping lives in the CLI (it needs `dart:io`); this

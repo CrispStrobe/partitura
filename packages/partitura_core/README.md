@@ -40,7 +40,7 @@ void main() {
 | Model | `Score` / `Measure` / `NoteElement` / `RestElement`, value equality, `Score.simple` string DSL with auto element ids |
 | Layout | `LayoutEngine` → `ScoreLayout`: flat glyph/line/beam/curve display list + per-element hit regions, all in staff spaces; clefs (treble/bass/alto/tenor + octave variants + percussion), key/time signatures (incl. mid-score changes and common/cut symbols), stems, flags, multi-level + feathered beams, tuplets, ties, slurs, articulations, ornaments, dynamics + hairpins, grace notes, tremolo, ledger lines, accidentals with measure memory, dots, chords, rests, two voices, barlines, repeats, voltas, navigation, lyrics, figured bass |
 | Systems | `layoutStaffSystem` (N-staff systems with brackets), `layoutSystems` (line breaking), `layoutPages` (pagination with margins + vertical justification) |
-| Interchange | MusicXML, MIDI, Guitar Pro 3–8, GPIF and ABC readers/writers, all through the one `Score` model |
+| Interchange | MusicXML, MIDI, `.gp3`–`.gp5`/`.gpx`/`.gp`, GPIF and ABC readers/writers, all through the one `Score` model |
 | SMuFL | `SmuflMetadata` (engraving defaults, glyph boxes, stem anchors parsed from a SMuFL font's metadata JSON), glyph-name constants |
 
 Still **out of scope** (see [PLAN.md](../../PLAN.md) for the roadmap):

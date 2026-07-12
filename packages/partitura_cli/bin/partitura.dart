@@ -40,8 +40,8 @@ Common:
   --from <musicxml|midi|abc|asciitab|gp|gpx|gp5|gp4|gp3|gpif>
                                        Force the input format (.abc = ABC;
                                        .tab/.crd/.txt are plain-text tab;
-                                       .gp = Guitar Pro 7/8, .gpx = GP6,
-                                       .gp5/.gp4/.gp3 = GP5/4/3)
+                                       .gp = v7/8, .gpx = v6,
+                                       .gp5/.gp4/.gp3 = binary tab)
   --to   <musicxml|midi|abc|gp|gpif>   Force the convert output format
 
 render options:

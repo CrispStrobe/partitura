@@ -39,9 +39,10 @@ ships* at the end for the mechanics.
     `TabNoteStyle`), tapping (`Tap`), tremolo bar (`TremoloBar`), chord
     diagrams (`ChordDiagram`/`PlacedChordDiagram`). Goldens 52–63. Contract
     "tablature out" clause lifted.
-  - **Phase 7.3/7.4 (interchange):** MusicXML, MIDI, GPIF and the full Guitar
-    Pro binary line (GP3/4/5) + GP6 `.gpx` + GP7/8 `.gp` all import, with the
-    common techniques; nested repeats now expand in `playbackTimeline`.
+  - **Phase 7.3/7.4 (interchange):** MusicXML, MIDI, GPIF and the full
+    `.gp3`–`.gp` binary line (`.gp3`/`.gp4`/`.gp5`) + `.gpx` (v6) + `.gp` (v7/8)
+    all import, with the common techniques; nested repeats now expand in
+    `playbackTimeline`.
 - **Test counts:** 701 core + 141 widget + 39 CLI, all gates green.
 
 ### ▶ Where the next agent picks up
@@ -121,8 +122,8 @@ Already at or near that bar: core common-notation engraving (noteheads, stems,
 flags, accidentals, ties, tuplets, grace notes, articulations, ornaments,
 dynamics + hairpins, tremolo, and beaming incl. feathered / forced-slant /
 over-rests), repeat & navigation semantics (repeats, voltas, D.C./D.S./coda,
-nested repeats), a broad interchange surface (MusicXML, MIDI, the full Guitar
-Pro 3–8 line), and the category-unusual extras — a renderer-free deterministic
+nested repeats), a broad interchange surface (MusicXML, MIDI, the full
+`.gp3`–`.gp` line), and the category-unusual extras — a renderer-free deterministic
 layout engine, hit-testing, a highlight/timing pipeline, SVG/PNG export, a CLI.
 
 The remaining distance falls in three buckets:
@@ -420,17 +421,17 @@ enum encodings so files round-trip cleanly), tiered by importance:
       serve notation and tablature.
 - [~] **7.3 Wider import** — additional interchange formats beyond MusicXML.
       **Done:** MIDI import (`scoreFromMidi`); plain-text/ASCII tab import
-      (`asciiTabToScore`); Guitar Pro import **and** export (`scoreFromGpif` /
+      (`asciiTabToScore`); `.gp` import **and** export (`scoreFromGpif` /
       `scoreToGpif` GPIF subset + the `.gp` ZIP container in `partitura_cli`).
-      GP import also reads the common playing techniques (HO/PO, slides, bends,
+      That import also reads the common playing techniques (HO/PO, slides, bends,
       vibrato, palm mute, let ring, dead, natural/artificial/pinch harmonic)
       into the tab marks. All formats round-trip transparently through the
-      shared `Score` model for the data they share. The full Guitar Pro binary
-      line imports via `gp_binary_reader.dart` — GP3 (`.gp3`), GP4 (`.gp4`),
-      GP5 (`.gp5`), a from-scratch byte-exact reader — plus GP6 `.gpx`
-      (BCFZ/BCFS) and GP7/8 `.gp` (GPIF-in-ZIP), all wired into the CLI and
+      shared `Score` model for the data they share. The full `.gp3`–`.gp` binary
+      line imports via `gp_binary_reader.dart` — `.gp3`, `.gp4`,
+      `.gp5`, a from-scratch byte-exact reader — plus `.gpx` (v6, BCFZ/BCFS)
+      and `.gp` (v7/8, GPIF-in-ZIP), all wired into the CLI and
       regression-tested against real vendored alphaTab fixtures
-      (`partitura_cli/test/gp_fixtures_test.dart`; GP3/4/5 agree note-for-note
+      (`partitura_cli/test/gp_fixtures_test.dart`; `.gp3`/`.gp4`/`.gp5` agree note-for-note
       on the shared techniques). **ABC notation import + export**
       (`scoreFromAbc` / `scoreToAbc`) — the folk/traditional plain-text format:
       `M`/`L`/`K` header (meter, unit length, key + church modes, clef), notes

@@ -18,7 +18,7 @@ dart run partitura_cli:partitura <command> [arguments]
 | `render <in> <out.svg> [options]` | Render to SVG (notation, or `--tab` for tablature) |
 
 Input formats are inferred from file extensions — `.xml`/`.musicxml`,
-`.mid`/`.midi`, `.abc` (ABC notation), Guitar Pro `.gp` (7/8) / `.gpx` (6) /
+`.mid`/`.midi`, `.abc` (ABC notation), `.gp` (7/8) / `.gpx` (6) /
 `.gp5` / `.gp4` / `.gp3` (and raw `.gpif`), and plain-text tab
 `.tab`/`.crd`/`.txt` — and can be overridden with `--from` (`musicxml` /
 `midi` / `abc` / `gp` / `gpx` / `gp5` / `gp4` / `gp3` / `gpif` / `asciitab`).
@@ -52,7 +52,7 @@ automatically). The Flutter SDK must be on `PATH`; SVG needs only the Dart SDK.
 ```
 dart run partitura_cli:partitura info song.musicxml
 dart run partitura_cli:partitura convert song.musicxml song.mid
-dart run partitura_cli:partitura convert song.gp song.musicxml    # Guitar Pro 7/8
+dart run partitura_cli:partitura convert song.gp song.musicxml    # .gp (7/8)
 dart run partitura_cli:partitura render song.musicxml song.svg
 dart run partitura_cli:partitura render song.musicxml song.png       # needs Flutter
 dart run partitura_cli:partitura render riff.musicxml riff.svg --tab --tuning dropD

@@ -3,18 +3,18 @@ import 'dart:typed_data';
 import 'package:partitura_core/partitura_core.dart';
 import 'package:test/test.dart';
 
-/// The GP5 reader's positive path is validated against real binaries in
+/// The .gp5 reader's positive path is validated against real binaries in
 /// `partitura_cli/test/gp_fixtures_test.dart`; this guards the entry point and
 /// the header-only edge cases (which need no full file).
 void main() {
-  test('rejects a file that is not Guitar Pro 5', () {
+  test('rejects a file that is not .gp5', () {
     // A byte-size string "hello" — not a "v5." version tag.
     final bytes =
         Uint8List.fromList([5, ...'hello'.codeUnits, ...List.filled(25, 0)]);
     expect(() => gp5ToScore(bytes), throwsFormatException);
   });
 
-  test('reads a hand-built minimal GP5 header without a track', () {
+  test('reads a hand-built minimal .gp5 header without a track', () {
     // Enough of a header to reach measureCount=0/trackCount=0 and return an
     // empty (whole-rest) score, exercising the header parse path.
     final b = BytesBuilder();

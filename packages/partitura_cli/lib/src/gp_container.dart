@@ -1,5 +1,5 @@
-/// Container handling for Guitar Pro files, which wrap a `score.gpif` XML:
-/// GP7/GP8 `.gp` is a ZIP (uses `dart:io`'s DEFLATE), GP6 `.gpx` is a
+/// Container handling for the `.gp`/`.gpx` files, which wrap a `score.gpif` XML:
+/// `.gp` (v7/8) is a ZIP (uses `dart:io`'s DEFLATE), `.gpx` (v6) is a
 /// BCFZ-compressed BCFS filesystem (a pure bit/byte codec). Both extract the
 /// gpif for `scoreFromGpif`. Kept in the CLI (out of the web-safe core)
 /// because `.gp` needs `dart:io`.
@@ -101,7 +101,7 @@ Uint8List writeGpFromGpif(String gpif) {
   return out.toBytes();
 }
 
-/// Extracts the `score.gpif` XML from a Guitar Pro 6 `.gpx` archive's [bytes]
+/// Extracts the `score.gpif` XML from a `.gpx` (v6) archive's [bytes]
 /// (a BCFZ-compressed / BCFS filesystem container). Ported from the algorithm
 /// in alphaTab's `GpxFileSystem`.
 String readGpifFromGpx(Uint8List bytes) {

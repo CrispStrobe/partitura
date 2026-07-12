@@ -33,7 +33,7 @@ void main() {
     expect(durations(back), durations(source));
   });
 
-  test('Guitar Pro (.gpif) round-trip preserves pitches and rhythm', () {
+  test('GPIF (.gp) round-trip preserves pitches and rhythm', () {
     final back = scoreFromGpif(scoreToGpif(source));
     expect(pitches(back), pitches(source));
     expect(durations(back), durations(source));
@@ -46,7 +46,7 @@ void main() {
   });
 
   test('a chain across every format keeps the shared data (± the same)', () {
-    // MusicXML -> Score -> Guitar Pro -> Score -> MIDI -> Score.
+    // MusicXML -> Score -> GPIF -> Score -> MIDI -> Score.
     final viaXml = scoreFromMusicXml(scoreToMusicXml(source));
     final viaGp = scoreFromGpif(scoreToGpif(viaXml));
     final viaMidi = scoreFromMidi(scoreToMidi(viaGp));

@@ -1,14 +1,15 @@
-/// Guitar Pro 3/4/5 (`.gp3`/`.gp4`/`.gp5`) binary import.
+/// `.gp3`/`.gp4`/`.gp5` binary import.
 ///
-/// These are version-tagged **binary** formats (unlike the GP6/7/8 gpif XML),
-/// so this is a from-scratch byte/bit-exact reader — ported from the reference
-/// layout in PyGuitarPro. It parses the essential musical data (measures, time
-/// signatures, per-track tunings, and notes as string+fret → pitch, with the
-/// common note techniques) into a partitura [Score]; the many effect/RSE/mix
-/// structures are parsed only far enough to stay byte-aligned, then discarded.
-/// The three versions share most of their layout; GP3/GP4 are handled by
-/// [gp3ToScore]/[gp4ToScore] (a version-delta on the GP5 path — one voice per
-/// measure, no RSE/page-setup/lyrics-in-GP3, different beat/note effect flags).
+/// These are version-tagged **binary** formats (unlike the `.gpx`/`.gp` gpif
+/// XML), so this is a from-scratch byte/bit-exact reader — ported from the
+/// reference layout in PyGuitarPro. It parses the essential musical data
+/// (measures, time signatures, per-track tunings, and notes as string+fret →
+/// pitch, with the common note techniques) into a partitura [Score]; the many
+/// effect/RSE/mix structures are parsed only far enough to stay byte-aligned,
+/// then discarded. The three versions share most of their layout; `.gp3`/`.gp4`
+/// are handled by [gp3ToScore]/[gp4ToScore] (a version-delta on the `.gp5` path
+/// — one voice per measure, no RSE/page-setup/lyrics-in-`.gp3`, different
+/// beat/note effect flags).
 /// Pure Dart (web-safe). Validated against the alphaTab / PyGuitarPro corpora.
 library;
 
@@ -22,14 +23,14 @@ import '../theory/duration.dart';
 import '../theory/pitch.dart';
 import '../theory/time_signature.dart';
 
-/// Parses Guitar Pro 5 [bytes] into a [Score] (the [trackIndex]-th track).
+/// Parses `.gp5` [bytes] into a [Score] (the [trackIndex]-th track).
 ///
-/// Throws [FormatException] if the file is not a recognizable GP5 document.
+/// Throws [FormatException] if the file is not a recognizable `.gp5` document.
 Score gp5ToScore(Uint8List bytes, {int trackIndex = 0}) {
   final r = _Reader(bytes);
   final version = r.byteSizeString(30);
   if (!version.contains('v5.')) {
-    throw FormatException('not a Guitar Pro 5 file ("$version")');
+    throw FormatException('not a .gp5 file ("$version")');
   }
   final v510 = version.contains('5.10');
 
@@ -150,28 +151,28 @@ Score gp5ToScore(Uint8List bytes, {int trackIndex = 0}) {
 
 const _standard = [64, 59, 55, 50, 45, 40];
 
-/// Parses Guitar Pro 3 [bytes] into a [Score] (the [trackIndex]-th track).
+/// Parses `.gp3` [bytes] into a [Score] (the [trackIndex]-th track).
 ///
-/// Throws [FormatException] if the file is not a recognizable GP3 document.
+/// Throws [FormatException] if the file is not a recognizable `.gp3` document.
 Score gp3ToScore(Uint8List bytes, {int trackIndex = 0}) =>
     _gp3or4ToScore(bytes, trackIndex, gp4: false);
 
-/// Parses Guitar Pro 4 [bytes] into a [Score] (the [trackIndex]-th track).
+/// Parses `.gp4` [bytes] into a [Score] (the [trackIndex]-th track).
 ///
-/// Throws [FormatException] if the file is not a recognizable GP4 document.
+/// Throws [FormatException] if the file is not a recognizable `.gp4` document.
 Score gp4ToScore(Uint8List bytes, {int trackIndex = 0}) =>
     _gp3or4ToScore(bytes, trackIndex, gp4: true);
 
-/// GP3 and GP4 share a layout; [gp4] selects the (small) v4 additions: lyrics
-/// and an octave byte in the header, two-byte beat/note effect flags, and the
-/// richer chord diagram. GP3 has a single voice per measure and stores
+/// `.gp3` and `.gp4` share a layout; [gp4] selects the (small) v4 additions:
+/// lyrics and an octave byte in the header, two-byte beat/note effect flags,
+/// and the richer chord diagram. `.gp3` has a single voice per measure and stores
 /// harmonics at the beat rather than the note level.
 Score _gp3or4ToScore(Uint8List bytes, int trackIndex, {required bool gp4}) {
   final r = _Reader(bytes);
   final version = r.byteSizeString(30);
   final tag = gp4 ? 'v4.' : 'v3.';
   if (!version.contains(tag)) {
-    throw FormatException('not a Guitar Pro ${gp4 ? 4 : 3} file ("$version")');
+    throw FormatException('not a .gp${gp4 ? 4 : 3} file ("$version")');
   }
 
   // Score info: title..instructions (8 strings) + notices.
@@ -326,9 +327,9 @@ void _readBeatGp34(
 }
 
 class _BeatEffectsGp34 {
-  final bool harmonic; // GP3 stores natural/artificial harmonic on the beat
+  final bool harmonic; // .gp3 stores natural/artificial harmonic on the beat
   final bool bar; // tremolo/whammy bar
-  final bool vibrato; // GP3 stores note vibrato on the beat
+  final bool vibrato; // .gp3 stores note vibrato on the beat
   _BeatEffectsGp34(this.harmonic, this.bar, {this.vibrato = false});
 }
 
@@ -349,15 +350,15 @@ _BeatEffectsGp34 _readBeatEffectsGp34(_Reader r, {required bool gp4}) {
   final f1 = r.i8();
   final f2 = r.i8();
   var bar = false;
-  final vibrato = f1 & 0x02 != 0; // wide vibrato (beat-level in GP4)
+  final vibrato = f1 & 0x02 != 0; // wide vibrato (beat-level in .gp4)
   if (f1 & 0x20 != 0) r.i8(); // slap effect
   if (f2 & 0x04 != 0) {
-    _readBend(r); // tremolo bar (full bend envelope in GP4)
+    _readBend(r); // tremolo bar (full bend envelope in .gp4)
     bar = true;
   }
   if (f1 & 0x40 != 0) r.skip(2); // beat stroke
   if (f2 & 0x02 != 0) r.i8(); // pick stroke
-  // GP4 harmonics are per-note; wide vibrato is beat-level.
+  // .gp4 harmonics are per-note; wide vibrato is beat-level.
   return _BeatEffectsGp34(false, bar, vibrato: vibrato);
 }
 
@@ -430,7 +431,7 @@ _NoteEffects _readNoteEffectsGp3(_Reader r) {
   double bendSteps = 0;
   if (f & 0x01 != 0) bendSteps = _readBend(r);
   if (f & 0x10 != 0) r.skip(4); // grace (fret, velocity, duration, transition)
-  final slide = f & 0x04 != 0; // GP3 slide carries no extra bytes
+  final slide = f & 0x04 != 0; // .gp3 slide carries no extra bytes
   return _NoteEffects(false, hammer, slide, bendSteps, letRing: letRing);
 }
 
@@ -469,7 +470,7 @@ _NoteEffects _readNoteEffectsGp4(_Reader r) {
 void _readChordGp34(_Reader r, {required bool gp4}) {
   final newFormat = r.u8() != 0;
   if (!newFormat) {
-    // GP3 legacy chord: name + first fret + (if set) 6 fret positions.
+    // .gp3 legacy chord: name + first fret + (if set) 6 fret positions.
     r.intByteSizeString();
     final firstFret = r.i32();
     if (firstFret != 0) {
@@ -605,7 +606,7 @@ void _readBeat(
       bendSteps = note.bendSteps > bendSteps ? note.bendSteps : bendSteps;
     }
   }
-  // GP5 beat trailer.
+  // .gp5 beat trailer.
   final flags2 = r.i16();
   if (flags2 & 0x0800 != 0) r.u8();
 
@@ -632,7 +633,7 @@ void _readBeat(
 ({bool bar, bool vibrato}) _readBeatEffects(_Reader r) {
   final f1 = r.i8();
   final f2 = r.i8();
-  final vibrato = f1 & 0x02 != 0; // wide vibrato (beat-level in GP5)
+  final vibrato = f1 & 0x02 != 0; // wide vibrato (beat-level in .gp5)
   if (f1 & 0x20 != 0) r.i8(); // slap
   var bar = false;
   if (f2 & 0x04 != 0) {
@@ -760,7 +761,7 @@ _NoteEffects _readNoteEffects(_Reader r) {
   final letRing = f1 & 0x08 != 0;
   double bendSteps = 0;
   if (f1 & 0x01 != 0) bendSteps = _readBend(r);
-  if (f1 & 0x10 != 0) r.skip(5); // grace (GP5: 5 bytes)
+  if (f1 & 0x10 != 0) r.skip(5); // grace (.gp5: 5 bytes)
   if (f2 & 0x04 != 0) r.i8(); // tremolo picking
   final slide = f2 & 0x08 != 0;
   if (slide) r.u8(); // slide type
@@ -809,7 +810,7 @@ TabNoteStyle _readHarmonic(_Reader r) {
 void _readChord(_Reader r) {
   final newFormat = r.u8() != 0;
   if (!newFormat) {
-    throw const FormatException('GP5 old-format chords unsupported');
+    throw const FormatException('.gp5 old-format chords unsupported');
   }
   r.u8(); // sharp
   r.skip(3);
@@ -986,7 +987,7 @@ class _Reader {
   int pos = 0;
   _Reader(this.b) : _view = ByteData.sublistView(b);
 
-  // Reads past the end return 0 (GP5 files carry a trailing byte the layout
+  // Reads past the end return 0 (.gp5 files carry a trailing byte the layout
   // doesn't describe; tolerating EOF keeps the last measure intact).
   int u8() {
     if (pos < b.length) return b[pos++];

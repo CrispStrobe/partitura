@@ -185,51 +185,51 @@
   `artificialHarmonic` and `pinchHarmonic` (helper `isHarmonicStyle`). The tab
   engine draws all three harmonic variants with the angle-bracketed fret and
   adds an "A.H." / "P.H." label above the staff for the synthetic ones (golden
-  63). The GP3/4/5 binary readers classify the harmonic-type byte, and GPIF
+  63). The .gp3/.gp4/.gp5 binary readers classify the harmonic-type byte, and GPIF
   read+write carry `HarmonicType` (Natural/Artificial/Pinch), so the type
   survives a `.gp` round-trip. Confirmed on the alphaTab corpora
-  (`harmonic-types.gp4`: 3 natural / 3 artificial / 1 pinch; GP4 and GP5 agree).
-- **Guitar Pro binary import — more note effects** (Phase 7.3): the GP3/4/5
-  binary readers now surface **vibrato** (`Vibrato`; note-level in GP4/5,
-  beat-level "wide" in GP3 and GP5), and **palm mute** / **let ring**
+  (`harmonic-types.gp4`: 3 natural / 3 artificial / 1 pinch; `.gp4` and `.gp5` agree).
+- **`.gp` binary import — more note effects** (Phase 7.3): the `.gp3`/`.gp4`/`.gp5`
+  binary readers now surface **vibrato** (`Vibrato`; note-level in `.gp4`/`.gp5`,
+  beat-level "wide" in `.gp3` and `.gp5`), and **palm mute** / **let ring**
   (per-note flags coalesced into `PalmMute` / `LetRing` bracket spans that a
   rest closes). They already rendered in the tab engine; the readers just
   weren't feeding them. Confirmed against the real alphaTab corpora, where all
-  three versions agree (`vibrato.*`, `effects.*` fixtures) — except GP3, which
+  three versions agree (`vibrato.*`, `effects.*` fixtures) — except `.gp3`, which
   has no note-level palm mute.
-- **Guitar Pro 3/4 (.gp3/.gp4) import** (Phase 7.3):
-  `gp3ToScore` / `gp4ToScore` extend the GP5 binary reader with the older
-  layout — one voice per measure, no RSE/page-setup, GP3's beat-level
+- **`.gp3`/`.gp4` import** (Phase 7.3):
+  `gp3ToScore` / `gp4ToScore` extend the `.gp5` binary reader with the older
+  layout — one voice per measure, no RSE/page-setup, `.gp3`'s beat-level
   harmonics, and the narrower beat/note effect flags. Same technique coverage
   (HO/PO, slides, bends, dead, harmonic). Committed regression tests parse the
-  real alphaTab GP3/GP4 corpora and confirm the versions agree note-for-note
+  real alphaTab `.gp3`/`.gp4` corpora and confirm the versions agree note-for-note
   (`gp_fixtures_test.dart`). The reader now lives in `gp_binary_reader.dart`.
-- **Guitar Pro 5 (.gp5) import** (Phase 7.3): `gp5ToScore(bytes, {trackIndex})`
-  — a from-scratch byte/bit-exact reader for the GP5 *binary* format (ported
+- **`.gp5` import** (Phase 7.3): `gp5ToScore(bytes, {trackIndex})`
+  — a from-scratch byte/bit-exact reader for the `.gp5` *binary* format (ported
   from PyGuitarPro's layout): measures, time signatures, per-track tunings,
   notes as string+fret → pitch, and the note techniques (HO/PO, slides, bends,
-  dead, harmonic). Pure Dart. Validated against the alphaTab GP5 corpus —
-  `chords.gp5` renders identically to `chords.gp` (GP7). Wired into the CLI.
-- **Guitar Pro technique import** (Phase 7.3): `scoreFromGpif` now reads the
+  dead, harmonic). Pure Dart. Validated against the alphaTab `.gp5` corpus —
+  `chords.gp5` renders identically to `chords.gp` (v7). Wired into the CLI.
+- **`.gp` technique import** (Phase 7.3): `scoreFromGpif` now reads the
   common GPIF playing techniques into partitura's tab marks — hammer-on/
   pull-off → slur, slide → glissando, bend (with amount) → `Bend`, whammy
   vibrato → `Vibrato`, dead → `TabNoteMark.dead`, harmonic →
-  `TabNoteMark.harmonic`. Validated against the alphaTab GP7 corpus (e.g.
+  `TabNoteMark.harmonic`. Validated against the alphaTab `.gp` (v7) corpus (e.g.
   `bends.gp` renders correct "full"/"1½" bend arrows).
 - **Tab chord voicing** (fix): `TabLayoutEngine` now assigns each chord tone to
   a **distinct string** (higher pitches to higher strings, lowest fret first)
   instead of placing every pitch at its independent lowest fret — so two notes
-  of a chord no longer collide on one line (visible on dense real Guitar Pro
+  of a chord no longer collide on one line (visible on dense real `.gp`
   chords). Pinned `TabVoicing`s still win; hand-designed goldens are unchanged.
-- **Guitar Pro (GPIF) import/export** (Phase 7.3): `scoreFromGpif` /
-  `scoreToGpif` read and write the `score.gpif` XML of the Guitar Pro 6/7/8
+- **GPIF (`.gp`) import/export** (Phase 7.3): `scoreFromGpif` /
+  `scoreToGpif` read and write the `score.gpif` XML of the `.gpx`/`.gp` (v6/7/8)
   formats — a subset (tuning, bars → voices → beats → string+fret notes,
   rhythms; single track/voice), pure Dart. Pitches and rhythm round-trip. The
   `.gp` ZIP container is handled in `partitura_cli` (needs `dart:io`), which
   also gains `.gp`/`.gpif` input+output. Because every codec funnels through
   the one `Score` model, formats round-trip transparently for the data they
   share (see `interchange_transparency_test.dart`). Validated against real
-  files: the GPIF reader reads the alphaTab GP7 test corpus (incl. a 96-bar
+  files: the GPIF reader reads the alphaTab .gp (v7) test corpus (incl. a 96-bar
   song) correctly, and the MusicXML/MIDI importers read real music21 corpus
   files (Bach chorales, Corelli) — verified by rendering.
 - **Chord diagrams above the staff** (Phase 6.4): `Score.chordDiagrams`

@@ -356,10 +356,10 @@ Malformed bytes or an unsupported SMPTE division throw `FormatException`.
 
 Both are dependency-free (`dart:typed_data`) and deterministic.
 
-### Guitar Pro (GPIF) import & export
+### GPIF (`.gp`) import & export
 
 `scoreToGpif(score, {tuning})` / `scoreFromGpif(gpif)` write and read the
-`score.gpif` XML at the heart of the Guitar Pro 6/7/8 formats — a **subset**
+`score.gpif` XML at the heart of the `.gpx`/`.gp` (v6/7/8) formats — a **subset**
 (track tuning, master bars → bars → voices → beats → notes as string+fret, and
 rhythms; single voice/track; techniques out of scope), pure Dart. Pitches are
 fretted on the `Tuning` for export and recovered from string+fret on import,
@@ -367,13 +367,13 @@ so pitches and rhythm round-trip. The `.gp` container is a ZIP of the gpif; the
 CLI reads/writes it (that needs `dart:io`). Import also reads the common
 playing techniques into the tab marks (HO/PO → slur, slide → glissando, bend →
 `Bend`, whammy vibrato → `Vibrato`, dead/harmonic → `TabNoteMark`). Validated
-against the alphaTab GP7 test corpus — pitches/chords/rhythm and those
+against the alphaTab `.gp` (v7) test corpus — pitches/chords/rhythm and those
 techniques read correctly. Multi-track files import one track at a time
-(`--track N`). GP6 `.gpx` (a BCFZ/BCFS container over the same gpif) is also
-read by the CLI (validated against the alphaTab GP6 corpus). **GP5 `.gp5`** —
-a version-tagged *binary* format — has its own from-scratch reader
+(`--track N`). The `.gpx` (v6) container (a BCFZ/BCFS wrapper over the same
+gpif) is also read by the CLI (validated against the alphaTab `.gpx` corpus).
+**`.gp5`** — a version-tagged *binary* format — has its own from-scratch reader
 (`gp5ToScore`; pitches/chords/durations/measures/tunings + the note
-techniques), validated against the alphaTab GP5 corpus.
+techniques), validated against the alphaTab `.gp5` corpus.
 
 ### Plain-text (ASCII) tablature import
 
