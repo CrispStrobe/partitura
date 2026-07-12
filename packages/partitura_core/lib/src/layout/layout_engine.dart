@@ -51,13 +51,15 @@ class LayoutEngine {
     double spacingStretch = 1.0,
     bool drawTimeSignature = true,
     bool finalBarline = true,
+    bool showNoteNames = false,
   }) =>
       _LayoutBuilder(score, settings,
               leadingWidth: leadingWidth,
               measureWidths: measureWidths,
               spacingStretch: spacingStretch,
               drawTimeSignature: drawTimeSignature,
-              finalBarline: finalBarline)
+              finalBarline: finalBarline,
+              showNoteNames: showNoteNames)
           .build();
 }
 
@@ -156,6 +158,7 @@ class _LayoutBuilder {
   final double spacingStretch;
   final bool drawTimeSignature;
   final bool finalBarline;
+  final bool showNoteNames;
   SmuflMetadata get meta => s.metadata;
 
   final List<LayoutPrimitive> _primitives = [];
@@ -209,7 +212,8 @@ class _LayoutBuilder {
       this.measureWidths,
       this.spacingStretch = 1.0,
       this.drawTimeSignature = true,
-      this.finalBarline = true});
+      this.finalBarline = true,
+      this.showNoteNames = false});
 
   // Key signature accidental staff positions per clef, in writing order.
   // Bass/alto shift the treble pattern down 2/1 positions; the tenor sharp
@@ -278,6 +282,7 @@ class _LayoutBuilder {
     _layoutPedals();
     _layoutLyrics();
     _layoutFiguredBass();
+    _layoutNoteNames();
     _layoutNavigation();
     _layoutAnnotations();
     _layoutJazzArticulations();
@@ -1876,6 +1881,50 @@ class _LayoutBuilder {
       final y = bm.symbol == BreathSymbol.comma ? 0.0 : -0.5;
       _addGlyph(glyph, x, y, elementId: bm.noteId);
     }
+  }
+
+  /// Educational note-name overlay ([LayoutEngine.layout] `showNoteNames`): the
+  /// pitch letter under each note, in a row below the staff (a chord stacks its
+  /// letters top-to-bottom). Derived from the score, so it renders in both the
+  /// Flutter and SVG back-ends.
+  void _layoutNoteNames() {
+    if (!showNoteNames) return;
+    final size = s.lyricSize * 0.85;
+    final baseline = max(6.5, _ink.maxY + s.lyricGap + 0.72 * size);
+    final rowHeight = size * 1.1;
+    for (final info in _tieInfos) {
+      final note = info.note;
+      if (note == null || note.pitches.isEmpty) continue;
+      final centerX = (info.left + info.right) / 2;
+      // Pitches are stored low→high; stack the names with the top pitch first.
+      final names = [for (final p in note.pitches) _noteName(p)];
+      for (var r = 0; r < names.length; r++) {
+        final text = names[names.length - 1 - r];
+        final y = baseline + r * rowHeight;
+        final half = _estTextHalfWidth(text, size);
+        _primitives.add(TextPrimitive(
+          text,
+          Point(centerX, y),
+          size: size,
+          elementId: info.id,
+        ));
+        _expand(info.id, centerX - half, y - 0.72 * size, centerX + half,
+            y + 0.25 * size);
+      }
+    }
+  }
+
+  /// The letter name of [pitch] with any accidental (`C`, `F#`, `Bb`, `Gx`).
+  static String _noteName(Pitch pitch) {
+    final letter = pitch.step.name.toUpperCase();
+    final alter = pitch.alter;
+    final accidental = switch (alter) {
+      0 => '',
+      2 => 'x',
+      -2 => 'bb',
+      _ => alter > 0 ? '#' * alter : 'b' * -alter,
+    };
+    return '$letter$accidental';
   }
 
   /// Jazz / brass articulations (scoop, doit, fall, plop): a small brass

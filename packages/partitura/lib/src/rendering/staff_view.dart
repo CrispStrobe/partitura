@@ -37,6 +37,10 @@ class StaffView extends LeafRenderObjectWidget {
   /// [PartituraTheme.elementColors]; a highlight still wins over both.
   final Map<String, Color> elementColors;
 
+  /// Draws the educational note-name overlay (the pitch letter under each
+  /// note) — for teaching/beginner views.
+  final bool showNoteNames;
+
   /// Called with the element id when the user taps an element.
   final void Function(String elementId)? onElementTap;
 
@@ -48,6 +52,7 @@ class StaffView extends LeafRenderObjectWidget {
     this.staffSpace,
     this.highlightedIds = const {},
     this.elementColors = const {},
+    this.showNoteNames = false,
     this.onElementTap,
   });
 
@@ -58,6 +63,7 @@ class StaffView extends LeafRenderObjectWidget {
         staffSpace: staffSpace,
         highlightedIds: highlightedIds,
         elementColors: elementColors,
+        showNoteNames: showNoteNames,
       )..onElementTap = onElementTap;
 
   @override
@@ -68,6 +74,7 @@ class StaffView extends LeafRenderObjectWidget {
       ..staffSpace = staffSpace
       ..highlightedIds = highlightedIds
       ..elementColors = elementColors
+      ..showNoteNames = showNoteNames
       ..onElementTap = onElementTap;
   }
 }
@@ -114,11 +121,13 @@ class RenderStaffView extends RenderBox {
     double? staffSpace,
     required Set<String> highlightedIds,
     Map<String, Color> elementColors = const {},
+    bool showNoteNames = false,
   })  : _score = score,
         _theme = theme,
         _staffSpace = staffSpace,
         _highlightedIds = highlightedIds,
-        _elementColors = elementColors {
+        _elementColors = elementColors,
+        _showNoteNames = showNoteNames {
     _tap = TapGestureRecognizer(debugOwner: this)..onTapUp = _handleTapUp;
   }
 
@@ -206,6 +215,17 @@ class RenderStaffView extends RenderBox {
     markNeedsPaint();
   }
 
+  bool _showNoteNames;
+
+  /// Whether to draw the educational note-name overlay. Changes the display
+  /// list, so this relayouts.
+  bool get showNoteNames => _showNoteNames;
+  set showNoteNames(bool value) {
+    if (value == _showNoteNames) return;
+    _showNoteNames = value;
+    markNeedsLayout();
+  }
+
   GhostNote? _ghostNote;
 
   /// Ghost-note preview; repaint only.
@@ -248,7 +268,8 @@ class RenderStaffView extends RenderBox {
         12 * space,
       ));
     }
-    final layout = _engine.layout(_score, _settingsFor(metadata));
+    final layout = _engine.layout(_score, _settingsFor(metadata),
+        showNoteNames: _showNoteNames);
     _layout = layout;
     _scale = _staffSpace ??
         (constraints.hasBoundedWidth

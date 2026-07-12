@@ -2,6 +2,11 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Note-name overlay** (Phase 3.2): a `showNoteNames` layout option draws the
+  pitch letter (with accidental — `C`, `F#`, `Bb`) under each note in a row
+  below the staff, a chord stacking its letters — the ubiquitous teaching aid.
+  Exposed as `StaffView.showNoteNames`; since it's in the display list, the SVG
+  back-end renders it too (golden 73).
 - **Per-element note coloring, end to end** (Phase 5.1 / interactivity): the
   Flutter painter already colored elements via `PartituraTheme.elementColors`;
   now it is also a first-class **`StaffView.elementColors`** render param

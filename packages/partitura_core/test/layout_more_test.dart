@@ -357,6 +357,40 @@ void main() {
     });
   });
 
+  group('note-name overlay', () {
+    List<String> namesOf(Score score) => const LayoutEngine()
+        .layout(score, settings, showNoteNames: true)
+        .primitives
+        .whereType<TextPrimitive>()
+        .map((t) => t.text)
+        .toList();
+
+    test('shows the pitch letter under each note', () {
+      expect(namesOf(Score.simple(notes: 'c4:q e4 g4')),
+          containsAll(<String>['C', 'E', 'G']));
+    });
+
+    test('includes accidentals', () {
+      expect(namesOf(Score.simple(notes: 'f#4:q bb4 cn5')),
+          containsAll(<String>['F#', 'Bb', 'C']));
+    });
+
+    test('a chord stacks all its letters', () {
+      expect(namesOf(Score.simple(notes: 'c4+e4+g4:q')),
+          containsAll(<String>['C', 'E', 'G']));
+    });
+
+    test('off by default (no stray letters)', () {
+      final layout = layoutOf(Score.simple(notes: 'c4:q'));
+      expect(
+        layout.primitives
+            .whereType<TextPrimitive>()
+            .where((t) => t.text == 'C'),
+        isEmpty,
+      );
+    });
+  });
+
   group('breath marks', () {
     test('comma and caesura draw their glyphs after the note', () {
       final base = Score.simple(notes: 'c5:q d5');

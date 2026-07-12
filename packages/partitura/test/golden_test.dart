@@ -1080,6 +1080,38 @@ void main() {
     );
   });
 
+  testWidgets('73 note-name overlay for teaching views', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Colors.white,
+          body: Center(
+            child: RepaintBoundary(
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(12),
+                child: StaffView(
+                  score: Score.simple(
+                    timeSignature: TimeSignature.fourFour,
+                    notes: 'c4:q d4 e4 f4 | g4 a4 b4 c5',
+                  ),
+                  staffSpace: 12,
+                  showNoteNames: true,
+                  theme: const PartituraTheme(textFontFamily: 'Roboto'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await expectLater(
+      find.byType(RepaintBoundary).last,
+      matchesGoldenFile('goldens/73_note_names.png'),
+    );
+  });
+
   testWidgets('72 per-element note coloring', (tester) async {
     // App-supplied colors: a couple of notes red and green (e.g. out-of-range
     // or right/wrong feedback) while the rest stay the default ink.
