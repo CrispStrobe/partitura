@@ -16,7 +16,7 @@ contract ([HANDOVER.md](HANDOVER.md), amended by
 |---|---|---|
 | [`partitura_core`](packages/partitura_core) | Music theory model (pitch, duration, key, scale, chord, harmonic function), score document model, deterministic layout engine. Pure Dart. | Dart SDK only |
 | [`partitura`](packages/partitura) | Flutter rendering (`StaffView`) and interaction (`InteractiveStaff`): hit-testing, selection, drag-to-staff. Bundles the Bravura SMuFL font. | Flutter, `partitura_core` |
-| [`partitura_cli`](packages/partitura_cli) | Command-line tool: inspect scores, convert between MusicXML / MIDI / MuseScore / `.gp` / ABC, render to SVG (notation or tab). Pure Dart. | `partitura_core` |
+| [`partitura_cli`](packages/partitura_cli) | Command-line tool: inspect scores, convert between MusicXML / `.mxl` / MIDI / MuseScore / `.gp` / ABC, render to SVG (notation or tab). Pure Dart. | `partitura_core` |
 
 ## Why another notation library?
 
@@ -43,10 +43,10 @@ neutral percussion clef.
 symbols, jazz articulations, breath marks, custom noteheads and per-element
 coloring, and full guitar **tablature** with techniques.
 
-**Interchange.** MusicXML, MIDI, MuseScore (`.mscx`/`.mscz`), the
-`.gp3`–`.gp5`/`.gpx`/`.gp` tablature family (with GPIF), and ABC — all
-importing and (where applicable) exporting through the one `Score` model, so
-any pair round-trips for shared data.
+**Interchange.** MusicXML (plain and compressed `.mxl`), MIDI, MuseScore
+(`.mscx`/`.mscz`), the `.gp3`–`.gp5`/`.gpx`/`.gp` tablature family (with GPIF),
+and ABC — all importing and (where applicable) exporting through the one
+`Score` model, so any pair round-trips for shared data.
 
 **Beyond the category.** A renderer-free deterministic layout engine,
 hit-testing, a highlight/timing pipeline, educational overlays (note names,

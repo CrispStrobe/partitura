@@ -18,6 +18,8 @@ export 'src/interchange/deflate.dart';
 export 'src/interchange/gp_container.dart';
 export 'src/interchange/inflate.dart';
 export 'src/interchange/mscz_container.dart';
+export 'src/interchange/mxl_container.dart';
+export 'src/interchange/zip.dart';
 export 'src/layout/grand_staff.dart';
 export 'src/layout/layout_engine.dart' show LayoutEngine;
 export 'src/layout/layout_settings.dart';

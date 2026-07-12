@@ -36,13 +36,13 @@ Commands:
                                        the Flutter SDK)
 
 Common:
-  --from <musicxml|midi|abc|asciitab|mscx|mscz|gp|gpx|gp5|gp4|gp3|gpif>
-                                       Force the input format (.abc = ABC;
-                                       .tab/.crd/.txt are plain-text tab;
-                                       .mscx/.mscz = MuseScore XML / zip;
-                                       .gp = v7/8, .gpx = v6,
+  --from <musicxml|mxl|midi|abc|asciitab|mscx|mscz|gp|gpx|gp5|gp4|gp3|gpif>
+                                       Force the input format (.mxl = zipped
+                                       MusicXML; .abc = ABC; .tab/.crd/.txt are
+                                       plain-text tab; .mscx/.mscz = MuseScore
+                                       XML / zip; .gp = v7/8, .gpx = v6,
                                        .gp5/.gp4/.gp3 = binary tab)
-  --to   <musicxml|midi|abc|mscx|mscz|gp|gpif>
+  --to   <musicxml|mxl|midi|abc|mscx|mscz|gp|gpif>
                                        Force the convert output format
 
 render options:
@@ -153,6 +153,9 @@ int _convert(List<String> args) {
   switch (outFormat) {
     case 'musicxml':
       File(outPath).writeAsStringSync(scoreToMusicXml(score));
+    case 'mxl':
+      File(outPath)
+          .writeAsBytesSync(writeMusicXmlToMxl(scoreToMusicXml(score)));
     case 'midi':
       File(outPath).writeAsBytesSync(scoreToMidi(score));
     case 'abc':
@@ -227,6 +230,8 @@ Score _loadScore(String path, Map<String, String> options) {
   switch (options['from'] ?? _formatOf(path)) {
     case 'musicxml':
       return scoreFromMusicXml(file.readAsStringSync());
+    case 'mxl':
+      return scoreFromMusicXml(readMusicXmlFromMxl(file.readAsBytesSync()));
     case 'midi':
       return scoreFromMidi(file.readAsBytesSync());
     case 'abc':
@@ -273,6 +278,7 @@ Tuning _tuningOf(String? name) => switch (name) {
 String _formatOf(String path) {
   final lower = path.toLowerCase();
   if (lower.endsWith('.mid') || lower.endsWith('.midi')) return 'midi';
+  if (lower.endsWith('.mxl')) return 'mxl';
   if (lower.endsWith('.xml') || lower.endsWith('.musicxml')) return 'musicxml';
   if (lower.endsWith('.svg')) return 'svg';
   if (lower.endsWith('.png')) return 'png';

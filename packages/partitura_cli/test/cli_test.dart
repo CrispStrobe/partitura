@@ -94,6 +94,22 @@ void main() {
     expect(pitches, containsAll(['C4', 'D4', 'E4', 'F4', 'G4', 'A4']));
   });
 
+  test('convert MusicXML → .mxl (compressed) round-trips the pitches',
+      () async {
+    final mxl = '${tmp.path}/out.mxl';
+    final xml = '${tmp.path}/rt2.musicxml';
+    expect((await run(['convert', samplePath, mxl])).exitCode, 0);
+    expect(File(mxl).readAsBytesSync().sublist(0, 2), [0x50, 0x4B]); // "PK"
+    expect((await run(['convert', mxl, xml])).exitCode, 0);
+    final pitches = scoreFromMusicXml(File(xml).readAsStringSync())
+        .measures
+        .expand((m) => m.elements)
+        .whereType<NoteElement>()
+        .expand((n) => n.pitches)
+        .map((p) => p.toString());
+    expect(pitches, containsAll(['C4', 'D4', 'E4', 'F4', 'G4', 'A4']));
+  });
+
   test('render writes an SVG with the clef glyph', () async {
     final out = '${tmp.path}/out.svg';
     final r =

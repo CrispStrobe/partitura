@@ -2,6 +2,14 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Compressed MusicXML (`.mxl`) import & export** (Phase 7.3): `.mxl` — the
+  zipped MusicXML that Sibelius, Finale, Dorico and MuseScore all read and write
+  — pairs the existing MusicXML codec with the new web-safe ZIP.
+  `writeMusicXmlToMxl` / `readMusicXmlFromMxl` (the latter follows the
+  `META-INF/container.xml` rootfile, falling back to the first non-`META-INF`
+  `.xml`); the CLI gains `.mxl` in+out. A shared `zip.dart` (`zipArchive` /
+  `readZipEntry`) now backs the container codecs. Round-trips through the shared
+  `Score`; verified in the WASM smoke too.
 - **Pure-Dart DEFLATE encoder**: `deflate` (RFC 1951 — greedy LZ77 over a 32 KB
   hash-chain window + fixed Huffman) completes the compression pair with
   `inflate`. The `.gp`/`.mscz` ZIP writers now emit **compressed** (method-8)

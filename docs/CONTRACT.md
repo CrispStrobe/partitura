@@ -305,6 +305,13 @@ the subset cannot represent throw `FormatException`. Elements get ids
 I/O — pass the document contents as a string. Dependency-free (core
 ships its own minimal XML reader).
 
+**Compressed MusicXML (`.mxl`).** `writeMusicXmlToMxl(musicXml)` /
+`readMusicXmlFromMxl(bytes)` wrap/unwrap the standard `.mxl` ZIP (the
+interchange format Sibelius / Finale / Dorico / MuseScore share), composing
+with `scoreTo`/`scoreFromMusicXml`. Reading follows the
+`META-INF/container.xml` rootfile, else the first non-`META-INF` `.xml`. Pure
+Dart (web-safe): the archive deflates/inflates through the in-repo `zip.dart`.
+
 ## 5c. Playback cursor (`partitura_core`)
 
 `playbackTimeline(score, {expandRepeats = true})` → sorted

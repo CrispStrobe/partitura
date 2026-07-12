@@ -51,6 +51,8 @@ void main() {
   final inflated = String.fromCharCodes(inflate(Uint8List.fromList(_deflated)));
   final viaMscz =
       scoreFromMscx(readMscxFromMscz(writeMsczFromMscx(scoreToMscx(source))));
+  final viaMxl = scoreFromMusicXml(
+      readMusicXmlFromMxl(writeMusicXmlToMxl(scoreToMusicXml(source))));
 
   int noteCount(Score s) => s.measures
       .expand((m) => [...m.elements, ...m.voice2])
@@ -68,6 +70,7 @@ void main() {
     'inflate (RFC 1951)':
         inflated.length == 153 && inflated.startsWith('partitura inflates'),
     '.mscz container round-trip': noteCount(viaMscz) == noteCount(source),
+    '.mxl container round-trip': noteCount(viaMxl) == noteCount(source),
   };
 
   for (final entry in checks.entries) {
