@@ -451,12 +451,14 @@ class _LayoutBuilder {
         Clef.treble8va => (SmuflGlyph.gClef8va, 2),
         Clef.treble8vb => (SmuflGlyph.gClef8vb, 2),
         Clef.bass8vb => (SmuflGlyph.fClef8vb, 6),
+        Clef.percussion => (SmuflGlyph.percussionClef, 4), // centered
       };
 
   /// Rule 2: key signature in standard order at conventional octaves.
   void _layoutKeySignature() {
     final fifths = _key.fifths;
-    if (fifths == 0) return;
+    // A neutral percussion staff carries no key signature.
+    if (fifths == 0 || _clef == Clef.percussion) return;
     final count = fifths.abs();
     final table = fifths > 0 ? _sharpPositions[_clef]! : _flatPositions[_clef]!;
     final glyph =

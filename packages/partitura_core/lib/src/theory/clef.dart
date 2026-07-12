@@ -27,7 +27,12 @@ enum Clef {
   treble8vb,
 
   /// F clef sounding an octave lower (8 below; double bass notation).
-  bass8vb;
+  bass8vb,
+
+  /// Neutral / unpitched percussion clef (two vertical strokes). Carries no
+  /// pitch reference; pitched content is placed as in treble so a drum staff
+  /// still lays out on the five lines.
+  percussion;
 
   /// Absolute diatonic index ([Pitch.diatonicIndex]) of the natural pitch
   /// sitting on the bottom staff line: E4 (30) for treble, G2 (18) for
@@ -41,6 +46,7 @@ enum Clef {
         Clef.treble8va => 37,
         Clef.treble8vb => 23,
         Clef.bass8vb => 11,
+        Clef.percussion => 30, // neutral; same reference as treble
       };
 
   /// The natural (unaltered) pitch at [staffPosition], where 0 is the bottom

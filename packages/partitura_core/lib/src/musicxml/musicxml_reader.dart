@@ -566,6 +566,7 @@ class _PartReader {
       ('F', _, _) => Clef.bass,
       ('C', 4, _) => Clef.tenor,
       ('C', _, _) => Clef.alto,
+      ('percussion', _, _) => Clef.percussion,
       _ => throw FormatException('Unsupported clef: $sign$line'),
     };
   }

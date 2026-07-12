@@ -328,6 +328,7 @@ void main() {
   group('structure sweep', () {
     test('every key signature lays out with correct count in both clefs', () {
       for (final clef in Clef.values) {
+        if (clef == Clef.percussion) continue; // neutral: no key signature
         for (var fifths = -7; fifths <= 7; fifths++) {
           final layout = layoutOf(Score(
             clef: clef,

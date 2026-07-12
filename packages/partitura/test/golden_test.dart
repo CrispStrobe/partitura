@@ -1214,6 +1214,40 @@ void main() {
     );
   });
 
+  testWidgets('83 percussion (neutral) clef', (tester) async {
+    await golden(
+      tester,
+      '83_percussion_clef',
+      Score(
+        clef: Clef.percussion,
+        timeSignature: TimeSignature.fourFour,
+        measures: [
+          Measure([
+            NoteElement.note(
+                const Pitch(Step.f, octave: 4), NoteDuration.quarter,
+                id: 'e0'),
+            NoteElement.note(
+                const Pitch(Step.c, octave: 5), NoteDuration.quarter,
+                id: 'e1'),
+            NoteElement.note(
+                const Pitch(Step.f, octave: 4), NoteDuration.quarter,
+                id: 'e2'),
+            NoteElement.note(
+                const Pitch(Step.c, octave: 5), NoteDuration.quarter,
+                id: 'e3'),
+          ]),
+          Measure([
+            NoteElement.note(
+                const Pitch(Step.f, octave: 4), NoteDuration.half, id: 'e4'),
+            NoteElement.note(
+                const Pitch(Step.c, octave: 5), NoteDuration.half, id: 'e5'),
+          ]),
+        ],
+      ),
+      staffSpace: 12,
+    );
+  });
+
   testWidgets('82 common and cut time symbols', (tester) async {
     await golden(
       tester,

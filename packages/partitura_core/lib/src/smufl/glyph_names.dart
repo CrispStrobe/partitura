@@ -20,6 +20,9 @@ abstract final class SmuflGlyph {
   /// C clef (alto/tenor).
   static const String cClef = 'cClef';
 
+  /// Neutral / unpitched percussion clef (two vertical strokes).
+  static const String percussionClef = 'unpitchedPercussionClef1';
+
   /// Breve (double whole) notehead.
   static const String noteheadDoubleWhole = 'noteheadDoubleWhole';
 

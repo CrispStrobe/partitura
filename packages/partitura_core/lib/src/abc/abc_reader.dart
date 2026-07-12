@@ -273,6 +273,8 @@ String _tempoNote(int num, int den) {
       clef = Clef.tenor;
     } else if (c.startsWith('treble')) {
       clef = Clef.treble;
+    } else if (c.startsWith('perc')) {
+      clef = Clef.percussion;
     }
   }
   return (id, clef);
@@ -307,6 +309,7 @@ Fraction? _parseUnitLength(String value) {
   if (low.contains('bass')) clef = Clef.bass;
   if (low.contains('alto')) clef = Clef.alto;
   if (low.contains('tenor')) clef = Clef.tenor;
+  if (low.contains('perc')) clef = Clef.percussion;
 
   // "none" and the bagpipe keys (Hp/HP) carry no standard signature.
   if (low.startsWith('none') || low.startsWith('hp')) {
