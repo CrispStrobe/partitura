@@ -41,6 +41,10 @@ class StaffView extends LeafRenderObjectWidget {
   /// note) — for teaching/beginner views.
   final bool showNoteNames;
 
+  /// Draws the educational rhythm-count overlay (the beat number / `+` above
+  /// each note) — for teaching/beginner views.
+  final bool showBeatNumbers;
+
   /// Called with the element id when the user taps an element.
   final void Function(String elementId)? onElementTap;
 
@@ -53,6 +57,7 @@ class StaffView extends LeafRenderObjectWidget {
     this.highlightedIds = const {},
     this.elementColors = const {},
     this.showNoteNames = false,
+    this.showBeatNumbers = false,
     this.onElementTap,
   });
 
@@ -64,6 +69,7 @@ class StaffView extends LeafRenderObjectWidget {
         highlightedIds: highlightedIds,
         elementColors: elementColors,
         showNoteNames: showNoteNames,
+        showBeatNumbers: showBeatNumbers,
       )..onElementTap = onElementTap;
 
   @override
@@ -75,6 +81,7 @@ class StaffView extends LeafRenderObjectWidget {
       ..highlightedIds = highlightedIds
       ..elementColors = elementColors
       ..showNoteNames = showNoteNames
+      ..showBeatNumbers = showBeatNumbers
       ..onElementTap = onElementTap;
   }
 }
@@ -122,12 +129,14 @@ class RenderStaffView extends RenderBox {
     required Set<String> highlightedIds,
     Map<String, Color> elementColors = const {},
     bool showNoteNames = false,
+    bool showBeatNumbers = false,
   })  : _score = score,
         _theme = theme,
         _staffSpace = staffSpace,
         _highlightedIds = highlightedIds,
         _elementColors = elementColors,
-        _showNoteNames = showNoteNames {
+        _showNoteNames = showNoteNames,
+        _showBeatNumbers = showBeatNumbers {
     _tap = TapGestureRecognizer(debugOwner: this)..onTapUp = _handleTapUp;
   }
 
@@ -226,6 +235,16 @@ class RenderStaffView extends RenderBox {
     markNeedsLayout();
   }
 
+  bool _showBeatNumbers;
+
+  /// Whether to draw the educational beat-count overlay. Relayouts.
+  bool get showBeatNumbers => _showBeatNumbers;
+  set showBeatNumbers(bool value) {
+    if (value == _showBeatNumbers) return;
+    _showBeatNumbers = value;
+    markNeedsLayout();
+  }
+
   GhostNote? _ghostNote;
 
   /// Ghost-note preview; repaint only.
@@ -269,7 +288,7 @@ class RenderStaffView extends RenderBox {
       ));
     }
     final layout = _engine.layout(_score, _settingsFor(metadata),
-        showNoteNames: _showNoteNames);
+        showNoteNames: _showNoteNames, showBeatNumbers: _showBeatNumbers);
     _layout = layout;
     _scale = _staffSpace ??
         (constraints.hasBoundedWidth

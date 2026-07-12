@@ -14,11 +14,13 @@
   round-trips through ABC for the data it shares (13 unit + round-trip tests).
   Wired into the CLI (`.abc` in/out, `--from`/`--to abc`). Validated against
   the abcjs example tune-book.
-- **Note-name overlay** (Phase 3.2): a `showNoteNames` layout option draws the
-  pitch letter (with accidental — `C`, `F#`, `Bb`) under each note in a row
-  below the staff, a chord stacking its letters — the ubiquitous teaching aid.
-  Exposed as `StaffView.showNoteNames`; since it's in the display list, the SVG
-  back-end renders it too (golden 73).
+- **Note-name & rhythm-count overlays** (Phase 3.2): `showNoteNames` draws the
+  pitch letter (with accidental — `C`, `F#`, `Bb`) under each note (a chord
+  stacks its letters); `showBeatNumbers` draws the counting overlay above the
+  staff — the beat number on each beat and `+` on the "and" (`1 + 2 + 3 + 4 +`).
+  Both are layout options (so the SVG back-end renders them too) exposed as
+  `StaffView.showNoteNames` / `.showBeatNumbers`; they coexist for a full
+  teaching view (goldens 73, 74).
 - **Per-element note coloring, end to end** (Phase 5.1 / interactivity): the
   Flutter painter already colored elements via `PartituraTheme.elementColors`;
   now it is also a first-class **`StaffView.elementColors`** render param

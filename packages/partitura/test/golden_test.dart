@@ -1080,6 +1080,39 @@ void main() {
     );
   });
 
+  testWidgets('74 beat-count overlay (with note names)', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Colors.white,
+          body: Center(
+            child: RepaintBoundary(
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(12),
+                child: StaffView(
+                  score: Score.simple(
+                    timeSignature: TimeSignature.fourFour,
+                    notes: 'c5:e d5 e5 f5 g5 a5 b5 c6 | c5:q e5 g5 c6',
+                  ),
+                  staffSpace: 12,
+                  showNoteNames: true,
+                  showBeatNumbers: true,
+                  theme: const PartituraTheme(textFontFamily: 'Roboto'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await expectLater(
+      find.byType(RepaintBoundary).last,
+      matchesGoldenFile('goldens/74_beat_numbers.png'),
+    );
+  });
+
   testWidgets('73 note-name overlay for teaching views', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

@@ -391,6 +391,43 @@ void main() {
     });
   });
 
+  group('beat-count overlay', () {
+    List<String> beatsOf(Score score) => const LayoutEngine()
+        .layout(score, settings, showBeatNumbers: true)
+        .primitives
+        .whereType<TextPrimitive>()
+        .map((t) => t.text)
+        .toList();
+
+    test('eighth notes count "1 + 2 + 3 + 4 +"', () {
+      expect(
+        beatsOf(Score.simple(
+          timeSignature: TimeSignature.fourFour,
+          notes: 'c5:e d5 e5 f5 g5 a5 b5 c6',
+        )),
+        ['1', '+', '2', '+', '3', '+', '4', '+'],
+      );
+    });
+
+    test('quarter notes count "1 2 3 4"', () {
+      expect(
+        beatsOf(Score.simple(
+          timeSignature: TimeSignature.fourFour,
+          notes: 'c5:q d5 e5 f5',
+        )),
+        ['1', '2', '3', '4'],
+      );
+    });
+
+    test('off by default', () {
+      final layout = layoutOf(Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'c5:q d5 e5 f5',
+      ));
+      expect(layout.primitives.whereType<TextPrimitive>(), isEmpty);
+    });
+  });
+
   group('breath marks', () {
     test('comma and caesura draw their glyphs after the note', () {
       final base = Score.simple(notes: 'c5:q d5');

@@ -221,10 +221,12 @@ Rides the existing cursor + selection; no audio needed.
       hand) and a guitar fretboard that light up as the playback cursor
       advances. The single highest-differentiation feature; pairs directly
       with the no-audio timing map.
-- [~] **3.2 Note-name & rhythm-count overlays** — **Done:** the note-name
-      overlay (`showNoteNames` layout option / `StaffView.showNoteNames`; pitch
-      letter + accidental under each note, chords stacked; renders in both
-      back-ends; golden 73). **Left:** the beat/rhythm-count overlay.
+- [x] **3.2 Note-name & rhythm-count overlays** — the note-name overlay
+      (`showNoteNames`; pitch letter + accidental under each note, chords
+      stacked; golden 73) and the rhythm-count overlay (`showBeatNumbers`; beat
+      number + `+` above each note — `1 + 2 + 3 + 4 +`; golden 74). Both are
+      layout options (rendering in both back-ends) exposed on `StaffView`, and
+      coexist for a full teaching view.
 - [ ] **3.3 Drag-to-loop + section looping** — select a passage that snaps to
       note/rest/barline; the practice primitive for slowdown/looping apps.
 - [ ] **3.4 Error / annotation overlay** — paint specific notes as

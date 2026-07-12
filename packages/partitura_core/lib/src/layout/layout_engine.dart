@@ -52,6 +52,7 @@ class LayoutEngine {
     bool drawTimeSignature = true,
     bool finalBarline = true,
     bool showNoteNames = false,
+    bool showBeatNumbers = false,
   }) =>
       _LayoutBuilder(score, settings,
               leadingWidth: leadingWidth,
@@ -59,7 +60,8 @@ class LayoutEngine {
               spacingStretch: spacingStretch,
               drawTimeSignature: drawTimeSignature,
               finalBarline: finalBarline,
-              showNoteNames: showNoteNames)
+              showNoteNames: showNoteNames,
+              showBeatNumbers: showBeatNumbers)
           .build();
 }
 
@@ -159,6 +161,7 @@ class _LayoutBuilder {
   final bool drawTimeSignature;
   final bool finalBarline;
   final bool showNoteNames;
+  final bool showBeatNumbers;
   SmuflMetadata get meta => s.metadata;
 
   final List<LayoutPrimitive> _primitives = [];
@@ -213,7 +216,8 @@ class _LayoutBuilder {
       this.spacingStretch = 1.0,
       this.drawTimeSignature = true,
       this.finalBarline = true,
-      this.showNoteNames = false});
+      this.showNoteNames = false,
+      this.showBeatNumbers = false});
 
   // Key signature accidental staff positions per clef, in writing order.
   // Bass/alto shift the treble pattern down 2/1 positions; the tenor sharp
@@ -288,6 +292,7 @@ class _LayoutBuilder {
     _layoutJazzArticulations();
     _layoutBreathMarks();
     _layoutChordDiagrams();
+    _layoutBeatNumbers();
     final width = _addFinalBarline();
 
     // Staff lines span the full width; paint them first.
@@ -1912,6 +1917,55 @@ class _LayoutBuilder {
             y + 0.25 * size);
       }
     }
+  }
+
+  /// Educational rhythm-count overlay ([LayoutEngine.layout] `showBeatNumbers`):
+  /// the beat number (`1`, `2`, …) above each note that lands on a beat, and
+  /// `+` on the half-beat "and", in a row above all other ink.
+  void _layoutBeatNumbers() {
+    if (!showBeatNumbers) return;
+    final size = s.lyricSize * 0.8;
+    final baseline = min(-1.5, _ink.minY - 0.4 - 0.25 * size);
+    final infoById = <String, _TieInfo>{
+      for (final info in _tieInfos)
+        if (info.id != null) info.id!: info,
+    };
+    var meter = score.timeSignature;
+    for (final measure in score.measures) {
+      meter = measure.timeChange ?? meter;
+      if (meter == null) continue;
+      var onset = Fraction.zero;
+      for (var i = 0; i < measure.elements.length; i++) {
+        final element = measure.elements[i];
+        final dur = measure.effectiveDurationAt(i);
+        if (element is NoteElement && element.id != null) {
+          final info = infoById[element.id];
+          final label = _beatLabel(onset, meter.beatUnit);
+          if (info != null && info.note != null && label != null) {
+            final centerX = (info.left + info.right) / 2;
+            final half = _estTextHalfWidth(label, size);
+            _primitives.add(TextPrimitive(
+              label,
+              Point(centerX, baseline),
+              size: size,
+              elementId: element.id,
+            ));
+            _expand(element.id, centerX - half, baseline - 0.72 * size,
+                centerX + half, baseline + 0.25 * size);
+          }
+        }
+        onset += dur;
+      }
+    }
+  }
+
+  /// The counting label for a note [onset] whole notes into its measure: the
+  /// beat number on a beat, `+` on the half-beat, else null (finer offbeats).
+  static String? _beatLabel(Fraction onset, int beatUnit) {
+    final beats = onset * Fraction(beatUnit, 1);
+    if (beats.denominator == 1) return '${beats.numerator + 1}';
+    if (beats.denominator == 2) return '+';
+    return null;
   }
 
   /// The letter name of [pitch] with any accidental (`C`, `F#`, `Bb`, `Gx`).
