@@ -2,6 +2,12 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Pagination / page layout** (Phase 2.5): `layoutPages` groups the
+  line-broken systems into pages of a `PageMetrics` box (page size + margins,
+  in staff spaces), packing systems by content height and vertically justifying
+  every page except the last (page-fill; extra space shared between systems).
+  The Flutter `ScorePageView` renders a single page at its exact aspect ratio
+  with margins and an optional page frame (golden 81).
 - **Transposing instruments + concert-pitch toggle** (Phase 2.6): a
   `Transposition` (written→sounding interval + direction + octaves, with named
   `bFlat`/`a`/`eFlat`/`f`/`bFlatTenor` constants) on `Score.transposition`.

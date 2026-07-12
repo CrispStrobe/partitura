@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart' hide Step;
+import 'package:flutter/material.dart' hide Step, PageMetrics;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:partitura/partitura.dart';
 
@@ -1211,6 +1211,40 @@ void main() {
       '79_bowing',
       scoreFromAbc('X:1\nM:4/4\nL:1/4\nK:C\nvG uA vB uc|vd2 uc2|\n'),
       staffSpace: 12,
+    );
+  });
+
+  testWidgets('81 paginated page with justified systems', (tester) async {
+    final score = Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: List.filled(16, 'c5:e d5 e5 f5 g5 a5 b5 c6').join(' | '),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Colors.white,
+          body: Center(
+            child: RepaintBoundary(
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(8),
+                child: ScorePageView(
+                  score: score,
+                  metrics: const PageMetrics(width: 56, height: 68),
+                  staffSpace: 7,
+                  systemGap: 7,
+                  drawPageBorder: true,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await expectLater(
+      find.byType(RepaintBoundary).last,
+      matchesGoldenFile('goldens/81_paginated_page.png'),
     );
   });
 

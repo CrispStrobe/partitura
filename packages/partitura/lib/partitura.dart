@@ -14,6 +14,7 @@ export 'src/rendering/bravura.dart';
 export 'src/rendering/grand_staff_view.dart';
 export 'src/rendering/multi_system_view.dart';
 export 'src/rendering/png_export.dart';
+export 'src/rendering/score_page_view.dart';
 export 'src/rendering/smufl_glyphs.dart';
 export 'src/rendering/staff_system_view.dart';
 export 'src/rendering/staff_view.dart';

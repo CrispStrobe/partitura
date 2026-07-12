@@ -221,9 +221,13 @@ Raises the quality of everything already rendered. Slice order:
       reads `1` (golden 80). Layout already tolerates irregular measures
       (content-proportional, no meter enforcement). **Left:** an explicit
       actual-vs-nominal measure length (for mid-piece irregular bars).
-- [ ] **2.5 Page-layout engine** — page size/margins, a spatium scaling unit,
-      vertical justification (staff/system distances, page-fill), explicit
-      page/section breaks, spacers, and frames (title/text/spacer blocks).
+- [~] **2.5 Page-layout engine** — **Done:** `layoutPages` paginates the broken
+      systems into `PageMetrics` pages (size + margins in staff spaces), packing
+      systems by content height and vertically justifying every page but the
+      last (page-fill); `ScorePageView` renders a single page at its exact
+      aspect ratio with margins and an optional frame (golden 81). **Left:** a
+      physical spatium/mm scaling unit, explicit page/section breaks, spacers,
+      and title/text frames.
 - [~] **2.6 Linked parts + transposing instruments + concert-pitch toggle** —
       **Done:** `Transposition` (interval + direction + octaves, with named
       B♭/A/E♭/F/tenor constants), `Score.transposition`, `Score.atConcertPitch()`
