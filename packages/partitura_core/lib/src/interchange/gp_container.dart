@@ -240,26 +240,38 @@ class _BitCursor {
 //   +0x8C  little-endian uint32 file size in bytes
 //   +0x94  a NUL-terminated list of little-endian uint32 data-sector indices.
 // The file's bytes are the referenced data sectors concatenated and truncated
-// to the recorded size.
+// to the recorded size. Sectors claimed as one file's data are skipped when the
+// scan continues, so a data sector whose first word happens to be `2` can never
+// be mistaken for a file header.
 // ---------------------------------------------------------------------------
 
 const int _sector = 0x1000;
 const int _bcfsBase = 4; // sectors are indexed after the "BCFS" magic
 
 Uint8List? _bcfsFindGpif(Uint8List image) {
+  final claimed = <int>{}; // sector indices already spoken for as file data
   for (var s = 1; _bcfsBase + s * _sector + 0x94 <= image.length; s++) {
+    if (claimed.contains(s)) continue;
     final sec = _bcfsBase + s * _sector;
     if (_u32le(image, sec) != 2) continue;
+
+    // Read the header's data-sector chain once — it both marks those sectors as
+    // data (so they are not re-scanned as headers) and locates the file bytes.
+    final chain = <int>[];
+    for (var i = sec + 0x94; i + 4 <= image.length; i += 4) {
+      final index = _u32le(image, i);
+      if (index == 0) break;
+      chain.add(index);
+    }
+    claimed.addAll(chain);
+
     final name = _asciiZ(image, sec + 0x04, 0x88);
     if (!name.toLowerCase().endsWith('.gpif')) continue;
 
     final size = _u32le(image, sec + 0x8C);
     final data = <int>[];
-    for (var i = sec + 0x94;
-        i + 4 <= image.length && data.length < size;
-        i += 4) {
-      final index = _u32le(image, i);
-      if (index == 0) break;
+    for (final index in chain) {
+      if (data.length >= size) break;
       final start = _bcfsBase + index * _sector;
       if (start >= image.length) break;
       final end = start + _sector;
