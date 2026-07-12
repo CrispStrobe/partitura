@@ -143,7 +143,13 @@ class _PartWriter {
 
   void _writeMeasure(int index) {
     final measure = score.measures[index];
-    out.writeln('    <measure number="${index + 1}">');
+    // Pickups are number="0" implicit="yes" and are not counted; other
+    // measures number sequentially from 1.
+    final priorNonPickup =
+        score.measures.take(index).where((m) => !m.pickup).length;
+    final number = measure.pickup ? 0 : priorNonPickup + 1;
+    final implicit = measure.pickup ? ' implicit="yes"' : '';
+    out.writeln('    <measure number="$number"$implicit>');
 
     if (index == 0 ||
         measure.clefChange != null ||

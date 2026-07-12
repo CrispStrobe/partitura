@@ -2,6 +2,14 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Pickup / anacrusis measures** (Phase 2.4): `Measure.pickup` marks an
+  intentionally incomplete opening bar. A short first bar under a known meter is
+  auto-detected as a pickup (both the `Score.simple` DSL and ABC import);
+  MusicXML reads/writes it as `<measure implicit="yes">` with anacrusis-aware
+  renumbering (the pickup is `number="0"`, real bars count from 1). A new
+  `showMeasureNumbers` layout/`StaffView` option draws bar numbers above each
+  measure, skipping the pickup so the first full bar reads `1` (golden 80).
+  `Measure.copyWith` added.
 - **N-staff systems** (Phase 2.1): `StaffSystem` (N `Score` staves + optional
   `StaffBracket` brace/bracket groups) and `layoutStaffSystem` — generalizes
   the two-staff grand staff to any number of staves, laying each out with the

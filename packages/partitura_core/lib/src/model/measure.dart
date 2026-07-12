@@ -179,6 +179,12 @@ class Measure {
   /// [endRepeat] is set (the repeat barline wins).
   final BarlineStyle barline;
 
+  /// Whether this is a pickup (anacrusis) — an intentionally incomplete
+  /// measure that is not counted in bar numbering. Conventionally the first
+  /// measure of a tune when it is shorter than the meter; maps to MusicXML's
+  /// `implicit="yes"`.
+  final bool pickup;
+
   /// Creates a measure from [elements] (treat the lists as immutable).
   const Measure(
     this.elements, {
@@ -193,10 +199,43 @@ class Measure {
     this.multiRest,
     this.navigation,
     this.barline = BarlineStyle.normal,
+    this.pickup = false,
   })  : assert(volta == null || volta >= 1, 'volta must be >= 1'),
         assert(multiRest == null || multiRest >= 2, 'multiRest must be >= 2'),
         assert(multiRest == null || elements.length == 0,
             'a multi-measure rest holds no elements');
+
+  /// A copy of this measure with the given fields replaced.
+  Measure copyWith({
+    List<MusicElement>? elements,
+    List<MusicElement>? voice2,
+    List<TupletSpan>? tuplets,
+    Clef? clefChange,
+    KeySignature? keyChange,
+    TimeSignature? timeChange,
+    bool? startRepeat,
+    bool? endRepeat,
+    int? volta,
+    int? multiRest,
+    NavigationMark? navigation,
+    BarlineStyle? barline,
+    bool? pickup,
+  }) =>
+      Measure(
+        elements ?? this.elements,
+        voice2: voice2 ?? this.voice2,
+        tuplets: tuplets ?? this.tuplets,
+        clefChange: clefChange ?? this.clefChange,
+        keyChange: keyChange ?? this.keyChange,
+        timeChange: timeChange ?? this.timeChange,
+        startRepeat: startRepeat ?? this.startRepeat,
+        endRepeat: endRepeat ?? this.endRepeat,
+        volta: volta ?? this.volta,
+        multiRest: multiRest ?? this.multiRest,
+        navigation: navigation ?? this.navigation,
+        barline: barline ?? this.barline,
+        pickup: pickup ?? this.pickup,
+      );
 
   /// The sounding duration of the element at [index] as an exact fraction
   /// of a whole note, scaled by its tuplet span if any: a triplet eighth
@@ -240,7 +279,8 @@ class Measure {
       other.volta == volta &&
       other.multiRest == multiRest &&
       other.navigation == navigation &&
-      other.barline == barline;
+      other.barline == barline &&
+      other.pickup == pickup;
 
   @override
   int get hashCode => Object.hash(
@@ -255,10 +295,27 @@ class Measure {
       volta,
       multiRest,
       navigation,
-      barline);
+      barline,
+      pickup);
 
   @override
   String toString() => 'Measure(${elements.length} elements'
       '${voice2.isEmpty ? '' : ' + ${voice2.length} in voice 2'}'
-      '${tuplets.isEmpty ? '' : ', ${tuplets.length} tuplets'})';
+      '${tuplets.isEmpty ? '' : ', ${tuplets.length} tuplets'}'
+      '${pickup ? ', pickup' : ''})';
+}
+
+/// Returns [measures] with the first flagged as a [Measure.pickup] anacrusis
+/// when the [meter] is known, there is more than one measure, and the first is
+/// a non-empty measure shorter than a full bar. Returns the input unchanged
+/// otherwise (so it is safe to call unconditionally). Encodes the universal
+/// engraving convention: a short opening bar is an upbeat, uncounted.
+List<Measure> withDetectedPickup(List<Measure> measures, TimeSignature? meter) {
+  if (meter == null || measures.length < 2) return measures;
+  final first = measures.first;
+  if (first.pickup || first.multiRest != null || first.elements.isEmpty) {
+    return measures;
+  }
+  if (first.totalDuration >= meter.toFraction()) return measures;
+  return [first.copyWith(pickup: true), ...measures.skip(1)];
 }

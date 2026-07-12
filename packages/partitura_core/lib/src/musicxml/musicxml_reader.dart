@@ -232,6 +232,9 @@ class _PartReader {
   String _newId() => 'e${idOffset + _nextId++}';
 
   void _readMeasure(XmlNode measureNode) {
+    // An implicit measure (or the conventional number="0") is a pickup.
+    final pickup = measureNode.attributes['implicit'] == 'yes' ||
+        measureNode.attributes['number'] == '0';
     final elements = <MusicElement>[];
     final voice2 = <MusicElement>[];
     final tuplets = <TupletSpan>[];
@@ -475,6 +478,7 @@ class _PartReader {
       multiRest: multiRest != null && multiRest >= 2 ? multiRest : null,
       navigation: navigation,
       barline: barline,
+      pickup: pickup,
     ));
   }
 

@@ -45,6 +45,10 @@ class StaffView extends LeafRenderObjectWidget {
   /// each note) — for teaching/beginner views.
   final bool showBeatNumbers;
 
+  /// Draws a small bar number above the start of each measure (pickups are
+  /// unnumbered, so the first full bar reads `1`).
+  final bool showMeasureNumbers;
+
   /// Called with the element id when the user taps an element.
   final void Function(String elementId)? onElementTap;
 
@@ -58,6 +62,7 @@ class StaffView extends LeafRenderObjectWidget {
     this.elementColors = const {},
     this.showNoteNames = false,
     this.showBeatNumbers = false,
+    this.showMeasureNumbers = false,
     this.onElementTap,
   });
 
@@ -70,6 +75,7 @@ class StaffView extends LeafRenderObjectWidget {
         elementColors: elementColors,
         showNoteNames: showNoteNames,
         showBeatNumbers: showBeatNumbers,
+        showMeasureNumbers: showMeasureNumbers,
       )..onElementTap = onElementTap;
 
   @override
@@ -82,6 +88,7 @@ class StaffView extends LeafRenderObjectWidget {
       ..elementColors = elementColors
       ..showNoteNames = showNoteNames
       ..showBeatNumbers = showBeatNumbers
+      ..showMeasureNumbers = showMeasureNumbers
       ..onElementTap = onElementTap;
   }
 }
@@ -130,13 +137,15 @@ class RenderStaffView extends RenderBox {
     Map<String, Color> elementColors = const {},
     bool showNoteNames = false,
     bool showBeatNumbers = false,
+    bool showMeasureNumbers = false,
   })  : _score = score,
         _theme = theme,
         _staffSpace = staffSpace,
         _highlightedIds = highlightedIds,
         _elementColors = elementColors,
         _showNoteNames = showNoteNames,
-        _showBeatNumbers = showBeatNumbers {
+        _showBeatNumbers = showBeatNumbers,
+        _showMeasureNumbers = showMeasureNumbers {
     _tap = TapGestureRecognizer(debugOwner: this)..onTapUp = _handleTapUp;
   }
 
@@ -245,6 +254,16 @@ class RenderStaffView extends RenderBox {
     markNeedsLayout();
   }
 
+  bool _showMeasureNumbers;
+
+  /// Whether to draw bar numbers above each measure. Relayouts.
+  bool get showMeasureNumbers => _showMeasureNumbers;
+  set showMeasureNumbers(bool value) {
+    if (value == _showMeasureNumbers) return;
+    _showMeasureNumbers = value;
+    markNeedsLayout();
+  }
+
   GhostNote? _ghostNote;
 
   /// Ghost-note preview; repaint only.
@@ -288,7 +307,9 @@ class RenderStaffView extends RenderBox {
       ));
     }
     final layout = _engine.layout(_score, _settingsFor(metadata),
-        showNoteNames: _showNoteNames, showBeatNumbers: _showBeatNumbers);
+        showNoteNames: _showNoteNames,
+        showBeatNumbers: _showBeatNumbers,
+        showMeasureNumbers: _showMeasureNumbers);
     _layout = layout;
     _scale = _staffSpace ??
         (constraints.hasBoundedWidth

@@ -211,16 +211,24 @@ Raises the quality of everything already rendered. Slice order:
 - [ ] **2.3 Hide-empty / ossia / divisi / cutaway staves** — dynamic staff
       count: drop empty staves per system, add temporary alternative (ossia)
       staves, split a part into subsections, remove empty bars.
-- [ ] **2.4 Pickup / anacrusis + actual-vs-nominal measure duration +
+- [~] **2.4 Pickup / anacrusis + actual-vs-nominal measure duration +
       irregular measures** — foundational; a large fraction of real pieces
       need a partial first bar or a metric length differing from the notated
-      one.
+      one. **Done:** `Measure.pickup` (anacrusis) with auto-detection of a
+      short opening bar under a known meter (DSL + ABC), MusicXML
+      `implicit="yes"` read/write with anacrusis-aware renumbering, and a
+      `showMeasureNumbers` overlay that skips the pickup so the first full bar
+      reads `1` (golden 80). Layout already tolerates irregular measures
+      (content-proportional, no meter enforcement). **Left:** an explicit
+      actual-vs-nominal measure length (for mid-piece irregular bars).
 - [ ] **2.5 Page-layout engine** — page size/margins, a spatium scaling unit,
       vertical justification (staff/system distances, page-fill), explicit
       page/section breaks, spacers, and frames (title/text/spacer blocks).
 - [ ] **2.6 Linked parts + transposing instruments + concert-pitch toggle.**
-- [ ] **2.7 Measure-numbering system** (per-system/interval, per-measure
-      overrides, section reset) + measure-repeat signs (1/2/4-bar).
+- [~] **2.7 Measure-numbering system** — **Done:** a `showMeasureNumbers`
+      overlay numbering every measure (anacrusis-aware; delivered with 2.4).
+      **Left:** per-system-only / every-N numbering, per-measure overrides,
+      section reset, and measure-repeat signs (1/2/4-bar).
 
 ### Phase 3 — Interactivity  *(the moat — where partitura wins)*
 Rides the existing cursor + selection; no audio needed.

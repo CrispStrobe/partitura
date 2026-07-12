@@ -487,7 +487,8 @@ class Score {
       clef: clef,
       keySignature: keySignature,
       timeSignature: timeSignature,
-      measures: measures,
+      // A short opening bar under a known meter is an anacrusis (uncounted).
+      measures: withDetectedPickup(measures, timeSignature),
       slurs: slurs,
       lyrics: lyrics == null ? const [] : _parseLyrics(lyrics, measures),
       annotations: annotations == null
@@ -628,6 +629,7 @@ class Score {
             multiRest: measure.multiRest,
             navigation: measure.navigation,
             barline: measure.barline,
+            pickup: measure.pickup,
           ),
       ],
       slurs: slurs,

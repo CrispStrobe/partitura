@@ -1214,6 +1214,39 @@ void main() {
     );
   });
 
+  testWidgets('80 measure numbers with a pickup (anacrusis)', (tester) async {
+    // A quarter-note upbeat, then full 4/4 bars: the pickup is unnumbered and
+    // the first full bar reads 1.
+    final score =
+        scoreFromAbc('X:1\nM:4/4\nL:1/4\nK:G\nD|G G G A|B B B2|A A A B|G4|\n');
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Colors.white,
+          body: Center(
+            child: RepaintBoundary(
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(12),
+                child: StaffView(
+                  score: score,
+                  staffSpace: 11,
+                  showMeasureNumbers: true,
+                  theme: const PartituraTheme(textFontFamily: 'Roboto'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await expectLater(
+      find.byType(RepaintBoundary).last,
+      matchesGoldenFile('goldens/80_measure_numbers_pickup.png'),
+    );
+  });
+
   testWidgets('78 nested brackets: an outer bracket over an inner brace',
       (tester) async {
     final system = StaffSystem([

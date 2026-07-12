@@ -87,7 +87,7 @@ class _Tune {
         ? [
             Measure([RestElement(NoteDuration.whole, id: '${prefix}0')])
           ]
-        : parser.measures;
+        : withDetectedPickup(parser.measures, meter);
     final voiceLyrics = _alignLyrics(lyrics[id] ?? const [], parser.noteOrder);
 
     // The header tempo sits above the first note of the top staff.

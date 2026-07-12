@@ -53,6 +53,7 @@ class LayoutEngine {
     bool finalBarline = true,
     bool showNoteNames = false,
     bool showBeatNumbers = false,
+    bool showMeasureNumbers = false,
   }) =>
       _LayoutBuilder(score, settings,
               leadingWidth: leadingWidth,
@@ -61,7 +62,8 @@ class LayoutEngine {
               drawTimeSignature: drawTimeSignature,
               finalBarline: finalBarline,
               showNoteNames: showNoteNames,
-              showBeatNumbers: showBeatNumbers)
+              showBeatNumbers: showBeatNumbers,
+              showMeasureNumbers: showMeasureNumbers)
           .build();
 }
 
@@ -162,6 +164,7 @@ class _LayoutBuilder {
   final bool finalBarline;
   final bool showNoteNames;
   final bool showBeatNumbers;
+  final bool showMeasureNumbers;
   SmuflMetadata get meta => s.metadata;
 
   final List<LayoutPrimitive> _primitives = [];
@@ -217,7 +220,8 @@ class _LayoutBuilder {
       this.drawTimeSignature = true,
       this.finalBarline = true,
       this.showNoteNames = false,
-      this.showBeatNumbers = false});
+      this.showBeatNumbers = false,
+      this.showMeasureNumbers = false});
 
   // Key signature accidental staff positions per clef, in writing order.
   // Bass/alto shift the treble pattern down 2/1 positions; the tenor sharp
@@ -293,6 +297,7 @@ class _LayoutBuilder {
     _layoutBreathMarks();
     _layoutChordDiagrams();
     _layoutBeatNumbers();
+    _layoutMeasureNumbers();
     final width = _addFinalBarline();
 
     // Staff lines span the full width; paint them first.
@@ -1967,6 +1972,45 @@ class _LayoutBuilder {
         }
         onset += dur;
       }
+    }
+  }
+
+  /// Measure-number overlay ([LayoutEngine.layout] `showMeasureNumbers`): a
+  /// small bar number above the start of each measure. Pickups (anacruses) are
+  /// unnumbered and don't advance the count, so the first full bar reads `1`.
+  void _layoutMeasureNumbers() {
+    if (!showMeasureNumbers) return;
+    final size = s.lyricSize * 0.8;
+    final baseline = min(-2.0, _ink.minY - 0.6 - 0.25 * size);
+    final infoById = <String, _TieInfo>{
+      for (final info in _tieInfos)
+        if (info.id != null) info.id!: info,
+    };
+    var barNo = 0;
+    for (final measure in score.measures) {
+      if (measure.pickup) continue; // anacrusis: uncounted, unnumbered
+      barNo++;
+      // Anchor at the leftmost laid-out element of the measure.
+      _TieInfo? anchor;
+      for (final element in measure.elements) {
+        final info = element.id == null ? null : infoById[element.id];
+        if (info != null) {
+          anchor = info;
+          break;
+        }
+      }
+      if (anchor == null) continue;
+      final label = '$barNo';
+      final half = _estTextHalfWidth(label, size);
+      final x = anchor.left + half;
+      _primitives.add(TextPrimitive(
+        label,
+        Point(x, baseline),
+        size: size,
+        elementId: anchor.id,
+      ));
+      _expand(anchor.id, x - half, baseline - 0.72 * size, x + half,
+          baseline + 0.25 * size);
     }
   }
 
