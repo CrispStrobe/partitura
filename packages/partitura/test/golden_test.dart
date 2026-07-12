@@ -1278,6 +1278,20 @@ void main() {
     );
   });
 
+  testWidgets('87 dense accidentals + articulations do not collide',
+      (tester) async {
+    await golden(
+      tester,
+      '87_dense_accidentals',
+      Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: "c#5:s' d#5' e5' f#5' g#5:s' a#5' b5' c#6' | "
+            "f#4:e a#4 c#5 e5 g#5:e b5 d#6 f#6",
+      ),
+      staffSpace: 12,
+    );
+  });
+
   testWidgets('86 skyline: chord symbols clear only local ink', (tester) async {
     // The chord symbols sit low over their own bar; the high ledger run in the
     // second bar (no symbols) does not lift them (per-column skyline).

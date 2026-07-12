@@ -184,10 +184,12 @@ Raises the quality of everything already rendered. Slice order:
       chord diagrams; **slurs** now arch above the full local skyline (interior
       articulations/accidentals/other marks), not just the spanned noteheads.
       The pass order (notes → ties → slurs → … → annotations/lyrics) means each
-      later mark clears the earlier ink. **Left:** per-column glyph stacking
-      (accidentals/articulations clearing each other across columns), and the
-      remaining educational overlays (which span the full line, so global ==
-      local there).
+      later mark clears the earlier ink. Dense accidental + articulation runs
+      render without collision (accidentals reserve horizontal space before the
+      note; chord accidentals stack in zig-zag columns — golden 87). **Left
+      (polish):** optical accidental-to-note micro-spacing and cross-voice
+      accidental collision; the educational overlays keep a single line (they
+      span the full width, so per-column == global there).
 - [ ] **1.3 Pluggable SMuFL fonts** — bundle and switch between multiple
       engraving fonts (a clean serif default, a jazz/handwritten face, etc.),
       reading engraving metrics (line thicknesses) from each font's metadata.
