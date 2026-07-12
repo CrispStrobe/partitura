@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:partitura_cli/src/gp_container.dart';
 import 'package:partitura_core/partitura_core.dart';
 import 'package:test/test.dart';
 

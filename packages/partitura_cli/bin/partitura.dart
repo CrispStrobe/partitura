@@ -19,8 +19,6 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:partitura_cli/src/gp_container.dart';
-import 'package:partitura_cli/src/mscz_container.dart';
 import 'package:partitura_core/partitura_core.dart';
 
 const _usage = '''

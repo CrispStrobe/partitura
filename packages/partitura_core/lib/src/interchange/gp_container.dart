@@ -1,13 +1,14 @@
 /// Container handling for the `.gp`/`.gpx` files, which wrap a `score.gpif` XML:
-/// `.gp` (v7/8) is a ZIP (uses `dart:io`'s DEFLATE), `.gpx` (v6) is a
-/// BCFZ-compressed BCFS filesystem (a pure bit/byte codec). Both extract the
-/// gpif for `scoreFromGpif`. Kept in the CLI (out of the web-safe core)
-/// because `.gp` needs `dart:io`.
+/// `.gp` (v7/8) is a ZIP, `.gpx` (v6) is a BCFZ-compressed BCFS filesystem (a
+/// pure bit/byte codec). Both extract the gpif for `scoreFromGpif`. Pure Dart
+/// (web-safe): deflated ZIP entries inflate through the in-repo [inflate], so
+/// no `dart:io` — reads work in the browser / WASM too.
 library;
 
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
+
+import 'inflate.dart';
 
 /// Extracts the `score.gpif` XML from a `.gp` archive's [bytes].
 String readGpifFromGp(Uint8List bytes) {
@@ -34,9 +35,7 @@ String readGpifFromGp(Uint8List bytes) {
       final lExtraLen = _u16(bytes, localOffset + 28);
       final dataStart = localOffset + 30 + lNameLen + lExtraLen;
       final comp = bytes.sublist(dataStart, dataStart + compSize);
-      final raw = method == 0
-          ? comp
-          : Uint8List.fromList(ZLibDecoder(raw: true).convert(comp));
+      final raw = method == 0 ? comp : inflate(comp);
       return utf8.decode(raw);
     }
     p += 46 + nameLen + extraLen + commentLen;

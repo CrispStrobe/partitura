@@ -17,8 +17,8 @@
 /// against the alphaTab `.gp` (v7) test corpus (pitches, chords, rhythm, techniques,
 /// multi-track).
 ///
-/// The zip/`.gp` container wrapping lives in the CLI (it needs `dart:io`); this
-/// module works on the `score.gpif` XML string directly.
+/// The zip/`.gp` container wrapping lives in `interchange/gp_container.dart`
+/// (web-safe); this module works on the `score.gpif` XML string directly.
 library;
 
 import '../model/element.dart';

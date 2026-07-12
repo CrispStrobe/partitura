@@ -1,13 +1,15 @@
 /// Container handling for the MuseScore `.mscz` file — a ZIP holding the
 /// `.mscx` score XML alongside `META-INF/container.xml` (and, in real files,
 /// thumbnails / metadata we ignore). Reading inflates whichever entry ends in
-/// `.mscx`; writing packs a minimal two-entry archive MuseScore can open. Kept
-/// in the CLI (out of the web-safe core) because it needs `dart:io`'s DEFLATE.
+/// `.mscx`; writing packs a minimal two-entry archive MuseScore can open. Pure
+/// Dart (web-safe): deflated entries inflate through the in-repo [inflate], so
+/// no `dart:io` — reads work in the browser / WASM too.
 library;
 
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
+
+import 'inflate.dart';
 
 /// Extracts the `.mscx` XML from a `.mscz` archive's [bytes]. Handles both
 /// stored (method 0) and deflated (method 8) entries.
@@ -35,9 +37,7 @@ String readMscxFromMscz(Uint8List bytes) {
       final lExtraLen = _u16(bytes, localOffset + 28);
       final dataStart = localOffset + 30 + lNameLen + lExtraLen;
       final comp = bytes.sublist(dataStart, dataStart + compSize);
-      final raw = method == 0
-          ? comp
-          : Uint8List.fromList(ZLibDecoder(raw: true).convert(comp));
+      final raw = method == 0 ? comp : inflate(comp);
       return utf8.decode(raw);
     }
     p += 46 + nameLen + extraLen + commentLen;

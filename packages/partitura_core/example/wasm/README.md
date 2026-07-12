@@ -55,10 +55,10 @@ where `notes` is a `Score.simple` DSL string (e.g. `"c4:q d4 e4 f4 | g4:h a4"`).
   + layout engine are asset-free and web-safe. Layout/SVG additionally need a
   SMuFL metadata JSON passed in at runtime, so they are omitted from this
   self-contained demo.
-- **Container formats that need `dart:io`** — the `.gp`/`.gpx`/`.mscz` ZIP and
-  BCFS wrappers — live in `partitura_cli`, not the core, so they are the one
-  part of the interchange surface not reachable from WASM as-is. The `.mscx`
-  and `.gpif` *XML* codecs (the payloads inside those containers) are web-safe;
-  only the archive unwrapping is host-side.
+- **Container reading is web-safe too.** The `.gp`/`.gpx`/`.mscz` ZIP and BCFS
+  wrappers now inflate through a pure-Dart `inflate` (RFC 1951) in the core, so
+  the smoke reads a real DEFLATE stream and round-trips a `.mscz` archive
+  entirely in WASM — no `dart:io`. Only reading/writing the actual *files* stays
+  in the CLI.
 - For the **Flutter renderer** (`package:partitura`), use Flutter web's WasmGC /
   `skwasm` renderer — no code changes needed.

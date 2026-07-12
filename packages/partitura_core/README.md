@@ -54,10 +54,12 @@ microtones (all planned); audio (never).
 core compiles to and runs as a WasmGC module via `dart compile wasm`
 (dart2wasm) — in the browser or any WASM host. See
 [`example/wasm/`](example/wasm/) for a runnable smoke test (verified under Node)
-and an in-browser JS-interop demo. The `dart:io`-based ZIP/BCFS container
-unwrapping for `.gp`/`.gpx`/`.mscz` lives in `partitura_cli`, not here; the
-`.mscx`/`.gpif` XML payloads themselves are web-safe. For the Flutter renderer,
-use Flutter web's WasmGC / `skwasm` renderer.
+and an in-browser JS-interop demo. The full interchange surface is web-safe —
+including the `.gp`/`.gpx`/`.mscz` ZIP/BCFS **container reading**, which uses a
+pure-Dart [`inflate`](lib/src/interchange/inflate.dart) (RFC 1951) instead of
+`dart:io`, so real compressed archives load in the browser too. Only file I/O
+itself stays in `partitura_cli`'s CLI. For the Flutter renderer, use Flutter
+web's WasmGC / `skwasm` renderer.
 
 ## Conventions (binding)
 

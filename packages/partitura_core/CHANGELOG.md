@@ -2,6 +2,16 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Web-safe interchange containers** (pure-Dart DEFLATE): a from-scratch
+  `inflate` (RFC 1951 — stored / fixed / dynamic Huffman) replaces `dart:io`'s
+  `ZLibDecoder`, so the `.gp`/`.gpx`/`.mscz` ZIP + BCFS container reading no
+  longer needs `dart:io`. The `gp_container` / `mscz_container` codecs moved
+  from `partitura_cli` into web-safe `partitura_core`
+  (`readGpifFromGp`/`readGpifFromGpx`/`writeGpFromGpif`, `readMscxFromMscz`/
+  `writeMsczFromMscx`), so **reading real compressed `.gp`/`.mscz` files now
+  works in the browser / WASM**, not just the CLI. `inflate` is validated
+  against `dart:io`'s encoder and the real alphaTab/MuseScore fixtures; the WASM
+  smoke inflates a DEFLATE stream and round-trips a `.mscz` under Node.
 - **WebAssembly target**: `partitura_core` compiles to and runs as a WasmGC
   module via `dart compile wasm` (dart2wasm) — it uses no
   `dart:io`/`dart:html`/`dart:ffi`/`dart:isolate` (only `dart:typed_data`), so
