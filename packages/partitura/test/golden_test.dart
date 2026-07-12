@@ -1278,6 +1278,22 @@ void main() {
     );
   });
 
+  testWidgets('86 skyline: chord symbols clear only local ink', (tester) async {
+    // The chord symbols sit low over their own bar; the high ledger run in the
+    // second bar (no symbols) does not lift them (per-column skyline).
+    await golden(
+      tester,
+      '86_skyline_annotations',
+      theme: const PartituraTheme(textFontFamily: 'Roboto'),
+      Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'c4:q e4 g4 c5 | a5:q c6 a5 g5',
+        annotations: 'C * * * * * * *',
+      ),
+      staffSpace: 11,
+    );
+  });
+
   testWidgets('85 additive time signature 3+2/8', (tester) async {
     await golden(
       tester,

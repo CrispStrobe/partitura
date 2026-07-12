@@ -173,6 +173,11 @@ class _LayoutBuilder {
   final List<_TieInfo> _tieInfos = [];
   final _Bounds _ink = _Bounds();
 
+  /// Per-glyph ink rectangles `(left, top, right, bottom)`, fed by [_expand],
+  /// for per-column skyline queries (so above/below marks clear only the ink
+  /// in their own horizontal span, not the whole system's extremes).
+  final List<(double, double, double, double)> _inkRects = [];
+
   double _x = 0;
 
   /// Staff-position shift per element id from ottava spans (v0.6.4):
@@ -451,11 +456,34 @@ class _LayoutBuilder {
     double bottom,
   ) {
     _ink.expand(left, top, right, bottom);
+    _inkRects.add((left, top, right, bottom));
     if (elementId != null) {
       _elementBounds
           .putIfAbsent(elementId, _Bounds.new)
           .expand(left, top, right, bottom);
     }
+  }
+
+  /// Highest ink (smallest y) whose x-range overlaps `[xL, xR)`, or null when
+  /// that column is empty. Only ink placed so far is considered, so the pass
+  /// order determines what a mark clears.
+  double? _skylineTop(double xL, double xR) {
+    double? best;
+    for (final (l, t, r, _) in _inkRects) {
+      if (r <= xL || l >= xR) continue;
+      if (best == null || t < best) best = t;
+    }
+    return best;
+  }
+
+  /// Lowest ink (largest y) whose x-range overlaps `[xL, xR)`, or null.
+  double? _skylineBottom(double xL, double xR) {
+    double? best;
+    for (final (l, _, r, b) in _inkRects) {
+      if (r <= xL || l >= xR) continue;
+      if (best == null || b > best) best = b;
+    }
+    return best;
   }
 
   double _glyphWidth(String name) => meta.bBoxOf(name).width;
@@ -1821,12 +1849,12 @@ class _LayoutBuilder {
   }
 
   /// v0.4.5: text annotations (chord symbols, tempo/rehearsal text) on a
-  /// shared baseline above all other ink, centered over their note.
+  /// shared baseline above their note. The baseline clears only the ink within
+  /// the horizontal span the annotations occupy (a per-column skyline), so a
+  /// high note elsewhere on the line no longer lifts the whole chord-symbol row.
   void _layoutAnnotations() {
     if (score.annotations.isEmpty) return;
     final size = s.annotationSize;
-    // Text bottom (baseline + descender) clears the highest ink so far.
-    final baselineY = min(-1.0, _ink.minY - s.annotationGap - 0.25 * size);
 
     final infoOf = <String, _TieInfo>{
       for (final info in _tieInfos)
@@ -1850,7 +1878,18 @@ class _LayoutBuilder {
     }
     placed.sort((a, b) => a.$2.compareTo(b.$2));
     final centers = [for (final p in placed) p.$2];
-    _spreadRight(centers, [for (final p in placed) p.$3], 0.4 * size);
+    final halves = [for (final p in placed) p.$3];
+    _spreadRight(centers, halves, 0.4 * size);
+
+    // Text bottom (baseline + descender) clears the highest ink under the
+    // span the row actually covers, not the whole system.
+    var regionL = double.infinity, regionR = double.negativeInfinity;
+    for (var i = 0; i < centers.length; i++) {
+      regionL = min(regionL, centers[i] - halves[i]);
+      regionR = max(regionR, centers[i] + halves[i]);
+    }
+    final localTop = _skylineTop(regionL, regionR) ?? 0;
+    final baselineY = min(-1.0, localTop - s.annotationGap - 0.25 * size);
 
     for (var i = 0; i < placed.length; i++) {
       final (annotation, _, halfWidth) = placed[i];
@@ -1876,12 +1915,22 @@ class _LayoutBuilder {
   /// to their note; rows stack downward.
   void _layoutFiguredBass() {
     if (score.figuredBass.isEmpty) return;
-    final topBaseline = max(6.2, _ink.maxY + s.lyricGap + 1.0);
     const rowHeight = 1.7;
     final infoOf = <String, _TieInfo>{
       for (final info in _tieInfos)
         if (info.id != null) info.id!: info,
     };
+    // Clear only the ink under the figured bass's own note span (a per-column
+    // skyline), not the whole system's lowest note.
+    var regionL = double.infinity, regionR = double.negativeInfinity;
+    for (final fb in score.figuredBass) {
+      final info = infoOf[fb.noteId];
+      if (info == null) continue;
+      regionL = min(regionL, info.left);
+      regionR = max(regionR, info.right);
+    }
+    final localBottom = _skylineBottom(regionL, regionR) ?? 4;
+    final topBaseline = max(6.2, localBottom + s.lyricGap + 1.0);
     for (final fb in score.figuredBass) {
       final info = infoOf[fb.noteId];
       if (info == null || info.note == null) {

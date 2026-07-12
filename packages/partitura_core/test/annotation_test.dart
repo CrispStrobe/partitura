@@ -87,23 +87,29 @@ void main() {
       }
     });
 
-    test('annotations share one baseline above all other ink', () {
-      // c6 pokes far above the staff; the annotation line must clear it.
-      final tall = layoutOf(Score.simple(
-        notes: 'c4:q c6 c4 c4',
-        annotations: 'C * * *',
-      ));
-      final flat = layoutOf(Score.simple(
-        notes: 'c4:q c4 c4 c4',
-        annotations: 'C * * *',
-      ));
-      expect(textsOf(tall).single.position.y,
-          lessThan(textsOf(flat).single.position.y));
-      final ys = textsOf(layoutOf(Score.simple(
+    test('annotations share one baseline that clears local ink', () {
+      // With a chord symbol on every note, the c6 (under the second symbol)
+      // lifts the whole shared row.
+      final annotatedHigh = layoutOf(Score.simple(
         notes: 'c4:q c6 c4 c4',
         annotations: 'C Am F G',
-      ))).map((t) => t.position.y).toSet();
-      expect(ys, hasLength(1));
+      ));
+      final allLow = layoutOf(Score.simple(
+        notes: 'c4:q c4 c4 c4',
+        annotations: 'C Am F G',
+      ));
+      final highYs = textsOf(annotatedHigh).map((t) => t.position.y).toSet();
+      expect(highYs, hasLength(1)); // still one shared baseline
+      expect(highYs.single, lessThan(textsOf(allLow).first.position.y));
+
+      // But a high note with no annotation over it (a per-column skyline) does
+      // NOT lift a distant chord symbol.
+      final unannotatedHigh = layoutOf(Score.simple(
+        notes: 'c4:q c6 c4 c4',
+        annotations: 'C * * *',
+      ));
+      expect(textsOf(unannotatedHigh).single.position.y,
+          greaterThan(highYs.single));
     });
 
     test('annotations and lyrics occupy opposite sides', () {

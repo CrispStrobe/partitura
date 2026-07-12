@@ -2,6 +2,12 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Per-column skyline collision avoidance** (Phase 1.2, first cut): the layout
+  engine now records every glyph's ink and exposes `_skylineTop`/`_skylineBottom`
+  queries, so above-/below-staff marks clear only the ink in their own
+  horizontal span instead of the whole system's extremes. Applied to text
+  annotations — a chord-symbol row now hugs its own bar rather than being lifted
+  by a distant high note (golden 86) — and to figured bass.
 - **Extra clefs** (Phase 5.2): the neutral **percussion** clef
   (`Clef.percussion` → `unpitchedPercussionClef1`, no key signature; MusicXML
   `<sign>percussion</sign>` and ABC `clef=perc`, header and per-voice; golden
