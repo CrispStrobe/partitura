@@ -195,10 +195,13 @@ Raises the quality of everything already rendered. Slice order:
       64). **Left:** beam subdivision, cross-measure.
 
 ### Phase 2 — Score structure (multi-staff)
-- [ ] **2.1 N-staff systems** — generalize the grand staff from 2 → N staves,
-      with nested brackets/braces and barline grouping. Also generalizes the
-      engine's hard-coded 5-line staff assumption (parameterize line count +
-      spacing), which Phase 6 (tablature) depends on.
+- [~] **2.1 N-staff systems** — **Done:** `StaffSystem` (N `Score` staves +
+      `StaffBracket` brace/bracket groups) + `layoutStaffSystem` align barlines
+      across the system (column-wise-max widths); `StaffSystemView` stacks them
+      with connected barlines and left brackets/braces, cross-staff hit-testing
+      (golden 75, a four-staff SATB system). **Left:** nested brackets, the
+      hard-coded 5-line-staff generalization (tab already has its own N-line
+      engine), and wiring MusicXML multi-part / ABC multi-voice into a system.
 - [ ] **2.2 Cross-staff notes / stems / beams** — a chord or beam spanning
       both staves of a keyboard system.
 - [ ] **2.3 Hide-empty / ossia / divisi / cutaway staves** — dynamic staff

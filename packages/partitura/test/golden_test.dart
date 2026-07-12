@@ -1080,6 +1080,50 @@ void main() {
     );
   });
 
+  testWidgets('75 four-staff system (SATB) with a bracket', (tester) async {
+    final system = StaffSystem([
+      Score.simple(
+          clef: Clef.treble,
+          notes: 'c5:q d5 e5 f5 | g5:h a5:h',
+          keySignature: const KeySignature(1)),
+      Score.simple(
+          clef: Clef.treble,
+          notes: 'g4:q g4 g4 a4 | b4:h c5:h',
+          keySignature: const KeySignature(1)),
+      Score.simple(
+          clef: Clef.bass,
+          notes: 'e3:q f3 g3 a3 | d3:h e3:h',
+          keySignature: const KeySignature(1)),
+      Score.simple(
+          clef: Clef.bass,
+          notes: 'c3:q b2 a2 g2 | g2:h c3:h',
+          keySignature: const KeySignature(1)),
+    ], brackets: const [
+      StaffBracket(0, 3)
+    ]);
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Colors.white,
+          body: Center(
+            child: RepaintBoundary(
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(12),
+                child: StaffSystemView(system: system, staffSpace: 12),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await expectLater(
+      find.byType(RepaintBoundary).last,
+      matchesGoldenFile('goldens/75_staff_system_satb.png'),
+    );
+  });
+
   testWidgets('74 beat-count overlay (with note names)', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

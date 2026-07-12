@@ -2,6 +2,13 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **N-staff systems** (Phase 2.1): `StaffSystem` (N `Score` staves + optional
+  `StaffBracket` brace/bracket groups) and `layoutStaffSystem` — generalizes
+  the two-staff grand staff to any number of staves, laying each out with the
+  column-wise-max leading/measure widths so barlines align across the system.
+  The Flutter `StaffSystemView` stacks them with connected barlines and left
+  brackets/braces, with cross-staff tap hit-testing (golden 75 — a four-staff
+  SATB system). *Unblocks multi-voice ABC and tab-paired-with-notation.*
 - **ABC import — toward abcjs parity** (Phase 7.3): the reader now handles
   **variant endings / voltas** (`|1 |2`, `[1 [2`, `:|2` → `Measure.volta`),
   **decorations** (`!trill!`/`!fermata!`/`!accent!`… → articulations, ornaments
