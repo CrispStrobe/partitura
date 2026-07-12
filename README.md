@@ -50,7 +50,8 @@ any pair round-trips for shared data.
 
 **Beyond the category.** A renderer-free deterministic layout engine,
 hit-testing, a highlight/timing pipeline, educational overlays (note names,
-beat counts), SVG/PNG export and a CLI.
+beat counts), SVG/PNG export, a CLI, and a WasmGC-compilable core that runs the
+theory + interchange codecs in the browser (`dart compile wasm`).
 
 Still out: full-system skyline collision avoidance and page frames/spacers
 (in progress); audio synthesis (never).

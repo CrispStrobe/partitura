@@ -2,6 +2,16 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **WebAssembly target**: `partitura_core` compiles to and runs as a WasmGC
+  module via `dart compile wasm` (dart2wasm) — it uses no
+  `dart:io`/`dart:html`/`dart:ffi`/`dart:isolate` (only `dart:typed_data`), so
+  the theory, layout and text-interchange codecs run in the browser or any WASM
+  host. Added [`example/wasm/`](example/wasm/): an asset-free smoke entry
+  (`wasm_smoke.dart`) verified both on the VM and as WASM under Node, a browser
+  `dart:js_interop` demo (`main.dart` + `index.html` exposing
+  `partituraConvert`/`partituraInfo`), a `build.sh` and a Node runner. The
+  `dart:io`-based `.gp`/`.gpx`/`.mscz` container unwrapping stays in
+  `partitura_cli`; the `.mscx`/`.gpif` XML payloads are web-safe.
 - **MuseScore (`.mscx` / `.mscz`) import & export** (Phase 7.3): `scoreToMscx`
   / `scoreFromMscx` write and read a MuseScore-4 `.mscx` document — a **subset**
   codec (clef with mid-score changes, key/time signatures, measures,

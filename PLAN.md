@@ -123,8 +123,10 @@ flags, accidentals, ties, tuplets, grace notes, articulations, ornaments,
 dynamics + hairpins, tremolo, and beaming incl. feathered / forced-slant /
 over-rests), repeat & navigation semantics (repeats, voltas, D.C./D.S./coda,
 nested repeats), a broad interchange surface (MusicXML, MIDI, the full
-`.gp3`–`.gp` line), and the category-unusual extras — a renderer-free deterministic
-layout engine, hit-testing, a highlight/timing pipeline, SVG/PNG export, a CLI.
+`.gp3`–`.gp` line, plus MuseScore `.mscx`/`.mscz`), and the category-unusual
+extras — a renderer-free deterministic layout engine, hit-testing, a
+highlight/timing pipeline, SVG/PNG export, a CLI, and a **WasmGC-compilable**
+core (`dart compile wasm`; see `packages/partitura_core/example/wasm/`).
 
 The remaining distance falls in three buckets:
 

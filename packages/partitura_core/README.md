@@ -47,6 +47,18 @@ Still **out of scope** (see [PLAN.md](../../PLAN.md) for the roadmap):
 full-system skyline collision avoidance, page frames/spacers, voices 3–4,
 microtones (all planned); audio (never).
 
+## WebAssembly
+
+`partitura_core` is pure Dart with no `dart:io`/`dart:html`/`dart:ffi`/
+`dart:isolate` (only `dart:typed_data`), so the theory, layout and interchange
+core compiles to and runs as a WasmGC module via `dart compile wasm`
+(dart2wasm) — in the browser or any WASM host. See
+[`example/wasm/`](example/wasm/) for a runnable smoke test (verified under Node)
+and an in-browser JS-interop demo. The `dart:io`-based ZIP/BCFS container
+unwrapping for `.gp`/`.gpx`/`.mscz` lives in `partitura_cli`, not here; the
+`.mscx`/`.gpif` XML payloads themselves are web-safe. For the Flutter renderer,
+use Flutter web's WasmGC / `skwasm` renderer.
+
 ## Conventions (binding)
 
 - Scientific pitch notation, middle C = C4 = MIDI 60.
