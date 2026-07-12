@@ -34,6 +34,27 @@ void main() {
         same(MusicFonts.metadataOrNull(MusicFont.bravura)));
   });
 
+  test('the optional OFL faces are distinct, well-formed descriptors', () {
+    for (final font in [
+      MusicFont.petaluma,
+      MusicFont.leland,
+      MusicFont.leipzig,
+    ]) {
+      expect(font.package, 'partitura');
+      expect(font.metadataAsset, contains(font.family.toLowerCase()));
+      expect(font.metadataAsset, endsWith('_metadata.json'));
+      expect(font, isNot(MusicFont.bravura));
+    }
+    // All four are mutually distinct.
+    final all = {
+      MusicFont.bravura,
+      MusicFont.petaluma,
+      MusicFont.leland,
+      MusicFont.leipzig,
+    };
+    expect(all, hasLength(4));
+  });
+
   test('the theme carries a swappable music font', () {
     const jazz = MusicFont(
       family: 'Petaluma',

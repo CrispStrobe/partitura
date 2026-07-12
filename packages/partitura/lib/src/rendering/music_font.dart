@@ -33,11 +33,42 @@ class MusicFont {
     this.package,
   });
 
-  /// The bundled Bravura font (the default).
+  /// The bundled Bravura font (the default; SIL OFL 1.1).
   static const MusicFont bravura = MusicFont(
     family: 'Bravura',
     package: 'partitura',
     metadataAsset: 'packages/partitura/assets/smufl/bravura_metadata.json',
+  );
+
+  // ---- Optional additional faces --------------------------------------------
+  // These descriptors are ready to use, but the font files are NOT bundled by
+  // default (they add ~1 MB each). To enable one, drop its `.otf` +
+  // `*_metadata.json` + license into `packages/partitura/assets/smufl/` and
+  // declare the font in `pubspec.yaml` — see `assets/smufl/FONTS.md`. All three
+  // are SIL OFL 1.1, which bundles cleanly inside this MIT project.
+
+  /// Petaluma — a jazz / handwritten face by Steinberg (SIL OFL 1.1).
+  /// Not bundled by default; see `assets/smufl/FONTS.md`.
+  static const MusicFont petaluma = MusicFont(
+    family: 'Petaluma',
+    package: 'partitura',
+    metadataAsset: 'packages/partitura/assets/smufl/petaluma_metadata.json',
+  );
+
+  /// Leland — a clean engraving face by MuseScore (SIL OFL 1.1).
+  /// Not bundled by default; see `assets/smufl/FONTS.md`.
+  static const MusicFont leland = MusicFont(
+    family: 'Leland',
+    package: 'partitura',
+    metadataAsset: 'packages/partitura/assets/smufl/leland_metadata.json',
+  );
+
+  /// Leipzig — the Verovio/RISM face (SIL OFL 1.1).
+  /// Not bundled by default; see `assets/smufl/FONTS.md`.
+  static const MusicFont leipzig = MusicFont(
+    family: 'Leipzig',
+    package: 'partitura',
+    metadataAsset: 'packages/partitura/assets/smufl/leipzig_metadata.json',
   );
 
   @override

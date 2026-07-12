@@ -208,10 +208,12 @@ Raises the quality of everything already rendered. Slice order:
       theme font's metadata and relayouts on a font change. An end-to-end
       widget test proves a swapped font drives the layout metrics (heavier staff
       lines). SMuFL fixes every glyph's codepoint, so a new face is a pure asset
-      drop. **Left:** bundle a real second face — a packaging task: SMuFL music
-      fonts (Bravura, Petaluma, Leland, Leipzig, Sebastian) are SIL OFL 1.1,
-      which bundles cleanly inside an MIT project exactly as Bravura already
-      does; Petaluma (jazz, same vendor, OFL) is the natural next drop-in.
+      drop: ready-made `MusicFont.petaluma`/`leland`/`leipzig` descriptors plus a
+      three-step drop-in guide (`assets/smufl/FONTS.md`) with each font's
+      verified license and source. **Left (optional packaging):** vendor a real
+      `.otf` (each ~1 MB). Licensing is settled — every mainstream SMuFL face is
+      SIL OFL 1.1 (bundles cleanly in this MIT repo, as Bravura does); the one
+      public-domain option is Gonville/Gootville. The engine work is complete.
 - [~] **1.4 Advanced beaming** — feathered/fanned beams (accel./rall.), beam
       subdivision at metric points, custom slope / independent beam-end
       heights, beams over rests, cross-measure beaming. (Cross-staff beaming
