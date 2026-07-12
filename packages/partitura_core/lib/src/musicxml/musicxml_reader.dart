@@ -320,11 +320,15 @@ class _PartReader {
               'cut' => TimeSymbol.cut,
               _ => TimeSymbol.numeric,
             };
-            final signature = TimeSignature(
-              int.parse(time.childText('beats')!),
-              int.parse(time.childText('beat-type')!),
-              symbol: symbol,
-            );
+            final beatsText = time.childText('beats')!;
+            final beatUnit = int.parse(time.childText('beat-type')!);
+            // A `<beats>` value like "3+2" is an additive/composite meter.
+            final groups = beatsText.contains('+')
+                ? beatsText.split('+').map(int.parse).toList()
+                : null;
+            final signature = groups != null
+                ? TimeSignature.additive(groups, beatUnit)
+                : TimeSignature(int.parse(beatsText), beatUnit, symbol: symbol);
             if (!_leadingSet) {
               _time = signature;
             } else if (signature != _time) {

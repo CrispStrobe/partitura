@@ -1278,6 +1278,18 @@ void main() {
     );
   });
 
+  testWidgets('85 additive time signature 3+2/8', (tester) async {
+    await golden(
+      tester,
+      '85_additive_meter',
+      Score.simple(
+        timeSignature: TimeSignature.additive([3, 2], 8),
+        notes: 'c5:e d5 e5 f5 g5 | a5:e g5 f5 e5 d5',
+      ),
+      staffSpace: 12,
+    );
+  });
+
   testWidgets('82 common and cut time symbols', (tester) async {
     await golden(
       tester,

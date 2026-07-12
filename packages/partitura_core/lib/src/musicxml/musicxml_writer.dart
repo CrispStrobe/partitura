@@ -170,7 +170,8 @@ class _PartWriter {
           TimeSymbol.cut => ' symbol="cut"',
           TimeSymbol.numeric => '',
         };
-        out.writeln('        <time$timeSym><beats>${time.beats}</beats>'
+        final beatsText = time.components?.join('+') ?? '${time.beats}';
+        out.writeln('        <time$timeSym><beats>$beatsText</beats>'
             '<beat-type>${time.beatUnit}</beat-type></time>');
       }
       final clef = index == 0 ? score.clef : measure.clefChange;

@@ -11,12 +11,13 @@
   accidental table, positions are derived by the standard fifth-stacking rule
   (each accidental a fifth from the last, dropping an octave to stay on the
   staff). All round-trip through MusicXML `<clef>` (sign + line).
-- **Common / cut time symbols** (Phase 5.7): `TimeSymbol` (numeric/common/cut)
-  on `TimeSignature`, with `TimeSignature.commonTime` (4/4 drawn as C) and
-  `cutTime` (2/2 drawn as ¢) — rendered from the SMuFL `timeSigCommon`/
-  `timeSigCutCommon` glyphs centered on the middle line. MusicXML `<time
-  symbol="common"/"cut">` and ABC `M:C`/`M:C|` read/write and round-trip
-  (golden 82).
+- **Common / cut time symbols + additive meters** (Phase 5.7): `TimeSymbol`
+  (numeric/common/cut) on `TimeSignature`, with `TimeSignature.commonTime` (4/4
+  drawn as C) and `cutTime` (2/2 drawn as ¢) from the SMuFL `timeSigCommon`/
+  `timeSigCutCommon` glyphs (golden 82). `TimeSignature.additive([3, 2], 8)`
+  models a composite meter, drawn `3+2` over `8` with the `timeSigPlus` glyph
+  (golden 85). All round-trip through MusicXML `<time>` (`symbol=` /
+  `<beats>3+2</beats>`) and ABC `M:` (`M:C`, `M:C|`, `M:3+2/8`, `M:(2+2+3)/8`).
 - **Pagination / page layout** (Phase 2.5): `layoutPages` groups the
   line-broken systems into pages of a `PageMetrics` box (page size + margins,
   in staff spaces), packing systems by content height and vertically justifying

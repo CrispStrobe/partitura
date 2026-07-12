@@ -292,6 +292,9 @@ abstract final class SmuflGlyph {
   /// The cut-time (¢) time-signature glyph.
   static const String timeSigCutCommon = 'timeSigCutCommon';
 
+  /// The `+` between groups of an additive time signature.
+  static const String timeSigPlus = 'timeSigPlus';
+
   /// The tuplet-number glyph for a single [digit] (0–9).
   static String tupletDigit(int digit) {
     if (digit < 0 || digit > 9) {

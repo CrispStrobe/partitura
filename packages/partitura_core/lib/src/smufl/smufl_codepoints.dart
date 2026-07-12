@@ -77,6 +77,7 @@ const Map<String, String> smuflCodepoints = {
   'timeSig9': '\uE089',
   'timeSigCommon': '\uE08A',
   'timeSigCutCommon': '\uE08B',
+  'timeSigPlus': '\uE08C',
   'tuplet0': '\uE880',
   'tuplet1': '\uE881',
   'tuplet2': '\uE882',

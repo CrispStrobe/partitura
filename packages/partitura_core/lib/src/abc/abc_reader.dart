@@ -289,6 +289,13 @@ TimeSignature? _parseMeter(String value) {
   final v = value.trim();
   if (v == 'C') return TimeSignature.commonTime;
   if (v == 'C|') return TimeSignature.cutTime;
+  // Additive meter: "3+2/8" or "(3+2)/8".
+  final add =
+      RegExp(r'^\(?\s*(\d+(?:\s*\+\s*\d+)+)\s*\)?\s*/\s*(\d+)').firstMatch(v);
+  if (add != null) {
+    final groups = add[1]!.split('+').map((g) => int.parse(g.trim())).toList();
+    return TimeSignature.additive(groups, int.parse(add[2]!));
+  }
   final m = RegExp(r'^(\d+)\s*/\s*(\d+)').firstMatch(v);
   if (m == null) return null;
   return TimeSignature(int.parse(m[1]!), int.parse(m[2]!));

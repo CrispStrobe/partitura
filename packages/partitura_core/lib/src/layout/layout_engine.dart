@@ -517,7 +517,15 @@ class _LayoutBuilder {
       _x += _glyphWidth(glyph) + s.signatureGap;
       return;
     }
-    final numerator = _timeSigGlyphs(time.beats);
+    final components = time.components;
+    final numerator = components == null
+        ? _timeSigGlyphs(time.beats)
+        : [
+            for (var i = 0; i < components.length; i++) ...[
+              if (i > 0) SmuflGlyph.timeSigPlus,
+              ..._timeSigGlyphs(components[i]),
+            ],
+          ];
     final denominator = _timeSigGlyphs(time.beatUnit);
     final numWidth = _rowWidth(numerator);
     final denWidth = _rowWidth(denominator);

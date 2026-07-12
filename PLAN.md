@@ -330,8 +330,10 @@ No peer renderer does any of this; all build on the existing pitch / interval
       line + baroque variants; portamento; system dividers.
 - [~] **5.7 Time-signature breadth** — **Done:** common/cut symbols
       (`TimeSymbol`, `TimeSignature.commonTime`/`cutTime` → the C / ¢ glyphs;
-      MusicXML `<time symbol>` and ABC `M:C`/`M:C|` round-trip; golden 82).
-      **Left:** additive/composite meters (3+2/8), local per-staff meters.
+      golden 82) and **additive/composite meters** (`TimeSignature.additive`
+      `[3,2]` → 3+2/8 drawn with the `timeSigPlus` glyph; golden 85). Both
+      round-trip through MusicXML `<time>` and ABC `M:`. **Left:** local
+      per-staff meters, and additive-aware beam grouping.
 - [ ] **5.8 Custom / atonal key signatures + cancelling-naturals policy.**
 - [~] **5.9 Jazz articulations** — **Done:** scoop, doit, fall (falloff), plop
       (`JazzMark`/`JazzArticulation`, brass glyphs before/after the notehead,
