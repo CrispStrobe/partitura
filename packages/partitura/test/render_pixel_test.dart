@@ -184,6 +184,29 @@ void main() {
         reason: 'the element color must not shine through the highlight');
   });
 
+  testWidgets('StaffView.elementColors colors notes and overrides the theme',
+      (tester) async {
+    const themeGreen = Color(0xFF43A047);
+    const renderRed = Color(0xFFD32F2F);
+    await tester.pumpWidget(scene(
+      StaffView(
+        score: Score.simple(notes: 'c4:q d4'),
+        staffSpace: 12,
+        theme: const PartituraTheme(elementColors: {'e0': themeGreen}),
+        elementColors: const {'e0': renderRed, 'e1': renderRed},
+      ),
+    ));
+    final staff =
+        tester.renderObject<RenderStaffView>(find.bySubtype<StaffView>());
+    // The render-param color wins over the theme's for e0…
+    expect(await noteheadPixelsNear(tester, staff, 'e0', renderRed),
+        greaterThan(10));
+    expect(await noteheadPixelsNear(tester, staff, 'e0', themeGreen), 0);
+    // …and colors e1, which the theme did not.
+    expect(await noteheadPixelsNear(tester, staff, 'e1', renderRed),
+        greaterThan(10));
+  });
+
   testWidgets('ghost note paints during the drag and vanishes after',
       (tester) async {
     await tester.pumpWidget(scene(

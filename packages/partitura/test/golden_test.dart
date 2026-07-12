@@ -21,6 +21,7 @@ void main() {
     Score score, {
     PartituraTheme theme = PartituraTheme.standard,
     Set<String> highlightedIds = const {},
+    Map<String, Color> elementColors = const {},
     double staffSpace = 10,
   }) async {
     await tester.pumpWidget(
@@ -38,6 +39,7 @@ void main() {
                   staffSpace: staffSpace,
                   theme: theme,
                   highlightedIds: highlightedIds,
+                  elementColors: elementColors,
                 ),
               ),
             ),
@@ -1074,6 +1076,25 @@ void main() {
         ],
       ),
       theme: const PartituraTheme(textFontFamily: 'Roboto'),
+      staffSpace: 12,
+    );
+  });
+
+  testWidgets('72 per-element note coloring', (tester) async {
+    // App-supplied colors: a couple of notes red and green (e.g. out-of-range
+    // or right/wrong feedback) while the rest stay the default ink.
+    await golden(
+      tester,
+      '72_note_colors',
+      Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'c4:q d4 e4 f4 | g4 a4 b4 c5',
+      ),
+      elementColors: const {
+        'e2': Color(0xFFD32F2F), // red
+        'e5': Color(0xFF388E3C), // green
+        'e7': Color(0xFF1976D2), // blue
+      },
       staffSpace: 12,
     );
   });

@@ -16,9 +16,12 @@ import '../smufl/smufl_codepoints.dart';
 /// [staffSpace] is the pixel size of one staff space (the single scale
 /// factor). [glyphFontFamily] names the SMuFL engraving font; [textFontFamily]
 /// the face for plain text (lyrics, labels, fret numbers). [color] paints the
-/// ink, [background] the page (pass `'none'` for transparency). When
-/// [fontFaceDataUri] is a `data:` URI of the engraving font, it is embedded via
-/// `@font-face` so the SVG renders without the font installed. Deterministic.
+/// ink, [background] the page (pass `'none'` for transparency).
+/// [elementColors] maps an element id to a CSS colour, painting that element's
+/// ink in it (e.g. highlight a note, colour out-of-range notes) — matching the
+/// Flutter painter's per-element colouring. When [fontFaceDataUri] is a `data:`
+/// URI of the engraving font, it is embedded via `@font-face` so the SVG
+/// renders without the font installed. Deterministic.
 String scoreToSvg(
   ScoreLayout layout, {
   double staffSpace = 12,
@@ -27,6 +30,7 @@ String scoreToSvg(
   String color = '#000000',
   String background = '#ffffff',
   String? fontFaceDataUri,
+  Map<String, String> elementColors = const {},
 }) {
   final widthPx = layout.width * staffSpace;
   final heightPx = layout.height * staffSpace;
@@ -51,6 +55,10 @@ String scoreToSvg(
       'scale($staffSpace)" fill="$color" stroke="$color">');
 
   for (final p in layout.primitives) {
+    // Per-element override (app-supplied note colors); else the group colour.
+    final ec = p.elementId == null ? null : elementColors[p.elementId];
+    final fill = ec == null ? '' : ' fill="$ec"';
+    final stroke = ec == null ? '' : ' stroke="$ec"';
     switch (p) {
       case GlyphPrimitive(:final smuflName, :final position, :final scale):
         final char = smuflCodepoints[smuflName];
@@ -58,7 +66,7 @@ String scoreToSvg(
         final size = 4.0 * scale; // glyph em = 4 staff spaces
         b.writeln('<text x="${_n(position.x)}" y="${_n(position.y)}" '
             'font-family="$glyphFontFamily" font-size="${_n(size)}" '
-            'stroke="none">${_escape(char)}</text>');
+            'stroke="none"$fill>${_escape(char)}</text>');
       case LinePrimitive(
           :final from,
           :final to,
@@ -68,7 +76,7 @@ String scoreToSvg(
         b.writeln('<line x1="${_n(from.x)}" y1="${_n(from.y)}" '
             'x2="${_n(to.x)}" y2="${_n(to.y)}" '
             'stroke-width="${_n(thickness)}" '
-            'stroke-linecap="${round ? 'round' : 'butt'}"/>');
+            'stroke-linecap="${round ? 'round' : 'butt'}"$stroke/>');
       case CurvePrimitive(
           :final start,
           :final control1,
@@ -80,18 +88,18 @@ String scoreToSvg(
             'C ${_n(control1.x)} ${_n(control1.y)} '
             '${_n(control2.x)} ${_n(control2.y)} '
             '${_n(end.x)} ${_n(end.y)}" fill="none" '
-            'stroke-width="${_n(thickness)}"/>');
+            'stroke-width="${_n(thickness)}"$stroke/>');
       case BeamPrimitive(:final start, :final end, :final thickness):
         final h = thickness / 2;
         final pts = '${_n(start.x)},${_n(start.y - h)} '
             '${_n(end.x)},${_n(end.y - h)} '
             '${_n(end.x)},${_n(end.y + h)} '
             '${_n(start.x)},${_n(start.y + h)}';
-        b.writeln('<polygon points="$pts" stroke="none"/>');
+        b.writeln('<polygon points="$pts" stroke="none"$fill/>');
       case TextPrimitive(:final text, :final position, :final size):
         b.writeln('<text x="${_n(position.x)}" y="${_n(position.y)}" '
             'font-family="$textFontFamily" font-size="${_n(size)}" '
-            'text-anchor="middle" stroke="none">${_escape(text)}</text>');
+            'text-anchor="middle" stroke="none"$fill>${_escape(text)}</text>');
     }
   }
 

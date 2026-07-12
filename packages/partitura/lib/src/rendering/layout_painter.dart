@@ -20,6 +20,11 @@ class LayoutPainter {
   /// Ids painted in the theme's highlight color.
   Set<String> highlightedIds;
 
+  /// Per-element ink colors supplied at render time (app-driven note coloring:
+  /// out-of-range, right/wrong, hand coloring…). Takes precedence over
+  /// [PartituraTheme.elementColors]; a highlight still wins over both.
+  Map<String, Color> elementColors;
+
   final Map<String, TextPainter> _glyphCache = {};
 
   /// Creates a painter.
@@ -27,13 +32,16 @@ class LayoutPainter {
     required this.theme,
     required this.scale,
     this.highlightedIds = const {},
+    this.elementColors = const {},
   });
 
   /// The effective color of an element's ink.
   Color colorFor(String? elementId) {
     if (elementId == null) return theme.staffColor;
     if (highlightedIds.contains(elementId)) return theme.highlightColor;
-    return theme.elementColors[elementId] ?? theme.noteColor;
+    return elementColors[elementId] ??
+        theme.elementColors[elementId] ??
+        theme.noteColor;
   }
 
   /// A laid-out painter for plain text (lyrics, annotations), cached.

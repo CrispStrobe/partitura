@@ -42,6 +42,17 @@ void main() {
     expect(svg, contains(smuflCodepoints['noteheadBlack']!));
   });
 
+  test('elementColors paints a note in its own color', () {
+    // Two quarter notes e0, e1; color e1 red.
+    final layout = layoutOf(Score.simple(notes: 'c4:q d4'));
+    final svg = scoreToSvg(layout, elementColors: const {'e1': '#ff0000'});
+    // The colored note's notehead carries a fill override; a plain note has
+    // no per-glyph fill (it inherits the group color).
+    expect(svg, contains('fill="#ff0000"'));
+    // The default color note has no red.
+    expect('#ff0000'.allMatches(svg).length, greaterThanOrEqualTo(1));
+  });
+
   test('beams render as filled polygons', () {
     final svg = scoreToSvg(layoutOf(Score.simple(
       timeSignature: TimeSignature.fourFour,

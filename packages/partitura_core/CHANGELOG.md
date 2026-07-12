@@ -2,6 +2,14 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Per-element note coloring, end to end** (Phase 5.1 / interactivity): the
+  Flutter painter already colored elements via `PartituraTheme.elementColors`;
+  now it is also a first-class **`StaffView.elementColors`** render param
+  (app-supplied, repaint-only, mirrors `highlightedIds` and takes precedence
+  over the theme), and the pure-Dart **SVG exporter** honors an `elementColors`
+  map too — so colored scores (out-of-range, right/wrong feedback, hand
+  coloring) render consistently in both back-ends (golden 72; pixel + SVG
+  tests).
 - **Breath marks & caesuras** (Phase 5.6): `BreathMark(noteId, symbol)` draws a
   comma or a caesura ("railroad tracks") after a note at the top of the staff
   (golden 71). Reads and writes MusicXML `<breath-mark>` / `<caesura>`.
