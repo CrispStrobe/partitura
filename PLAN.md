@@ -30,6 +30,12 @@ ships* at the end for the mechanics.
 > (stem/dots) ink in the column gaps. Worktree `partitura-public-lacunae`.
 > *(Increments 1–4, editor contracts C1–C5, justification done on `main`.)*
 
+> **Actively working on (OMR frontier):** the reach-beyond-CLI piece — expose the
+> OMR engine as a public `partitura_cli` library (`package:partitura_cli/omr.dart`)
+> so Flutter-**desktop** apps can use it (`dart:ffi` works there); web/WASM stays
+> blocked upstream (no `dart:ffi` on web + CrispEmbed's WASM doesn't expose OMR).
+> `partitura_cli` only. Worktree `partitura-lib`, branch `feat/omr-lib`.
+
 
 
 ### Workshop editor contracts (C1–C6)
