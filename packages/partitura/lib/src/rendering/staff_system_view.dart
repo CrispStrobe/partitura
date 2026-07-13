@@ -28,6 +28,10 @@ class StaffSystemView extends LeafRenderObjectWidget {
   /// Line-to-line vertical distance between adjacent staves, in staff spaces.
   final double staffGap;
 
+  /// Whether to align simultaneous notes vertically across every staff of the
+  /// system (cross-staff onset gridding). Single-voice staves only.
+  final bool gridAlign;
+
   /// Ids painted in [PartituraTheme.highlightColor].
   final Set<String> highlightedIds;
 
@@ -41,6 +45,7 @@ class StaffSystemView extends LeafRenderObjectWidget {
     this.theme = PartituraTheme.standard,
     this.staffSpace,
     this.staffGap = 4.0,
+    this.gridAlign = true,
     this.highlightedIds = const {},
     this.onElementTap,
   });
@@ -52,6 +57,7 @@ class StaffSystemView extends LeafRenderObjectWidget {
         theme: theme,
         staffSpace: staffSpace,
         staffGap: staffGap,
+        gridAlign: gridAlign,
         highlightedIds: highlightedIds,
       )..onElementTap = onElementTap;
 
@@ -63,6 +69,7 @@ class StaffSystemView extends LeafRenderObjectWidget {
       ..theme = theme
       ..staffSpace = staffSpace
       ..staffGap = staffGap
+      ..gridAlign = gridAlign
       ..highlightedIds = highlightedIds
       ..onElementTap = onElementTap;
   }
@@ -76,11 +83,13 @@ class RenderStaffSystemView extends RenderBox {
     required PartituraTheme theme,
     double? staffSpace,
     required double staffGap,
+    required bool gridAlign,
     required Set<String> highlightedIds,
   })  : _system = system,
         _theme = theme,
         _staffSpace = staffSpace,
         _staffGap = staffGap,
+        _gridAlign = gridAlign,
         _highlightedIds = highlightedIds {
     _tap = TapGestureRecognizer(debugOwner: this)..onTapUp = _handleTapUp;
   }
@@ -146,6 +155,16 @@ class RenderStaffSystemView extends RenderBox {
     markNeedsLayout();
   }
 
+  bool _gridAlign;
+
+  /// Whether simultaneous notes align across every staff of the system.
+  bool get gridAlign => _gridAlign;
+  set gridAlign(bool value) {
+    if (value == _gridAlign) return;
+    _gridAlign = value;
+    markNeedsLayout();
+  }
+
   Set<String> _highlightedIds;
 
   /// Ids painted in the highlight color.
@@ -178,7 +197,7 @@ class RenderStaffSystemView extends RenderBox {
     if (metadata == null) return constraints.smallest;
     final layout = layoutStaffSystem(
         _system, LayoutSettings(metadata: metadata),
-        staffGap: _staffGap);
+        staffGap: _staffGap, gridAlign: _gridAlign);
     _layout = layout;
     final widthSpaces = layout.width + leftInset;
     _scale = _staffSpace ??

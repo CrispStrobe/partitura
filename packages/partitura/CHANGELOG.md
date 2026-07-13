@@ -2,6 +2,11 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Cross-staff gridding — N-staff systems** (§2.9, increment 2):
+  `layoutStaffSystem` / `StaffSystemView` now grid-align simultaneous notes
+  across every staff of an ensemble system (SATB, orchestral), reusing the same
+  `alignedColumns` model — via a `gridAlign` flag (default true; single-voice
+  staves). Goldens 75 (SATB) and 76 (two-staff system) re-render column-aligned.
 - **Cross-staff onset-column gridding** (§2.9, increment 1): simultaneous notes
   now align vertically across the two staves of a grand staff — the rule every
   serious engraver enforces. A new core `alignedColumns(staves)` builds a shared

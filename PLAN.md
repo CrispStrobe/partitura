@@ -23,12 +23,12 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-11)
 
-> **Actively working on:** cross-staff gridding §2.9 **increment 2** — apply the
-> shared `alignedColumns` model to N-staff systems (`layoutStaffSystem` /
-> `StaffSystemView`), so an ensemble system aligns simultaneous notes across all
-> staves (not just the grand staff's two). Worktree `partitura-public-lacunae`.
-> *(Increment 1 (grand staff), editor contracts C1–C5, grand-staff justification
-> done on `main`; the three deep Score-model lacunae done; C6 deferred.)*
+> **Between features (model-lacunae worktree).** Cross-staff gridding §2.9
+> **increments 1 & 2 done** on `main` — grand staff *and* N-staff systems
+> (`StaffSystemView`) align simultaneous notes across staves. Left: increment 3
+> (multi-voice staves), increment 4 (justification-on-columns), accidental-aware
+> columns. Editor contracts C1–C5 + grand-staff justification done; the three
+> deep Score-model lacunae done; C6 deferred.
 
 > **Actively working on (OMR frontier):** closing the OMR gaps — starting with
 > **model auto-download** (`partitura omr --model <name>` fetches the GGUF from
@@ -104,7 +104,9 @@ own goldens):**
    `InteractiveGrandStaffView` (`gridAlign` flag, default true; 2+-voice staff
    falls back to barline-only). Goldens 35 & 95 re-rendered aligned; golden 96
    showcases it. `grand_staff_test.dart` asserts onset alignment.
-2. 🚧 **N-staff systems** — apply to `StaffSystemView`/`layoutStaffSystem`.
+2. [x] **N-staff systems** — `layoutStaffSystem`/`StaffSystemView` grid-align all
+   staves via the same `alignedColumns` (`gridAlign` flag). Goldens 75/76
+   re-rendered aligned; `staff_system_test.dart` asserts N-staff onset alignment.
 3. [ ] **Multi-voice** staves participate in the grid (voices 2–4 onsets).
 4. [ ] **Justification on columns** — stretch the shared columns to fill width
    (fold the grand-staff `spacingStretch` search into the column model).

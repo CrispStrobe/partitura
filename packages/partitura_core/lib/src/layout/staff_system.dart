@@ -4,6 +4,7 @@
 library;
 
 import '../model/score.dart';
+import 'grand_staff.dart' show alignedColumns;
 import 'layout_engine.dart';
 import 'layout_settings.dart';
 import 'score_layout.dart';
@@ -150,6 +151,7 @@ StaffSystemLayout layoutStaffSystem(
   StaffSystem system,
   LayoutSettings settings, {
   double staffGap = 4.0,
+  bool gridAlign = true,
 }) {
   const engine = LayoutEngine();
   final natural = [for (final s in system.staves) engine.layout(s, settings)];
@@ -168,18 +170,30 @@ StaffSystemLayout layoutStaffSystem(
     leading = _max(leading, leadingOf(l));
   }
 
-  final measureWidths = <double>[
-    for (var i = 0; i < measureCount; i++)
-      natural
-          .map((l) => l.measureRegions[i].endX - l.measureRegions[i].startX)
-          .reduce(_max),
-  ];
+  // §2.9: align simultaneous notes across every staff of the system, when they
+  // are all single-voice; otherwise fall back to shared measure widths
+  // (barlines align, onsets not yet).
+  final canGrid = gridAlign &&
+      system.staves.every((s) => s.measures.every((m) => m.voices.length == 1));
+  final columns = canGrid ? alignedColumns(system.staves, settings) : null;
+
+  final measureWidths = columns != null
+      ? null
+      : <double>[
+          for (var i = 0; i < measureCount; i++)
+            natural
+                .map((l) =>
+                    l.measureRegions[i].endX - l.measureRegions[i].startX)
+                .reduce(_max),
+        ];
 
   return StaffSystemLayout(
     staves: [
       for (final s in system.staves)
         engine.layout(s, settings,
-            leadingWidth: leading, measureWidths: measureWidths),
+            leadingWidth: leading,
+            measureWidths: measureWidths,
+            forcedColumns: columns),
     ],
     staffGap: staffGap,
     source: system,

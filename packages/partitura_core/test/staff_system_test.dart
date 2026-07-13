@@ -47,6 +47,39 @@ void main() {
     }
   });
 
+  test('cross-staff onset gridding aligns notes across N staves (§2.9)', () {
+    // Three staves, different rhythms: four quarters / a half + two quarters /
+    // a whole note. Compare the notehead x (the column), not ink bounds, which
+    // vary with ledger lines and notehead bearing.
+    final sys = StaffSystem([
+      Score.simple(notes: 'c5:q d5 e5 f5'),
+      Score.simple(clef: Clef.bass, notes: 'c3:h e3:q g3:q'),
+      Score.simple(clef: Clef.bass, notes: 'c2:w'),
+    ]);
+    final layout = layoutStaffSystem(sys, settings);
+    double noteX(int staff, String id) => layout.staves[staff].primitives
+        .whereType<GlyphPrimitive>()
+        .firstWhere(
+            (g) => g.elementId == id && g.smuflName.startsWith('notehead'))
+        .position
+        .x;
+
+    // Beat 1 (onset 0): all three first notes share a column.
+    expect(noteX(0, 'e0'), closeTo(noteX(1, 'e0'), 0.01));
+    expect(noteX(0, 'e0'), closeTo(noteX(2, 'e0'), 0.01));
+    // Beat 3 (onset 1/2): staff 0's third quarter over staff 1's second note.
+    expect(noteX(0, 'e2'), closeTo(noteX(1, 'e1'), 0.01));
+  });
+
+  test('gridAlign: false keeps barline-only alignment', () {
+    final sys = StaffSystem([
+      Score.simple(notes: 'c5:q d5 e5 f5'),
+      Score.simple(clef: Clef.bass, notes: 'c3:h e3:q g3:q'),
+    ]);
+    final layout = layoutStaffSystem(sys, settings, gridAlign: false);
+    expect(layout.staves[0].width, closeTo(layout.staves[1].width, 1e-6));
+  });
+
   test('staff tops stack by 4 + staffGap', () {
     final layout = layoutStaffSystem(satb(), settings, staffGap: 5);
     expect(layout.staffTop(0), 0);
