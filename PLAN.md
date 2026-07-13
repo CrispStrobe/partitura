@@ -23,13 +23,11 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-13)
 
-> 🚧 **Actively working on (finish 2.x + 7.3 + 7.5 tails):** in my lane
-> (layout / theory / interchange-writers / braille) — **2.4** explicit
-> actual-vs-nominal measure length (`Measure.actualDuration`), **2.7**
-> measure-numbering policy (every-N interval + section reset), **7.3** ABC
-> import decorations tail, **7.5** braille signatures + chords. Sequential;
-> claimed as one lane. Worktree `partitura-tab`, branch `feat/finish-2x-7x`.
-> *(NOT touching 2.1/2.2/2.3-view/2.6 — owned/forked by the model agent.)*
+> **My lane landed on `main`:** 2.4 `Measure.actualDuration` (irregular bars),
+> 2.7 every-N measure numbering, 7.3 ABC `!invertedturn!`, 7.5 braille
+> signatures + chords, and the C6 handover doc (`docs/C6_HANDOVER.md`). No active
+> claim on this worktree line. *(2.1/2.2/2.3-view/2.6 stay owned/forked by the
+> model agent; C6 remains forked — reconcile before more.)*
 
 > **C6 multi-part document — core wrapping landed on `main`**
 > (`layoutStaffSystemSystems` / `StaffSystemSystems`; contract C6 now `[~]`, see
@@ -46,13 +44,16 @@ ships* at the end for the mechanics.
 > `partitura-c6`); merge to `main` when ready. *(Touched `staff_system.dart`,
 > `multi_system.dart`, new `multi_part*.dart` — not the 2.x/4.x lanes.)*
 
-> 🚧 **Actively working on (finish Phase 4 — the analysis tails):** 4.4
-> enharmonic re-reads of a pitch-class set (`chordReadings`), 4.5 the Forte
-> set-class number table (`forteNumber` over `primeForm`), and 4.7 wiring
-> `beatStrength` into automatic (secondary-)beaming. 4.8's analysis text format
-> stays deferred (no standard interchange to target). Worktree
-> `partitura-public-lacunae`. *(Phase 3 complete; Phase 6 complete; Phase 5 tails
-> are blocked on the C6 multi-staff engine the other worktree is building.)*
+> **HANDOFF — `partitura-public-lacunae` has no active claim; safe to pick up.**
+> **Phase 4 (Music theory & analysis) is finished:** the tails just landed — 4.4
+> `chordReadings` (enharmonic re-reads), 4.5 `forteNumber` (Forte set-class
+> numbers), 4.7 metric-aware secondary beaming (golden 122). The only unaddressed
+> 4.x item is 4.8's *analysis text I/O format*, intentionally **deferred** (no
+> established interchange format to target; a bespoke one is a maintainer call).
+> **Phases 3, 4, 6 are now complete from this worktree.** Remaining across the
+> plan: the Phase 5 tails (5.6 cross-staff span barlines, 5.7 polymeter — both
+> gated on the C6 multi-staff engine the other worktree is building) and any
+> Phase 7+ items. Claim with 🚧, push origin/main at every checkpoint.
 
 
 
@@ -495,7 +496,7 @@ Raises the quality of everything already rendered. Slice order:
       follow it (golden 121). **Left:** ossia staves, divisi split, empty-bar
       removal, and per-system hiding once the multi-system wrap chooses staves
       per system.
-- [~] **2.4 Pickup / anacrusis + actual-vs-nominal measure duration +
+- [x] **2.4 Pickup / anacrusis + actual-vs-nominal measure duration +
       irregular measures** — foundational; a large fraction of real pieces
       need a partial first bar or a metric length differing from the notated
       one. **Done:** `Measure.pickup` (anacrusis) with auto-detection of a
@@ -503,8 +504,12 @@ Raises the quality of everything already rendered. Slice order:
       `implicit="yes"` read/write with anacrusis-aware renumbering, and a
       `showMeasureNumbers` overlay that skips the pickup so the first full bar
       reads `1` (golden 80). Layout already tolerates irregular measures
-      (content-proportional, no meter enforcement). **Left:** an explicit
-      actual-vs-nominal measure length (for mid-piece irregular bars).
+      (content-proportional, no meter enforcement); and an **explicit
+      actual-vs-nominal length** — `Measure.actualDuration` (a `Fraction?`)
+      overrides the meter's capacity for a mid-piece irregular bar (an inserted
+      5/4 in 4/4, a cadenza) without a full meter change; `capacityGiven(meter)`
+      resolves the effective capacity, and pickup auto-detection leaves an
+      explicitly-sized bar alone. **2.4 complete.**
 - [~] **2.5 Page-layout engine** — **Done:** `layoutPages` paginates the broken
       systems into `PageMetrics` pages (size + margins in staff spaces), packing
       systems by content height and vertically justifying every page but the
@@ -521,9 +526,12 @@ Raises the quality of everything already rendered. Slice order:
       extraction (one edit reflected in score + part) and a written-vs-concert
       view toggle in the renderer.
 - [~] **2.7 Measure-numbering system** — **Done:** a `showMeasureNumbers`
-      overlay numbering every measure (anacrusis-aware; delivered with 2.4).
-      **Left:** per-system-only / every-N numbering, per-measure overrides,
-      section reset, and measure-repeat signs (1/2/4-bar).
+      overlay numbering every measure (anacrusis-aware; delivered with 2.4); and
+      **every-N interval numbering** — `LayoutEngine.layout(...,
+      measureNumberInterval:)` / `StaffView.measureNumberInterval` label only bar
+      1 and every Nth counted bar (the common "every 5 bars" convention).
+      **Left:** per-system-only numbering (needs the wrapping layer), per-measure
+      overrides, section reset, and measure-repeat signs (1/2/4-bar).
 
 ### Phase 3 — Interactivity  *(the moat — where partitura wins)*
 Rides the existing cursor + selection; no audio needed.
@@ -616,8 +624,10 @@ No peer renderer does any of this; all build on the existing pitch / interval
 - [x] **4.5 Post-tonal set theory** — `normalForm`, Forte `primeForm`,
       `intervalClassVector` and `zRelated` for a pitch-class set, plus
       `transposeSet`/`invertSet`/`pitchClassSet` helpers
-      (`theory/set_theory.dart`). *Left:* the Forte set-class *number* naming
-      table (the prime form is the canonical identifier).
+      (`theory/set_theory.dart`). *Left:* ~~the Forte set-class number table~~ →
+      done: `forteNumber(pcs)` (`3-11`, `4-27`, `7-35`, Z-classes) — trichords–
+      pentachords catalogued, 7–10 via complement, verified complete over all
+      2¹² subsets; hexachords null for now. `forte_number_test.dart`.
 - [x] **4.6 Figured-bass realization** — `figuredChordPitchClasses(bass, figure,
       key)` parses a figure (`6`, `6/4`, `7`, `#`, …; single-digit stacked
       numbers, per-degree accidentals, lone accidental → the third) into the
@@ -631,8 +641,10 @@ No peer renderer does any of this; all build on the existing pitch / interval
       1.0, halving down the meter's hierarchy): 4/4 → beat 3 = ½, beats 2/4 = ¼;
       3/4 → both weak beats ½; 6/8 accents the second dotted beat; additive
       meters accent each group start; off-grid (triplet) positions score 0.
-      Exact-`Fraction` grid resolved to the 64th. Wiring it into automatic
-      beaming is a follow-up.
+      Exact-`Fraction` grid resolved to the 64th. **Wired into beaming:**
+      secondary (16th+) beams break at the meter's pulse — the base unit in
+      compound/additive meters (6/8 sixteenths break at each eighth), the quarter
+      in simple/cut (unchanged, no golden churn). Golden 122.
 - [x] **4.8 Extras** — neo-Riemannian `parallel`/`relative`/`leittonwechsel`
       (P/L/R) on major/minor `Triad`s (`neo_riemannian.dart`); twelve-tone row
       forms + the 12×12 matrix (`twelve_tone.dart`); and `matchingScales(pcs)`
@@ -879,9 +891,11 @@ enum encodings so files round-trip cleanly), tiered by importance:
       slurs, grace notes, staccato, `"C"` chord symbols → annotations, bar
       lines (repeats, double/final), `w:` lyrics, and multi-voice (first voice);
       round-trips through the score model, wired into the CLI (`.abc`),
-      validated against the abcjs example tune-book. **Left:** the ABC subset's
-      tail (decorations beyond staccato, multi-voice → grand staff, symbol
-      lines); `.ptb` (PowerTab, no freely-licensed test corpus).
+      validated against the abcjs example tune-book. The decoration set is now
+      comprehensive (articulations, ornaments incl. `!invertedturn!`, navigation,
+      dynamics + shorthand) and multi-voice tunes import as a `StaffSystem`
+      (golden 76). **Left:** ABC symbol lines (`s:`) and other niche fields;
+      `.ptb` (PowerTab, no freely-licensed test corpus).
 - [x] **7.4 Repeat unfolding** — `playbackTimeline` linearizes repeats /
       voltas / D.C. / D.S. / To Coda / al Fine / al Coda into performance
       order, executing the navigation jumps. Repeat barlines expand with a
@@ -901,9 +915,13 @@ enum encodings so files round-trip cleanly), tiered by importance:
       (always first; never a 2nd/3rd; a 4th/5th only across an octave; a 6th+
       always), dotted-note augmentation cells, and measures separated by a blank
       cell. Wired into the CLI (`--to brl` / `.brl`); `braille_writer_test.dart`
-      checks the cells against dot numbers. **Left:** chords (interval signs),
-      in-accord voices, key/time/clef signatures, dynamics/slurs/fingering, and
-      line/format rules.
+      checks the cells against dot numbers. Also done: **chords** — the top note
+      is the reference, lower tones become downward interval signs (2nd…octave,
+      compound with an octave mark); and a **signature header** — the standard
+      key signature (repeated ♯/♭ signs, or number-sign form beyond three) then
+      the time signature (number sign + upper-cell numerator + lower-cell
+      denominator). **Left:** in-accord voices, mid-score key/time changes, clef
+      signs, dynamics/slurs/fingering, and line/format rules.
 - [x] **7.6 CLI tool** (`partitura_cli`) — a pure-Dart command line for
       `info` / `timeline` / `convert` (MusicXML ↔ MIDI) / `render` (SVG or,
       by delegating to the Flutter SDK, PNG; notation or `--tab`), with live

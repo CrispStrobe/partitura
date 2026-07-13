@@ -2,6 +2,37 @@
 
 ## 0.4.1-dev.1 (in progress)
 
+- **Braille signatures + chords** (Phase 7.5): `scoreToBraille` now emits a
+  leading signature header (standard key signature, then time signature as
+  number-sign + upper/lower digits) and renders chords as the top note plus
+  downward interval signs (2nd-octave, compound via an octave mark).
+
+- **ABC `!invertedturn!`** (Phase 7.3): the ABC reader maps the `!invertedturn!`
+  decoration to `Ornament.invertedTurn` (rounding out the ornament set).
+
+- **Metric-aware secondary beaming** (Phase 4.7 tail): secondary (16th+) beams
+  now break at the meter's pulse rather than always the quarter — in compound
+  (6/8, 9/8, 12/8) and additive (3+2/8) meters they break at the base unit, so a
+  run of sixteenths inside a dotted-quarter beat groups at each eighth. Simple
+  and cut-time meters are unchanged (no golden churn); golden 122 shows 6/8.
+- **Every-N measure numbering** (Phase 2.7): `LayoutEngine.layout(...,
+  measureNumberInterval:)` labels only bar 1 and every Nth counted bar (the
+  common "every 5 bars" convention); 1 = every bar (unchanged default).
+
+- **Forte set-class numbers** (Phase 4.5 tail): `forteNumber(pcs)` names a
+  pitch-class set the familiar way — a minor triad → `3-11`, a dominant seventh
+  → `4-27`, the major scale → `7-35`, with `Z` on Z-related classes. Trichords
+  through pentachords come from the catalogue; septachords through decachords are
+  derived from their complement (Forte's shared-ordinal convention). A
+  completeness test over all 2¹² subsets verifies the catalogue is exactly
+  complete with the canonical per-cardinality class counts. (Hexachords return
+  null for now — the prime form stays the canonical identifier.)
+- **Explicit irregular-bar length** (Phase 2.4): `Measure.actualDuration` (a
+  `Fraction?`) overrides the meter's capacity for a mid-piece irregular bar
+  (an inserted 5/4 in 4/4, a cadenza) without a meter change; `capacityGiven(meter)`
+  resolves the effective capacity and pickup auto-detection leaves an
+  explicitly-sized bar alone.
+
 - **Enharmonic chord re-reads** (Phase 4.4 tail): `chordReadings(pcs, {bassPc})`
   returns *every* tonal reading of a pitch-class set — one per root whose
   template matches — surfacing the ambiguities a single spelled reading hides:

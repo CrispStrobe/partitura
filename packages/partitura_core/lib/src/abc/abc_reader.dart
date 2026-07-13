@@ -613,6 +613,7 @@ class _AbcBody {
       'mordent' || 'lowermordent' => Ornament.mordent,
       'uppermordent' || 'pralltriller' => Ornament.shortTrill,
       'turn' || 'turnx' => Ornament.turn,
+      'invertedturn' || 'invertedturnx' => Ornament.invertedTurn,
       _ => null,
     };
     if (ornament != null) {

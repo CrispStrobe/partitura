@@ -2,6 +2,9 @@
 
 ## 0.4.1-dev.1 (in progress)
 
+- **`StaffView.measureNumberInterval`** (Phase 2.7): with `showMeasureNumbers`,
+  label only bar 1 and every Nth bar.
+
 - **Accessible, navigable score** (Phase 3.9): `StaffView` now emits a
   `Semantics` node per note/rest — a screen reader can focus each element and
   hear its spoken label (core's `semanticLabel`, e.g. "C 4 quarter note"). The
@@ -15,6 +18,15 @@
   "paint the note the background colour" trick. Repaint-only; the companion to
   the `onElementDrag*` hooks so the app can hide the dragged note and let its
   own `ghostTarget` stand in.
+
+- **View-owned live drag** (Workshop C10b): `dragPreviewOpacity: double?` on
+  `MultiSystemView` / `InteractiveGrandStaffView`. When set, the view suppresses
+  the dragged element and re-paints the *real* glyph (stem, accidental, flag,
+  ledgers) translated to follow the pointer — snapped vertically to the target
+  line/space, free horizontally — at that opacity. The app drops its
+  `ghostTarget` / `suppressElementIds` drag bookkeeping; the render object
+  repaints itself on each drag update. Refactors the painter's per-primitive
+  switch into a shared, opacity-aware `_paintPrimitive` (goldens unchanged).
 
 - **Live transposition / concert-pitch UI** (Phase 3.6): `TranspositionController`
   is a `ChangeNotifier` wrapper over `Score.transposedBy` / `atConcertPitch` —

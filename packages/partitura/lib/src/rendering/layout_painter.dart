@@ -113,77 +113,108 @@ class LayoutPainter {
   /// Paints every primitive of [layout]. [origin] is the pixel position
   /// of the layout's staff-space (0, 0) — the top staff line's left end.
   void paintLayout(Canvas canvas, Offset origin, ScoreLayout layout) {
-    Offset at(math.Point<double> p) =>
-        origin + Offset(p.x * scale, p.y * scale);
     for (final primitive in layout.primitives) {
       if (suppressIds.isNotEmpty &&
           primitive.elementId != null &&
           suppressIds.contains(primitive.elementId)) {
         continue;
       }
-      switch (primitive) {
-        case GlyphPrimitive():
-          paintGlyph(
-            canvas,
-            origin,
-            primitive.smuflName,
-            primitive.position,
-            colorFor(primitive.elementId),
-            glyphScale: primitive.scale,
-          );
-        case LinePrimitive():
-          final paint = Paint()
-            ..color = colorFor(primitive.elementId)
-            ..strokeWidth = primitive.thickness * scale;
-          if (primitive.round) paint.strokeCap = StrokeCap.round;
-          canvas.drawLine(at(primitive.from), at(primitive.to), paint);
-        case BeamPrimitive():
-          // Beams are note ink even though they are shared across elements.
-          final paint = Paint()..color = theme.noteColor;
-          final start = at(primitive.start);
-          final end = at(primitive.end);
-          final half = primitive.thickness / 2 * scale;
-          canvas.drawPath(
-            Path()
-              ..moveTo(start.dx, start.dy - half)
-              ..lineTo(end.dx, end.dy - half)
-              ..lineTo(end.dx, end.dy + half)
-              ..lineTo(start.dx, start.dy + half)
-              ..close(),
-            paint,
-          );
-        case TextPrimitive():
-          // Anchored by the horizontal center at position.x, alphabetic
-          // baseline at position.y (core estimates widths; the real text
-          // centers itself here).
-          final painter = textPainter(
-            primitive.text,
-            colorFor(primitive.elementId),
-            primitive.size,
-          );
-          final baseline = painter.computeDistanceToActualBaseline(
-            TextBaseline.alphabetic,
-          );
-          final anchor = at(primitive.position);
-          painter.paint(canvas, anchor - Offset(painter.width / 2, baseline));
-        case CurvePrimitive():
-          // Ties/slurs are shared note ink, like beams.
-          final paint = Paint()
-            ..color = theme.noteColor
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = primitive.thickness * scale
-            ..strokeCap = StrokeCap.round;
-          final p0 = at(primitive.start);
-          final c1 = at(primitive.control1);
-          final c2 = at(primitive.control2);
-          final p1 = at(primitive.end);
-          canvas.drawPath(
-            Path()
-              ..moveTo(p0.dx, p0.dy)
-              ..cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, p1.dx, p1.dy),
-            paint,
-          );
-      }
+      _paintPrimitive(canvas, origin, primitive);
+    }
+  }
+
+  /// Paints only the primitives owned by [elementId] from [layout], anchored at
+  /// [origin] and faded to [opacity] — the live drag preview (C10b). The view
+  /// suppresses the element in the main pass and re-draws it here translated to
+  /// follow the pointer, so the *real* glyph (stem, accidental, flag, ledgers)
+  /// moves, not a stand-in notehead.
+  void paintElement(
+    Canvas canvas,
+    Offset origin,
+    ScoreLayout layout,
+    String elementId, {
+    double opacity = 1.0,
+  }) {
+    for (final primitive in layout.primitives) {
+      if (primitive.elementId != elementId) continue;
+      _paintPrimitive(canvas, origin, primitive, opacity: opacity);
+    }
+  }
+
+  /// Paints one [primitive] anchored at [origin], its ink faded to [opacity]
+  /// (1.0 = unchanged). Shared by [paintLayout] and [paintElement].
+  void _paintPrimitive(
+    Canvas canvas,
+    Offset origin,
+    LayoutPrimitive primitive, {
+    double opacity = 1.0,
+  }) {
+    Offset at(math.Point<double> p) =>
+        origin + Offset(p.x * scale, p.y * scale);
+    Color ink(Color c) =>
+        opacity >= 1.0 ? c : c.withValues(alpha: c.a * opacity);
+    switch (primitive) {
+      case GlyphPrimitive():
+        paintGlyph(
+          canvas,
+          origin,
+          primitive.smuflName,
+          primitive.position,
+          ink(colorFor(primitive.elementId)),
+          glyphScale: primitive.scale,
+        );
+      case LinePrimitive():
+        final paint = Paint()
+          ..color = ink(colorFor(primitive.elementId))
+          ..strokeWidth = primitive.thickness * scale;
+        if (primitive.round) paint.strokeCap = StrokeCap.round;
+        canvas.drawLine(at(primitive.from), at(primitive.to), paint);
+      case BeamPrimitive():
+        // Beams are note ink even though they are shared across elements.
+        final paint = Paint()..color = ink(theme.noteColor);
+        final start = at(primitive.start);
+        final end = at(primitive.end);
+        final half = primitive.thickness / 2 * scale;
+        canvas.drawPath(
+          Path()
+            ..moveTo(start.dx, start.dy - half)
+            ..lineTo(end.dx, end.dy - half)
+            ..lineTo(end.dx, end.dy + half)
+            ..lineTo(start.dx, start.dy + half)
+            ..close(),
+          paint,
+        );
+      case TextPrimitive():
+        // Anchored by the horizontal center at position.x, alphabetic
+        // baseline at position.y (core estimates widths; the real text
+        // centers itself here).
+        final painter = textPainter(
+          primitive.text,
+          ink(colorFor(primitive.elementId)),
+          primitive.size,
+        );
+        final baseline = painter.computeDistanceToActualBaseline(
+          TextBaseline.alphabetic,
+        );
+        final anchor = at(primitive.position);
+        painter.paint(canvas, anchor - Offset(painter.width / 2, baseline));
+      case CurvePrimitive():
+        // Ties/slurs are shared note ink, like beams.
+        final paint = Paint()
+          ..color = ink(theme.noteColor)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = primitive.thickness * scale
+          ..strokeCap = StrokeCap.round;
+        final p0 = at(primitive.start);
+        final c1 = at(primitive.control1);
+        final c2 = at(primitive.control2);
+        final p1 = at(primitive.end);
+        canvas.drawPath(
+          Path()
+            ..moveTo(p0.dx, p0.dy)
+            ..cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, p1.dx, p1.dy),
+          paint,
+        );
     }
   }
 

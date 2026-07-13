@@ -105,6 +105,12 @@ void main() {
       expect(n[4].ornament, Ornament.shortTrill); // P
     });
 
+    test('!invertedturn! maps to Ornament.invertedTurn (7.3)', () {
+      final s = scoreFromAbc('X:1\nL:1/4\nK:C\n!invertedturn!C D|\n');
+      final n = s.measures.single.elements.cast<NoteElement>();
+      expect(n[0].ornament, Ornament.invertedTurn);
+    });
+
     test('navigation decorations !segno! !D.S.! drive the playback jump', () {
       final s = scoreFromAbc(
           'X:1\nM:4/4\nL:1/4\nK:C\n!segno!A B C D|E F G A !D.S.!|\n');

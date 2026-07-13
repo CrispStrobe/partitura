@@ -54,6 +54,7 @@ class LayoutEngine {
     bool showNoteNames = false,
     bool showBeatNumbers = false,
     bool showMeasureNumbers = false,
+    int measureNumberInterval = 1,
     Map<String, bool> deferredStems = const {},
     List<Map<Fraction, double>>? forcedColumns,
   }) =>
@@ -66,6 +67,7 @@ class LayoutEngine {
               showNoteNames: showNoteNames,
               showBeatNumbers: showBeatNumbers,
               showMeasureNumbers: showMeasureNumbers,
+              measureNumberInterval: measureNumberInterval,
               deferredStems: deferredStems,
               forcedColumns: forcedColumns)
           .build();
@@ -177,6 +179,7 @@ class _LayoutBuilder {
   final bool showNoteNames;
   final bool showBeatNumbers;
   final bool showMeasureNumbers;
+  final int measureNumberInterval;
   SmuflMetadata get meta => s.metadata;
 
   final List<LayoutPrimitive> _primitives = [];
@@ -273,6 +276,7 @@ class _LayoutBuilder {
       this.showNoteNames = false,
       this.showBeatNumbers = false,
       this.showMeasureNumbers = false,
+      this.measureNumberInterval = 1,
       this.deferredStems = const {},
       this.forcedColumns});
 
@@ -2687,8 +2691,12 @@ class _LayoutBuilder {
   /// Measure-number overlay ([LayoutEngine.layout] `showMeasureNumbers`): a
   /// small bar number above the start of each measure. Pickups (anacruses) are
   /// unnumbered and don't advance the count, so the first full bar reads `1`.
+  ///
+  /// With `measureNumberInterval` > 1, only bar 1 and every Nth bar are labelled
+  /// (the common "every 5 bars" convention); ≤ 1 numbers every bar.
   void _layoutMeasureNumbers() {
     if (!showMeasureNumbers) return;
+    final interval = measureNumberInterval;
     final size = s.lyricSize * 0.8;
     final baseline = min(-2.0, _ink.minY - 0.6 - 0.25 * size);
     final infoById = <String, _TieInfo>{
@@ -2699,6 +2707,7 @@ class _LayoutBuilder {
       final measure = score.measures[mi];
       final barNo = score.barNumberAt(mi);
       if (barNo == null) continue; // anacrusis: uncounted, unnumbered
+      if (interval > 1 && barNo != 1 && barNo % interval != 0) continue;
       // Anchor at the leftmost laid-out element of the measure.
       _TieInfo? anchor;
       for (final element in measure.elements) {
@@ -3410,6 +3419,21 @@ class _LayoutBuilder {
       sub != null &&
       _windowIndex(onsets[a], sub) != _windowIndex(onsets[b], sub);
 
+  // The metric pulse at which secondary (16th+) beams break (Phase 4.7). In a
+  // compound (6/8, 9/8, 12/8) or additive (3+2/8) meter the pulse is the base
+  // unit, so a run of sixteenths inside a dotted-quarter beat breaks its
+  // secondary beams at each eighth. In simple meters it stays the quarter
+  // (matching prior behaviour: x/4 groups never exceed a quarter, and cut time
+  // still shows the quarter sub-pulse).
+  static Fraction _secondaryBeamPulse(TimeSignature time) {
+    final compound = (time.beatUnit == 8 || time.beatUnit == 16) &&
+        time.beats > 3 &&
+        time.beats % 3 == 0;
+    return compound || time.components != null
+        ? Fraction(1, time.beatUnit)
+        : Fraction(1, 4);
+  }
+
   /// Beam geometry: a straight beam through the stem tips, slant clamped to
   /// ±1 staff space over the group, intercept chosen so every stem keeps at
   /// least the default length. [BeamPrimitive] points are the midpoints of
@@ -3499,11 +3523,14 @@ class _LayoutBuilder {
     }
 
     // Secondary/tertiary/quaternary beams, offset toward the noteheads. They
-    // break at the quarter-note metric point, so a group spanning more than a
-    // quarter (e.g. a half-note beat in cut time) shows the sub-pulse rather
-    // than one over-long secondary beam. In simple x/4 meters beam groups never
-    // exceed a quarter, so this never fires there.
-    final subdivision = _time == null ? null : Fraction(1, 4);
+    // break at a metric sub-pulse (Phase 4.7 — driven by the meter's hierarchy)
+    // so a group spanning more than one pulse shows the beat rather than one
+    // over-long secondary beam: in **compound / additive** meters the pulse is
+    // the base unit (6/8 sixteenths break at each eighth, not at a quarter),
+    // and in **simple** meters it stays the quarter (so a half-note beat in cut
+    // time still shows the quarter sub-pulse, and x/4 meters — whose beam groups
+    // never exceed a quarter — are unchanged).
+    final subdivision = _time == null ? null : _secondaryBeamPulse(_time!);
     for (var level = 2; level <= maxLevel; level++) {
       final offset = (s.beamThickness + s.beamSpacing) *
           (level - 1) *
