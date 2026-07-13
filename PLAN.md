@@ -512,6 +512,8 @@ No peer renderer does any of this; all build on the existing pitch / interval
       (`JazzMark`/`JazzArticulation`, brass glyphs before/after the notehead,
       MusicXML `<articulations>` round-trip, golden 69). **Left:** lift, flip,
       smear, bend (render-only; not standard MusicXML articulations).
+      *[🚧 in progress: parallel agent — lift/flip/smear/bend brass glyphs
+      (JazzArticulation + layout_engine jazz pass); render-only]*
 - [x] **5.10 Microtonal accidentals + remappable alteration glyphs** —
       `Pitch.microtone` (optional `MicrotonalAccidental`: half/three-quarter
       sharp/flat, ±50/±150 cents) draws the Stein-Zimmermann quarter-tone glyphs
