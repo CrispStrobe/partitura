@@ -714,6 +714,27 @@ class TremoloPicking {
   String toString() => 'TremoloPicking($noteId, $strokes)';
 }
 
+/// A rasgueado (flamenco strum) on a tab note or chord, referenced by its id.
+/// Drawn as a downward strum arrow through the strings at the note. Rendered by
+/// the tab engine only.
+class Rasgueado {
+  /// Id of the strummed note/chord.
+  final String noteId;
+
+  /// Marks [noteId] as rasgueado.
+  const Rasgueado(this.noteId);
+
+  @override
+  bool operator ==(Object other) =>
+      other is Rasgueado && other.noteId == noteId;
+
+  @override
+  int get hashCode => noteId.hashCode;
+
+  @override
+  String toString() => 'Rasgueado($noteId)';
+}
+
 /// A glissando/slide: a straight line drawn from one note to a later one,
 /// referenced by their ids (like [Slur]). The start must precede the end in
 /// reading order and both ids must exist, or layout throws an

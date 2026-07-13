@@ -16,6 +16,7 @@ import 'dart:math';
 import '../model/element.dart';
 import '../model/score.dart';
 import '../smufl/glyph_names.dart';
+import '../smufl/smufl_metadata.dart';
 import '../tablature/chord_diagram.dart';
 import '../theory/duration.dart';
 import '../theory/fraction.dart';
@@ -299,6 +300,54 @@ class TabLayoutEngine {
       }
     }
 
+    // Ornaments and articulations reuse the notation model, drawn above the
+    // fret (trill/mordent/turn, staccato/accent/marcato/tenuto/fermata).
+    const tabArticulations = {
+      Articulation.staccato,
+      Articulation.accent,
+      Articulation.marcato,
+      Articulation.tenuto,
+      Articulation.fermata,
+    };
+    for (final measure in score.measures) {
+      for (final el in measure.elements) {
+        if (el is! NoteElement || el.id == null) continue;
+        final at = anchor[el.id];
+        if (at == null) continue;
+        var markY = at.$2 - 1.4;
+        if (el.ornament != null) {
+          _glyphAbove(primitives, SmuflGlyph.ornamentGlyph(el.ornament!), at.$1,
+              markY, meta);
+          markY -= 1.2;
+        }
+        for (final art in el.articulations) {
+          if (!tabArticulations.contains(art)) continue;
+          _glyphAbove(
+              primitives,
+              SmuflGlyph.articulationGlyph(art, above: true),
+              at.$1,
+              markY,
+              meta);
+          markY -= 0.9;
+        }
+      }
+    }
+
+    // Rasgueado: a downward strum arrow just left of the note.
+    for (final r in score.rasgueados) {
+      final at = anchor[r.noteId];
+      if (at == null) continue;
+      final ax = at.$1 - 0.5;
+      primitives.add(LinePrimitive(Point(ax, -0.3), Point(ax, bottomY + 0.4),
+          thickness: s.stemThickness));
+      primitives.add(LinePrimitive(
+          Point(ax, bottomY + 0.4), Point(ax - 0.25, bottomY - 0.05),
+          thickness: s.stemThickness));
+      primitives.add(LinePrimitive(
+          Point(ax, bottomY + 0.4), Point(ax + 0.25, bottomY - 0.05),
+          thickness: s.stemThickness));
+    }
+
     // Chord diagrams placed above the staff over their note.
     for (final placed in score.chordDiagrams) {
       final at = anchor[placed.elementId];
@@ -425,6 +474,14 @@ class TabLayoutEngine {
       ));
       px += half;
     }
+  }
+
+  /// Draws [glyph] centred horizontally on [x] with its baseline at [y].
+  void _glyphAbove(List<LayoutPrimitive> primitives, String glyph, double x,
+      double y, SmuflMetadata meta) {
+    final box = meta.bBoxOf(glyph);
+    primitives
+        .add(GlyphPrimitive(glyph, Point(x - box.width / 2 - box.swX, y)));
   }
 
   /// Draws a tremolo-bar V above the fret at ([bx], [by]) with the [steps]

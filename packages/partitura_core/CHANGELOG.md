@@ -2,6 +2,11 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Tab ornaments, articulations & rasgueado** (Phase 6.4): the tab engine now
+  draws ornaments (trill/mordent/turn) and articulations (staccato/accent/
+  marcato/tenuto/fermata) above the fret by **reusing** `NoteElement.ornament`
+  and `.articulations` (no new model — the same data the notation engine uses),
+  plus a new `Rasgueado` mark (a downward strum arrow). Golden 97.
 - **More tab techniques** (Phase 6.4): right-hand p-i-m-a fingering
   (`TabFingering` + `RightHandFinger`, drawn as the letter below the fret),
   slap/pop (`SlapPop` — "S"/"P" above), and tremolo picking (`TremoloPicking` —

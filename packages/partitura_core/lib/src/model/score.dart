@@ -104,6 +104,9 @@ class Score {
   /// Tremolo-picked tab notes (tab engine only).
   final List<TremoloPicking> tremoloPickings;
 
+  /// Rasgueado (strum) marks on tab notes (tab engine only).
+  final List<Rasgueado> rasgueados;
+
   /// Chord/fretboard diagrams placed above note elements (drawn on both the
   /// notation and tab staves).
   final List<PlacedChordDiagram> chordDiagrams;
@@ -161,6 +164,7 @@ class Score {
     this.tabFingerings = const [],
     this.slapPops = const [],
     this.tremoloPickings = const [],
+    this.rasgueados = const [],
     this.chordDiagrams = const [],
     this.jazzMarks = const [],
     this.figuredBass = const [],
@@ -713,6 +717,7 @@ class Score {
       tabFingerings: tabFingerings,
       slapPops: slapPops,
       tremoloPickings: tremoloPickings,
+      rasgueados: rasgueados,
       chordDiagrams: chordDiagrams,
       jazzMarks: jazzMarks,
       figuredBass: figuredBass,
@@ -817,6 +822,7 @@ class Score {
       listEquals(other.tabFingerings, tabFingerings) &&
       listEquals(other.slapPops, slapPops) &&
       listEquals(other.tremoloPickings, tremoloPickings) &&
+      listEquals(other.rasgueados, rasgueados) &&
       listEquals(other.chordDiagrams, chordDiagrams) &&
       listEquals(other.jazzMarks, jazzMarks) &&
       listEquals(other.figuredBass, figuredBass) &&
@@ -857,6 +863,7 @@ class Score {
           Object.hashAll(tabFingerings),
           Object.hashAll(slapPops),
           Object.hashAll(tremoloPickings),
+          Object.hashAll(rasgueados),
           Object.hashAll(chordDiagrams),
           Object.hashAll(jazzMarks),
           Object.hashAll(figuredBass),

@@ -596,5 +596,42 @@ E|---|
           ));
       expect(texts(tabOf(score)), isNot(contains('S')));
     });
+
+    test('ornaments and articulations render above the fret', () {
+      final score = Score(clef: Clef.treble, measures: [
+        Measure([
+          NoteElement(
+            pitches: [Pitch.parse('g4')],
+            duration: const NoteDuration(DurationBase.quarter),
+            id: 'e0',
+            ornament: Ornament.trill,
+            articulations: const {Articulation.staccato},
+          ),
+        ]),
+      ]);
+      final glyphs = tabOf(score)
+          .primitives
+          .whereType<GlyphPrimitive>()
+          .map((g) => g.smuflName)
+          .toList();
+      expect(glyphs, contains(SmuflGlyph.ornamentTrill));
+      expect(
+          glyphs,
+          contains(SmuflGlyph.articulationGlyph(Articulation.staccato,
+              above: true)));
+    });
+
+    test('rasgueado draws a downward strum arrow', () {
+      final score = withTab((b) => Score(
+          clef: b.clef,
+          measures: b.measures,
+          rasgueados: const [Rasgueado('e0')]));
+      // The arrowhead is two diagonal lines.
+      final arrowhead = tabOf(score)
+          .primitives
+          .whereType<LinePrimitive>()
+          .where((l) => l.from.x != l.to.x && l.from.y != l.to.y);
+      expect(arrowhead, hasLength(2));
+    });
   });
 }

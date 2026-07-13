@@ -1953,4 +1953,34 @@ void main() {
       Tuning.standardGuitar,
     );
   });
+
+  testWidgets('97 tab: ornaments, articulations, rasgueado', (tester) async {
+    NoteElement n(String pitch, String id,
+            {Ornament? ornament, Set<Articulation> articulations = const {}}) =>
+        NoteElement(
+          pitches: [Pitch.parse(pitch)],
+          duration: const NoteDuration(DurationBase.quarter),
+          id: id,
+          ornament: ornament,
+          articulations: articulations,
+        );
+    await tabGolden(
+      tester,
+      '97_tab_ornaments_articulations_rasgueado',
+      Score(
+        clef: Clef.treble,
+        timeSignature: TimeSignature.fourFour,
+        measures: [
+          Measure([
+            n('g4', 'e0', ornament: Ornament.trill),
+            n('a4', 'e1', articulations: const {Articulation.staccato}),
+            n('b4', 'e2', articulations: const {Articulation.accent}),
+            n('c5', 'e3'),
+          ]),
+        ],
+        rasgueados: const [Rasgueado('e3')],
+      ),
+      Tuning.standardGuitar,
+    );
+  });
 }
