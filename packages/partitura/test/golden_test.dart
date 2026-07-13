@@ -578,7 +578,7 @@ void main() {
     );
   });
 
-  testWidgets('93 cross-staff beam', (tester) async {
+  testWidgets('94 cross-staff beam', (tester) async {
     NoteElement n(Step step, int oct, String id) => NoteElement.note(
         Pitch(step, octave: oct), NoteDuration.eighth,
         id: id);
@@ -634,7 +634,7 @@ void main() {
     );
     await expectLater(
       find.byType(RepaintBoundary).last,
-      matchesGoldenFile('goldens/93_cross_staff_beam.png'),
+      matchesGoldenFile('goldens/94_cross_staff_beam.png'),
     );
   });
 

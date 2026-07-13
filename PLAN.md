@@ -722,7 +722,7 @@ Marked `[cheap]` (an additive field/enum, low blast radius) or `[deep]`
   `KeySignature.custom` (modal/atonal, any accidental order) drives layout +
   note suppression + MusicXML round-trip (5.8, golden 92).
 - **Cross-staff notes & beaming** — **✓ cross-staff beams done** (`CrossStaffBeam`
-  on `GrandStaff`, 2.2, golden 93). *Left:* cross-staff chords (one stem, heads
+  on `GrandStaff`, 2.2, golden 94). *Left:* cross-staff chords (one stem, heads
   on both staves), **cue/ossia notes, explicit beam grouping.** `[deep]`
 - **Tuplet/​slur constraints** — tuplets cannot cross barlines or nest;
   documented model constraints, not bugs.

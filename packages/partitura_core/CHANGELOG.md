@@ -19,7 +19,7 @@
   where the inter-staff `staffGap` is known — appended to the upper staff's
   layout, so the existing renderer paints it with no view changes. Upper-staff
   notes stem down toward the beam, lower-staff notes stem up. Golden
-  `93_cross_staff_beam`; `cross_staff_test.dart`. *Left:* slanted / multi-bar
+  `94_cross_staff_beam`; `cross_staff_test.dart`. *Left:* slanted / multi-bar
   (16th) cross-staff beams and a MusicXML `<staff>` round-trip.
 - **Fretted-instrument tunings** (Phase 6.5): preset `Tuning`s for DADGAD,
   open-G, 7- and 8-string guitar, 5-string bass, 5-string banjo (reentrant
