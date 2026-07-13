@@ -43,8 +43,10 @@ Commands:
                                        (needs libcrispembed)
 
 omr options:
-  --model <path>                       OMR GGUF: SMT GrandStaff or TrOMR (or set
-                                       PARTITURA_OMR_MODEL)
+  --model <gguf|name>                  OMR GGUF path, or a name that
+                                       auto-downloads from Hugging Face
+                                       (smt-grandstaff / tromr / flova); or set
+                                       PARTITURA_OMR_MODEL
   --lib <path>                         libcrispembed shared library (or set
                                        CRISPEMBED_LIB)
   --threads <n>                        Inference threads (default: auto)
@@ -77,11 +79,11 @@ timeline options:
   --no-expand                          Keep document order (no repeats/jumps)
 ''';
 
-void main(List<String> argv) {
-  exitCode = _run(argv);
+Future<void> main(List<String> argv) async {
+  exitCode = await _run(argv);
 }
 
-int _run(List<String> argv) {
+Future<int> _run(List<String> argv) async {
   if (argv.isEmpty || argv.first == '-h' || argv.first == '--help') {
     stdout.writeln(_usage);
     return argv.isEmpty ? 64 : 0;
@@ -99,7 +101,7 @@ int _run(List<String> argv) {
       case 'render':
         return _render(rest);
       case 'omr':
-        return _omr(rest);
+        return await _omr(rest);
       default:
         stderr.writeln('Unknown command: $command\n');
         stderr.writeln(_usage);
@@ -166,21 +168,24 @@ int _timeline(List<String> args) {
   return 0;
 }
 
-int _omr(List<String> args) {
+Future<int> _omr(List<String> args) async {
   final (positional, options) = _parse(args);
   if (positional.length < 2) throw _CliError('omr needs <image> <out>');
   final imagePath = positional[0];
   final outPath = positional[1];
-  final modelPath =
-      options['model'] ?? Platform.environment['PARTITURA_OMR_MODEL'];
-  if (modelPath == null || modelPath.isEmpty) {
-    throw _CliError('omr needs --model <smt.gguf> (or PARTITURA_OMR_MODEL)');
+  final model = options['model'] ?? Platform.environment['PARTITURA_OMR_MODEL'];
+  if (model == null || model.isEmpty) {
+    throw _CliError('omr needs --model <gguf-or-name> (or PARTITURA_OMR_MODEL); '
+        'a known name (${omrModelRegistry.keys.toSet().join('/')}) '
+        'auto-downloads');
   }
   final outFormat = options['to'] ?? _formatOf(outPath);
   final threads = int.tryParse(options['threads'] ?? '') ?? 0;
 
   final String tokens;
   try {
+    // A path is used as-is; a known name is fetched from Hugging Face + cached.
+    final modelPath = await resolveOmrModel(model, onStatus: stderr.writeln);
     final image = decodeOmrImage(imagePath);
     final engine = CrispEmbedOmrEngine.load(modelPath,
         libraryPath: options['lib'], threads: threads);

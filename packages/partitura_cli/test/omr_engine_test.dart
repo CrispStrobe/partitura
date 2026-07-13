@@ -51,4 +51,32 @@ void main() {
       );
     });
   });
+
+  group('resolveOmrModel', () {
+    test('registry lists the three OMR engines', () {
+      expect(omrModelRegistry.keys,
+          containsAll(['smt-grandstaff', 'tromr', 'flova']));
+    });
+
+    test('returns an existing file path unchanged', () async {
+      final dir = Directory.systemTemp.createTempSync('omr_model');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final f = File('${dir.path}/mine.gguf')..writeAsBytesSync([1, 2, 3]);
+      expect(await resolveOmrModel(f.path), f.path);
+    });
+
+    test('throws for an unknown name (no download attempted)', () {
+      expect(resolveOmrModel('definitely-not-a-model'),
+          throwsA(isA<OmrEngineException>()));
+    });
+
+    test('returns a cached model without downloading', () async {
+      final dir = Directory.systemTemp.createTempSync('omr_cache');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      // Pre-populate the cache so no network is touched.
+      File('${dir.path}/smt-grandstaff-q8_0.gguf').writeAsBytesSync([0, 1]);
+      expect(await resolveOmrModel('smt-grandstaff', cacheDir: dir.path),
+          '${dir.path}/smt-grandstaff-q8_0.gguf');
+    });
+  });
 }

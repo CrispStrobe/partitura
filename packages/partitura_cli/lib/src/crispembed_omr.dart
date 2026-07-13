@@ -151,3 +151,64 @@ class OmrEngineException implements Exception {
   @override
   String toString() => 'OmrEngineException: $message';
 }
+
+/// Known OMR models by short name → (Hugging Face repo, GGUF file). Used by
+/// [resolveOmrModel] to auto-download a model when a name (not a path) is given.
+const omrModelRegistry = <String, (String, String)>{
+  'smt-grandstaff': ('cstr/smt-grandstaff-GGUF', 'smt-grandstaff-q8_0.gguf'),
+  'smt': ('cstr/smt-grandstaff-GGUF', 'smt-grandstaff-q8_0.gguf'),
+  'tromr': ('cstr/tromr-GGUF', 'tromr-q8_0.gguf'),
+  'flova': ('cstr/flova-omr-GGUF', 'flova-q8_0.gguf'),
+};
+
+/// Resolves [model] to a local GGUF path: an existing file path is returned
+/// as-is; a registered name (see [omrModelRegistry]) is downloaded from Hugging
+/// Face to [cacheDir] (default `$XDG_CACHE_HOME/partitura/omr`) if not already
+/// cached, and the cached path returned. [onStatus] receives progress lines.
+///
+/// Throws [OmrEngineException] if the name is unknown or the download fails.
+Future<String> resolveOmrModel(String model,
+    {String? cacheDir, void Function(String)? onStatus}) async {
+  if (File(model).existsSync()) return model;
+  final entry = omrModelRegistry[model];
+  if (entry == null) {
+    throw OmrEngineException('model "$model" is not a file and not a known '
+        'name (${omrModelRegistry.keys.toSet().join(', ')})');
+  }
+  final (repo, file) = entry;
+  final dir = Directory(cacheDir ?? _omrCacheDir())..createSync(recursive: true);
+  final dest = File('${dir.path}/$file');
+  if (dest.existsSync() && dest.lengthSync() > 0) return dest.path;
+
+  final url = 'https://huggingface.co/$repo/resolve/main/$file';
+  onStatus?.call('omr: downloading model "$model" from $url');
+  final tmp = File('${dest.path}.part');
+  final client = HttpClient();
+  try {
+    final request = await client.getUrl(Uri.parse(url)); // follows redirects
+    final response = await request.close();
+    if (response.statusCode != 200) {
+      await response.drain<void>();
+      throw OmrEngineException(
+          'download failed: HTTP ${response.statusCode} for $url');
+    }
+    final sink = tmp.openWrite();
+    await response.pipe(sink);
+  } on OmrEngineException {
+    rethrow;
+  } on Object catch (e) {
+    throw OmrEngineException('download failed for $url: $e');
+  } finally {
+    client.close();
+  }
+  tmp.renameSync(dest.path);
+  onStatus?.call('omr: cached model at ${dest.path}');
+  return dest.path;
+}
+
+String _omrCacheDir() {
+  final env = Platform.environment;
+  final base = env['XDG_CACHE_HOME'] ??
+      '${env['HOME'] ?? env['USERPROFILE'] ?? '.'}/.cache';
+  return '$base/partitura/omr';
+}

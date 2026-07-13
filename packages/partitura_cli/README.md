@@ -69,7 +69,7 @@ Flutter SDK (it rasterizes via `flutter test`), like `render`.
 
 | Option | Meaning |
 |---|---|
-| `--model <path>` | OMR GGUF — SMT GrandStaff or TrOMR (or set `PARTITURA_OMR_MODEL`) |
+| `--model <gguf\|name>` | OMR GGUF path, or a name that auto-downloads from Hugging Face to a cache — `smt-grandstaff` / `tromr` / `flova` (or set `PARTITURA_OMR_MODEL`) |
 | `--lib <path>` | `libcrispembed` shared library (or set `CRISPEMBED_LIB`) |
 | `--single` | Import only the first spine (single staff, not a grand staff) |
 | `--threads <n>` | Inference threads (default: auto) |

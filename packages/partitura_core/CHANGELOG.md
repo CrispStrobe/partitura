@@ -12,6 +12,9 @@
   harp and mallet percussion. Placed opposite the stem like an ordinary tie, or
   forced to a side via `down`. Round-trips through MusicXML
   `<tied type="let-ring">` (with over/under orientation). Golden 100.
+- **OMR model auto-download** (CLI): `partitura omr --model <name>`
+  (`smt-grandstaff` / `tromr` / `flova`) fetches the GGUF from Hugging Face to a
+  cache and reuses it, so no OMR engine needs a manually-supplied model path.
 - **Figured bass: slashed figures & continuation lines** (Phase 5.3): a trailing
   `\` on a figure (e.g. `6\`) draws the SMuFL raised-digit glyph (a slash through
   the number — the engraver's alternative to a prefixed sharp), using the

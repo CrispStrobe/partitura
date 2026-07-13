@@ -238,12 +238,18 @@ turn); multi-measure rests; octave clefs (8va/8vb) + ottava brackets.
   `Score`, and `omrDialectOf` gained a third branch. Verified live end-to-end: a
   whiteboard photo → `Score` → MusicXML/kern/PNG (all three CrispEmbed OMR
   engines — SMT, TrOMR, Flova — now route through `partitura omr`, auto-detected).
+- **Model auto-download.** `partitura omr --model <name>` (`smt-grandstaff` /
+  `tromr` / `flova`) fetches the GGUF from Hugging Face to
+  `$XDG_CACHE_HOME/partitura/omr` and reuses it — no manual model wrangling
+  (`resolveOmrModel` in `crispembed_omr.dart`). A path still works as before.
+  Verified live: `--model smt-grandstaff` downloaded and recognized end to end.
 - **Remaining OMR gaps:** OMR is **CLI-only** (`dart:ffi`) — no Flutter widget or
-  WASM/web path (the engine is native). It needs `libcrispembed` + a GGUF at
-  runtime (via `--lib`/`--model`; no bundled binary or model auto-download, and
-  the dylib is rebuilt by hand when a new engine lands). Single staff-system
-  crops only — no full-page / multi-system segmentation. No confidence signals,
-  batch mode or PDF input.
+  WASM/web path (the engine is native; `dart:ffi` is unavailable on web, and
+  CrispEmbed's WASM build doesn't expose the OMR engines — an upstream task).
+  Still needs `libcrispembed` at runtime (via `--lib`, no bundled binary; the
+  dylib is rebuilt by hand when a new engine lands). Single staff-system crops
+  only — no full-page / multi-system segmentation *(next)*. No confidence
+  signals, batch mode or PDF input.
 
 ---
 
