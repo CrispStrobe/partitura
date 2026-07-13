@@ -2071,6 +2071,34 @@ void main() {
     );
   });
 
+  testWidgets('109 pitch-name noteheads', (tester) async {
+    await golden(
+      tester,
+      '109_pitch_name_notes',
+      theme: const PartituraTheme(textFontFamily: 'Roboto'),
+      Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'c4:q d4 e4 f4 | g4 a4 b4 c5',
+      ),
+      noteheadScheme: NoteheadScheme.pitchName,
+      staffSpace: 14,
+    );
+  });
+
+  testWidgets('110 solfège noteheads', (tester) async {
+    await golden(
+      tester,
+      '110_solfege_notes',
+      theme: const PartituraTheme(textFontFamily: 'Roboto'),
+      Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'c4:q d4 e4 f4 | g4 a4 b4 c5',
+      ),
+      noteheadScheme: NoteheadScheme.solfege,
+      staffSpace: 14,
+    );
+  });
+
   testWidgets('106 Aikin seven-shape noteheads', (tester) async {
     // do re mi fa sol la ti do — a distinct shape per scale degree.
     await golden(

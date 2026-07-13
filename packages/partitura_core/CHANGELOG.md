@@ -2,6 +2,11 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Pitch-name & solfège noteheads** (Phase 5.1): two more `noteheadScheme`s —
+  `NoteheadScheme.pitchName` draws the note's letter (C–G) in place of the
+  notehead, and `NoteheadScheme.solfege` the movable-do syllable (do, re, mi, …)
+  from the pitch's scale degree in the current key. Teaching aids that complete
+  the notehead-scheme family alongside the shape-note schemes. Goldens 109/110.
 - **Grace notes on the tab staff** (Phase 6.4): `NoteElement.graceNotes` now
   render on tablature as small fret digits crammed into the gap just left of the
   principal note — each on its tuning string, connected to the principal by a

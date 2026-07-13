@@ -546,8 +546,10 @@ No peer renderer does any of this; all build on the existing pitch / interval
       sol = round, la = square, mi = diamond; golden 105) and `aikin` seven-shape
       (do = triangle-up, re = moon, mi = diamond, fa = triangle, sol = round,
       la = square, ti = rounded-triangle; golden 106), each picked per pitch by
-      its movable-do scale degree in the current key.
-      **Left:** pitch-name / solfège (letter/syllable) schemes, cue/small notes.
+      its movable-do scale degree in the current key; and **pitch-name /
+      solfège noteheads** (`pitchName` draws the letter C–G, `solfege` the
+      movable-do syllable, in place of the head; goldens 109/110).
+      **Left:** cue/small notes.
 - [x] **5.2 Extra clefs** — neutral / unpitched **percussion** clef
       (`Clef.percussion` → `unpitchedPercussionClef1`, no key signature; ABC
       `clef=perc`; golden 83), and the **French violin / soprano / mezzo-soprano

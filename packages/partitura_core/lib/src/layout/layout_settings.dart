@@ -18,6 +18,14 @@ enum NoteheadScheme {
   /// do = triangle-up, re = moon, mi = diamond, fa = triangle, sol = round,
   /// la = square, ti = rounded-triangle.
   aikin,
+
+  /// Pitch-name noteheads: the note's letter (C, D, E, …) is drawn in place of
+  /// the notehead — a beginner/teaching aid.
+  pitchName,
+
+  /// Solfège noteheads: the movable-do syllable (do, re, mi, …) in place of the
+  /// notehead, from each pitch's scale degree in the current key.
+  solfege,
 }
 
 /// Distances and thicknesses the layout engine works with.

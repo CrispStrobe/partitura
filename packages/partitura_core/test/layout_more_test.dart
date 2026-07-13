@@ -658,6 +658,48 @@ void main() {
     });
   });
 
+  group('pitch-name / solfège noteheads', () {
+    ScoreLayout schemed(String notes, NoteheadScheme scheme) =>
+        const LayoutEngine().layout(Score.simple(notes: notes),
+            LayoutSettings(metadata: metadata, noteheadScheme: scheme));
+
+    List<String> labels(ScoreLayout layout) =>
+        (layout.primitives.whereType<TextPrimitive>().toList()
+              ..sort((a, b) => a.position.x.compareTo(b.position.x)))
+            .map((t) => t.text)
+            .toList();
+
+    test('pitch-name draws the letter in place of each notehead', () {
+      final layout =
+          schemed('c4:q d4 e4 f4 g4 a4 b4', NoteheadScheme.pitchName);
+      expect(labels(layout), ['C', 'D', 'E', 'F', 'G', 'A', 'B']);
+      // No round notehead glyphs are drawn.
+      expect(
+          layout.primitives
+              .whereType<GlyphPrimitive>()
+              .where((g) => g.smuflName.startsWith('notehead')),
+          isEmpty);
+    });
+
+    test('solfège draws the movable-do syllable per scale degree', () {
+      final layout = schemed('c4:q d4 e4 f4 g4 a4 b4', NoteheadScheme.solfege);
+      expect(labels(layout), ['do', 're', 'mi', 'fa', 'sol', 'la', 'ti']);
+    });
+
+    test('solfège follows the key (D major → do on D)', () {
+      final layout = const LayoutEngine().layout(
+        Score(
+          clef: Clef.treble,
+          keySignature: const KeySignature(2),
+          measures: Score.simple(notes: 'd4:q e4 f4').measures,
+        ),
+        LayoutSettings(
+            metadata: metadata, noteheadScheme: NoteheadScheme.solfege),
+      );
+      expect(labels(layout), ['do', 're', 'mi']);
+    });
+  });
+
   group('trill extension', () {
     test('draws a tr glyph and a run of wiggle segments above the staff', () {
       final base = Score.simple(notes: 'c5:h d5:h');

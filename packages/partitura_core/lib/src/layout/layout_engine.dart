@@ -1358,10 +1358,16 @@ class _LayoutBuilder {
     final base = element.duration.base;
     final headGlyph = _noteheadGlyph(element.notehead, base);
     final headWidth = _glyphWidth(headGlyph);
-    // A shape-note scheme replaces the round head per pitch by scale degree,
-    // but never overrides an explicit notehead shape (x, diamond, …).
-    final useShapes = s.noteheadScheme != NoteheadScheme.normal &&
-        element.notehead == NoteheadShape.normal;
+    // A notehead scheme replaces the round head per pitch (by scale degree for
+    // shapes, or with the pitch letter / solfège syllable), but never overrides
+    // an explicit notehead shape (x, diamond, …).
+    final scheme = element.notehead == NoteheadShape.normal
+        ? s.noteheadScheme
+        : NoteheadScheme.normal;
+    final useShapes =
+        scheme == NoteheadScheme.sacredHarp || scheme == NoteheadScheme.aikin;
+    final useText =
+        scheme == NoteheadScheme.pitchName || scheme == NoteheadScheme.solfege;
     final hasStem = base != DurationBase.whole && base != DurationBase.breve;
 
     // Rule 5: stem down when the notehead farthest from the middle line is
@@ -1410,9 +1416,20 @@ class _LayoutBuilder {
     }
 
     for (var i = 0; i < positions.length; i++) {
-      final glyph = useShapes
-          ? _shapeNoteGlyph(pitches[i], base, s.noteheadScheme)
-          : headGlyph;
+      if (useText) {
+        // Draw the pitch letter / solfège syllable centered in the head slot.
+        const textSize = 1.25;
+        _primitives.add(TextPrimitive(
+          _noteheadLabel(pitches[i], scheme),
+          Point(
+              columnX[i] + headWidth / 2, _yOf(positions[i]) + 0.34 * textSize),
+          size: textSize,
+          elementId: id,
+        ));
+        continue;
+      }
+      final glyph =
+          useShapes ? _shapeNoteGlyph(pitches[i], base, scheme) : headGlyph;
       _addGlyph(glyph, columnX[i], _yOf(positions[i]), elementId: id);
     }
     _tieInfos.add(_TieInfo(
@@ -3195,6 +3212,18 @@ class _LayoutBuilder {
     'Square', //        la (6)
     'TriangleRound', // ti (7)
   ];
+
+  static const _solfegeSyllables = ['do', 're', 'mi', 'fa', 'sol', 'la', 'ti'];
+
+  /// The text drawn in place of the notehead under a text scheme: the pitch
+  /// letter (`pitchName`) or the movable-do solfège syllable (`solfege`).
+  String _noteheadLabel(Pitch pitch, NoteheadScheme scheme) {
+    if (scheme == NoteheadScheme.pitchName) {
+      return pitch.step.name.toUpperCase();
+    }
+    final degree = ((pitch.step.index - _keyTonicStepIndex()) % 7 + 7) % 7;
+    return _solfegeSyllables[degree];
+  }
 
   /// The shape-note notehead glyph for [pitch] at duration [base] under
   /// [scheme], mapped from the pitch's movable-do scale degree in the key.
