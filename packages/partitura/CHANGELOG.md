@@ -2,6 +2,11 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Grand-staff PNG** (`renderGrandStaffLayoutToPng`): rasterizes a two-staff
+  `GrandStaffLayout` to PNG — the raster twin of `grandStaffToSvg`, sharing the
+  layout painter so the two staves stack `staffGap` apart. Wires up
+  `partitura omr … out.png` (via the `render_png` harness' new `PARTITURA_GRAND`
+  mode), so an optical-recognition scan renders straight to a two-staff image.
 - **Editor contract C3 — drag an existing element** (Workshop APIs):
   `InteractiveStaff` and `MultiSystemView` gain `onElementDragStart(id)`,
   `onElementDragUpdate(id, StaffTarget)` and `onElementDragEnd(id, StaffTarget)`.

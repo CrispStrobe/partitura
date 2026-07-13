@@ -7,6 +7,7 @@
 ///   PARTITURA_IN           input path (.musicxml / .mid)
 ///   PARTITURA_OUT          output .png path
 ///   PARTITURA_TAB          "1" to render tablature
+///   PARTITURA_GRAND        "1" to render a two-staff grand staff (MusicXML)
 ///   PARTITURA_TUNING       std | dropD | bass
 ///   PARTITURA_STAFF_SPACE  pixels per staff space
 ///
@@ -48,20 +49,28 @@ void main() {
           ..addFont(Future.value(ByteData.view(fontBytes.buffer))))
         .load();
 
-    final lower = inPath.toLowerCase();
-    final score = lower.endsWith('.mid') || lower.endsWith('.midi')
-        ? scoreFromMidi(File(inPath).readAsBytesSync())
-        : scoreFromMusicXml(File(inPath).readAsStringSync());
-
     final settings = LayoutSettings(metadata: metadata);
-    final layout = tab
-        ? const TabLayoutEngine().layout(score, tuning, settings)
-        : const LayoutEngine().layout(score, settings);
-
     late final List<int> png;
-    await tester.runAsync(() async {
-      png = await renderLayoutToPng(layout, staffSpace: staffSpace);
-    });
+
+    if (env['PARTITURA_GRAND'] == '1') {
+      // A two-staff grand staff (e.g. optical music recognition output).
+      final grand = grandStaffFromMusicXml(File(inPath).readAsStringSync());
+      final layout = layoutGrandStaff(grand, settings);
+      await tester.runAsync(() async {
+        png = await renderGrandStaffLayoutToPng(layout, staffSpace: staffSpace);
+      });
+    } else {
+      final lower = inPath.toLowerCase();
+      final score = lower.endsWith('.mid') || lower.endsWith('.midi')
+          ? scoreFromMidi(File(inPath).readAsBytesSync())
+          : scoreFromMusicXml(File(inPath).readAsStringSync());
+      final layout = tab
+          ? const TabLayoutEngine().layout(score, tuning, settings)
+          : const LayoutEngine().layout(score, settings);
+      await tester.runAsync(() async {
+        png = await renderLayoutToPng(layout, staffSpace: staffSpace);
+      });
+    }
     File(outPath).writeAsBytesSync(png);
   });
 }

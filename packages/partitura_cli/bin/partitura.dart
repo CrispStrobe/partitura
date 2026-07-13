@@ -35,7 +35,7 @@ Commands:
   render    <in> <out.(svg|png)> [options]
                                        Render a score (SVG pure-Dart; PNG via
                                        the Flutter SDK)
-  omr       <image> <out.(musicxml|mxl|krn|svg)> --model <gguf> [options]
+  omr       <image> <out.(musicxml|mxl|krn|svg|png)> --model <gguf> [options]
                                        Recognize a staff image via CrispEmbed —
                                        Sheet Music Transformer (grand staff) or
                                        Polyphonic-TrOMR (single staff), engine
@@ -225,9 +225,16 @@ int _omr(List<String> args) {
       File(outPath).writeAsStringSync(kern);
     case 'svg':
       File(outPath).writeAsStringSync(_omrSvg(score, grand, options));
+    case 'png':
+      // Rasterize via Flutter: write the recognized score to a temp MusicXML
+      // and delegate to the PNG harness (a grand staff for SMT).
+      final tmp = File('${Directory.systemTemp.createTempSync('omr').path}'
+          '/score.musicxml')
+        ..writeAsStringSync(musicXml());
+      _renderPng(tmp.path, outPath, options, grand: score == null);
     default:
       throw _CliError(
-          'omr can write musicxml, mxl, kern or svg (got "$outFormat")');
+          'omr can write musicxml, mxl, kern, svg or png (got "$outFormat")');
   }
   stderr.writeln('omr: $summary -> $outPath');
   return 0;
@@ -442,7 +449,8 @@ String _formatOf(String path) {
 /// Renders to PNG by delegating to the Flutter engine: runs the
 /// `render_png.dart` harness in the `partitura` package via `flutter test`
 /// (the only way to reach `dart:ui` from the command line).
-int _renderPng(String inPath, String outPath, Map<String, String> options) {
+int _renderPng(String inPath, String outPath, Map<String, String> options,
+    {bool grand = false}) {
   final pkg = _findPartituraDir();
   if (pkg == null) {
     throw _CliError('cannot locate the partitura Flutter package for PNG');
@@ -451,6 +459,7 @@ int _renderPng(String inPath, String outPath, Map<String, String> options) {
     'PARTITURA_IN': File(inPath).absolute.path,
     'PARTITURA_OUT': File(outPath).absolute.path,
     'PARTITURA_TAB': options.containsKey('tab') ? '1' : '0',
+    if (grand) 'PARTITURA_GRAND': '1',
     if (options['tuning'] != null) 'PARTITURA_TUNING': options['tuning']!,
     if (options['staff-space'] != null)
       'PARTITURA_STAFF_SPACE': options['staff-space']!,

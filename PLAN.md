@@ -30,13 +30,6 @@ ships* at the end for the mechanics.
 > non-standard meters/keys, cross-staff beams — are done; microtones landed via
 > the parallel agent.)*
 
-> **Actively working on (OMR → PNG):** `partitura omr … out.png` — write the
-> recognized score to a temp MusicXML and rasterize via Flutter, adding
-> `renderGrandStaffLayoutToPng` so SMT grand staffs render both staves. Touches
-> `rendering/png_export.dart` + `tool/render_png.dart` + `partitura_cli` only —
-> **not** the interactive views (`MultiSystemView`/`InteractiveStaff`). Worktree
-> `partitura-png`, branch `feat/omr-png`.
-
 ### Workshop editor contracts (C1–C6)
 
 External consumer (KlangUniversum "Composition Workshop",
@@ -185,6 +178,10 @@ turn); multi-measure rests; octave clefs (8va/8vb) + ottava brackets.
   writes `.svg` directly (a grand staff for SMT, a single staff for TrOMR;
   falling back to the upper staff if a recognized grand staff's staves disagree
   on measure count). Verified live: both engines render a scan to SVG.
+  `.png` output works too — the CLI delegates to the Flutter raster harness, and
+  `renderGrandStaffLayoutToPng` (`rendering/png_export.dart`, the raster twin of
+  `grandStaffToSvg`) rasterizes both staves. Verified live: a scan → a two-staff
+  PNG.
 
 ---
 

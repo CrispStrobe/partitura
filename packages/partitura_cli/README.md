@@ -60,9 +60,10 @@ decoded in pure Dart; the **engine is auto-detected** from the model:
   (or a single staff with `--single`);
 - **Polyphonic-TrOMR** → *semantic* notation → a single polyphonic `Score`.
 
-Output is `.musicxml`, `.mxl`, `.krn`, or `.svg` (rendered notation — a grand
-staff for SMT, a single staff for TrOMR; `--staff-space`/`--no-embed-font` apply
-as in `render`).
+Output is `.musicxml`, `.mxl`, `.krn`, `.svg`, or `.png` — the last two render
+the notation (a grand staff for SMT, a single staff for TrOMR;
+`--staff-space`/`--no-embed-font` apply as in `render`). `.png` needs the
+Flutter SDK (it rasterizes via `flutter test`), like `render`.
 
 | Option | Meaning |
 |---|---|

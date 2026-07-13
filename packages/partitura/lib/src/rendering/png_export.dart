@@ -62,3 +62,59 @@ Future<Uint8List> renderLayoutToPng(
     picture.dispose();
   }
 }
+
+/// Rasterizes a laid-out [GrandStaffLayout] (two staves) to PNG bytes — the
+/// raster counterpart to `grandStaffToSvg`. The upper and lower staves are
+/// stacked [GrandStaffLayout.staffGap] spaces apart, sharing the same painter,
+/// so a recognized/imported grand staff renders both staves. Parameters match
+/// [renderLayoutToPng].
+Future<Uint8List> renderGrandStaffLayoutToPng(
+  GrandStaffLayout layout, {
+  double staffSpace = 12,
+  PartituraTheme theme = PartituraTheme.standard,
+  Set<String> highlightedIds = const {},
+  Color background = const Color(0xFFFFFFFF),
+}) async {
+  final width = (layout.width * staffSpace).ceil().clamp(1, 1 << 20);
+  final height = (layout.height * staffSpace).ceil().clamp(1, 1 << 20);
+
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  if (background.a > 0) {
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()),
+      Paint()..color = background,
+    );
+  }
+
+  final painter = LayoutPainter(
+    theme: theme,
+    scale: staffSpace,
+    highlightedIds: highlightedIds,
+  );
+  // Same stacking as grandStaffToSvg: shift the upper ink top to y = 0, and the
+  // lower staff's top line to (upper bottom line = 4) + staffGap below it.
+  painter.paintLayout(
+      canvas, Offset(0, -layout.upper.top * staffSpace), layout.upper);
+  painter.paintLayout(
+      canvas,
+      Offset(0, (4 - layout.upper.top + layout.staffGap) * staffSpace),
+      layout.lower);
+  painter.dispose();
+
+  final picture = recorder.endRecording();
+  try {
+    final image = await picture.toImage(width, height);
+    try {
+      final data = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (data == null) {
+        throw StateError('failed to encode PNG');
+      }
+      return data.buffer.asUint8List();
+    } finally {
+      image.dispose();
+    }
+  } finally {
+    picture.dispose();
+  }
+}

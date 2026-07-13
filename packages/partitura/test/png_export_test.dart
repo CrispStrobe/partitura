@@ -65,4 +65,23 @@ void main() {
     expect(file.lengthSync(), png.length);
     dir.deleteSync(recursive: true);
   });
+
+  testWidgets('renders a grand staff (two staves) to PNG', (tester) async {
+    final layout = layoutGrandStaff(
+      GrandStaff(
+        upper: Score.simple(clef: Clef.treble, notes: 'c5:q d5 e5 f5'),
+        lower: Score.simple(clef: Clef.bass, notes: 'c3:q d3 e3 f3'),
+      ),
+      LayoutSettings(metadata: Bravura.metadataOrNull!),
+    );
+    late final List<int> png;
+    await tester.runAsync(() async {
+      png = await renderGrandStaffLayoutToPng(layout, staffSpace: 16);
+    });
+    expect(png.sublist(0, 8), _pngMagic);
+    expect(_pngWidth(png), (layout.width * 16).ceil());
+    // Two stacked staves are taller than one staff alone.
+    expect(layout.height, greaterThan(layout.upper.height));
+    expect(png.length, greaterThan(200));
+  });
 }
