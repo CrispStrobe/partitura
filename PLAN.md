@@ -32,6 +32,14 @@ ships* at the end for the mechanics.
 > KlangUniversum Workshop. Worktree `partitura-public-lacunae`. *(Cross-staff
 > gridding §2.9 complete; editor contracts C1–C5 done on `main`.)*
 
+> **Actively working on (Phase 6.4 tail):** the remaining tab technique
+> checklist — multi-point **bend curves** (bend-release / prebend, via a
+> `BendPoint` grid on `Bend`), **whammy** dip/dive/return curves (`TremoloBar`
+> point grid), **slide in/out** (`TabSlide` + `SlideInOut` direction), and
+> **brush / arpeggio / pick-stroke** (render `NoteElement.arpeggio` on tab +
+> `PickStroke`). Additive, each with tests + a golden. Worktree `partitura-tab`,
+> branch `feat/tab-techniques-tail`.
+
 
 
 
