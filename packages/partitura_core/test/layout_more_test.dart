@@ -795,6 +795,33 @@ void main() {
     });
   });
 
+  group('lyric-driven spacing', () {
+    double secondNoteX(String? lyric) {
+      final base = Score.simple(notes: 'c5:e d5:e');
+      final layout = layoutOf(Score(
+        clef: base.clef,
+        measures: base.measures,
+        lyrics: lyric == null ? const [] : [Lyric('e0', lyric)],
+      ));
+      return layout.primitives
+          .whereType<GlyphPrimitive>()
+          .firstWhere(
+              (g) => g.smuflName.startsWith('notehead') && g.elementId == 'e1')
+          .position
+          .x;
+    }
+
+    test('a wide syllable pushes the next note further right', () {
+      expect(
+          secondNoteX('supercalifragilistic'), greaterThan(secondNoteX(null)));
+    });
+
+    test('a narrow syllable does not change the spacing', () {
+      // "a" is narrower than an eighth note's natural advance.
+      expect(secondNoteX('a'), closeTo(secondNoteX(null), 1e-9));
+    });
+  });
+
   group('lyric elision', () {
     test('two syllables elided on one note draw an undertie', () {
       final base = Score.simple(notes: 'c4:q');

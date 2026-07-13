@@ -6,7 +6,12 @@
 
 First tagged release. Everything below shipped during the 0.4.0 cycle.
 
-- **Interchangeable / alternating meters** (Phase 5.7): `TimeSignature.alternate`
+- **Lyric-driven horizontal spacing** (Phase 5.4, completing it): a lyric
+  syllable wider than its note's natural advance now widens the note spacing so
+  the following note clears the syllable (rather than only nudging the text).
+  Only wide syllables on short notes are affected; narrow syllables leave
+  spacing unchanged. Golden 68 re-rendered.
+- **Interchangeable / alternating meters** (Phase 5.7): `TimeSignature.alternate` `TimeSignature.alternate`
   carries a companion signature drawn beside the primary at the start of the
   system (e.g. 3/4 with a 2/4 alternate). Display-only — `measureCapacity` and
   `beamGroups()` use the primary meter; individual bars switch via their own

@@ -576,13 +576,14 @@ No peer renderer does any of this; all build on the existing pitch / interval
       column (golden 99). Slash round-trips through MusicXML
       `<suffix>slash</suffix>`, continuation through an extend-only `<figure>`.
       (Realization is 4.6.)
-- [~] **5.4 Lyrics** — **Done:** hyphenation + melisma extenders (v0.4);
+- [x] **5.4 Lyrics** — hyphenation + melisma extenders (v0.4);
       multiple **verses** stacked on their own baselines (`Lyric.verse`,
       MusicXML `<lyric number>` round-trip, golden 68); **elision** (synalepha)
       — `Lyric.elidesToNext` draws an undertie (‿) under two syllables sung on
       one note; round-trips through MusicXML `<elision>` (grouped per
-      note/verse); golden 101. **Left:** lyric-driven horizontal spacing (wide
-      syllables pushing notes apart).
+      note/verse); golden 101; and **lyric-driven horizontal spacing** — a
+      syllable wider than its note's natural advance widens the note spacing so
+      the next note clears it (golden 68 re-rendered; narrow syllables unchanged).
 - [x] **5.5 Voices 3 & 4** per staff. **Increment 1 (representability):**
       `Measure.voice3`/`voice4` + a `voices` getter (four voices per staff),
       round-tripping through MusicXML/MEI/MuseScore and covered by playback +

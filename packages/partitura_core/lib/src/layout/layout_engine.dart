@@ -191,6 +191,16 @@ class _LayoutBuilder {
   final Set<String> _crossMeasureIds = {};
   // Note ids drawn small (cue / ossia notes).
   late final Set<String> _cueIds = score.cueNoteIds.toSet();
+  // Per-note-id widest lyric-syllable half-width, so a wide syllable can widen
+  // the note spacing (lyric-driven spacing) rather than only nudging text.
+  late final Map<String, double> _lyricHalfWidths = () {
+    final map = <String, double>{};
+    for (final lyric in score.lyrics) {
+      final w = _estTextHalfWidth(lyric.text, s.lyricSize);
+      if (w > (map[lyric.elementId] ?? 0)) map[lyric.elementId] = w;
+    }
+    return map;
+  }();
   final Map<String, CrossMeasureBeam> _crossBeamOf = {};
   final Map<CrossMeasureBeam, bool> _crossBeamStemsDown = {};
   final Map<CrossMeasureBeam, List<_BeamedNote>> _crossBeamNotes = {};
@@ -752,7 +762,8 @@ class _LayoutBuilder {
           } else if (cm != null && result.beamed != null) {
             _crossBeamNotes.putIfAbsent(cm, () => []).add(result.beamed!);
           }
-          _advance(result.noteX, result.inkRight, element.duration, log2Adjust);
+          _advance(result.noteX, result.inkRight, element.duration, log2Adjust,
+              lyricReserve: _lyricReserveFor(element.id));
         case RestElement():
           final result = _layoutRest(element);
           _advance(result.noteX, result.inkRight, element.duration, log2Adjust);
@@ -1798,15 +1809,29 @@ class _LayoutBuilder {
     double fromX,
     double inkRight,
     NoteDuration duration,
-    double log2Adjust,
-  ) {
+    double log2Adjust, {
+    double lyricReserve = 0,
+  }) {
     final baseLog2 = duration.base == DurationBase.breve
         ? 1.0
         : -duration.base.index.toDouble();
     final log2Duration = baseLog2 + _dotLog2[duration.dots] + log2Adjust;
     final ideal = (s.spacingBase + s.spacingPerLog2 * (4 + log2Duration)) *
         spacingStretch;
-    _x = max(fromX + ideal, inkRight + s.minNoteGap);
+    // A wide lyric syllable widens the advance so the next note clears it.
+    _x = max(max(fromX + ideal, inkRight + s.minNoteGap), lyricReserve);
+  }
+
+  /// The x the next note must reach so this note's widest lyric syllable
+  /// (centered on the notehead column, just added to [_tieInfos]) clears with a
+  /// small gap; 0 when the note carries no lyric.
+  double _lyricReserveFor(String? id) {
+    if (id == null) return 0;
+    final half = _lyricHalfWidths[id];
+    if (half == null) return 0;
+    final info = _tieInfos.last;
+    final centerX = (info.left + info.right) / 2;
+    return centerX + half + 0.35;
   }
 
   // ------------------------------------------------------------------ ties
