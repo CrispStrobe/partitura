@@ -9,6 +9,7 @@
 library;
 
 import '../layout/grand_staff.dart';
+import '../layout/multi_system.dart';
 import '../layout/score_layout.dart';
 import '../layout/staff_system.dart';
 import '../smufl/smufl_codepoints.dart';
@@ -173,12 +174,43 @@ String grandStaffToSvg(
   return b.toString();
 }
 
-/// Serializes a laid-out [StaffSystemLayout] (N staves) to a standalone SVG
-/// document — the same emitter as [scoreToSvg], with the staves stacked
-/// [StaffSystemLayout.staffGap] spaces apart and the systemic barlines connected
-/// through each [BarlineGroup] (breaking between groups). Parameters match
-/// [scoreToSvg]; [elementColors] applies across every staff. Bracket/brace
-/// left-edge signs are not drawn (like [grandStaffToSvg]).
+/// Emits one multi-staff system's staves (each at its stacked y) plus the
+/// systemic barline connectors that run through the barline groups — at pixel
+/// offset [baseY] within an already-open `<svg>`.
+void _emitStaffSystem(
+  StringBuffer b,
+  StaffSystemLayout layout,
+  double staffSpace,
+  double baseY,
+  String color,
+  String glyphFontFamily,
+  String textFontFamily,
+  Map<String, String> elementColors,
+) {
+  for (var i = 0; i < layout.staves.length; i++) {
+    _emitStaff(b, layout.staves[i], staffSpace,
+        baseY + (layout.staffTop(i) - layout.top) * staffSpace, color,
+        glyphFontFamily, textFontFamily, elementColors);
+  }
+  // Systemic barlines: a vertical line at every barline x, spanning each
+  // connected group (so grouped staves join and the line breaks between groups).
+  final spans = layout.barlineSpans;
+  final xs = layout.barlineXs;
+  if (spans.isNotEmpty && xs.isNotEmpty) {
+    b.writeln('<g transform="translate(0 ${_n(baseY - layout.top * staffSpace)})'
+        ' scale($staffSpace)" stroke="$color">');
+    for (final x in xs) {
+      for (final span in spans) {
+        b.writeln('<line x1="${_n(x)}" y1="${_n(span.top)}" '
+            'x2="${_n(x)}" y2="${_n(span.bottom)}" stroke-width="0.16"/>');
+      }
+    }
+    b.writeln('</g>');
+  }
+}
+
+/// Renders a single multi-staff [StaffSystemLayout] (all parts, one line) to
+/// SVG — the N-staff counterpart of [grandStaffToSvg].
 String staffSystemToSvg(
   StaffSystemLayout layout, {
   double staffSpace = 12,
@@ -192,11 +224,49 @@ String staffSystemToSvg(
   final widthPx = layout.width * staffSpace;
   final heightPx = layout.height * staffSpace;
   final b = StringBuffer();
+  _svgOpen(b, widthPx, heightPx, glyphFontFamily, background, fontFaceDataUri);
+  _emitStaffSystem(b, layout, staffSpace, -layout.top * staffSpace, color,
+      glyphFontFamily, textFontFamily, elementColors);
+  b.writeln('</svg>');
+  return b.toString();
+}
+
+/// Renders a **wrapped**, line-broken multi-staff document
+/// ([StaffSystemSystems] from `layoutStaffSystemSystems`) — every part's system
+/// stacked vertically [systemGap] spaces apart — to one SVG. This is how a long
+/// multi-part score (quartet, orchestral) renders on the command line.
+String staffSystemSystemsToSvg(
+  StaffSystemSystems wrapped, {
+  double staffSpace = 12,
+  double systemGap = 8,
+  String glyphFontFamily = 'Bravura',
+  String textFontFamily = 'sans-serif',
+  String color = '#000000',
+  String background = '#ffffff',
+  String? fontFaceDataUri,
+  Map<String, String> elementColors = const {},
+}) {
+  final widthPx = wrapped.maxWidth * staffSpace;
+  final heightPx = wrapped.heightWith(systemGap) * staffSpace;
+  final b = StringBuffer();
+  _svgOpen(b, widthPx, heightPx, glyphFontFamily, background, fontFaceDataUri);
+  var y = 0.0;
+  for (final system in wrapped.systems) {
+    _emitStaffSystem(b, system.layout, staffSpace, y, color, glyphFontFamily,
+        textFontFamily, elementColors);
+    y += (system.layout.height + systemGap) * staffSpace;
+  }
+  b.writeln('</svg>');
+  return b.toString();
+}
+
+/// Writes the `<svg>` open tag, optional embedded font and background fill.
+void _svgOpen(StringBuffer b, double widthPx, double heightPx,
+    String glyphFontFamily, String background, String? fontFaceDataUri) {
   b.writeln('<?xml version="1.0" encoding="UTF-8"?>');
   b.write('<svg xmlns="http://www.w3.org/2000/svg" ');
   b.write('width="${_n(widthPx)}" height="${_n(heightPx)}" ');
   b.writeln('viewBox="0 0 ${_n(widthPx)} ${_n(heightPx)}">');
-
   if (fontFaceDataUri != null) {
     b.writeln('<defs><style>@font-face{font-family:"$glyphFontFamily";'
         'src:url($fontFaceDataUri);}</style></defs>');
@@ -205,41 +275,6 @@ String staffSystemToSvg(
     b.writeln('<rect x="0" y="0" width="${_n(widthPx)}" '
         'height="${_n(heightPx)}" fill="$background"/>');
   }
-
-  // Shift the whole system so its top-most ink sits at y = 0; each staff's own
-  // y = 0 (top line) maps to (staffTop(i) - layout.top) px below that.
-  for (var i = 0; i < layout.staves.length; i++) {
-    final offsetY = (layout.staffTop(i) - layout.top) * staffSpace;
-    _emitStaff(b, layout.staves[i], staffSpace, offsetY, color, glyphFontFamily,
-        textFontFamily, elementColors);
-  }
-
-  // Systemic barlines: at every shared barline x, one line per group span.
-  if (layout.staves.length >= 2) {
-    final ref = layout.staves.first.primitives.whereType<LinePrimitive>();
-    final startThickness = ref.isEmpty ? 0.13 : ref.first.thickness;
-    final bars = <({double x, double thickness})>[
-      (x: 0.0, thickness: startThickness),
-      for (final line in ref)
-        if (line.from.x == line.to.x &&
-            ((line.from.y == 0 && line.to.y == 4) ||
-                (line.from.y == 4 && line.to.y == 0)))
-          (x: line.from.x, thickness: line.thickness),
-    ];
-    for (final span in layout.barlineSpans) {
-      final y1 = (span.top - layout.top) * staffSpace;
-      final y2 = (span.bottom - layout.top) * staffSpace;
-      for (final bar in bars) {
-        final x = bar.x * staffSpace;
-        b.writeln('<line x1="${_n(x)}" y1="${_n(y1)}" x2="${_n(x)}" '
-            'y2="${_n(y2)}" stroke="$color" '
-            'stroke-width="${_n(bar.thickness * staffSpace)}"/>');
-      }
-    }
-  }
-
-  b.writeln('</svg>');
-  return b.toString();
 }
 
 /// Formats a coordinate, trimming a trailing `.0` and any zero padding.

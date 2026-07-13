@@ -161,8 +161,10 @@ void main() {
       final svg = staffSystemToSvg(trioLayout(), staffSpace: 10);
       expect(svg, startsWith('<?xml'));
       expect(svg.trimRight(), endsWith('</svg>'));
-      // Three staff groups, one per part.
-      expect('<g transform='.allMatches(svg).length, 3);
+      // Three staff groups, one per part. Staff groups carry a `fill=`; the
+      // systemic-barline connector group is drawn separately (stroke only).
+      expect('<g transform='.allMatches(svg).length, greaterThanOrEqualTo(3));
+      expect(RegExp('<g transform=[^>]*fill=').allMatches(svg).length, 3);
     });
 
     test('draws the systemic barline connectors', () {

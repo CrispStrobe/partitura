@@ -123,4 +123,27 @@ void main() {
     expect(() => layoutStaffSystemSystems(eightBarTrio(), settings, maxWidth: 0),
         throwsArgumentError);
   });
+
+  test('staffSystemSystemsToSvg emits every part of every system', () {
+    final wrapped =
+        layoutStaffSystemSystems(eightBarTrio(), settings, maxWidth: 40);
+    final svg = staffSystemSystemsToSvg(wrapped, staffSpace: 12);
+    expect(svg, contains('<svg'));
+    expect(svg.trimRight(), endsWith('</svg>'));
+    // One `scale(` staff group per staff per system (plus barline connectors),
+    // so at least three staves × N systems worth of scaled groups appear.
+    final scaledGroups = 'scale('.allMatches(svg).length;
+    expect(scaledGroups,
+        greaterThanOrEqualTo(3 * wrapped.systems.length));
+    // Notehead glyphs from all three parts are present.
+    expect(svg, contains('<text'));
+  });
+
+  test('staffSystemToSvg renders a single multi-part system', () {
+    final one =
+        layoutStaffSystemSystems(eightBarTrio(), settings, maxWidth: 400);
+    final svg = staffSystemToSvg(one.systems.single.layout, staffSpace: 12);
+    expect(svg, contains('<svg'));
+    expect('scale('.allMatches(svg).length, greaterThanOrEqualTo(3));
+  });
 }

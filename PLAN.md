@@ -134,11 +134,14 @@ y-down coords. Priority: **C1+C2 → C3 → C5 → C4**.
     aligned staff (staffGrp `@symbol` → brackets) and `multiPartScoreFromMei`
     bridges to a paginating document. `mei_test.dart`.
   - **CLI `render`** — **done.** A multi-part input (MusicXML/MXL/MEI/kern/ABC)
-    with ≥2 parts now renders every part stacked via the new `staffSystemToSvg`
-    (N staves + per-group systemic barlines), instead of collapsing to the first
-    `Score`. `cli_test.dart` / `svg_test.dart`. *(Multi-part **PNG** still uses
-    the single-`Score` path — needs the Flutter `render_png.dart` tool to accept
-    a `StaffSystem`.)*
+    with >1 part now renders every part, **line-broken into stacked systems** via
+    `layoutStaffSystemSystems` → `staffSystemSystemsToSvg` (N staves + per-group
+    systemic barlines), instead of collapsing to the first `Score`. `--single`
+    forces the one-part path; `--width` / `--hide-empty` tune the wrap. Verified:
+    Mozart quartet → 4 staves, ActorPrelude → 23 / 5379 glyphs, Bach chorale kern
+    → 4 (SATB), Clementi → 2. `staff_system_systems_test.dart`. *(Multi-part
+    **PNG** still uses the single-`Score` path — needs the Flutter
+    `render_png.dart` tool to accept a `StaffSystem`.)*
   - **Percussion** — **done.** `<clef><sign>percussion</sign>` →
     `Clef.percussion`, `<unpitched>` notes import on their display line, the
     layout renders the neutral percussion clef with no key signature, and

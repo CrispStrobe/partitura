@@ -77,6 +77,11 @@ render options:
   --staff-space <px>                   Pixels per staff space (default 12)
   --metadata <path>                    SMuFL font metadata JSON
   --no-embed-font                      Do not embed the engraving font
+  --width <spaces>                     Max system width in staff spaces for
+                                       multi-part scores (default 120)
+  --hide-empty                         Drop empty staves per system (multi-part)
+  --single                             Force the single-part path (import the
+                                       first part only)
 
 timeline options:
   --bpm <n>                            Quarter-note tempo for seconds (default 120)
@@ -122,6 +127,7 @@ Future<int> _run(List<String> argv) async {
 
 /// Flags that never take a value (so they don't swallow a following argument).
 const _booleanFlags = {
+  'hide-empty',
   'tab',
   'no-embed-font',
   'no-expand',
@@ -387,7 +393,6 @@ int _render(List<String> args) {
     return _renderPng(positional[0], outPath, options);
   }
   final staffSpace = double.tryParse(options['staff-space'] ?? '12') ?? 12;
-
   final (metadata, metadataFile) = _resolveMetadata(options);
   final settings = LayoutSettings(metadata: metadata);
 
@@ -399,18 +404,21 @@ int _render(List<String> args) {
     }
   }
 
-  // Multi-part: if the input carries several parts (and this is not a tab
-  // render), lay them out as one aligned system and render every part stacked,
-  // rather than collapsing to the first `Score`.
-  if (!options.containsKey('tab')) {
+  // Multi-part input (string quartet, orchestral score, SATB): render *every*
+  // part, line-broken into stacked systems, unless the user forced tablature or
+  // a single staff (`--single`). Falls through to the single-Score path below
+  // for single-part inputs and formats without a multi-part importer.
+  if (!options.containsKey('tab') && !options.containsKey('single')) {
     final system = _loadStaffSystem(positional[0], options);
-    if (system != null && system.staves.length >= 2) {
-      final systemLayout = layoutStaffSystem(system, settings);
-      final svg = staffSystemToSvg(systemLayout,
+    if (system != null && system.staves.length > 1) {
+      final maxWidth = double.tryParse(options['width'] ?? '') ?? 120.0;
+      final wrapped = layoutStaffSystemSystems(system, settings,
+          maxWidth: maxWidth, hideEmptyStaves: options.containsKey('hide-empty'));
+      final svg = staffSystemSystemsToSvg(wrapped,
           staffSpace: staffSpace, fontFaceDataUri: fontUri);
       File(outPath).writeAsStringSync(svg);
       stdout.writeln('wrote $outPath (${svg.length} bytes, '
-          '${system.staves.length} parts'
+          '${system.staves.length} staves'
           '${fontUri == null ? '' : ', font embedded'})');
       return 0;
     }
@@ -433,11 +441,10 @@ int _render(List<String> args) {
   return 0;
 }
 
-/// Loads a multi-part [StaffSystem] from [path] for the formats that support
-/// several parts (MusicXML/MXL, MEI, kern, ABC), or null for single-part-only
-/// formats (MIDI, MuseScore, Guitar Pro, ASCII tab). A one-part input still
-/// returns a one-staff system; the caller only takes the multi-part path when
-/// there are two or more staves.
+/// Loads a multi-part [StaffSystem] (all parts / staves) for the formats that
+/// have a multi-part importer — MusicXML/`.mxl`, MEI, Humdrum `**kern`, ABC — or
+/// null for single-part formats. Lets `render` show every part of a quartet /
+/// orchestral score instead of only the first.
 StaffSystem? _loadStaffSystem(String path, Map<String, String> options) {
   final file = File(path);
   if (!file.existsSync()) throw _CliError('no such file: $path');
@@ -445,7 +452,8 @@ StaffSystem? _loadStaffSystem(String path, Map<String, String> options) {
     case 'musicxml':
       return staffSystemFromMusicXml(file.readAsStringSync());
     case 'mxl':
-      return staffSystemFromMusicXml(readMusicXmlFromMxl(file.readAsBytesSync()));
+      return staffSystemFromMusicXml(
+          readMusicXmlFromMxl(file.readAsBytesSync()));
     case 'mei':
       return staffSystemFromMei(file.readAsStringSync());
     case 'kern':
@@ -453,7 +461,7 @@ StaffSystem? _loadStaffSystem(String path, Map<String, String> options) {
     case 'abc':
       return staffSystemFromAbc(file.readAsStringSync());
     default:
-      return null;
+      return null; // single-part formats (MIDI, MuseScore, GP, …)
   }
 }
 
