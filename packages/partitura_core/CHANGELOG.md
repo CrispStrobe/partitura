@@ -2,6 +2,12 @@
 
 ## 0.4.1-dev.1 (in progress)
 
+- **Accessible score labels** (Phase 3.9): `semanticLabel(element)` gives a
+  spoken, screen-reader-friendly description of a note/rest — pitch names spelled
+  out and the duration named (`"C sharp 4 quarter note"`, `"C 4, E 4, G 4 chord,
+  half note"`, `"quarter rest"`); `semanticLabels(score)` maps every element id
+  to one. Drives the new per-note `Semantics` on `StaffView` (Flutter side).
+
 - **Multi-part document wrapping** (Workshop contract C6, increment 1):
   `layoutStaffSystemSystems(StaffSystem document, …, maxWidth:)` breaks an
   N-part system into justified systems with barlines aligned across every part —

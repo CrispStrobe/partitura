@@ -36,6 +36,7 @@ export 'src/mei/mei_reader.dart';
 export 'src/mei/mei_writer.dart';
 export 'src/midi/midi_reader.dart';
 export 'src/midi/midi_writer.dart';
+export 'src/model/accessibility.dart';
 export 'src/model/element.dart';
 export 'src/model/measure.dart';
 export 'src/model/score.dart';

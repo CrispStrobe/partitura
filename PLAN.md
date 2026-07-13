@@ -34,16 +34,14 @@ ships* at the end for the mechanics.
 > its handover below for increments 2–4). Phase 2.3 hide-empty-staves also on
 > `main` (7e817fb). No active claim on this worktree line.
 
-> 🚧 **Actively working on (Phase 3.6 + 3.9 — the last Phase 3 items):**
-> 3.6 `TranspositionController` (a `ChangeNotifier` wrapping `Score.transposedBy`
-> / `atConcertPitch` — live transpose + concert-pitch toggle, app rebuilds the
-> view). 3.9 accessibility: a core `semanticLabel(element)` (spoken pitch +
-> duration) and per-element `Semantics` nodes on `RenderStaffView` so a screen
-> reader can focus and hear each note. Worktree `partitura-public-lacunae`.
->
-> *(Done from this worktree: Phase 3.1/3.3/3.4/3.5/3.7/3.8, editor moat +
-> `ScoreEditorController`, Workshop C1–C9, the v0.4.0 release. After this, Phase 3
-> is complete; remaining work is Phase 4/5/6 tails.)*
+> **HANDOFF — `partitura-public-lacunae` has no active claim; safe to pick up.**
+> **Phase 3 (Interactivity) is now complete** — 3.6 `TranspositionController`
+> and 3.9 accessibility (`semanticLabel` + per-note `Semantics` on `StaffView`)
+> just landed, alongside 3.1/3.3/3.4/3.5/3.7/3.8, the editor moat +
+> `ScoreEditorController`, Workshop C1–C9, and the v0.4.0 release — all from this
+> worktree, all on `main`. **Next up:** a Phase 4 (music theory/analysis) or 5/6
+> tail — see the section lists below; claim with 🚧 and push origin/main at every
+> checkpoint. (3.9's audio "sonification" is left to the app.)
 
 
 
@@ -554,8 +552,11 @@ Rides the existing cursor + selection; no audio needed.
       `soundingPitches(score)` (drives the 3.1 keyboard/fretboard from the
       cursor) and **toggle-part** visibility (`togglePart`/`isPartVisible`/… —
       app renders the visible subset). `score_editor_controller_test.dart`.
-- [ ] **3.9 Accessible & sonified navigable score** — Flutter `Semantics`
-      over the score tree; a genuine gap across interactive players.
+- [x] **3.9 Accessible & sonified navigable score** — core `semanticLabel` /
+      `semanticLabels` (spoken pitch + duration) drive per-note `Semantics` nodes
+      on `StaffView`, so a screen reader can focus and hear each element; labels
+      refresh on score change. `accessibility_test.dart`,
+      `staff_view_semantics_test.dart`. (The app owns any audio "sonification".)
 
 ### Phase 4 — Music theory & analysis  *(the moat — extends the theory core)*
 No peer renderer does any of this; all build on the existing pitch / interval

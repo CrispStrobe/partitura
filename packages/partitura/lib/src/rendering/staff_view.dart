@@ -187,6 +187,7 @@ class RenderStaffView extends RenderBox {
     if (value == _score) return;
     _score = value;
     markNeedsLayout();
+    markNeedsSemanticsUpdate(); // element labels changed
   }
 
   PartituraTheme _theme;
@@ -424,6 +425,47 @@ class RenderStaffView extends RenderBox {
         for (final region in elementRegions)
           if (region.bounds.overlaps(localRect)) region.id,
       ];
+
+  // ------------------------------------------------------- accessibility (3.9)
+
+  List<SemanticsNode> _semanticsNodes = const [];
+
+  @override
+  void describeSemanticsConfiguration(SemanticsConfiguration config) {
+    super.describeSemanticsConfiguration(config);
+    // Each note/rest becomes an explicit child node a screen reader can focus.
+    config.isSemanticBoundary = true;
+    config.explicitChildNodes = true;
+  }
+
+  @override
+  void assembleSemanticsNode(
+    SemanticsNode node,
+    SemanticsConfiguration config,
+    Iterable<SemanticsNode> children,
+  ) {
+    final labels = semanticLabels(_score);
+    final nodes = <SemanticsNode>[];
+    for (final region in elementRegions) {
+      final label = labels[region.id];
+      if (label == null || region.bounds.isEmpty) continue;
+      final child = _semanticsNodes.length > nodes.length
+          ? _semanticsNodes[nodes.length]
+          : SemanticsNode();
+      child
+        ..rect = region.bounds
+        ..updateWith(
+          config: SemanticsConfiguration()
+            ..isReadOnly = true
+            ..textDirection = TextDirection.ltr
+            ..label = label,
+          childrenInInversePaintOrder: const <SemanticsNode>[],
+        );
+      nodes.add(child);
+    }
+    _semanticsNodes = nodes;
+    node.updateWith(config: config, childrenInInversePaintOrder: nodes);
+  }
 
   /// Quantizes [local] to the nearest staff position (line or space,
   /// including the ledger range) and the measure index under the tap.

@@ -2,6 +2,12 @@
 
 ## 0.4.1-dev.1 (in progress)
 
+- **Accessible, navigable score** (Phase 3.9): `StaffView` now emits a
+  `Semantics` node per note/rest — a screen reader can focus each element and
+  hear its spoken label (core's `semanticLabel`, e.g. "C 4 quarter note"). The
+  labels update when the score changes. A genuine gap across interactive
+  notation renderers.
+
 - **Live transposition / concert-pitch UI** (Phase 3.6): `TranspositionController`
   is a `ChangeNotifier` wrapper over `Score.transposedBy` / `atConcertPitch` —
   `transposeBy(interval)` (composes), `octaveUp` / `octaveDown`,
