@@ -7,11 +7,13 @@
 /// measures, notes/chords, rests, durations (breve…64th with dots), two
 /// voices (layers), ties, pickup measures, articulations (`@artic`/`@fermata`)
 /// and ornaments (`<trill>`/`<mordent>`/`<turn>` control events). Pitch
-/// spelling round-trips via gestural accidentals (`accid.ges`). Slurs, tuplets,
-/// lyrics and dynamics are out of scope. Pure Dart (web-safe).
+/// spelling round-trips via gestural accidentals (`accid.ges`). Slurs
+/// (`<slur>`) and tuplets (`<tuplet>`) round-trip; lyrics and dynamics are out
+/// of scope. Pure Dart (web-safe).
 library;
 
 import '../model/element.dart';
+import '../model/measure.dart';
 import '../model/score.dart';
 import '../theory/clef.dart';
 import '../theory/duration.dart';
@@ -152,7 +154,8 @@ void _writeMeasure(StringBuffer out, Score score, int index) {
         '/>');
   }
 
-  _writeLayer(out, 1, measure.elements, changes.toString());
+  _writeLayer(out, 1, measure.elements, changes.toString(),
+      tuplets: measure.tuplets);
   for (final (n, voice) in [
     (2, measure.voice2),
     (3, measure.voice3),
@@ -203,10 +206,17 @@ String _ornamentEvent(Ornament ornament, String id) => switch (ornament) {
 int _measureNumber(Score score, int index) =>
     score.measures.take(index).where((m) => !m.pickup).length + 1;
 
-void _writeLayer(
-    StringBuffer out, int n, List<MusicElement> elements, String prefix) {
+void _writeLayer(StringBuffer out, int n, List<MusicElement> elements,
+    String prefix,
+    {List<TupletSpan> tuplets = const []}) {
   out.write('          <layer n="$n">$prefix');
-  for (final element in elements) {
+  for (var i = 0; i < elements.length; i++) {
+    final element = elements[i];
+    for (final t in tuplets) {
+      if (t.startIndex == i) {
+        out.write('<tuplet num="${t.actual}" numbase="${t.normal}">');
+      }
+    }
     if (element is RestElement) {
       out.write('<rest ${_durAttrs(element.duration)}/>');
     } else if (element is NoteElement) {
@@ -224,6 +234,9 @@ void _writeLayer(
         }
         out.write('</chord>');
       }
+    }
+    for (final t in tuplets) {
+      if (t.endIndex == i) out.write('</tuplet>');
     }
   }
   out.writeln('</layer>');

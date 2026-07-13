@@ -111,4 +111,22 @@ void main() {
     expect(ly, contains("c'4("));
     expect(ly, contains("e'4)"));
   });
+
+  test('tuplets export as \\tuplet a/n { … }', () {
+    final source = Score(
+      clef: Clef.treble,
+      measures: [
+        Measure([
+          for (final s in ['c', 'd', 'e'])
+            NoteElement(
+                pitches: [Pitch(Step.values.byName(s), octave: 5)],
+                duration: NoteDuration.eighth,
+                id: s),
+        ], tuplets: const [TupletSpan(0, 2, actual: 3, normal: 2)]),
+      ],
+    );
+    final ly = scoreToLilyPond(source);
+    expect(ly, contains('\\tuplet 3/2 {'));
+    expect(ly, contains('}'));
+  });
 }

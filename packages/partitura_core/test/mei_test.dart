@@ -154,4 +154,23 @@ void main() {
     expect(back.slurs.single.startId, ids.first);
     expect(back.slurs.single.endId, ids.last);
   });
+
+  test('round-trips a tuplet (<tuplet num numbase>)', () {
+    final source = Score(
+      clef: Clef.treble,
+      measures: [
+        Measure([
+          for (final s in ['c', 'd', 'e'])
+            NoteElement(
+                pitches: [Pitch(Step.values.byName(s), octave: 5)],
+                duration: NoteDuration.eighth,
+                id: s),
+        ], tuplets: const [TupletSpan(0, 2, actual: 3, normal: 2)]),
+      ],
+    );
+    final xml = scoreToMei(source);
+    expect(xml, contains('<tuplet num="3" numbase="2">'));
+    expect(scoreFromMei(xml).measures.single.tuplets,
+        const [TupletSpan(0, 2, actual: 3, normal: 2)]);
+  });
 }

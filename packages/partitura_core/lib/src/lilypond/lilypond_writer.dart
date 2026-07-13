@@ -4,13 +4,15 @@
 /// is no importer. Generated from the documented syntax (no LilyPond code is
 /// used), pure Dart. Covers clef (with mid-score changes), key/time
 /// signatures, notes/chords, rests, durations (breve…64th with dots), two
-/// voices, ties, pickup (`\partial`), articulations, ornaments and slurs
-/// (`(`/`)`). Tuplets, lyrics, dynamics and repeat structure are out of scope.
+/// voices, ties, pickup (`\partial`), articulations, ornaments, slurs
+/// (`(`/`)`) and tuplets (`\tuplet a/n { … }`). Lyrics, dynamics and repeat
+/// structure are out of scope.
 /// Pitch
 /// names use LilyPond's default Dutch note language.
 library;
 
 import '../model/element.dart';
+import '../model/measure.dart';
 import '../model/score.dart';
 import '../theory/clef.dart';
 import '../theory/duration.dart';
@@ -107,11 +109,12 @@ String scoreToLilyPond(Score score) {
       if (dur != null) body.write('\\partial $dur ');
     }
     if (measure.voice2.isEmpty) {
-      body.write('${_elements(measure.elements, slurStarts, slurEnds)} ');
+      body.write(
+          '${_elements(measure.elements, slurStarts, slurEnds, measure.tuplets)} ');
     } else {
       body.write(
-          '<< { ${_elements(measure.elements, slurStarts, slurEnds)} } '
-          '\\\\ { ${_elements(measure.voice2, slurStarts, slurEnds)} } >> ');
+          '<< { ${_elements(measure.elements, slurStarts, slurEnds, measure.tuplets)} } '
+          '\\\\ { ${_elements(measure.voice2, slurStarts, slurEnds, const [])} } >> ');
     }
   }
 
@@ -140,9 +143,20 @@ String _time(TimeSignature time) {
   return '$numeric\\time $beats/${time.beatUnit}';
 }
 
-String _elements(
-        List<MusicElement> elements, Set<String> slurStarts, Set<String> slurEnds) =>
-    elements.map((e) => _element(e, slurStarts, slurEnds)).join(' ');
+String _elements(List<MusicElement> elements, Set<String> slurStarts,
+    Set<String> slurEnds, List<TupletSpan> tuplets) {
+  final parts = <String>[];
+  for (var i = 0; i < elements.length; i++) {
+    for (final t in tuplets) {
+      if (t.startIndex == i) parts.add('\\tuplet ${t.actual}/${t.normal} {');
+    }
+    parts.add(_element(elements[i], slurStarts, slurEnds));
+    for (final t in tuplets) {
+      if (t.endIndex == i) parts.add('}');
+    }
+  }
+  return parts.join(' ');
+}
 
 String _element(
     MusicElement element, Set<String> slurStarts, Set<String> slurEnds) {

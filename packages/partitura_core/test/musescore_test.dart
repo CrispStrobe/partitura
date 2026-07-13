@@ -142,4 +142,24 @@ void main() {
   test('rejects a document that is not MuseScore XML', () {
     expect(() => scoreFromMscx('<score-partwise/>'), throwsFormatException);
   });
+
+  test('round-trips a tuplet (<Tuplet>/<endTuplet>)', () {
+    final source = Score(
+      clef: Clef.treble,
+      measures: [
+        Measure([
+          for (final s in ['c', 'd', 'e'])
+            NoteElement(
+                pitches: [Pitch(Step.values.byName(s), octave: 5)],
+                duration: NoteDuration.eighth,
+                id: s),
+        ], tuplets: const [TupletSpan(0, 2, actual: 3, normal: 2)]),
+      ],
+    );
+    final mscx = scoreToMscx(source);
+    expect(mscx, contains('<Tuplet>'));
+    expect(mscx, contains('<endTuplet/>'));
+    expect(scoreFromMscx(mscx).measures.single.tuplets,
+        const [TupletSpan(0, 2, actual: 3, normal: 2)]);
+  });
 }

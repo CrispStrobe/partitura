@@ -144,8 +144,10 @@ class _StaffReader {
     final voices = voiceNodes.isEmpty ? [measureNode] : voiceNodes;
 
     final byVoice = <List<MusicElement>>[];
+    final tuplets = <TupletSpan>[];
     for (var v = 0; v < voices.length; v++) {
       final elements = <MusicElement>[];
+      int? tupStart, tupActual, tupNormal;
       for (final node in voices[v].children) {
         switch (node.name) {
           case 'Clef':
@@ -181,10 +183,26 @@ class _StaffReader {
             elements.add(RestElement(_durationOf(node), id: _newId()));
           case 'Tempo':
             // <tempo> is quarter-notes per second → bpm.
-            final v = double.tryParse(node.childText('tempo') ?? '');
-            if (v != null) _tempo ??= Tempo(v * 60);
+            final t = double.tryParse(node.childText('tempo') ?? '');
+            if (t != null) _tempo ??= Tempo(t * 60);
+          case 'Tuplet':
+            tupStart = elements.length;
+            tupActual = int.tryParse(node.childText('actualNotes') ?? '');
+            tupNormal = int.tryParse(node.childText('normalNotes') ?? '');
+          case 'endTuplet':
+            // Tuplets are voice-1 only in the model.
+            if (v == 0 &&
+                tupStart != null &&
+                tupActual != null &&
+                tupActual >= 2 &&
+                tupNormal != null &&
+                elements.length - 1 >= tupStart) {
+              tuplets.add(TupletSpan(tupStart, elements.length - 1,
+                  actual: tupActual, normal: tupNormal));
+            }
+            tupStart = null;
           default:
-            break; // Beam, Spanner, StaffText, Dynamic, Tuplet, …: ignored
+            break; // Beam, Spanner, StaffText, Dynamic, …: ignored
         }
       }
       byVoice.add(elements);
@@ -199,6 +217,7 @@ class _StaffReader {
       clefChange: clefChange,
       keyChange: keyChange,
       timeChange: timeChange,
+      tuplets: tuplets,
       pickup: pickup,
     ));
   }

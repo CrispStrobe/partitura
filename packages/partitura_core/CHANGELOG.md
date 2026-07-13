@@ -9,6 +9,10 @@
   choosing each chord's voicing to minimise `Σ|motion| + 100·(voice-leading
   errors)` — graded by the Phase 4.2 `checkVoiceLeading` engine, so common tones
   are held and parallels avoided. Pure theory. Completes Phase 4 (theory moat).
+- **Tuplets in more codecs** (interchange enrichment): `TupletSpan` now
+  round-trips through MEI (`<tuplet num numbase>`) and MuseScore
+  (`<Tuplet>`/`<endTuplet>`), and exports to LilyPond (`\tuplet a/n { … }`).
+  Previously tuplets were carried only by MusicXML and Humdrum `**kern`.
 - **Theory extras** (Phase 4.8): neo-Riemannian `parallel`/`relative`/
   `leittonwechsel` (P/L/R) transforms on major/minor `Triad`s; twelve-tone row
   forms (`transposeRow`/`retrograde`/`invertRow`/`retrogradeInversion`) and the

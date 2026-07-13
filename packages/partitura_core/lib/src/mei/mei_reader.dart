@@ -196,6 +196,7 @@ class _MeiReader {
     TimeSignature? timeChange;
     final byLayer = <List<MusicElement>>[];
 
+    final tuplets = <TupletSpan>[];
     for (var l = 0; l < layers.length; l++) {
       final elements = <MusicElement>[];
       for (final node in layers[l].children) {
@@ -226,8 +227,33 @@ class _MeiReader {
           case 'mRest':
             elements.add(RestElement(_durationFrom(node),
                 id: _idFor(node.attributes['xml:id'])));
+          case 'tuplet':
+            final start = elements.length;
+            for (final child in node.children) {
+              switch (child.name) {
+                case 'note':
+                  elements.add(_noteFrom(child));
+                case 'chord':
+                  elements.add(_chordFrom(child));
+                case 'rest':
+                case 'mRest':
+                  elements.add(RestElement(_durationFrom(child),
+                      id: _idFor(child.attributes['xml:id'])));
+              }
+            }
+            final actual = int.tryParse(node.attributes['num'] ?? '');
+            final normal = int.tryParse(node.attributes['numbase'] ?? '');
+            // Tuplets are voice-1 only in the model.
+            if (l == 0 &&
+                actual != null &&
+                actual >= 2 &&
+                normal != null &&
+                elements.length - 1 >= start) {
+              tuplets.add(TupletSpan(start, elements.length - 1,
+                  actual: actual, normal: normal));
+            }
           default:
-            break; // beam, tuplet, dynam, slur, …: ignored
+            break; // beam, dynam, slur, …: ignored
         }
       }
       byLayer.add(elements);
@@ -241,6 +267,7 @@ class _MeiReader {
       clefChange: clefChange,
       keyChange: keyChange,
       timeChange: timeChange,
+      tuplets: tuplets,
       pickup: pickup,
     );
   }

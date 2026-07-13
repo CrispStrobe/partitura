@@ -5,13 +5,14 @@
 /// time signatures (numeric; `.common`/`.cut` degrade to numeric 4/4 · 2/2),
 /// measures, notes/chords, rests, durations (breve…64th with dots), up to
 /// four voices, ties, pickup measures, articulations and ornaments (both as
-/// `<Articulation>` SMuFL subtypes). Slurs, tuplets, lyrics, dynamics, grace
-/// notes and repeat/navigation structure are out of scope (dropped on this
-/// hop). Pure Dart (web-safe); the `.mscz` ZIP container is handled in
-/// `partitura_cli`.
+/// `<Articulation>` SMuFL subtypes) and tuplets (`<Tuplet>`/`<endTuplet>`).
+/// Slurs, lyrics, dynamics, grace notes and repeat/navigation structure are out
+/// of scope (dropped on this hop). Pure Dart (web-safe); the `.mscz` ZIP
+/// container is handled in `partitura_cli`.
 library;
 
 import '../model/element.dart';
+import '../model/measure.dart';
 import '../model/score.dart';
 import '../theory/clef.dart';
 import '../theory/duration.dart';
@@ -174,7 +175,7 @@ class _MscxWriter {
           '<followText>1</followText></Tempo>');
     }
 
-    _writeElements(measure.elements);
+    _writeElements(measure.elements, tuplets: measure.tuplets);
     out.writeln('        </voice>');
 
     for (final voice in [measure.voice2, measure.voice3, measure.voice4]) {
@@ -186,8 +187,18 @@ class _MscxWriter {
     out.writeln('      </Measure>');
   }
 
-  void _writeElements(List<MusicElement> elements) {
-    for (final element in elements) {
+  void _writeElements(List<MusicElement> elements,
+      {List<TupletSpan> tuplets = const []}) {
+    for (var i = 0; i < elements.length; i++) {
+      final element = elements[i];
+      for (final t in tuplets) {
+        if (t.startIndex == i) {
+          final base = _durationNames[element.duration.base] ?? 'eighth';
+          out.writeln('          <Tuplet><normalNotes>${t.normal}</normalNotes>'
+              '<actualNotes>${t.actual}</actualNotes>'
+              '<baseNote>$base</baseNote></Tuplet>');
+        }
+      }
       if (element is RestElement) {
         out.writeln('          <Rest>${_durationXml(element.duration)}</Rest>');
       } else if (element is NoteElement) {
@@ -205,6 +216,9 @@ class _MscxWriter {
               '<tpc>${tpcOf(pitch)}</tpc></Note>');
         }
         out.writeln('</Chord>');
+      }
+      for (final t in tuplets) {
+        if (t.endIndex == i) out.writeln('          <endTuplet/>');
       }
     }
   }
