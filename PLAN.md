@@ -27,13 +27,8 @@ ships* at the end for the mechanics.
 > 2.7 every-N measure numbering, 7.3 ABC `!invertedturn!`, 7.5 braille
 > signatures + chords, and the C6 handover doc (`docs/C6_HANDOVER.md`). No active
 > claim on this worktree line. *(2.1/2.2/2.3-view/2.6 stay owned/forked by the
-> model agent; C6 remains forked — reconcile before more.)*
+> model agent; C6 is now reconciled — see below.)*
 
-> **C6 multi-part document — core wrapping landed on `main`**
-> (`layoutStaffSystemSystems` / `StaffSystemSystems`; contract C6 now `[~]`, see
-> its handover below for increments 2–4). Phase 2.3 hide-empty-staves also on
-> `main` (7e817fb).
->
 > ✅ **C6 fork reconciled** (`docs/C6_HANDOVER.md`): the private `MultiPartScore`
 > + `BarlineGroup` document model and `MultiPartView` widget are now on public,
 > layered *over* `layoutStaffSystemSystems` (A stays the layout primitive) with
