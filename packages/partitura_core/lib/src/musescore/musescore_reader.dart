@@ -78,8 +78,57 @@ Score scoreFromMscx(String mscx, {int staffIndex = 0}) {
   if (staffIndex < 0 || staffIndex >= staves.length) {
     throw FormatException('Staff $staffIndex not found (${staves.length})');
   }
-  return _StaffReader(staves[staffIndex], _metadataOf(scoreNode)).read();
+  return _StaffReader(staves[staffIndex], _metadataOf(scoreNode),
+          drumset: _drumsetFor(scoreNode, staves[staffIndex]))
+      .read();
 }
+
+/// One entry of a MuseScore drumset: the staff [line] (MuseScore convention —
+/// top line is 0, increasing downward by a half-space) and notehead [head] a
+/// drum pitch is drawn with.
+typedef _Drum = ({int line, NoteheadShape head});
+
+/// The `<Drum pitch="…">` map for the [staffNode]'s part, or null when the
+/// staff is not a drum staff. Matches the `<Part>` whose `<Staff id>` equals the
+/// music staff's id (falling back to the sole drum part), then reads its
+/// `<Instrument>`'s drum definitions (pitch → line + notehead).
+Map<int, _Drum>? _drumsetFor(XmlNode scoreNode, XmlNode staffNode) {
+  final id = staffNode.attributes['id'];
+  final parts = scoreNode.childrenNamed('Part').toList();
+  XmlNode? instrument;
+  for (final part in parts) {
+    final inst = part.child('Instrument');
+    if (inst == null || inst.childrenNamed('Drum').isEmpty) continue;
+    final owns = id != null &&
+        part.childrenNamed('Staff').any((s) => s.attributes['id'] == id);
+    if (owns) {
+      instrument = inst;
+      break;
+    }
+    instrument ??= inst; // fallback: the first drum part
+  }
+  if (instrument == null) return null;
+  final map = <int, _Drum>{};
+  for (final drum in instrument.childrenNamed('Drum')) {
+    final pitch = int.tryParse(drum.attributes['pitch'] ?? '');
+    if (pitch == null) continue;
+    map[pitch] = (
+      line: int.tryParse(drum.childText('line') ?? '') ?? 0,
+      head: _noteheadOf(drum.childText('head')),
+    );
+  }
+  return map.isEmpty ? null : map;
+}
+
+/// MuseScore drum `<head>` group → [NoteheadShape] (unknown / absent → normal).
+NoteheadShape _noteheadOf(String? head) => switch (head) {
+      'cross' || 'x' => NoteheadShape.x,
+      'diamond' => NoteheadShape.diamond,
+      'triangle' || 'triangle-up' || 'triangleUp' => NoteheadShape.triangleUp,
+      'slash' || 'slashed' => NoteheadShape.slash,
+      'xcircle' || 'circled' || 'circledlarge' => NoteheadShape.circleX,
+      _ => NoteheadShape.normal,
+    };
 
 /// Reads MuseScore `<metaTag>`s and the part `<trackName>` into metadata; the
 /// default track name ("Music") maps to a null instrument.
@@ -105,7 +154,11 @@ ScoreMetadata _metadataOf(XmlNode scoreNode) {
 class _StaffReader {
   final XmlNode staff;
   final ScoreMetadata metadata;
-  _StaffReader(this.staff, this.metadata);
+
+  /// The part's drumset (pitch → line + notehead), or null for a pitched staff.
+  final Map<int, _Drum>? drumset;
+
+  _StaffReader(this.staff, this.metadata, {this.drumset});
 
   int _nextId = 0;
   bool _leadingSet = false;
@@ -248,6 +301,9 @@ class _StaffReader {
     final duration = _durationOf(chord);
     var tie = false;
     final pitches = <Pitch>[];
+    // On a drum staff, each hit is placed on its drumset line and drawn with
+    // the drumset notehead (taken from the first mapped hit of the chord).
+    NoteheadShape notehead = NoteheadShape.normal;
     for (final note in chord.childrenNamed('Note')) {
       final spanner = note
           .childrenNamed('Spanner')
@@ -255,8 +311,16 @@ class _StaffReader {
       if (spanner) tie = true;
       final midi = int.tryParse(note.childText('pitch') ?? '');
       if (midi == null) continue;
-      final tpc = int.tryParse(note.childText('tpc') ?? '');
-      pitches.add(_pitchOf(tpc, midi));
+      final drum = drumset?[midi];
+      if (drum != null) {
+        // MuseScore line: top line 0, increasing downward; our staffPosition:
+        // bottom line 0, increasing upward → position = 8 - line.
+        pitches.add(Clef.percussion.pitchAt(8 - drum.line));
+        if (notehead == NoteheadShape.normal) notehead = drum.head;
+      } else {
+        final tpc = int.tryParse(note.childText('tpc') ?? '');
+        pitches.add(_pitchOf(tpc, midi));
+      }
     }
     if (pitches.isEmpty) {
       // A chord with no readable pitch degrades to a rest of its duration.
@@ -268,6 +332,7 @@ class _StaffReader {
       tieToNext: tie,
       articulations: _articOf(chord),
       ornament: _ornamentOf(chord),
+      notehead: notehead,
       id: _newId(),
     );
   }

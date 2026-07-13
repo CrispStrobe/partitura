@@ -128,8 +128,8 @@ y-down coords. Priority: **C1+C2 → C3 → C5 → C4**.
     Covered in `multi_part_view_test.dart`.
   C6 is now **complete** end-to-end (model → layout → pagination → view →
   interchange → editor).
-- [~] **Complete the multi-part importers** *(from the real-input hardening pass,
-  `docs/HARDENING.md`)* — mostly done; one open item remains.
+- [x] **Complete the multi-part importers** *(from the real-input hardening pass,
+  `docs/HARDENING.md`)* — done.
   - **MEI** — **done.** `staffSystemFromMei` reads every `<staffDef>` into an
     aligned staff (staffGrp `@symbol` → brackets) and `multiPartScoreFromMei`
     bridges to a paginating document. `mei_test.dart`.
@@ -139,14 +139,15 @@ y-down coords. Priority: **C1+C2 → C3 → C5 → C4**.
     `Score`. `cli_test.dart` / `svg_test.dart`. *(Multi-part **PNG** still uses
     the single-`Score` path — needs the Flutter `render_png.dart` tool to accept
     a `StaffSystem`.)*
-  - **Percussion** — clef / staff **done**: `<clef><sign>percussion</sign>` →
+  - **Percussion** — **done.** `<clef><sign>percussion</sign>` →
     `Clef.percussion`, `<unpitched>` notes import on their display line, the
     layout renders the neutral percussion clef with no key signature, and
     MuseScore `PERC`/`PERC2` clefs map both ways (`musicxml_test.dart`
-    percussion group). **Still open:** a MuseScore `<Drumset>` note→line/notehead
-    mapping (drum hits currently read via their raw MIDI pitch, not the drumset's
-    per-instrument line + notehead group) — needs notehead-group model support
-    and real `.mscx` drum fixtures, so it is a standalone feature, not a tail.
+    percussion group). The MuseScore **`<Drumset>`** is now read: each `<Part>`'s
+    `<Instrument>` `<Drum pitch>` entries map a hit to its staff line
+    (`position = 8 − line`) and notehead group (`cross`→x, `diamond`,
+    `triangle`, `slash`, `circled`→circle-x), so drum staves lay out on their
+    proper lines with the right heads (`musescore_test.dart`).
   - Verified working after G6/G7: the 23-staff orchestral **ActorPrelude** and
     the Mozart string quartet (4 staves) import fully via
     `staffSystemFromMusicXml`.

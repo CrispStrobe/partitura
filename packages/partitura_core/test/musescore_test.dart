@@ -117,6 +117,57 @@ void main() {
         elements[2].duration, const NoteDuration(DurationBase.eighth, dots: 1));
   });
 
+  test('a drum staff maps hits to their drumset line and notehead', () {
+    // A percussion part with a drumset: closed hi-hat (cross head, top line),
+    // snare (normal, middle line), bass drum (normal, below middle). MuseScore
+    // line: top = 0, increasing downward.
+    const mscx = '''
+<?xml version="1.0" encoding="UTF-8"?>
+<museScore version="4.20">
+  <Score>
+    <Part id="1">
+      <Staff id="1"/>
+      <trackName>Drumset</trackName>
+      <Instrument>
+        <Drum pitch="36"><head>normal</head><line>6</line><name>Bass Drum</name></Drum>
+        <Drum pitch="38"><head>normal</head><line>4</line><name>Snare</name></Drum>
+        <Drum pitch="42"><head>cross</head><line>0</line><name>Closed Hi-Hat</name></Drum>
+      </Instrument>
+    </Part>
+    <Staff id="1">
+      <Measure><voice>
+        <Clef><concertClefType>PERC</concertClefType></Clef>
+        <TimeSig><sigN>4</sigN><sigD>4</sigD></TimeSig>
+        <Chord><durationType>quarter</durationType>
+          <Note><pitch>42</pitch></Note></Chord>
+        <Chord><durationType>quarter</durationType>
+          <Note><pitch>38</pitch></Note></Chord>
+        <Chord><durationType>quarter</durationType>
+          <Note><pitch>36</pitch></Note></Chord>
+      </voice></Measure>
+    </Staff>
+  </Score>
+</museScore>''';
+    final score = scoreFromMscx(mscx);
+    expect(score.clef, Clef.percussion);
+    final notes =
+        score.measures.single.elements.whereType<NoteElement>().toList();
+    expect(notes, hasLength(3));
+    // The hi-hat is drawn with an x head; snare and bass keep the normal oval.
+    expect(notes[0].notehead, NoteheadShape.x); // hi-hat
+    expect(notes[1].notehead, NoteheadShape.normal); // snare
+    expect(notes[2].notehead, NoteheadShape.normal); // bass
+    // Each hit lands on its drumset line (position = 8 - line): hi-hat top,
+    // snare in the middle, bass below — so vertically hi-hat > snare > bass.
+    expect(notes[0].pitches.single, Clef.percussion.pitchAt(8)); // line 0
+    expect(notes[1].pitches.single, Clef.percussion.pitchAt(4)); // line 4
+    expect(notes[2].pitches.single, Clef.percussion.pitchAt(2)); // line 6
+    expect(notes[0].pitches.single.diatonicIndex,
+        greaterThan(notes[1].pitches.single.diatonicIndex));
+    expect(notes[1].pitches.single.diatonicIndex,
+        greaterThan(notes[2].pitches.single.diatonicIndex));
+  });
+
   test('whole-measure rest (durationType=measure) maps to the meter', () {
     const mscx = '''
 <museScore version="4.20"><Score><Staff id="1">
