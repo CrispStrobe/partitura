@@ -254,6 +254,7 @@ Raises the quality of everything already rendered. Slice order:
       one continuous primary beam but breaks the secondary beams at the beat's
       sub-pulse; staff + tab). **Left:** finer per-level subdivision (32nds at
       the half-beat), cross-measure beaming.
+      *[🚧 in progress: parallel agent — cross-measure beaming in layout_engine]*
 
 ### Phase 2 — Score structure (multi-staff)
 - [~] **2.1 N-staff systems** — **Done:** `StaffSystem` (N `Score` staves +
