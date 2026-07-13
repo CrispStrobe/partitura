@@ -77,6 +77,29 @@ void main() {
     }
   });
 
+  test('non-final systems justify to the target width; the last stays ragged',
+      () {
+    final wrapped =
+        layoutGrandStaffSystems(eightBarPiano(), settings, maxWidth: 40);
+    expect(wrapped.systems.length, greaterThan(1));
+    for (final system
+        in wrapped.systems.take(wrapped.systems.length - 1)) {
+      expect(system.layout.width, closeTo(40, 0.6),
+          reason: 'non-final systems fill the width');
+    }
+    expect(wrapped.systems.last.layout.width, lessThan(40),
+        reason: 'the last system is not stretched');
+  });
+
+  test('justify: false leaves non-final systems ragged', () {
+    final ragged = layoutGrandStaffSystems(eightBarPiano(), settings,
+        maxWidth: 40, justify: false);
+    final slack = ragged.systems
+        .take(ragged.systems.length - 1)
+        .map((s) => 40 - s.layout.width);
+    expect(slack.any((gap) => gap > 1), isTrue);
+  });
+
   test('measure-count mismatch and non-positive width fail loudly', () {
     expect(
       () => layoutGrandStaffSystems(

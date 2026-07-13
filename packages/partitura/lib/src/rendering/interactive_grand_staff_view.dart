@@ -39,6 +39,10 @@ class InteractiveGrandStaffView extends LeafRenderObjectWidget {
   /// Staff spaces between the bounding boxes of consecutive systems.
   final double systemGap;
 
+  /// Whether to justify every non-final system to the full width (shared
+  /// note-spacing stretch across both staves).
+  final bool justify;
+
   /// Ids painted in the highlight color.
   final Set<String> highlightedIds;
 
@@ -83,6 +87,7 @@ class InteractiveGrandStaffView extends LeafRenderObjectWidget {
     this.staffSpace = 12,
     this.staffGap = 4.0,
     this.systemGap = 6.0,
+    this.justify = true,
     this.highlightedIds = const {},
     this.elementColors = const {},
     this.onElementTap,
@@ -104,6 +109,7 @@ class InteractiveGrandStaffView extends LeafRenderObjectWidget {
         staffSpace: staffSpace,
         staffGap: staffGap,
         systemGap: systemGap,
+        justify: justify,
         highlightedIds: highlightedIds,
         elementColors: elementColors,
       )
@@ -128,6 +134,7 @@ class InteractiveGrandStaffView extends LeafRenderObjectWidget {
       ..staffSpace = staffSpace
       ..staffGap = staffGap
       ..systemGap = systemGap
+      ..justify = justify
       ..highlightedIds = highlightedIds
       ..elementColors = elementColors
       ..onElementTap = onElementTap
@@ -152,6 +159,7 @@ class RenderInteractiveGrandStaffView extends RenderBox
     required double staffSpace,
     required double staffGap,
     required double systemGap,
+    required bool justify,
     required Set<String> highlightedIds,
     Map<String, Color> elementColors = const {},
   })  : _grandStaff = grandStaff,
@@ -159,6 +167,7 @@ class RenderInteractiveGrandStaffView extends RenderBox
         _staffSpace = staffSpace,
         _staffGap = staffGap,
         _systemGap = systemGap,
+        _justify = justify,
         _highlightedIds = highlightedIds,
         _elementColors = elementColors {
     _tap = TapGestureRecognizer(debugOwner: this)..onTapUp = _handleTapUp;
@@ -295,6 +304,16 @@ class RenderInteractiveGrandStaffView extends RenderBox
     markNeedsLayout();
   }
 
+  bool _justify;
+
+  /// Whether non-final systems fill the width.
+  bool get justify => _justify;
+  set justify(bool value) {
+    if (value == _justify) return;
+    _justify = value;
+    markNeedsLayout();
+  }
+
   Set<String> _highlightedIds;
 
   /// Ids painted in the highlight color. Repaint only.
@@ -387,6 +406,7 @@ class RenderInteractiveGrandStaffView extends RenderBox
       _settingsFor(metadata),
       maxWidth: math.max(8.0, maxWidthSpaces),
       staffGap: _staffGap,
+      justify: _justify,
     );
     _systems = systems;
     final width =

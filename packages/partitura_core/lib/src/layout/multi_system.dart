@@ -223,6 +223,12 @@ class GrandStaffSystems {
 /// lower). The time signature is drawn only on the first system (and at
 /// explicit changes); every non-final system closes with a plain barline.
 ///
+/// Every non-final system is justified to [maxWidth] (disable with [justify])
+/// via a **shared note-spacing stretch across both staves** — binary-searched
+/// so the slack becomes note spacing, not end-padding, and barlines stay
+/// aligned. (Onset columns are still spaced per staff, not gridded across the
+/// two — that is a separate, deeper spacing feature.)
+///
 /// Cross-staff beams are not carried onto wrapped systems (use a single-system
 /// [layoutGrandStaff] for those). Throws if the staves disagree on measure
 /// count or [maxWidth] is not positive.
@@ -231,6 +237,7 @@ GrandStaffSystems layoutGrandStaffSystems(
   LayoutSettings settings, {
   required double maxWidth,
   double staffGap = 4.0,
+  bool justify = true,
 }) {
   if (maxWidth <= 0) {
     throw ArgumentError.value(maxWidth, 'maxWidth', 'must be positive');
@@ -277,13 +284,31 @@ GrandStaffSystems layoutGrandStaffSystems(
       lower: _slice(
           lower, start, end, lowerState.$1, lowerState.$2, lowerState.$3),
     );
-    final layout = layoutGrandStaff(
-      gs,
-      settings,
-      staffGap: staffGap,
-      drawTimeSignature: drawTime,
-      finalBarline: isLast,
-    );
+    GrandStaffLayout render(double stretch) => layoutGrandStaff(
+          gs,
+          settings,
+          staffGap: staffGap,
+          drawTimeSignature: drawTime,
+          finalBarline: isLast,
+          spacingStretch: stretch,
+        );
+    var layout = render(1.0);
+    // Justify non-final systems: binary-search a single spacing stretch (shared
+    // by both staves, so barlines stay aligned) up to [maxWidth].
+    if (justify && !isLast && layout.width < maxWidth) {
+      var low = 1.0, high = 4.0;
+      for (var iteration = 0; iteration < 24; iteration++) {
+        final mid = (low + high) / 2;
+        final candidate = render(mid);
+        if (candidate.width > maxWidth) {
+          high = mid;
+        } else {
+          low = mid;
+          layout = candidate;
+          if (maxWidth - candidate.width < 0.05) break;
+        }
+      }
+    }
     systems.add(GrandStaffSystem(
         layout: layout, firstMeasure: start, lastMeasure: end));
     start = end + 1;

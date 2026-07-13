@@ -134,6 +134,46 @@ void main() {
     expect(render.elementIdsIn(any.bounds), contains(any.id));
   });
 
+  testWidgets('justify fills non-final systems (shared two-staff stretch)',
+      (tester) async {
+    Future<({double first, double last, int count})> widths(
+        bool justify) async {
+      await tester.pumpWidget(
+        wrap(
+          InteractiveGrandStaffView(
+            grandStaff: eightBarPiano(),
+            staffSpace: 10,
+            justify: justify,
+          ),
+          width: 320,
+        ),
+      );
+      final systems = renderOf(tester).grandStaffSystems!.systems;
+      return (
+        first: systems.first.layout.width,
+        last: systems.last.layout.width,
+        count: systems.length,
+      );
+    }
+
+    final justified = await widths(true);
+    final ragged = await widths(false);
+    expect(justified.count, greaterThan(1));
+    // The first (non-final) system is wider when justified; the last is not
+    // stretched either way.
+    expect(justified.first, greaterThan(ragged.first + 0.5));
+    expect(justified.last, closeTo(ragged.last, 0.01));
+    // Both staves of a justified system share the same width (barlines align).
+    await tester.pumpWidget(
+      wrap(
+        InteractiveGrandStaffView(grandStaff: eightBarPiano(), staffSpace: 10),
+        width: 320,
+      ),
+    );
+    final sys0 = renderOf(tester).grandStaffSystems!.systems.first.layout;
+    expect(sys0.upper.width, closeTo(sys0.lower.width, 1e-6));
+  });
+
   testWidgets('onHover reports the staff target and null on exit',
       (tester) async {
     final hovered = <StaffTarget?>[];

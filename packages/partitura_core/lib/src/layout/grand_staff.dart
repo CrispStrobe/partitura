@@ -136,6 +136,7 @@ GrandStaffLayout layoutGrandStaff(
   double staffGap = 4.0,
   bool drawTimeSignature = true,
   bool finalBarline = true,
+  double spacingStretch = 1.0,
 }) {
   if (grandStaff.upper.measures.length != grandStaff.lower.measures.length) {
     throw ArgumentError(
@@ -145,10 +146,13 @@ GrandStaffLayout layoutGrandStaff(
     );
   }
   const engine = LayoutEngine();
+  // The natural passes carry the same [spacingStretch] as the final passes, so
+  // the shared [measureWidths] grow with the stretch and both staves stay
+  // aligned (a wider stretch fills the line, distributed as note spacing).
   final upperNatural = engine.layout(grandStaff.upper, settings,
-      drawTimeSignature: drawTimeSignature);
+      drawTimeSignature: drawTimeSignature, spacingStretch: spacingStretch);
   final lowerNatural = engine.layout(grandStaff.lower, settings,
-      drawTimeSignature: drawTimeSignature);
+      drawTimeSignature: drawTimeSignature, spacingStretch: spacingStretch);
 
   double leadingOf(ScoreLayout layout) => layout.measureRegions.isEmpty
       ? layout.width
@@ -191,6 +195,7 @@ GrandStaffLayout layoutGrandStaff(
     deferredStems: deferUpper,
     drawTimeSignature: drawTimeSignature,
     finalBarline: finalBarline,
+    spacingStretch: spacingStretch,
   );
   final lower = engine.layout(
     grandStaff.lower,
@@ -200,6 +205,7 @@ GrandStaffLayout layoutGrandStaff(
     deferredStems: deferLower,
     drawTimeSignature: drawTimeSignature,
     finalBarline: finalBarline,
+    spacingStretch: spacingStretch,
   );
 
   final beamPrimitives = _crossStaffBeamPrimitives(

@@ -23,14 +23,12 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-11)
 
-> **Actively working on:** proper cross-staff justification — wrapped grand-staff
-> systems fill the width via a **shared note-spacing stretch across both staves**
-> (barlines stay aligned; slack becomes note spacing, not end-padding),
-> binary-searched per non-final system like `layoutSystems`. Touches
-> `layout/grand_staff.dart`, `layout/multi_system.dart`,
-> `rendering/interactive_grand_staff_view.dart` + golden 95. Full onset-column
-> alignment across staves stays out of scope (deeper spacing feature). Worktree
-> `partitura-public-lacunae`. *(Editor contracts C1–C5 done; C6 deferred.)*
+> **Between features (model-lacunae worktree).** Workshop editor contracts C1–C5
+> done on `main`, plus the grand-staff follow-ups: C2/C3 hooks and **proper
+> cross-staff justification** (`justify` flag; shared two-staff note-spacing
+> stretch, barlines aligned). Left (deeper): cross-staff onset-column gridding;
+> C6 (multi-part document). The three deep Score-model lacunae are done;
+> microtones landed via the parallel agent.
 
 
 ### Workshop editor contracts (C1–C6)
@@ -67,9 +65,10 @@ y-down coords. Priority: **C1+C2 → C3 → C5 → C4**.
   signature on the first system only) with `onElementTap` + `onStaffTap`
   (`StaffTarget` carries `systemIndex`/`staffIndex`). Golden 95;
   `grand_staff_systems_test.dart`, `interactive_grand_staff_view_test.dart`.
-  ✓ *Follow-up done:* hover/caret/ghost/drag (C2/C3 hooks) now on
-  `InteractiveGrandStaffView` too. 🚧 *Per-system justification in progress*
-  (shared two-staff note-spacing stretch, binary-searched).
+  ✓ *Follow-ups done:* hover/caret/ghost/drag (C2/C3 hooks) and **per-system
+  justification** (`justify` flag; shared two-staff note-spacing stretch,
+  binary-searched — barlines stay aligned) now on `InteractiveGrandStaffView`.
+  *Left (deeper):* full cross-staff onset-column gridding.
 - [ ] **C6 — (later) multi-part document model.** First-class multi-part
   document (shared barlines across parts) + multi-part page layout. Deferred;
   C1–C5 unblock the near-term editor.

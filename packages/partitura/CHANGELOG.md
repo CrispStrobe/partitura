@@ -2,6 +2,13 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Wrapped grand-staff justification.** `InteractiveGrandStaffView` gains a
+  `justify` flag (default true): every non-final system now fills the width via
+  a **shared note-spacing stretch applied to both staves** (binary-searched in
+  `layoutGrandStaffSystems`), so the slack distributes as note spacing rather
+  than end-padding and barlines stay aligned across the two staves.
+  `layoutGrandStaff` gains a `spacingStretch` parameter. (Onset columns are
+  still spaced per staff — full cross-staff gridding is a separate feature.)
 - **Interactive grand staff — hover / caret / ghost / drag** (C2/C3 on the
   keyboard system): `InteractiveGrandStaffView` gains `onHover(StaffTarget?)`
   (via `MouseTrackerAnnotation`, null on exit), a `caret` (`EditorCaret`, drawn
