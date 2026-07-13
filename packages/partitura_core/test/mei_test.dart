@@ -115,6 +115,92 @@ void main() {
     expect((elements[3] as NoteElement).pitches, hasLength(2));
   });
 
+  group('multi-staff (staffSystemFromMei)', () {
+    const quartet = '''
+<?xml version="1.0" encoding="UTF-8"?>
+<mei xmlns="http://www.music-encoding.org/ns/mei" meiversion="5.0">
+  <meiHead><fileDesc><titleStmt><title>x</title></titleStmt></fileDesc></meiHead>
+  <music><body><mdiv><score>
+    <scoreDef keysig="0" meter.count="4" meter.unit="4">
+      <staffGrp symbol="bracket">
+        <staffDef n="1" lines="5" clef.shape="G" clef.line="2" label="Violin"/>
+        <staffDef n="2" lines="5" clef.shape="C" clef.line="3" label="Viola"/>
+        <staffDef n="3" lines="5" clef.shape="F" clef.line="4" label="Cello"/>
+      </staffGrp>
+    </scoreDef>
+    <section>
+      <measure n="1">
+        <staff n="1"><layer n="1"><note pname="c" oct="5" dur="1"/></layer></staff>
+        <staff n="2"><layer n="1"><note pname="e" oct="4" dur="1"/></layer></staff>
+        <staff n="3"><layer n="1"><note pname="c" oct="3" dur="1"/></layer></staff>
+      </measure>
+      <measure n="2">
+        <staff n="1"><layer n="1"><note pname="d" oct="5" dur="1"/></layer></staff>
+        <staff n="2"><layer n="1"><note pname="f" oct="4" dur="1"/></layer></staff>
+        <staff n="3"><layer n="1"><note pname="d" oct="3" dur="1"/></layer></staff>
+      </measure>
+    </section>
+  </score></mdiv></body></music>
+</mei>''';
+
+    test('reads every staffDef into an aligned staff, in order', () {
+      final sys = staffSystemFromMei(quartet);
+      expect(sys.staves, hasLength(3));
+      expect(sys.staves[0].clef, Clef.treble);
+      expect(sys.staves[1].clef, Clef.alto);
+      expect(sys.staves[2].clef, Clef.bass);
+      // Each staff read its own <staff n="…"> content across both measures.
+      expect(sys.staves[0].measures, hasLength(2));
+      expect((sys.staves[0].measures.first.elements.single as NoteElement)
+          .pitches.single.octave, 5);
+      expect((sys.staves[2].measures.first.elements.single as NoteElement)
+          .pitches.single.octave, 3);
+    });
+
+    test('per-staff instrument labels and disjoint id spaces', () {
+      final sys = staffSystemFromMei(quartet);
+      expect(sys.staves[0].metadata.instrument, 'Violin');
+      expect(sys.staves[2].metadata.instrument, 'Cello');
+      // Ids do not collide across staves.
+      final id0 = sys.staves[0].measures.first.elements.single.id;
+      final id2 = sys.staves[2].measures.first.elements.single.id;
+      expect(id0, isNot(id2));
+    });
+
+    test('a staffGrp symbol becomes a bracket over its staves', () {
+      final sys = staffSystemFromMei(quartet);
+      expect(sys.brackets,
+          contains(const StaffBracket(0, 2, kind: StaffBracketKind.bracket)));
+    });
+
+    test('multiPartScoreFromMei bridges into a paginating document', () {
+      final doc = multiPartScoreFromMei(quartet);
+      expect(doc.parts, hasLength(3));
+      expect(doc.measureCount, 2);
+      expect(doc.effectiveBarlineGroups, const [BarlineGroup(0, 2)]);
+    });
+
+    test('a single-staff document still yields a one-staff system', () {
+      final sys = staffSystemFromMei('''
+<?xml version="1.0" encoding="UTF-8"?>
+<mei xmlns="http://www.music-encoding.org/ns/mei" meiversion="5.0">
+  <meiHead><fileDesc><titleStmt><title>x</title></titleStmt></fileDesc></meiHead>
+  <music><body><mdiv><score>
+    <scoreDef keysig="0" meter.count="4" meter.unit="4">
+      <staffGrp><staffDef n="1" lines="5" clef.shape="G" clef.line="2"/></staffGrp>
+    </scoreDef>
+    <section>
+      <measure n="1"><staff n="1"><layer n="1">
+        <note pname="c" oct="4" dur="1"/>
+      </layer></staff></measure>
+    </section>
+  </score></mdiv></body></music>
+</mei>''');
+      expect(sys.staves, hasLength(1));
+      expect(sys.staves.single.clef, Clef.treble);
+    });
+  });
+
   test('keysig strings map to fifths (2s → +2, 3f → -3, 0 → 0)', () {
     expect(meiKeySig(const KeySignature(2)), '2s');
     expect(meiKeySig(const KeySignature(-3)), '3f');

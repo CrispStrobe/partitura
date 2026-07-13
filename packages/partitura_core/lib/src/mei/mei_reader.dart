@@ -9,6 +9,8 @@
 /// Dart (web-safe).
 library;
 
+import '../layout/multi_part.dart';
+import '../layout/staff_system.dart';
 import '../model/element.dart';
 import '../model/measure.dart';
 import '../model/score.dart';
@@ -54,6 +56,96 @@ Score scoreFromMei(String mei) {
   return _MeiReader(score, _headMetadata(root)).read();
 }
 
+/// Parses a multi-staff MEI document into a [StaffSystem] — every `<staffDef>`
+/// in the `<scoreDef>` (descending through nested `<staffGrp>`s) becomes one
+/// aligned staff, read from the matching `<staff n="…">` of each `<measure>`.
+/// A `<staffGrp>` with a `@symbol` (`brace`/`bracket`/`line`) becomes the
+/// corresponding [StaffBracket]. A single-staff document yields a one-staff
+/// system. Element ids are given disjoint spaces per staff.
+///
+/// Throws [FormatException] on documents this subset cannot represent.
+StaffSystem staffSystemFromMei(String mei) {
+  final root = parseXml(mei);
+  if (root.name != 'mei') {
+    throw FormatException('Expected <mei>, got <${root.name}>');
+  }
+  final score =
+      root.child('music')?.child('body')?.child('mdiv')?.child('score');
+  if (score == null) throw const FormatException('No <score> in MEI document');
+  final meta = _headMetadata(root);
+  final scoreDef = score.child('scoreDef');
+  final staffDefs = scoreDef == null ? const <XmlNode>[] : _staffDefs(scoreDef);
+  final count = staffDefs.isEmpty ? 1 : staffDefs.length;
+  final staves = <Score>[
+    for (var i = 0; i < count; i++)
+      _MeiReader(
+        score,
+        meta,
+        staffN: staffDefs.isEmpty
+            ? 1
+            : int.tryParse(staffDefs[i].attributes['n'] ?? '') ?? (i + 1),
+        idOffset: i * 1000,
+      ).read(),
+  ];
+  return StaffSystem(staves, brackets: _staffGrpBrackets(scoreDef, staffDefs));
+}
+
+/// Imports multi-staff MEI straight into a paginating [MultiPartScore] — its
+/// staves line-break together into aligned systems and paginate (feed it to
+/// `layoutMultiPartPages` / `MultiPartView`).
+MultiPartScore multiPartScoreFromMei(String mei) =>
+    MultiPartScore.fromStaffSystem(staffSystemFromMei(mei));
+
+/// Every `<staffDef>` under [scoreDef], in document order, descending through
+/// nested `<staffGrp>`s.
+List<XmlNode> _staffDefs(XmlNode scoreDef) {
+  final out = <XmlNode>[];
+  void walk(XmlNode node) {
+    for (final child in node.children) {
+      if (child.name == 'staffDef') {
+        out.add(child);
+      } else if (child.name == 'staffGrp') {
+        walk(child);
+      }
+    }
+  }
+
+  walk(scoreDef);
+  return out;
+}
+
+/// Brackets from each `<staffGrp @symbol>`: a group is drawn over the staff-
+/// index range (positions in [staffDefs]) of the staffDefs it contains. `brace`
+/// maps to a brace; `bracket`/`line`/other visible symbols to a square bracket;
+/// `none` (or an absent symbol) draws nothing.
+List<StaffBracket> _staffGrpBrackets(
+    XmlNode? scoreDef, List<XmlNode> staffDefs) {
+  if (scoreDef == null) return const [];
+  final result = <StaffBracket>[];
+  void walk(XmlNode node) {
+    for (final child in node.children) {
+      if (child.name == 'staffGrp') {
+        final symbol = child.attributes['symbol'];
+        final inner = _staffDefs(child);
+        if (inner.isNotEmpty && symbol != null && symbol != 'none') {
+          final first = staffDefs.indexOf(inner.first);
+          final last = staffDefs.indexOf(inner.last);
+          if (first >= 0 && last >= first) {
+            result.add(StaffBracket(first, last,
+                kind: symbol == 'brace'
+                    ? StaffBracketKind.brace
+                    : StaffBracketKind.bracket));
+          }
+        }
+        walk(child);
+      }
+    }
+  }
+
+  walk(scoreDef);
+  return result;
+}
+
 /// The default title the writer emits when none is set; nulled on read so
 /// empty metadata round-trips.
 const _defaultTitle = 'Music';
@@ -83,9 +175,15 @@ ScoreMetadata _headMetadata(XmlNode root) {
 class _MeiReader {
   final XmlNode score;
   final ScoreMetadata headMeta;
-  _MeiReader(this.score, this.headMeta);
 
-  int _nextId = 0;
+  /// Which staff of a multi-staff document to read (1-based) — the `@n` on the
+  /// `<staffDef>` and the `<staff>` elements. A single-staff document uses 1.
+  final int staffN;
+
+  _MeiReader(this.score, this.headMeta, {this.staffN = 1, int idOffset = 0})
+      : _nextId = idOffset;
+
+  int _nextId;
   Clef _clef = Clef.treble;
   KeySignature _key = const KeySignature(0);
   TimeSignature? _time;
@@ -94,8 +192,16 @@ class _MeiReader {
 
   Score read() {
     final scoreDef = score.child('scoreDef');
-    final staffDef = scoreDef?.child('staffGrp')?.child('staffDef') ??
-        scoreDef?.child('staffDef');
+    // The staffDef for this staff: match `@n`, falling back to the Nth in
+    // document order (and to the sole staffDef for a single-staff document).
+    final staffDefs =
+        scoreDef == null ? const <XmlNode>[] : _staffDefs(scoreDef);
+    final XmlNode? staffDef = staffDefs.isEmpty
+        ? null
+        : staffDefs.firstWhere((d) => d.attributes['n'] == '$staffN',
+            orElse: () => staffN <= staffDefs.length
+                ? staffDefs[staffN - 1]
+                : staffDefs.first);
     if (staffDef != null) {
       _clef = _clefFrom(staffDef, 'clef.shape', 'clef.line', 'clef.dis',
               'clef.dis.place') ??
@@ -188,7 +294,14 @@ class _MeiReader {
         }
       }
     }
-    final staff = measureNode.child('staff');
+    // The `<staff>` for this reader's staff: match `@n`, else the Nth in order,
+    // else the first (a single-staff measure).
+    final staves = measureNode.childrenNamed('staff').toList();
+    final staff = staves.isEmpty
+        ? null
+        : staves.firstWhere((s) => s.attributes['n'] == '$staffN',
+            orElse: () =>
+                staffN <= staves.length ? staves[staffN - 1] : staves.first);
     final layers = staff?.childrenNamed('layer').toList() ?? const <XmlNode>[];
 
     Clef? clefChange;
