@@ -1775,6 +1775,40 @@ void main() {
     );
   });
 
+  testWidgets('93 cross-measure beam', (tester) async {
+    // An eighth ends bar 1 and an eighth opens bar 2, beamed together across
+    // the barline via CrossMeasureBeam (instead of each note flagging).
+    NoteElement n(String step, int oct, DurationBase base, String id,
+            {int dots = 0}) =>
+        NoteElement(
+          pitches: [Pitch(Step.values.byName(step), octave: oct)],
+          duration: NoteDuration(base, dots: dots),
+          id: id,
+        );
+    await golden(
+      tester,
+      '93_cross_measure_beam',
+      Score(
+        clef: Clef.treble,
+        timeSignature: TimeSignature.fourFour,
+        measures: [
+          Measure([
+            n('g', 4, DurationBase.half, 'a'),
+            n('a', 4, DurationBase.quarter, 'b', dots: 1),
+            n('b', 4, DurationBase.eighth, 'x'),
+          ]),
+          Measure([
+            n('c', 5, DurationBase.eighth, 'y'),
+            n('b', 4, DurationBase.quarter, 'c', dots: 1),
+            n('a', 4, DurationBase.half, 'd'),
+          ]),
+        ],
+        crossMeasureBeams: const [CrossMeasureBeam('x', 'y')],
+      ),
+      staffSpace: 12,
+    );
+  });
+
   testWidgets('63 guitar tab: artificial + pinch harmonics', (tester) async {
     // Natural (⟨12⟩), artificial ("A.H.") and pinch ("P.H.") harmonics — all
     // show the bracketed fret; the two synthetic ones add a label above.
