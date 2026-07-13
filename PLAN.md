@@ -30,6 +30,12 @@ ships* at the end for the mechanics.
 > non-standard meters/keys, cross-staff beams — are done; microtones landed via
 > the parallel agent.)*
 
+> **Actively working on (tuplets interchange):** round-trip `TupletSpan` through
+> the codecs that don't carry it yet — LilyPond (`\tuplet a/n { … }`, export),
+> MEI (`<tuplet num numbase>`) and MuseScore (`<Tuplet>`). Codec files only
+> (`lilypond/`, `mei/`, `musescore/`) — no views/model. Worktree
+> `partitura-tup2`, branch `feat/tuplets-codecs`.
+
 ### Workshop editor contracts (C1–C6)
 
 External consumer (KlangUniversum "Composition Workshop",
