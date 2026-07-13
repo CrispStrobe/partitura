@@ -2,6 +2,11 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Palm-mute / let-ring / vibrato on the notation staff** (Phase 5.6): the
+  existing `PalmMute` and `LetRing` spans now draw a "P.M."/"let ring" label
+  followed by a dashed bracket (with a downward end hook) above the notation
+  staff, and `Vibrato` draws a wavy line above the note — previously these
+  rendered on the tab staff only. Golden 103.
 - **Tick / short / reverse-final barlines** (Phase 5.6): three new
   `BarlineStyle`s — `tick` (a short stroke crossing only the top staff line),
   `short` (spanning the middle staff lines), and `reverseFinal` (thick+thin, the

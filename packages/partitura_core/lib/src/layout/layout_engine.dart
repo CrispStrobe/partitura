@@ -379,6 +379,8 @@ class _LayoutBuilder {
     _layoutNavigation();
     _layoutAnnotations();
     _layoutJazzArticulations();
+    _layoutPalmMuteLetRing();
+    _layoutNotationVibrato();
     _layoutBreathMarks();
     _layoutChordDiagrams();
     _layoutBeatNumbers();
@@ -1973,6 +1975,95 @@ class _LayoutBuilder {
         0.12,
       );
       _ink.expand(left, y - 0.8, right, y + 0.8);
+    }
+  }
+
+  /// Palm-mute ("P.M.") and let-ring ("let ring") spans on the notation staff:
+  /// a label followed by a dashed line above the staff, clearing the ink under
+  /// the span, with a downward hook at the end. (These also render on tab.)
+  void _layoutPalmMuteLetRing() {
+    if (score.palmMutes.isEmpty && score.letRings.isEmpty) return;
+    final infoOf = <String, _TieInfo>{
+      for (final info in _tieInfos)
+        if (info.id != null) info.id!: info,
+    };
+    for (final pm in score.palmMutes) {
+      _textBracketAbove('P.M.', pm.startId, pm.endId, infoOf);
+    }
+    for (final lr in score.letRings) {
+      _textBracketAbove('let ring', lr.startId, lr.endId, infoOf);
+    }
+  }
+
+  /// Draws a [label] + dashed bracket above the staff spanning the notes
+  /// [startId]…[endId], sitting above any ink under the span.
+  void _textBracketAbove(
+      String label, String startId, String endId, Map<String, _TieInfo> of) {
+    final start = of[startId];
+    final end = of[endId];
+    if (start == null || end == null) {
+      throw ArgumentError(
+          'palm-mute/let-ring references an unknown note element id');
+    }
+    final left = start.left;
+    final right = end.right;
+    const size = 1.1;
+    final top = _skylineTop(left, right) ?? 0.0;
+    final y = min(-1.4, top - 0.8);
+    final labelHalf = _estTextHalfWidth(label, size);
+    _primitives.add(TextPrimitive(
+      label,
+      Point(left + labelHalf, y + 0.35),
+      size: size,
+    ));
+    // Dashed line from just after the label to the span end.
+    final lineStart = left + 2 * labelHalf + 0.3;
+    var x = lineStart;
+    while (x < right - 0.2) {
+      _addLine(Point(x, y), Point(min(x + 0.5, right), y), 0.12);
+      x += 0.78;
+    }
+    // Downward end hook (only when the span reaches past the label).
+    if (right > lineStart + 0.2) {
+      _addLine(Point(right, y), Point(right, y + 0.6), 0.12);
+    }
+    _ink.expand(left, y - 0.4, right, y + 0.6);
+  }
+
+  /// A vibrato on the notation staff: a horizontal wavy line above the note,
+  /// clearing the ink above it. (Vibrato also renders on tab.)
+  void _layoutNotationVibrato() {
+    if (score.vibratos.isEmpty) return;
+    final infoOf = <String, _TieInfo>{
+      for (final info in _tieInfos)
+        if (info.id != null) info.id!: info,
+    };
+    for (final vib in score.vibratos) {
+      final info = infoOf[vib.noteId];
+      if (info == null || info.note == null) {
+        throw ArgumentError('$vib references an unknown note element id');
+      }
+      final centerX = (info.left + info.right) / 2;
+      final amp = vib.wide ? 0.42 : 0.26;
+      const half = 0.5; // width of each half-wave
+      const count = 4;
+      final top = _skylineTop(info.left - 0.4, info.left + count * half) ?? 0.0;
+      final baseY = min(-1.2, top - 0.5);
+      var px = centerX - count * half / 2;
+      for (var k = 0; k < count; k++) {
+        final dir = k.isEven ? -1.0 : 1.0;
+        final peakY = baseY + dir * amp;
+        _primitives.add(CurvePrimitive(
+          Point(px, baseY),
+          Point(px + half * 0.4, peakY),
+          Point(px + half * 0.6, peakY),
+          Point(px + half, baseY),
+          thickness: vib.wide ? 0.16 : 0.13,
+        ));
+        px += half;
+      }
+      _ink.expand(centerX - count * half / 2, baseY - amp - 0.2,
+          centerX + count * half / 2, baseY + amp + 0.2);
     }
   }
 

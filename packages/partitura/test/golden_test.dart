@@ -1998,6 +1998,28 @@ void main() {
     );
   });
 
+  testWidgets('103 palm mute, let ring & vibrato on the notation staff',
+      (tester) async {
+    final base = Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'g5:q g5 g5 g5 | c6:h b5:h',
+    );
+    await golden(
+      tester,
+      '103_notation_pm_letring_vibrato',
+      theme: const PartituraTheme(textFontFamily: 'Roboto'),
+      Score(
+        clef: base.clef,
+        timeSignature: base.timeSignature,
+        measures: base.measures,
+        palmMutes: const [PalmMute('e0', 'e3')],
+        letRings: const [LetRing('e4', 'e5')],
+        vibratos: const [Vibrato('e5', wide: true)],
+      ),
+      staffSpace: 12,
+    );
+  });
+
   testWidgets('64 beams over rests', (tester) async {
     // Rests inside a beat do not break the beam (it spans the gap); a rest at
     // a beat boundary still separates. Beat 1: 16th, 16th-rest, two 16ths.

@@ -560,8 +560,11 @@ No peer renderer does any of this; all build on the existing pitch / interval
       crosses only the top line, `.short` spans the middle staff lines,
       `.reverseFinal` is thick+thin; MusicXML `<bar-style>`
       `tick`/`short`/`heavy-light` round-trip; golden 102).
-      **Left:** custom-span barlines across staves; palm-mute /
-      let-ring / vibrato lines (exist in tab; add to notation); trill extension
+      **Palm-mute / let-ring / vibrato on the notation staff** — the existing
+      `PalmMute`/`LetRing` spans draw a "P.M."/"let ring" label + dashed bracket
+      above the staff, and `Vibrato` a wavy line, on the notation engine too (not
+      just tab); golden 103.
+      **Left:** custom-span barlines across staves; trill extension
       line + baroque variants; portamento; system dividers.
 - [~] **5.7 Time-signature breadth** — **Done:** common/cut symbols
       (`TimeSymbol`, `TimeSignature.commonTime`/`cutTime` → the C / ¢ glyphs;

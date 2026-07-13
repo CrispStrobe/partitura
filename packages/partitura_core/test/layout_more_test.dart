@@ -568,6 +568,39 @@ void main() {
     });
   });
 
+  group('palm mute / let ring / vibrato on the notation staff', () {
+    test('palm mute and let ring draw labelled brackets above the staff', () {
+      final base = Score.simple(notes: 'c5:q d5 e5 f5');
+      final layout = layoutOf(Score(
+        clef: base.clef,
+        measures: base.measures,
+        palmMutes: const [PalmMute('e0', 'e1')],
+        letRings: const [LetRing('e2', 'e3')],
+      ));
+      final labels = layout.primitives
+          .whereType<TextPrimitive>()
+          .where((t) => t.position.y < 0)
+          .map((t) => t.text)
+          .toList();
+      expect(labels, containsAll(<String>['P.M.', 'let ring']));
+    });
+
+    test('vibrato draws a wavy line above the note', () {
+      final base = Score.simple(notes: 'c5:q');
+      final layout = layoutOf(Score(
+        clef: base.clef,
+        measures: base.measures,
+        vibratos: const [Vibrato('e0')],
+      ));
+      // No ties/slurs here, so the only curves are the vibrato's half-waves.
+      final waves = layout.primitives
+          .whereType<CurvePrimitive>()
+          .where((c) => c.start.y < 0)
+          .toList();
+      expect(waves.length, greaterThanOrEqualTo(4));
+    });
+  });
+
   group('lyric elision', () {
     test('two syllables elided on one note draw an undertie', () {
       final base = Score.simple(notes: 'c4:q');

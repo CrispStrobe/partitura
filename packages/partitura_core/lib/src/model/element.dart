@@ -300,10 +300,9 @@ class Bend {
   String toString() => 'Bend($noteId, ${steps}st)';
 }
 
-/// A vibrato on a tab note, referenced by its id: a horizontal wavy line
-/// drawn above the fret. [wide] selects a larger-amplitude (whammy-bar/
-/// exaggerated) wave. Rendered by the tab engine only; ignored by
-/// standard-notation rendering.
+/// A vibrato on a note, referenced by its id: a horizontal wavy line drawn
+/// above the note (on both the notation and tab staves). [wide] selects a
+/// larger-amplitude (whammy-bar/exaggerated) wave.
 class Vibrato {
   /// Id of the vibrato'd note.
   final String noteId;
@@ -325,10 +324,10 @@ class Vibrato {
   String toString() => 'Vibrato($noteId${wide ? ', wide' : ''})';
 }
 
-/// A palm-mute span over a run of tab notes, referenced by the first and
-/// last note's ids (a single note if [startId] == [endId]): a "P.M." label
-/// followed by a dashed bracket line above the staff. Rendered by the tab
-/// engine only; ignored by standard-notation rendering.
+/// A palm-mute span over a run of notes, referenced by the first and last
+/// note's ids (a single note if [startId] == [endId]): a "P.M." label
+/// followed by a dashed bracket line above the staff (drawn on both the
+/// notation and tab staves).
 class PalmMute {
   /// Id of the first muted note.
   final String startId;
@@ -350,10 +349,10 @@ class PalmMute {
   String toString() => 'PalmMute($startId -> $endId)';
 }
 
-/// A let-ring span over a run of tab notes, referenced by the first and last
+/// A let-ring span over a run of notes, referenced by the first and last
 /// note's ids (a single note if [startId] == [endId]): a "let ring" label
-/// followed by a dashed bracket line above the staff. Rendered by the tab
-/// engine only; ignored by standard-notation rendering.
+/// followed by a dashed bracket line above the staff (drawn on both the
+/// notation and tab staves).
 class LetRing {
   /// Id of the first note that rings.
   final String startId;
