@@ -32,6 +32,10 @@ class StaffSystemView extends LeafRenderObjectWidget {
   /// system (cross-staff onset gridding). Single-voice staves only.
   final bool gridAlign;
 
+  /// Whether to drop staves that hold only rests in this system (keeping at
+  /// least one), the standard "hide empty staves" engraving option.
+  final bool hideEmptyStaves;
+
   /// Ids painted in [PartituraTheme.highlightColor].
   final Set<String> highlightedIds;
 
@@ -46,6 +50,7 @@ class StaffSystemView extends LeafRenderObjectWidget {
     this.staffSpace,
     this.staffGap = 4.0,
     this.gridAlign = true,
+    this.hideEmptyStaves = false,
     this.highlightedIds = const {},
     this.onElementTap,
   });
@@ -58,6 +63,7 @@ class StaffSystemView extends LeafRenderObjectWidget {
         staffSpace: staffSpace,
         staffGap: staffGap,
         gridAlign: gridAlign,
+        hideEmptyStaves: hideEmptyStaves,
         highlightedIds: highlightedIds,
       )..onElementTap = onElementTap;
 
@@ -70,6 +76,7 @@ class StaffSystemView extends LeafRenderObjectWidget {
       ..staffSpace = staffSpace
       ..staffGap = staffGap
       ..gridAlign = gridAlign
+      ..hideEmptyStaves = hideEmptyStaves
       ..highlightedIds = highlightedIds
       ..onElementTap = onElementTap;
   }
@@ -84,12 +91,14 @@ class RenderStaffSystemView extends RenderBox {
     double? staffSpace,
     required double staffGap,
     required bool gridAlign,
+    required bool hideEmptyStaves,
     required Set<String> highlightedIds,
   })  : _system = system,
         _theme = theme,
         _staffSpace = staffSpace,
         _staffGap = staffGap,
         _gridAlign = gridAlign,
+        _hideEmptyStaves = hideEmptyStaves,
         _highlightedIds = highlightedIds {
     _tap = TapGestureRecognizer(debugOwner: this)..onTapUp = _handleTapUp;
   }
@@ -165,6 +174,16 @@ class RenderStaffSystemView extends RenderBox {
     markNeedsLayout();
   }
 
+  bool _hideEmptyStaves;
+
+  /// Whether staves holding only rests are dropped from this system.
+  bool get hideEmptyStaves => _hideEmptyStaves;
+  set hideEmptyStaves(bool value) {
+    if (value == _hideEmptyStaves) return;
+    _hideEmptyStaves = value;
+    markNeedsLayout();
+  }
+
   Set<String> _highlightedIds;
 
   /// Ids painted in the highlight color.
@@ -197,7 +216,9 @@ class RenderStaffSystemView extends RenderBox {
     if (metadata == null) return constraints.smallest;
     final layout = layoutStaffSystem(
         _system, LayoutSettings(metadata: metadata),
-        staffGap: _staffGap, gridAlign: _gridAlign);
+        staffGap: _staffGap,
+        gridAlign: _gridAlign,
+        hideEmptyStaves: _hideEmptyStaves);
     _layout = layout;
     final widthSpaces = layout.width + leftInset;
     _scale = _staffSpace ??
@@ -261,7 +282,7 @@ class RenderStaffSystemView extends RenderBox {
     }
 
     // Connect full-staff barlines from the top staff down through the bottom.
-    if (_system.connectBarlines) {
+    if (layout.source.connectBarlines) {
       final barPaint = Paint()..color = _theme.staffColor;
       final topY = origins.first.dy; // top staff's own y=0 (top line)
       final bottomY = origins.last.dy + 4 * _scale; // bottom staff's y=4
@@ -286,7 +307,7 @@ class RenderStaffSystemView extends RenderBox {
 
   /// How many other brackets strictly contain [b] — its nesting depth. Deeper
   /// (more-contained) groups sit nearer the staff; outer groups shift left.
-  int _depthOf(StaffBracket b) => _system.brackets
+  int _depthOf(StaffBracket b, List<StaffBracket> all) => all
       .where((a) =>
           !identical(a, b) &&
           a.first <= b.first &&
@@ -296,13 +317,15 @@ class RenderStaffSystemView extends RenderBox {
 
   void _paintBrackets(Canvas canvas, List<Offset> origins) {
     final layout = _layout!;
-    if (_system.brackets.isEmpty) return;
+    // Brackets follow the laid-out system (remapped when staves are hidden).
+    final brackets = layout.source.brackets;
+    if (brackets.isEmpty) return;
     // Innermost sits at the base position; each enclosing level steps left.
     const step = 0.6; // staff spaces per nesting level
     final maxDepth =
-        _system.brackets.map(_depthOf).fold(0, (m, d) => d > m ? d : m);
-    for (final group in _system.brackets) {
-      final shift = (maxDepth - _depthOf(group)) * step * _scale;
+        brackets.map((b) => _depthOf(b, brackets)).fold(0, (m, d) => d > m ? d : m);
+    for (final group in brackets) {
+      final shift = (maxDepth - _depthOf(group, brackets)) * step * _scale;
       final top = origins[group.first].dy; // top line of the first staff
       final bottom = origins[group.last].dy + 4 * _scale;
       final x = origins.first.dx;

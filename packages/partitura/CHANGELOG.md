@@ -15,6 +15,9 @@
   straight to the cursor — *set-visualizer*) and part-visibility state —
   `togglePart` / `hidePart` / `showPart` / `showAllParts` / `isPartVisible` /
   `hiddenParts` (*toggle-part*; the app renders the visible subset).
+- **`StaffSystemView.hideEmptyStaves`** (Phase 2.3): drops staves that rest
+  through the whole system (keeping ≥1), with brackets and barline connectors
+  following the reduced system. Golden 121.
 
 - **Instrument visualizers** (Phase 3.1): two cursor-synced widgets that light
   up the sounding MIDI pitches (`highlightedPitches`), with optional per-pitch

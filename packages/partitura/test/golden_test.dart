@@ -2614,4 +2614,40 @@ void main() {
       matchesGoldenFile('goldens/120_fretboard.png'),
     );
   });
+
+  testWidgets('121 hide empty staves (Phase 2.3)', (tester) async {
+    // A 3-staff system whose middle staff rests the whole system.
+    final system = StaffSystem([
+      Score.simple(clef: Clef.treble, notes: 'c5:q d5 e5 f5 | g5:h a5:h'),
+      Score.simple(clef: Clef.treble, notes: 'r:w | r:w'),
+      Score.simple(clef: Clef.bass, notes: 'c3:q b2 a2 g2 | g2:h c3:h'),
+    ], brackets: const [
+      StaffBracket(0, 2)
+    ]);
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Colors.white,
+          body: Center(
+            child: RepaintBoundary(
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(12),
+                child: StaffSystemView(
+                  system: system,
+                  staffSpace: 12,
+                  hideEmptyStaves: true,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await expectLater(
+      find.byType(RepaintBoundary).last,
+      matchesGoldenFile('goldens/121_hide_empty_staves.png'),
+    );
+  });
 }

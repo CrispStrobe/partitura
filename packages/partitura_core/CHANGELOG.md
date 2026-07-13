@@ -2,6 +2,13 @@
 
 ## 0.4.1-dev.1 (in progress)
 
+- **Hide empty staves** (Phase 2.3): `layoutStaffSystem(..., hideEmptyStaves:)`
+  drops staves that contain only rests across the whole system (keeping at least
+  one) and remaps the bracket groups to the surviving staves — a bracket that
+  spanned only-hidden staves is removed. The reduced system is carried in
+  `StaffSystemLayout.source`, so bracket/barline rendering follows it. Backed by
+  `staff_system_test.dart`.
+
 - **Extended-chord & augmented-sixth identification** (Phase 4.4):
   `identifyChord` / `chordSymbolFor` now recognize extended chords via
   standard-voicing templates — `add9`, `m(add9)`, `6/9`, `9`, `maj9`, `m9`,

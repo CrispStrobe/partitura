@@ -113,4 +113,64 @@ void main() {
         brackets: const [StaffBracket(0, 0, kind: StaffBracketKind.brace)]);
     expect(a, b);
   });
+
+  group('hideEmptyStaves', () {
+    // A three-staff system whose middle staff rests through the whole system.
+    StaffSystem withEmptyMiddle() => StaffSystem([
+          Score.simple(clef: Clef.treble, notes: 'c5:q d5 e5 f5 | g5:h a5:h'),
+          Score.simple(clef: Clef.treble, notes: 'r:w | r:w'),
+          Score.simple(clef: Clef.bass, notes: 'c3:q b2 a2 g2 | g2:h c3:h'),
+        ], brackets: const [
+          StaffBracket(0, 2)
+        ]);
+
+    test('off by default — every staff is laid out', () {
+      expect(layoutStaffSystem(withEmptyMiddle(), settings).staves,
+          hasLength(3));
+    });
+
+    test('drops the all-rest staff and remaps the bracket', () {
+      final layout =
+          layoutStaffSystem(withEmptyMiddle(), settings, hideEmptyStaves: true);
+      expect(layout.staves, hasLength(2));
+      // The bracket spanning 0..2 now spans the two surviving staves, 0..1.
+      expect(layout.source.staves, hasLength(2));
+      expect(layout.source.brackets.single.first, 0);
+      expect(layout.source.brackets.single.last, 1);
+    });
+
+    test('barlines still align across the surviving staves', () {
+      final layout =
+          layoutStaffSystem(withEmptyMiddle(), settings, hideEmptyStaves: true);
+      final a = layout.staves[0].measureRegions;
+      final b = layout.staves[1].measureRegions;
+      for (var i = 0; i < a.length; i++) {
+        expect(b[i].endX, closeTo(a[i].endX, 1e-6));
+      }
+    });
+
+    test('keeps at least one staff when every staff is empty', () {
+      final allRests = StaffSystem([
+        Score.simple(notes: 'r:w'),
+        Score.simple(notes: 'r:w'),
+      ]);
+      expect(
+          layoutStaffSystem(allRests, settings, hideEmptyStaves: true).staves,
+          hasLength(1));
+    });
+
+    test('a bracket over only-hidden staves is dropped', () {
+      final system = StaffSystem([
+        Score.simple(notes: 'c5:w'),
+        Score.simple(notes: 'r:w'),
+        Score.simple(notes: 'r:w'),
+      ], brackets: const [
+        StaffBracket(1, 2) // both hidden
+      ]);
+      final layout =
+          layoutStaffSystem(system, settings, hideEmptyStaves: true);
+      expect(layout.staves, hasLength(1));
+      expect(layout.source.brackets, isEmpty);
+    });
+  });
 }

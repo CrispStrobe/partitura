@@ -23,12 +23,6 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-13)
 
-> 🚧 **Actively working on (Phase 2.3 — hide empty staves):** a
-> `hideEmptyStaves` option on `layoutStaffSystem` / `StaffSystemView` that omits
-> staves whose measures are entirely rests in this system (keeping ≥1),
-> remapping the brackets to the visible subset. Self-contained; core + view +
-> golden. Worktree `partitura-tab`, branch `feat/hide-empty-staves`.
-
 > **HANDOFF — `partitura-public-lacunae` has no active claim; safe to pick up.**
 > Just landed from this worktree: **Phase 3.1** instrument visualizers
 > (`PianoKeyboardView` golden 119 + `FretboardView` golden 120), **3.7**
@@ -446,9 +440,17 @@ Raises the quality of everything already rendered. Slice order:
       Golden 93; `cross_staff_test.dart`. **Left:** slanted / multi-bar (16th)
       cross-staff beams, cross-staff chords/stems (a single stem's noteheads on
       both staves), and a MusicXML `<staff>` round-trip.
-- [ ] **2.3 Hide-empty / ossia / divisi / cutaway staves** — dynamic staff
+- [~] **2.3 Hide-empty / ossia / divisi / cutaway staves** — dynamic staff
       count: drop empty staves per system, add temporary alternative (ossia)
-      staves, split a part into subsections, remove empty bars.
+      staves, split a part into subsections, remove empty bars. **Done:**
+      **hide empty staves** — `layoutStaffSystem(..., hideEmptyStaves:)` /
+      `StaffSystemView.hideEmptyStaves` drop staves that are all rests in the
+      system (keeping ≥1), remapping the brackets to the survivors (a bracket
+      over only-hidden staves is dropped); the layout carries the reduced system
+      in `StaffSystemLayout.source` so the view's brackets/barline-connectors
+      follow it (golden 121). **Left:** ossia staves, divisi split, empty-bar
+      removal, and per-system hiding once the multi-system wrap chooses staves
+      per system.
 - [~] **2.4 Pickup / anacrusis + actual-vs-nominal measure duration +
       irregular measures** — foundational; a large fraction of real pieces
       need a partial first bar or a metric length differing from the notated

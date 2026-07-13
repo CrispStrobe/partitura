@@ -3,6 +3,7 @@
 /// two-staff [GrandStaff].
 library;
 
+import '../model/element.dart';
 import '../model/score.dart';
 import 'grand_staff.dart' show alignedColumns;
 import 'layout_engine.dart';
@@ -146,13 +147,22 @@ class StaffSystemLayout {
 /// and per-measure widths, then all staves are laid out again with the
 /// column-wise maxima so barlines align across the system.
 ///
+/// With [hideEmptyStaves], staves whose measures hold only rests in this system
+/// are dropped (the common "hide empty staves" engraving option); at least one
+/// staff is always kept, and the [StaffSystemLayout.source]'s brackets are
+/// remapped to the surviving staves.
+///
 /// Throws [ArgumentError] if the staves disagree on measure count.
 StaffSystemLayout layoutStaffSystem(
   StaffSystem system,
   LayoutSettings settings, {
   double staffGap = 4.0,
   bool gridAlign = true,
+  bool hideEmptyStaves = false,
 }) {
+  if (hideEmptyStaves) {
+    system = _withEmptyStavesHidden(system);
+  }
   const engine = LayoutEngine();
   final natural = [for (final s in system.staves) engine.layout(s, settings)];
 
@@ -196,6 +206,38 @@ StaffSystemLayout layoutStaffSystem(
     source: system,
   );
 }
+
+/// [system] reduced to the staves that carry at least one note, with brackets
+/// remapped to the surviving staves. Keeps the first staff if every staff is
+/// empty (a system can never be empty).
+StaffSystem _withEmptyStavesHidden(StaffSystem system) {
+  final visible = <int>[
+    for (var i = 0; i < system.staves.length; i++)
+      if (_staffHasNotes(system.staves[i])) i,
+  ];
+  if (visible.isEmpty) visible.add(0);
+  if (visible.length == system.staves.length) return system; // nothing hidden
+
+  final brackets = <StaffBracket>[];
+  for (final b in system.brackets) {
+    final positions = <int>[
+      for (var p = 0; p < visible.length; p++)
+        if (visible[p] >= b.first && visible[p] <= b.last) p,
+    ];
+    if (positions.isNotEmpty) {
+      brackets.add(
+          StaffBracket(positions.first, positions.last, kind: b.kind));
+    }
+  }
+  return StaffSystem(
+    [for (final i in visible) system.staves[i]],
+    brackets: brackets,
+    connectBarlines: system.connectBarlines,
+  );
+}
+
+bool _staffHasNotes(Score staff) =>
+    staff.measures.any((m) => m.elements.any((e) => e is NoteElement));
 
 double _max(double a, double b) => a > b ? a : b;
 
