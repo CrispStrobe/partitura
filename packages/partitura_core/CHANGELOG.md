@@ -2,6 +2,12 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Twelve-tone rows** (Phase 4.8): a `ToneRow` (an ordered permutation of the
+  twelve pitch classes, from integers or `Pitch`es) with the four serial row
+  forms — prime/transposition, inversion (about a chosen axis, defaulting to
+  the note-preserving I), retrograde and retrograde-inversion — and the 12×12
+  row matrix (rows = prime forms, columns = inversions, main diagonal all
+  zeros). Builds on 4.5's pitch-class math.
 - **Post-tonal set theory** (Phase 4.5): a `PitchClassSet` (built from integers
   or `Pitch`es, mod 12) with the standard atonal-analysis operations — normal
   order, prime form, the interval-class vector, the T_n / T_nI transforms,
