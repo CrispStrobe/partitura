@@ -2,6 +2,11 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Tick / short / reverse-final barlines** (Phase 5.6): three new
+  `BarlineStyle`s — `tick` (a short stroke crossing only the top staff line),
+  `short` (spanning the middle staff lines), and `reverseFinal` (thick+thin, the
+  mirror of a final barline). Round-trip through MusicXML `<bar-style>`
+  (`tick`/`short`/`heavy-light`). Golden 102.
 - **Lyric elision (synalepha)** (Phase 5.4): `Lyric.elidesToNext` marks two
   syllables sung on one note; the layout draws an undertie (‿) bridging them and
   MusicXML round-trips them as one `<lyric>` with `<elision>`-separated `<text>`

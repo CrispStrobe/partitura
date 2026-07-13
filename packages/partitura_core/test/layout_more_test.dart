@@ -535,6 +535,39 @@ void main() {
     });
   });
 
+  group('barline styles', () {
+    List<LinePrimitive> verticals(String style) {
+      final layout = layoutOf(Score.simple(notes: 'c4:w !barline=$style'));
+      return layout.primitives
+          .whereType<LinePrimitive>()
+          .where((l) => (l.from.x - l.to.x).abs() < 1e-9)
+          .toList();
+    }
+
+    test('tick crosses only the top line (extends above the staff)', () {
+      final lines = verticals('tick');
+      expect(lines, hasLength(1));
+      expect(lines.single.from.y, lessThan(0));
+      expect(lines.single.to.y, lessThan(1));
+    });
+
+    test('short spans only the middle staff lines', () {
+      final lines = verticals('short');
+      expect(lines, hasLength(1));
+      expect(lines.single.from.y, closeTo(1, 1e-9));
+      expect(lines.single.to.y, closeTo(3, 1e-9));
+    });
+
+    test('reverse-final draws a thick line then a thin one', () {
+      final lines = verticals('reverseFinal')
+        ..sort((a, b) => a.from.x.compareTo(b.from.x));
+      expect(lines, hasLength(2));
+      // Thick comes first (left), thin second — the mirror of a final barline.
+      expect(lines.first.thickness, settings.thickBarlineThickness);
+      expect(lines.last.thickness, settings.thinBarlineThickness);
+    });
+  });
+
   group('lyric elision', () {
     test('two syllables elided on one note draw an undertie', () {
       final base = Score.simple(notes: 'c4:q');

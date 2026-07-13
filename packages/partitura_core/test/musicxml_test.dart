@@ -509,6 +509,26 @@ void main() {
           score.measures.map((m) => m.barline));
     });
 
+    test('tick/short/reverse-final barlines round-trip through MusicXML', () {
+      final score = Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'c4:w !barline=tick | d4:w !barline=short |'
+            ' e4:w !barline=reverseFinal',
+      );
+      expect(score.measures.map((m) => m.barline), [
+        BarlineStyle.tick,
+        BarlineStyle.short,
+        BarlineStyle.reverseFinal,
+      ]);
+      final xml = scoreToMusicXml(score);
+      expect(xml, contains('<bar-style>tick</bar-style>'));
+      expect(xml, contains('<bar-style>short</bar-style>'));
+      expect(xml, contains('<bar-style>heavy-light</bar-style>'));
+      final back = scoreFromMusicXml(xml);
+      expect(back.measures.map((m) => m.barline),
+          score.measures.map((m) => m.barline));
+    });
+
     test('grand staff from a two-staff part', () {
       final grand = grandStaffFromMusicXml(doc('''
 <measure number="1">

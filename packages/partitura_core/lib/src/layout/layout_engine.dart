@@ -2694,6 +2694,24 @@ class _LayoutBuilder {
         _addSegmentedBarline(dash: 0.5, gap: 0.4, round: false);
       case BarlineStyle.dotted:
         _addSegmentedBarline(dash: 0.02, gap: 0.32, round: true);
+      case BarlineStyle.tick:
+        // A short stroke crossing only the top staff line.
+        _addLine(Point(_x, -0.75), Point(_x, 0.75), s.thinBarlineThickness);
+        _x += s.thinBarlineThickness + s.barlineGap;
+      case BarlineStyle.short:
+        // A short stroke spanning the middle staff lines (2nd from top/bottom).
+        _addLine(Point(_x, 1), Point(_x, 3), s.thinBarlineThickness);
+        _x += s.thinBarlineThickness + s.barlineGap;
+      case BarlineStyle.reverseFinal:
+        // Thick + thin — the mirror of a final barline.
+        final xt = _x + s.thickBarlineThickness / 2;
+        _addLine(Point(xt, 0), Point(xt, 4), s.thickBarlineThickness);
+        final xthin = xt +
+            s.thickBarlineThickness / 2 +
+            s.barlineSeparation +
+            s.thinBarlineThickness / 2;
+        _addLine(Point(xthin, 0), Point(xthin, 4), s.thinBarlineThickness);
+        _x = xthin + s.thinBarlineThickness / 2 + s.barlineGap;
       case BarlineStyle.none:
         _x += s.barlineGap;
     }

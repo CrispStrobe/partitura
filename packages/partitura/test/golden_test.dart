@@ -1983,6 +1983,21 @@ void main() {
     );
   });
 
+  testWidgets('102 tick, short and reverse-final barlines', (tester) async {
+    // A tick (top-line stroke), a short (mid-staff stroke), then a
+    // reverse-final (thick+thin) closing the piece.
+    await golden(
+      tester,
+      '102_tick_short_reverse_barlines',
+      Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'c5:w !barline=tick | d5:w !barline=short |'
+            ' e5:w !barline=reverseFinal',
+      ),
+      staffSpace: 12,
+    );
+  });
+
   testWidgets('64 beams over rests', (tester) async {
     // Rests inside a beat do not break the beam (it spans the gap); a rest at
     // a beat boundary still separates. Beat 1: 16th, 16th-rest, two 16ths.

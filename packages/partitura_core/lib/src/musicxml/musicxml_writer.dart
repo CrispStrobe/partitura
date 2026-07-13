@@ -368,6 +368,9 @@ class _PartWriter {
         BarlineStyle.heavy => 'heavy',
         BarlineStyle.dashed => 'dashed',
         BarlineStyle.dotted => 'dotted',
+        BarlineStyle.tick => 'tick',
+        BarlineStyle.short => 'short',
+        BarlineStyle.reverseFinal => 'heavy-light',
         BarlineStyle.none => 'none',
       };
       if (barStyle != null) {

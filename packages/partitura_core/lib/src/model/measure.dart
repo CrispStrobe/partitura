@@ -127,6 +127,18 @@ enum BarlineStyle {
   /// A single dotted thin line.
   dotted,
 
+  /// A short thin stroke crossing only the top staff line (`tick`) — a
+  /// breath/phrase divider common in hymn and chant notation.
+  tick,
+
+  /// A short thin stroke spanning only the middle of the staff (`short`) —
+  /// a lighter phrase divider than a full barline.
+  short,
+
+  /// Thick + thin — a mirror of [finalBar] (`heavy-light`), used at the start
+  /// of a section or as a reverse final barline.
+  reverseFinal,
+
   /// No barline drawn at all.
   none;
 }

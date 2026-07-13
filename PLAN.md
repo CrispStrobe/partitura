@@ -556,11 +556,13 @@ No peer renderer does any of this; all build on the existing pitch / interval
       trailing tie curve per notehead, auto-placed opposite the stem or forced
       via `down`; MusicXML `<tied type="let-ring">` round-trip with
       over/under orientation; golden 100).
+      **tick / short / reverse-final** barline styles (`BarlineStyle.tick`
+      crosses only the top line, `.short` spans the middle staff lines,
+      `.reverseFinal` is thick+thin; MusicXML `<bar-style>`
+      `tick`/`short`/`heavy-light` round-trip; golden 102).
       **Left:** custom-span barlines across staves; palm-mute /
       let-ring / vibrato lines (exist in tab; add to notation); trill extension
       line + baroque variants; portamento; system dividers.
-      *[🚧 in progress: parallel agent — tick / short / reverse-final barline
-      styles (`BarlineStyle` + `<bar-style>` round-trip)]*
 - [~] **5.7 Time-signature breadth** — **Done:** common/cut symbols
       (`TimeSymbol`, `TimeSignature.commonTime`/`cutTime` → the C / ¢ glyphs;
       golden 82) and **additive/composite meters** (`TimeSignature.additive`

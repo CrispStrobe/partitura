@@ -491,6 +491,9 @@ class _PartReader {
               'heavy' => BarlineStyle.heavy,
               'dashed' => BarlineStyle.dashed,
               'dotted' => BarlineStyle.dotted,
+              'tick' => BarlineStyle.tick,
+              'short' => BarlineStyle.short,
+              'heavy-light' => BarlineStyle.reverseFinal,
               'none' => BarlineStyle.none,
               _ => barline,
             };
