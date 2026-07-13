@@ -29,18 +29,39 @@ enum OmrDialect {
   /// TrOMR PrIMuS-style *semantic* notation (`clef-G2 note-C4_quarter …`) —
   /// parse with `scoreFromSemantic`.
   semantic,
+
+  /// Flova LilyPond "simple notes" (`c'2 a''8 r4 …`) — parse with
+  /// `scoreFromLilyNotes`.
+  lilyNotes,
 }
 
+/// A LilyPond simple-note token: a pitch letter (or `r`) first, then octave
+/// marks / accidental letters, then a duration digit — the shape Flova emits
+/// and neither `bekern` (digit-first, `<t>`/`**kern`) nor semantic (`note-`/
+/// `clef-`) produces.
+final _lilyNoteRe = RegExp(r"(^|\s)(r\d|[a-g][a-z]*[',]*\d)");
+
 /// Sniffs which dialect [tokens] are, so a caller can pick the right parser
-/// without knowing which engine (SMT vs TrOMR) produced them. Semantic notation
-/// uses `note-`/`clef-`/`timeSignature-`/`keySignature-` prefixes that `bekern`
-/// never contains.
-OmrDialect omrDialectOf(String tokens) => tokens.contains('note-') ||
-        tokens.contains('clef-') ||
-        tokens.contains('timeSignature-') ||
-        tokens.contains('keySignature-')
-    ? OmrDialect.semantic
-    : OmrDialect.bekern;
+/// without knowing which engine (SMT / TrOMR / Flova) produced them: semantic
+/// uses `note-`/`clef-`/`…-` prefixes; `bekern` uses `<t>`/`<s>`/`<b>`/`**kern`;
+/// Flova is bare LilyPond notes.
+OmrDialect omrDialectOf(String tokens) {
+  if (tokens.contains('note-') ||
+      tokens.contains('clef-') ||
+      tokens.contains('timeSignature-') ||
+      tokens.contains('keySignature-')) {
+    return OmrDialect.semantic;
+  }
+  if (tokens.contains('<t>') ||
+      tokens.contains('<s>') ||
+      tokens.contains('<b>') ||
+      tokens.contains('**kern') ||
+      tokens.contains('**ekern')) {
+    return OmrDialect.bekern;
+  }
+  if (_lilyNoteRe.hasMatch(tokens)) return OmrDialect.lilyNotes;
+  return OmrDialect.bekern;
+}
 
 /// A pixel buffer for [OmrEngine.recognize]: row-major `width`×`height`, with
 /// `channels` bytes per pixel (1 = gray, 3 = RGB, 4 = RGBA). The engine applies

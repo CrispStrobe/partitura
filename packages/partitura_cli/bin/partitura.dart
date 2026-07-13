@@ -37,9 +37,10 @@ Commands:
                                        the Flutter SDK)
   omr       <image> <out.(musicxml|mxl|krn|svg|png)> --model <gguf> [options]
                                        Recognize a staff image via CrispEmbed —
-                                       Sheet Music Transformer (grand staff) or
-                                       Polyphonic-TrOMR (single staff), engine
-                                       auto-detected (needs libcrispembed)
+                                       Sheet Music Transformer (grand staff),
+                                       Polyphonic-TrOMR (single staff) or Flova
+                                       (handwritten), engine auto-detected
+                                       (needs libcrispembed)
 
 omr options:
   --model <path>                       OMR GGUF: SMT GrandStaff or TrOMR (or set
@@ -199,7 +200,16 @@ int _omr(List<String> args) {
   GrandStaff? grand;
   String kern;
   String summary;
-  if (omrDialectOf(tokens) == OmrDialect.semantic) {
+  final dialect = omrDialectOf(tokens);
+  if (dialect == OmrDialect.lilyNotes) {
+    score = scoreFromLilyNotes(tokens);
+    kern = scoreToKern(score);
+    final notes = score.measures
+        .expand((Measure m) => m.elements)
+        .whereType<NoteElement>()
+        .length;
+    summary = 'single staff (Flova/handwritten), $notes notes';
+  } else if (dialect == OmrDialect.semantic) {
     score = scoreFromSemantic(tokens);
     kern = scoreToKern(score);
     summary = 'single staff (TrOMR), ${score.measures.length} measures';

@@ -58,7 +58,9 @@ decoded in pure Dart; the **engine is auto-detected** from the model:
 
 - **Sheet Music Transformer** → `bekern` tokens → a two-staff `GrandStaff`
   (or a single staff with `--single`);
-- **Polyphonic-TrOMR** → *semantic* notation → a single polyphonic `Score`.
+- **Polyphonic-TrOMR** → *semantic* notation → a single polyphonic `Score`;
+- **Flova** (handwritten / whiteboard) → LilyPond "simple notes" → an unmetered
+  single-staff `Score`.
 
 Output is `.musicxml`, `.mxl`, `.krn`, `.svg`, or `.png` — the last two render
 the notation (a grand staff for SMT, a single staff for TrOMR;

@@ -7,6 +7,13 @@
   E5E3. `JazzArticulation.rises` picks above/below placement per mark. These four
   are render-only (not standard MusicXML `<articulations>`); scoop/doit/fall/plop
   still round-trip. Golden 98.
+- **Third OMR engine — Flova (handwritten)** (v0.8): `scoreFromLilyNotes`
+  (`src/omr/lilynotes.dart`) parses CrispEmbed's Flova/omr_transformer output —
+  a monophonic LilyPond "simple notes" string (`c'2 a''8 r4 …`) from handwritten
+  / whiteboard staff images — into an unmetered single-staff `Score`.
+  `omrDialectOf` auto-detects it as a third dialect, so `partitura omr` now
+  routes all three CrispEmbed engines (SMT → grand staff, TrOMR → polyphonic
+  staff, Flova → handwritten) through one command. Verified live end-to-end.
 - **Tab ornaments, articulations & rasgueado** (Phase 6.4): the tab engine now
   draws ornaments (trill/mordent/turn) and articulations (staccato/accent/
   marcato/tenuto/fermata) above the fret by **reusing** `NoteElement.ornament`

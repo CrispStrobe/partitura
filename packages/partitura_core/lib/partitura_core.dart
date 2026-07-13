@@ -43,6 +43,7 @@ export 'src/musescore/musescore_writer.dart';
 export 'src/musicxml/musicxml_reader.dart';
 export 'src/musicxml/musicxml_writer.dart';
 export 'src/omr/bekern.dart';
+export 'src/omr/lilynotes.dart';
 export 'src/omr/omr.dart';
 export 'src/omr/semantic.dart';
 export 'src/playback/playback_timeline.dart';
