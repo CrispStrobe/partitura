@@ -1045,6 +1045,11 @@ class Lyric {
   /// on its own baseline; syllables of the same verse never overlap.
   final int verse;
 
+  /// Whether this syllable elides (synalepha) into the next syllable — the two
+  /// are sung on the *same* note and joined by an undertie (‿). The following
+  /// [Lyric] shares this [elementId] and [verse]. MusicXML `<elision>`.
+  final bool elidesToNext;
+
   /// Creates a lyric syllable.
   const Lyric(
     this.elementId,
@@ -1052,6 +1057,7 @@ class Lyric {
     this.hyphenToNext = false,
     this.extender = false,
     this.verse = 1,
+    this.elidesToNext = false,
   }) : assert(verse >= 1, 'verse must be >= 1');
 
   @override
@@ -1061,16 +1067,17 @@ class Lyric {
       other.text == text &&
       other.hyphenToNext == hyphenToNext &&
       other.extender == extender &&
-      other.verse == verse;
+      other.verse == verse &&
+      other.elidesToNext == elidesToNext;
 
   @override
   int get hashCode =>
-      Object.hash(elementId, text, hyphenToNext, extender, verse);
+      Object.hash(elementId, text, hyphenToNext, extender, verse, elidesToNext);
 
   @override
   String toString() => 'Lyric($elementId: "$text"'
       '${hyphenToNext ? ' -' : ''}${extender ? ' _' : ''}'
-      '${verse == 1 ? '' : ', v$verse'})';
+      '${elidesToNext ? ' ‿' : ''}${verse == 1 ? '' : ', v$verse'})';
 }
 
 /// A text annotation anchored above the staff at a note element: chord

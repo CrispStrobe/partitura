@@ -432,6 +432,28 @@ void main() {
           ['One', 'two']);
     });
 
+    test('elided lyrics round-trip through MusicXML', () {
+      final base = Score.simple(notes: 'c4:q d4');
+      final score = Score(
+        clef: base.clef,
+        measures: base.measures,
+        lyrics: const [
+          // "the_end" sung on one note, then a plain syllable on the next.
+          Lyric('e0', 'the', elidesToNext: true),
+          Lyric('e0', 'end'),
+          Lyric('e1', 'now'),
+        ],
+      );
+      final xml = scoreToMusicXml(score);
+      expect(xml, contains('<elision>'));
+      final back = scoreFromMusicXml(xml);
+      final onE0 = back.lyrics.where((l) => l.elementId == 'e0').toList();
+      expect(onE0.map((l) => l.text), ['the', 'end']);
+      expect(onE0.first.elidesToNext, isTrue);
+      expect(onE0.last.elidesToNext, isFalse);
+      expect(back.lyrics, score.lyrics);
+    });
+
     test('notehead shapes round-trip through MusicXML', () {
       NoteElement head(NoteheadShape shape, String id) =>
           NoteElement.note(const Pitch(Step.b, octave: 4), NoteDuration.quarter,

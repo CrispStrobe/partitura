@@ -1816,6 +1816,32 @@ void main() {
     );
   });
 
+  testWidgets('101 lyric elision (two syllables on one note)', (tester) async {
+    final base = Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'g4:q a4 b4 c5',
+    );
+    await golden(
+      tester,
+      '101_lyric_elision',
+      theme: const PartituraTheme(textFontFamily: 'Roboto'),
+      Score(
+        clef: base.clef,
+        timeSignature: base.timeSignature,
+        measures: base.measures,
+        lyrics: const [
+          // "de_o" elided onto one note, then two plain syllables.
+          Lyric('e0', 'de', elidesToNext: true),
+          Lyric('e0', 'o'),
+          Lyric('e1', 'in'),
+          Lyric('e2', 'ex', hyphenToNext: true),
+          Lyric('e3', 'cel'),
+        ],
+      ),
+      staffSpace: 12,
+    );
+  });
+
   testWidgets('69 jazz articulations: scoop, doit, fall, plop', (tester) async {
     final base = Score.simple(
       timeSignature: TimeSignature.fourFour,

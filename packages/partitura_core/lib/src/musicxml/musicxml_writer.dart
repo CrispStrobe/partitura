@@ -603,13 +603,23 @@ class _PartWriter {
   String _lyricXml(String id) {
     final lyrics = _lyricsById[id];
     if (lyrics == null) return '';
+    // Syllables in the same verse on this one note are an elision group — one
+    // <lyric> with the texts separated by <elision>.
+    final byVerse = <int, List<Lyric>>{};
+    for (final l in lyrics) {
+      (byVerse[l.verse] ??= []).add(l);
+    }
     final out = StringBuffer();
-    for (final lyric in lyrics) {
-      final syllabic = lyric.hyphenToNext ? 'begin' : 'single';
-      final extend = lyric.extender ? '<extend/>' : '';
-      out.write('<lyric number="${lyric.verse}">'
-          '<syllabic>$syllabic</syllabic>'
-          '<text>${_escape(lyric.text)}</text>$extend</lyric>');
+    for (final verse in byVerse.keys.toList()..sort()) {
+      final syllables = byVerse[verse]!;
+      final syllabic = syllables.first.hyphenToNext ? 'begin' : 'single';
+      final extend = syllables.last.extender ? '<extend/>' : '';
+      out.write('<lyric number="$verse"><syllabic>$syllabic</syllabic>');
+      for (var i = 0; i < syllables.length; i++) {
+        if (i > 0) out.write('<elision>‿</elision>');
+        out.write('<text>${_escape(syllables[i].text)}</text>');
+      }
+      out.write('$extend</lyric>');
     }
     return out.toString();
   }

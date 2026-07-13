@@ -2,6 +2,10 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Lyric elision (synalepha)** (Phase 5.4): `Lyric.elidesToNext` marks two
+  syllables sung on one note; the layout draws an undertie (‿) bridging them and
+  MusicXML round-trips them as one `<lyric>` with `<elision>`-separated `<text>`
+  runs (split back into per-syllable `Lyric`s on read). Golden 101.
 - **Laissez-vibrer ("let ring") ties** (Phase 5.6): `LaissezVibrer`, keyed by
   note id on `Score`, draws a short trailing tie curve off each notehead of the
   marked element with no destination note — the ring-on notation for piano,

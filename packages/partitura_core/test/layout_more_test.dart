@@ -535,6 +535,28 @@ void main() {
     });
   });
 
+  group('lyric elision', () {
+    test('two syllables elided on one note draw an undertie', () {
+      final base = Score.simple(notes: 'c4:q');
+      final layout = layoutOf(Score(
+        clef: base.clef,
+        measures: base.measures,
+        lyrics: const [
+          Lyric('e0', 'the', elidesToNext: true),
+          Lyric('e0', 'end'),
+        ],
+      ));
+      // Both syllable texts render...
+      final texts = layout.primitives
+          .whereType<TextPrimitive>()
+          .map((t) => t.text)
+          .toList();
+      expect(texts, containsAll(<String>['the', 'end']));
+      // ...joined by exactly one undertie curve (no ties/slurs in this score).
+      expect(layout.primitives.whereType<CurvePrimitive>(), hasLength(1));
+    });
+  });
+
   group('laissez-vibrer', () {
     test('draws a trailing curve off the note', () {
       final base = Score.simple(notes: 'c5:q');

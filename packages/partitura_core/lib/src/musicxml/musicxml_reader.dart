@@ -1008,17 +1008,27 @@ class _PartReader {
   void _readLyric(XmlNode note, String id) {
     // A note may carry several <lyric> elements — one per verse.
     for (final lyric in note.childrenNamed('lyric')) {
-      final text = lyric.childText('text');
-      if (text == null || text.isEmpty) continue;
+      // Multiple <text> runs separated by <elision> are syllables elided onto
+      // this one note; each becomes its own Lyric, joined by elidesToNext.
+      final texts = [
+        for (final t in lyric.childrenNamed('text'))
+          if (t.text.isNotEmpty) t.text,
+      ];
+      if (texts.isEmpty) continue;
       final syllabic = lyric.childText('syllabic');
       final verse = int.tryParse(lyric.attributes['number'] ?? '1') ?? 1;
-      _lyrics.add(Lyric(
-        id,
-        text,
-        hyphenToNext: syllabic == 'begin' || syllabic == 'middle',
-        extender: lyric.child('extend') != null,
-        verse: verse < 1 ? 1 : verse,
-      ));
+      final hasExtend = lyric.child('extend') != null;
+      for (var i = 0; i < texts.length; i++) {
+        final isLast = i == texts.length - 1;
+        _lyrics.add(Lyric(
+          id,
+          texts[i],
+          hyphenToNext: isLast && (syllabic == 'begin' || syllabic == 'middle'),
+          extender: isLast && hasExtend,
+          elidesToNext: !isLast,
+          verse: verse < 1 ? 1 : verse,
+        ));
+      }
     }
   }
 

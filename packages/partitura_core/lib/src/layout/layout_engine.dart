@@ -2095,6 +2095,26 @@ class _LayoutBuilder {
           }
         }
 
+        if (lyric.elidesToNext &&
+            i + 1 < lyrics.length &&
+            lyrics[i + 1].elementId == lyric.elementId) {
+          // Elision (synalepha): an undertie (‿) below the two syllables sung
+          // on the one note, bridging this syllable's end to the next's start.
+          final x1 = centerX + halfWidth * 0.6;
+          final x2 = centers[i + 1] - halfWidthOf(lyrics[i + 1].text) * 0.6;
+          if (x2 > x1 + 0.1) {
+            final y = baselineY + 0.12 * size;
+            final dip = y + 0.18 * size;
+            _addCurve(
+              Point(x1, y),
+              Point(x1 + (x2 - x1) * 0.3, dip),
+              Point(x1 + (x2 - x1) * 0.7, dip),
+              Point(x2, y),
+              0.1,
+            );
+          }
+        }
+
         if (lyric.extender) {
           // Extender runs along the baseline under the following voice-1
           // notes that carry no syllable of their own in this verse.
