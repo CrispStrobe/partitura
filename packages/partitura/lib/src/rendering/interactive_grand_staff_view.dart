@@ -62,6 +62,13 @@ class InteractiveGrandStaffView extends LeafRenderObjectWidget {
   /// either staff. Repaint only.
   final Set<String> suppressElementIds;
 
+  /// When non-null, the view **owns the live drag** (C10b): the dragged element
+  /// is suppressed from the normal layout and re-painted translated to follow
+  /// the pointer — the real glyph, snapped vertically to the nearest line/space
+  /// on the pointer's staff and free horizontally — faded to this opacity
+  /// (1.0 = solid). null (default) keeps the report-only behavior.
+  final double? dragPreviewOpacity;
+
   /// Per-element overlay flags: each keyed element is drawn in its [EditorMark]
   /// color with a small wedge above its staff. Wins over [elementColors]. For
   /// assessment / ear-training / proofreading editors. Like [elementColors] and
@@ -103,7 +110,7 @@ class InteractiveGrandStaffView extends LeafRenderObjectWidget {
 
   /// Called as a dragged element moves, with the live target.
   final void Function(String elementId, StaffTarget target)?
-  onElementDragUpdate;
+      onElementDragUpdate;
 
   /// Called when the drag ends, with the drop target.
   final void Function(String elementId, StaffTarget target)? onElementDragEnd;
@@ -121,6 +128,7 @@ class InteractiveGrandStaffView extends LeafRenderObjectWidget {
     this.highlightedIds = const {},
     this.elementColors = const {},
     this.suppressElementIds = const {},
+    this.dragPreviewOpacity,
     this.errorOverlay = const {},
     this.loopRange,
     this.controller,
@@ -138,17 +146,18 @@ class InteractiveGrandStaffView extends LeafRenderObjectWidget {
   @override
   RenderInteractiveGrandStaffView createRenderObject(BuildContext context) =>
       RenderInteractiveGrandStaffView(
-          grandStaff: grandStaff,
-          theme: theme,
-          staffSpace: staffSpace,
-          staffGap: staffGap,
-          systemGap: systemGap,
-          justify: justify,
-          gridAlign: gridAlign,
-          highlightedIds: highlightedIds,
-          elementColors: elementColors,
-        )
+        grandStaff: grandStaff,
+        theme: theme,
+        staffSpace: staffSpace,
+        staffGap: staffGap,
+        systemGap: systemGap,
+        justify: justify,
+        gridAlign: gridAlign,
+        highlightedIds: highlightedIds,
+        elementColors: elementColors,
+      )
         ..suppressElementIds = suppressElementIds
+        ..dragPreviewOpacity = dragPreviewOpacity
         ..errorOverlay = errorOverlay
         ..loopRange = loopRange
         ..regionController = controller
@@ -178,6 +187,7 @@ class InteractiveGrandStaffView extends LeafRenderObjectWidget {
       ..highlightedIds = highlightedIds
       ..elementColors = elementColors
       ..suppressElementIds = suppressElementIds
+      ..dragPreviewOpacity = dragPreviewOpacity
       ..errorOverlay = errorOverlay
       ..loopRange = loopRange
       ..regionController = controller
@@ -207,15 +217,15 @@ class RenderInteractiveGrandStaffView extends RenderBox
     required bool gridAlign,
     required Set<String> highlightedIds,
     Map<String, Color> elementColors = const {},
-  }) : _grandStaff = grandStaff,
-       _theme = theme,
-       _staffSpace = staffSpace,
-       _staffGap = staffGap,
-       _systemGap = systemGap,
-       _justify = justify,
-       _gridAlign = gridAlign,
-       _highlightedIds = highlightedIds,
-       _elementColors = elementColors {
+  })  : _grandStaff = grandStaff,
+        _theme = theme,
+        _staffSpace = staffSpace,
+        _staffGap = staffGap,
+        _systemGap = systemGap,
+        _justify = justify,
+        _gridAlign = gridAlign,
+        _highlightedIds = highlightedIds,
+        _elementColors = elementColors {
     _tap = TapGestureRecognizer(debugOwner: this)..onTapUp = _handleTapUp;
     _pan = PanGestureRecognizer(debugOwner: this)
       ..onStart = _handleDragStart
@@ -231,6 +241,7 @@ class RenderInteractiveGrandStaffView extends RenderBox
   late final PanGestureRecognizer _pan;
   String? _draggingId;
   Offset? _lastDragLocal;
+  Offset? _dragStartLocal;
   GrandStaffSystems? _systems;
   late final LayoutPainter _painter = LayoutPainter(
     theme: _theme,
@@ -308,8 +319,7 @@ class RenderInteractiveGrandStaffView extends RenderBox
   PartituraTheme get theme => _theme;
   set theme(PartituraTheme value) {
     if (value == _theme) return;
-    final needsLayout =
-        value.lineBoost != _theme.lineBoost ||
+    final needsLayout = value.lineBoost != _theme.lineBoost ||
         value.musicFont != _theme.musicFont;
     _theme = value;
     _painter.theme = value;
@@ -399,6 +409,17 @@ class RenderInteractiveGrandStaffView extends RenderBox
     _suppressIds = value;
     _painter.suppressIds = value;
     markNeedsPaint();
+  }
+
+  double? _dragPreviewOpacity;
+
+  /// When non-null, the view paints the dragged element following the pointer
+  /// (C10b). Repaint only.
+  double? get dragPreviewOpacity => _dragPreviewOpacity;
+  set dragPreviewOpacity(double? value) {
+    if (value == _dragPreviewOpacity) return;
+    _dragPreviewOpacity = value;
+    if (_draggingId != null) markNeedsPaint();
   }
 
   Map<String, Color> _elementColors;
@@ -517,8 +538,7 @@ class RenderInteractiveGrandStaffView extends RenderBox
         ),
       );
     }
-    final maxWidthSpaces =
-        (constraints.hasBoundedWidth
+    final maxWidthSpaces = (constraints.hasBoundedWidth
                 ? constraints.maxWidth
                 : 40 * _staffSpace) /
             _staffSpace -
@@ -534,7 +554,7 @@ class RenderInteractiveGrandStaffView extends RenderBox
     _systems = systems;
     final width =
         systems.systems.fold<double>(0, (m, s) => math.max(m, s.layout.width)) +
-        braceInset;
+            braceInset;
     return constraints.constrain(
       Size(width * _staffSpace, systems.heightWith(_systemGap) * _staffSpace),
     );
@@ -588,8 +608,7 @@ class RenderInteractiveGrandStaffView extends RenderBox
     if (systems == null) return null;
     for (var i = 0; i < systems.systems.length; i++) {
       final layout = systems.systems[i].layout;
-      final id =
-          _findIn(layout.upper, upperOrigin(i), local) ??
+      final id = _findIn(layout.upper, upperOrigin(i), local) ??
           _findIn(layout.lower, lowerOrigin(i), local);
       if (id != null) return id;
     }
@@ -642,9 +661,9 @@ class RenderInteractiveGrandStaffView extends RenderBox
   /// The ids of every element whose hit region intersects [localRect].
   @override
   List<String> elementIdsIn(Rect localRect) => [
-    for (final region in elementRegions)
-      if (region.bounds.overlaps(localRect)) region.id,
-  ];
+        for (final region in elementRegions)
+          if (region.bounds.overlaps(localRect)) region.id,
+      ];
 
   /// The (system index, staff index 0=upper/1=lower, staff-space bounds) of
   /// element [id], or null.
@@ -668,9 +687,8 @@ class RenderInteractiveGrandStaffView extends RenderBox
   Rect? rectOfElement(String id) {
     final located = _locate(id);
     if (located == null) return null;
-    final origin = located.$2 == 0
-        ? upperOrigin(located.$1)
-        : lowerOrigin(located.$1);
+    final origin =
+        located.$2 == 0 ? upperOrigin(located.$1) : lowerOrigin(located.$1);
     final b = located.$3;
     return Rect.fromLTWH(
       origin.dx + b.left * _staffSpace,
@@ -708,12 +726,10 @@ class RenderInteractiveGrandStaffView extends RenderBox
     final lowerTop = lowerOrigin(systemIndex).dy;
     final boundary = (upperTop + 4 * _staffSpace + lowerTop) / 2;
     final staffIndex = local.dy < boundary ? 0 : 1;
-    final staffLayout = staffIndex == 0
-        ? system.layout.upper
-        : system.layout.lower;
-    final origin = staffIndex == 0
-        ? upperOrigin(systemIndex)
-        : lowerOrigin(systemIndex);
+    final staffLayout =
+        staffIndex == 0 ? system.layout.upper : system.layout.lower;
+    final origin =
+        staffIndex == 0 ? upperOrigin(systemIndex) : lowerOrigin(systemIndex);
 
     final point = math.Point(
       (local.dx - origin.dx) / _staffSpace,
@@ -785,14 +801,19 @@ class RenderInteractiveGrandStaffView extends RenderBox
 
   void _handleDragStart(DragStartDetails details) {
     _lastDragLocal = details.localPosition;
+    _dragStartLocal = details.localPosition;
     _draggingId = elementIdAt(details.localPosition);
-    if (_draggingId != null) onElementDragStart?.call(_draggingId!);
+    if (_draggingId != null) {
+      onElementDragStart?.call(_draggingId!);
+      if (_dragPreviewOpacity != null) markNeedsPaint();
+    }
   }
 
   void _handleDragUpdate(DragUpdateDetails details) {
     _lastDragLocal = details.localPosition;
     final id = _draggingId;
     if (id == null) return;
+    if (_dragPreviewOpacity != null) markNeedsPaint();
     final target = resolveStaffTarget(details.localPosition);
     if (target != null) onElementDragUpdate?.call(id, target);
   }
@@ -804,10 +825,17 @@ class RenderInteractiveGrandStaffView extends RenderBox
       final target = resolveStaffTarget(local);
       if (target != null) onElementDragEnd?.call(id, target);
     }
-    _draggingId = null;
+    _endDrag();
   }
 
-  void _handleDragCancel() => _draggingId = null;
+  void _handleDragCancel() => _endDrag();
+
+  void _endDrag() {
+    final wasDragging = _draggingId != null;
+    _draggingId = null;
+    _dragStartLocal = null;
+    if (wasDragging && _dragPreviewOpacity != null) markNeedsPaint();
+  }
 
   @override
   void dispose() {
@@ -828,6 +856,12 @@ class RenderInteractiveGrandStaffView extends RenderBox
     final braceBox = MusicFonts.metadataOrNull(
       _theme.musicFont,
     )?.bBoxOf('brace');
+
+    // While the view owns the drag (C10b), hide the dragged element from the
+    // normal pass; _paintDragPreview re-draws it following the pointer.
+    if (_liveDragActive) {
+      _painter.suppressIds = {..._suppressIds, _draggingId!};
+    }
 
     _paintLoopBand(canvas, offset); // behind the notes
 
@@ -852,8 +886,7 @@ class RenderInteractiveGrandStaffView extends RenderBox
       if (lines.isNotEmpty) connect(0, lines.first.thickness);
       for (final line in lines) {
         final vertical = line.from.x == line.to.x;
-        final fullStaff =
-            line.from.y == 0 && line.to.y == 4 ||
+        final fullStaff = line.from.y == 0 && line.to.y == 4 ||
             line.from.y == 4 && line.to.y == 0;
         if (vertical && fullStaff) connect(line.from.x, line.thickness);
       }
@@ -872,9 +905,77 @@ class RenderInteractiveGrandStaffView extends RenderBox
       }
     }
 
+    if (_liveDragActive) _painter.suppressIds = _suppressIds;
+
     _paintErrorMarks(canvas, offset);
+    _paintDragPreview(canvas, offset);
     _paintGhost(canvas, offset);
     _paintCaret(canvas, offset);
+  }
+
+  bool get _liveDragActive =>
+      _dragPreviewOpacity != null &&
+      _draggingId != null &&
+      _lastDragLocal != null &&
+      _dragStartLocal != null;
+
+  /// The (system, staff 0=upper/1=lower, staff-space position) of [id]'s
+  /// notehead (or its first glyph — e.g. a rest); null if it has no glyph.
+  (int system, int staff, math.Point<double> pos)? _noteheadAnchor(String id) {
+    final systems = _systems;
+    if (systems == null) return null;
+    for (var i = 0; i < systems.systems.length; i++) {
+      final layout = systems.systems[i].layout;
+      for (var s = 0; s < 2; s++) {
+        final prims = (s == 0 ? layout.upper : layout.lower).primitives;
+        for (final p in prims) {
+          if (p is GlyphPrimitive &&
+              p.elementId == id &&
+              p.smuflName.startsWith('notehead')) {
+            return (i, s, p.position);
+          }
+        }
+        for (final p in prims) {
+          if (p is GlyphPrimitive && p.elementId == id) {
+            return (i, s, p.position);
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  /// Paints the dragged element translated to follow the pointer — snapped
+  /// vertically to the target line/space on the pointer's staff, free
+  /// horizontally by the raw pointer delta. The real glyph moves.
+  void _paintDragPreview(Canvas canvas, Offset offset) {
+    if (!_liveDragActive) return;
+    final id = _draggingId!;
+    final anchor = _noteheadAnchor(id);
+    final target = resolveStaffTarget(_lastDragLocal!);
+    if (anchor == null || target == null) return;
+    final (homeSystem, homeStaff, pos) = anchor;
+    final homeOrigin =
+        homeStaff == 0 ? upperOrigin(homeSystem) : lowerOrigin(homeSystem);
+    final targetOrigin = target.staffIndex == 0
+        ? upperOrigin(target.systemIndex)
+        : lowerOrigin(target.systemIndex);
+    final dx = _lastDragLocal!.dx - _dragStartLocal!.dx;
+    final targetY = (8 - target.staffPosition) / 2; // staff spaces
+    final origin = Offset(
+      offset.dx + homeOrigin.dx + dx,
+      offset.dy + targetOrigin.dy + (targetY - pos.y) * _staffSpace,
+    );
+    final staffLayout = homeStaff == 0
+        ? _systems!.systems[homeSystem].layout.upper
+        : _systems!.systems[homeSystem].layout.lower;
+    _painter.paintElement(
+      canvas,
+      origin,
+      staffLayout,
+      id,
+      opacity: _dragPreviewOpacity!,
+    );
   }
 
   void _paintLoopBand(Canvas canvas, Offset offset) {
@@ -898,9 +999,8 @@ class RenderInteractiveGrandStaffView extends RenderBox
       final upper = offset + upperOrigin(i);
       final lower = offset + lowerOrigin(i);
       final left = i == start.$1 ? start.$3.left : 0.0;
-      final right = i == end.$1
-          ? end.$3.right
-          : systems.systems[i].layout.width;
+      final right =
+          i == end.$1 ? end.$3.right : systems.systems[i].layout.width;
       canvas.drawRect(
         Rect.fromLTRB(
           upper.dx + left * _staffSpace,
@@ -918,8 +1018,7 @@ class RenderInteractiveGrandStaffView extends RenderBox
     for (final entry in _errorOverlay.entries) {
       final located = _locate(entry.key);
       if (located == null) continue;
-      final origin =
-          offset +
+      final origin = offset +
           (located.$2 == 0 ? upperOrigin(located.$1) : lowerOrigin(located.$1));
       final b = located.$3;
       final cx = origin.dx + (b.left + b.width / 2) * _staffSpace;

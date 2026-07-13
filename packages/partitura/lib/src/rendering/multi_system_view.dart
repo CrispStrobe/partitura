@@ -85,7 +85,7 @@ class MultiSystemView extends LeafRenderObjectWidget {
   /// Called as a dragged element moves, with its id and the live quantized
   /// [StaffTarget] under the pointer (carrying the system index).
   final void Function(String elementId, StaffTarget target)?
-  onElementDragUpdate;
+      onElementDragUpdate;
 
   /// Called when the drag ends, with the element id and the drop target.
   final void Function(String elementId, StaffTarget target)? onElementDragEnd;
@@ -108,6 +108,15 @@ class MultiSystemView extends LeafRenderObjectWidget {
   /// bleed): the app suppresses a note it is previewing itself (e.g. while
   /// dragging it, with its own ghost following the pointer). Repaint only.
   final Set<String> suppressElementIds;
+
+  /// When non-null, the view **owns the live drag** (C10b): while an element is
+  /// being dragged it is suppressed from the normal layout and re-painted
+  /// translated to follow the pointer — the real glyph (notehead, stem,
+  /// accidental, flag, ledgers), snapped vertically to the nearest line/space
+  /// (pitch) and free horizontally — faded to this opacity (1.0 = solid). The
+  /// app needs no `ghostTarget` / `suppressElementIds` bookkeeping for moves;
+  /// null (default) keeps the old behavior (the view only reports drags).
+  final double? dragPreviewOpacity;
 
   /// Creates a multi-system view.
   const MultiSystemView({
@@ -132,19 +141,20 @@ class MultiSystemView extends LeafRenderObjectWidget {
     this.loopRange,
     this.controller,
     this.suppressElementIds = const {},
+    this.dragPreviewOpacity,
   });
 
   @override
   RenderMultiSystemView createRenderObject(BuildContext context) =>
       RenderMultiSystemView(
-          score: score,
-          theme: theme,
-          staffSpace: staffSpace,
-          systemGap: systemGap,
-          justify: justify,
-          highlightedIds: highlightedIds,
-          elementColors: elementColors,
-        )
+        score: score,
+        theme: theme,
+        staffSpace: staffSpace,
+        systemGap: systemGap,
+        justify: justify,
+        highlightedIds: highlightedIds,
+        elementColors: elementColors,
+      )
         ..onElementTap = onElementTap
         ..onStaffTap = onStaffTap
         ..onHover = onHover
@@ -157,7 +167,8 @@ class MultiSystemView extends LeafRenderObjectWidget {
         ..errorOverlay = errorOverlay
         ..loopRange = loopRange
         ..regionController = controller
-        ..suppressElementIds = suppressElementIds;
+        ..suppressElementIds = suppressElementIds
+        ..dragPreviewOpacity = dragPreviewOpacity;
 
   @override
   void updateRenderObject(
@@ -184,7 +195,8 @@ class MultiSystemView extends LeafRenderObjectWidget {
       ..errorOverlay = errorOverlay
       ..loopRange = loopRange
       ..regionController = controller
-      ..suppressElementIds = suppressElementIds;
+      ..suppressElementIds = suppressElementIds
+      ..dragPreviewOpacity = dragPreviewOpacity;
   }
 }
 
@@ -200,13 +212,13 @@ class RenderMultiSystemView extends RenderBox
     required bool justify,
     required Set<String> highlightedIds,
     Map<String, Color> elementColors = const {},
-  }) : _score = score,
-       _theme = theme,
-       _staffSpace = staffSpace,
-       _systemGap = systemGap,
-       _justify = justify,
-       _highlightedIds = highlightedIds,
-       _elementColors = elementColors {
+  })  : _score = score,
+        _theme = theme,
+        _staffSpace = staffSpace,
+        _systemGap = systemGap,
+        _justify = justify,
+        _highlightedIds = highlightedIds,
+        _elementColors = elementColors {
     _tap = TapGestureRecognizer(debugOwner: this)..onTapUp = _handleTapUp;
     _pan = PanGestureRecognizer(debugOwner: this)
       ..onStart = _handleDragStart
@@ -221,6 +233,7 @@ class RenderMultiSystemView extends RenderBox
   /// The element currently being dragged, or null.
   String? _draggingId;
   Offset? _lastDragLocal;
+  Offset? _dragStartLocal;
 
   MultiSystemLayout? _layout;
   late final LayoutPainter _painter = LayoutPainter(
@@ -299,8 +312,7 @@ class RenderMultiSystemView extends RenderBox
   PartituraTheme get theme => _theme;
   set theme(PartituraTheme value) {
     if (value == _theme) return;
-    final needsLayout =
-        value.lineBoost != _theme.lineBoost ||
+    final needsLayout = value.lineBoost != _theme.lineBoost ||
         value.musicFont != _theme.musicFont;
     _theme = value;
     _painter.theme = value;
@@ -370,6 +382,17 @@ class RenderMultiSystemView extends RenderBox
     _suppressIds = value;
     _painter.suppressIds = value;
     markNeedsPaint();
+  }
+
+  double? _dragPreviewOpacity;
+
+  /// When non-null, the view paints the dragged element following the pointer
+  /// (C10b). Repaint only.
+  double? get dragPreviewOpacity => _dragPreviewOpacity;
+  set dragPreviewOpacity(double? value) {
+    if (value == _dragPreviewOpacity) return;
+    _dragPreviewOpacity = value;
+    if (_draggingId != null) markNeedsPaint();
   }
 
   Map<String, Color> _elementColors;
@@ -473,9 +496,8 @@ class RenderMultiSystemView extends RenderBox
         ),
       );
     }
-    final maxWidthSpaces = constraints.hasBoundedWidth
-        ? constraints.maxWidth / _staffSpace
-        : 40.0;
+    final maxWidthSpaces =
+        constraints.hasBoundedWidth ? constraints.maxWidth / _staffSpace : 40.0;
     final layout = layoutSystems(
       _score,
       _settingsFor(metadata),
@@ -483,9 +505,8 @@ class RenderMultiSystemView extends RenderBox
       justify: _justify,
     );
     _layout = layout;
-    final widthSpaces = layout.systems
-        .map((s) => s.layout.width)
-        .reduce(math.max);
+    final widthSpaces =
+        layout.systems.map((s) => s.layout.width).reduce(math.max);
     return constraints.constrain(
       Size(
         widthSpaces * _staffSpace,
@@ -637,9 +658,9 @@ class RenderMultiSystemView extends RenderBox
   /// pixel coordinates) — a marquee selection.
   @override
   List<String> elementIdsIn(Rect localRect) => [
-    for (final region in elementRegions)
-      if (region.bounds.overlaps(localRect)) region.id,
-  ];
+        for (final region in elementRegions)
+          if (region.bounds.overlaps(localRect)) region.id,
+      ];
 
   // ------------------------------------------------------------------ input
 
@@ -662,14 +683,19 @@ class RenderMultiSystemView extends RenderBox
 
   void _handleDragStart(DragStartDetails details) {
     _lastDragLocal = details.localPosition;
+    _dragStartLocal = details.localPosition;
     _draggingId = elementIdAt(details.localPosition);
-    if (_draggingId != null) onElementDragStart?.call(_draggingId!);
+    if (_draggingId != null) {
+      onElementDragStart?.call(_draggingId!);
+      if (_dragPreviewOpacity != null) markNeedsPaint();
+    }
   }
 
   void _handleDragUpdate(DragUpdateDetails details) {
     _lastDragLocal = details.localPosition;
     final id = _draggingId;
     if (id == null) return;
+    if (_dragPreviewOpacity != null) markNeedsPaint();
     final target = resolveStaffTarget(details.localPosition);
     if (target != null) onElementDragUpdate?.call(id, target);
   }
@@ -681,10 +707,17 @@ class RenderMultiSystemView extends RenderBox
       final target = resolveStaffTarget(local);
       if (target != null) onElementDragEnd?.call(id, target);
     }
-    _draggingId = null;
+    _endDrag();
   }
 
-  void _handleDragCancel() => _draggingId = null;
+  void _handleDragCancel() => _endDrag();
+
+  void _endDrag() {
+    final wasDragging = _draggingId != null;
+    _draggingId = null;
+    _dragStartLocal = null;
+    if (wasDragging && _dragPreviewOpacity != null) markNeedsPaint();
+  }
 
   // MouseTrackerAnnotation — reports null when the pointer leaves the widget.
   /// No enter callback (hover moves drive [onHover] via [handleEvent]).
@@ -726,10 +759,21 @@ class RenderMultiSystemView extends RenderBox
 
   // ------------------------------------------------------------------ paint
 
+  bool get _liveDragActive =>
+      _dragPreviewOpacity != null &&
+      _draggingId != null &&
+      _lastDragLocal != null &&
+      _dragStartLocal != null;
+
   @override
   void paint(PaintingContext context, Offset offset) {
     final layout = _layout;
     if (layout == null) return;
+    // While the view owns the drag (C10b), hide the dragged element from the
+    // normal pass; it is re-painted following the pointer by _paintDragPreview.
+    if (_liveDragActive) {
+      _painter.suppressIds = {..._suppressIds, _draggingId!};
+    }
     _paintLoopBand(context.canvas, offset); // behind the notes
     for (var i = 0; i < layout.systems.length; i++) {
       _painter.paintLayout(
@@ -738,9 +782,60 @@ class RenderMultiSystemView extends RenderBox
         layout.systems[i].layout,
       );
     }
+    if (_liveDragActive) _painter.suppressIds = _suppressIds;
     _paintErrorMarks(context.canvas, offset);
+    _paintDragPreview(context.canvas, offset);
     _paintGhost(context.canvas, offset);
     _paintCaret(context.canvas, offset);
+  }
+
+  /// The staff-space position of [id]'s notehead (or, failing that, its first
+  /// glyph — e.g. a rest) within its home system's layout, plus that system's
+  /// index; null if the element has no glyph.
+  (int system, math.Point<double> pos)? _noteheadAnchor(String id) {
+    final layout = _layout;
+    if (layout == null) return null;
+    for (var i = 0; i < layout.systems.length; i++) {
+      final prims = layout.systems[i].layout.primitives;
+      for (final p in prims) {
+        if (p is GlyphPrimitive &&
+            p.elementId == id &&
+            p.smuflName.startsWith('notehead')) {
+          return (i, p.position);
+        }
+      }
+      for (final p in prims) {
+        if (p is GlyphPrimitive && p.elementId == id) return (i, p.position);
+      }
+    }
+    return null;
+  }
+
+  /// Paints the dragged element translated to follow the pointer: vertically
+  /// snapped to the target line/space (pitch), horizontally by the raw pointer
+  /// delta. The real glyph moves — stem, accidental, flag, ledgers included.
+  void _paintDragPreview(Canvas canvas, Offset offset) {
+    if (!_liveDragActive) return;
+    final id = _draggingId!;
+    final anchor = _noteheadAnchor(id);
+    final target = resolveStaffTarget(_lastDragLocal!);
+    if (anchor == null || target == null) return;
+    final (homeSystem, pos) = anchor;
+    final dx = _lastDragLocal!.dx - _dragStartLocal!.dx;
+    final targetY = (8 - target.staffPosition) / 2; // staff spaces
+    final origin = Offset(
+      offset.dx + originOfSystem(homeSystem).dx + dx,
+      offset.dy +
+          originOfSystem(target.systemIndex).dy +
+          (targetY - pos.y) * _staffSpace,
+    );
+    _painter.paintElement(
+      canvas,
+      origin,
+      _layout!.systems[homeSystem].layout,
+      id,
+      opacity: _dragPreviewOpacity!,
+    );
   }
 
   /// The (system index, staff-space bounds) of element [id], or null.

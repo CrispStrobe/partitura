@@ -646,6 +646,15 @@ moat — all repaint-only, no relayout:
   app hides the dragged note and draws its own `ghostTarget` in its place,
   instead of the old "paint it the background colour" trick (which broke on the
   handwritten font / coloured staves). Repaint-only; ids match on either staff.
+- **C10b** `dragPreviewOpacity: double?` — when non-null, the view **owns the
+  live drag**: while an element is dragged it is suppressed from the normal
+  layout and re-painted translated to follow the pointer — the *real* glyph
+  (notehead, stem, accidental, flag, ledgers), snapped vertically to the target
+  line/space (pitch) and free horizontally — faded to this opacity (1.0 =
+  solid). The app needs no `ghostTarget` / `suppressElementIds` bookkeeping for
+  moves; the render object repaints itself on each drag update. null (default)
+  keeps the report-only behavior. On the grand staff the snap follows the
+  pointer's staff.
 - `ScoreEditorController` (a `ChangeNotifier`) is the single source of truth for
   a view's overlay state: `setLoop`/`clearLoop`, `mark`/`unmark`/`setMarks`/
   `clearMarks`, `highlight`/`clearHighlight`. It also drives scroll-to-note on an
