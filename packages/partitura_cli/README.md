@@ -1,8 +1,10 @@
 # partitura_cli
 
 Command-line tool for the [partitura](https://github.com/CrispStrobe/partitura)
-music notation libraries: inspect, convert (MusicXML ↔ MIDI) and render scores
-to SVG — all pure Dart.
+music notation libraries: inspect scores, convert between a dozen formats
+(MusicXML / `.mxl` / MEI / `**kern` / MIDI / MuseScore / the `.gp` tablature
+family / ABC, plus LilyPond export), render to SVG or PNG (notation or tab), and
+recognize sheet-music images (OMR) — all pure Dart (OMR and PNG aside).
 
 ## Usage
 
@@ -14,7 +16,7 @@ dart run partitura_cli:partitura <command> [arguments]
 |---|---|
 | `info <in>` | Summarize a score (clef, meter, sizes, timeline length) |
 | `timeline <in> [--bpm N] [--no-expand]` | Print the playback timeline (repeats/jumps unfolded unless `--no-expand`) |
-| `convert <in> <out>` | Convert between MusicXML and MIDI (formats inferred from the extensions) |
+| `convert <in> <out>` | Convert between any supported pair (formats inferred from the extensions, or `--from`/`--to`) |
 | `render <in> <out.svg> [options]` | Render to SVG (notation, or `--tab` for tablature) |
 | `omr <image> <out> --model <smt.gguf> [--single]` | Optical music recognition: a staff-notation image → score (`.musicxml`/`.mxl`/`.krn`) via the CrispEmbed Sheet Music Transformer |
 

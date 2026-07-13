@@ -48,18 +48,39 @@ InteractiveStaff(
 )
 ```
 
+`MultiSystemView` wraps a long score into width-fitting systems, and
+`InteractiveGrandStaffView` does the same for a two-staff keyboard system —
+both interactive, both with cross-staff onset gridding.
+
+For player / editor apps, a `ScoreEditorController` drives the view imperatively:
+
+```dart
+final controller = ScoreEditorController();
+controller.setLoop('e10', 'e18');                          // loop band
+controller.mark('e5', const EditorMark(Colors.red,        // flag a wrong note
+    message: 'out of key'));
+controller.attachViewport(                                 // app owns the scroll
+    scrollController: myScroll, rectOfElement: () => render.rectOfElement);
+await controller.scrollToNote('e42');                      // reveal a note
+```
+
 ## Feature matrix
 
-| In (v0.3) | Out (planned / never) |
+| In (v0.4-dev) | Out (planned / never) |
 |---|---|
-| Single staff; treble, bass, alto, tenor clefs (+ mid-score changes) | Grand staff / systems (v0.4) |
-| Notes/rests breve–64th, up to 2 dots | Multi-voice (v0.4, in progress) |
-| Accidentals incl. measure memory, cancellation naturals | Line breaking / justification (v0.4) |
-| Key/time signatures −7..+7 incl. mid-score changes | Lyrics, chord symbols (v0.4) |
-| Chords, multi-level beaming, tuplets | MusicXML import/export (v0.5) |
-| Ties, slurs, articulations, dynamics + hairpins, grace notes | Playback cursor API (v0.5; **audio: never**) |
-| Repeats & voltas | Ornaments, multi-measure rests, 8va (v0.6) |
-| Element tap → id, staff tap → `StaffTarget`, ghost drag, kid mode | Transposing instruments, tablature |
+| Single staff, N-staff systems, grand staff; automatic line-breaking + pagination | Page frames / spacers (in progress) |
+| All clefs (treble/bass/alto/tenor + French-violin, soprano, mezzo, baritone, sub-bass, octave variants, percussion) | Physical mm / spatium scaling unit (in progress) |
+| Notes/rests breve–64th, 2 dots, chords, multi-level + feathered beaming, tuplets | **Audio synthesis (never)** |
+| Accidentals incl. measure memory + quarter-tone microtones; non-standard key signatures | |
+| Key/time signatures −7..+7, mid-score changes, additive/composite meters | |
+| Ties (incl. laissez-vibrer), slurs, articulations, ornaments, extended trills, dynamics + hairpins, grace + cue notes | |
+| Skyline collision avoidance; cross-staff onset-column gridding | |
+| Lyrics (elision), figured bass, chord symbols, jazz articulations | |
+| Shape-note / pitch-name / solfège noteheads; note-name & beat-count teaching overlays | |
+| Guitar **tablature** with full techniques | |
+| Repeats, voltas, D.C./D.S./coda navigation; transposing + concert-pitch toggle | |
+| Element tap → id, staff tap → `StaffTarget`, hover caret + ghost drag, marquee selection, kid mode | |
+| Editor overlays (`errorOverlay`, `loopRange`), `rectOfElement` + `ScoreEditorController` | |
 
 ## Notes
 

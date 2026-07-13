@@ -38,14 +38,14 @@ void main() {
 |---|---|
 | Theory | `Pitch` (MIDI, staff positions, transposition, enharmonics), `Interval`, `NoteDuration` + exact `Fraction`, `KeySignature`, `TimeSignature`, `Scale`, `Triad`, `Key` with `HarmonicFunction` (Tonika/Subdominante/Dominante) |
 | Model | `Score` / `Measure` / `NoteElement` / `RestElement`, value equality, `Score.simple` string DSL with auto element ids |
-| Layout | `LayoutEngine` → `ScoreLayout`: flat glyph/line/beam/curve display list + per-element hit regions, all in staff spaces; clefs (treble/bass/alto/tenor + octave variants + percussion), key/time signatures (incl. mid-score changes and common/cut symbols), stems, flags, multi-level + feathered beams, tuplets, ties, slurs, articulations, ornaments, dynamics + hairpins, grace notes, tremolo, ledger lines, accidentals with measure memory, dots, chords, rests, two voices, barlines, repeats, voltas, navigation, lyrics, figured bass |
-| Systems | `layoutStaffSystem` (N-staff systems with brackets), `layoutSystems` (line breaking), `layoutPages` (pagination with margins + vertical justification) |
-| Interchange | MusicXML (+ compressed `.mxl`), MEI, Humdrum `**kern`, MIDI, MuseScore (`.mscx`), `.gp3`–`.gp5`/`.gpx`/`.gp`, GPIF and ABC readers/writers (+ LilyPond `.ly` export), all through the one `Score` model |
+| Layout | `LayoutEngine` → `ScoreLayout`: flat glyph/line/beam/curve display list + per-element hit regions, all in staff spaces; clefs (treble/bass/alto/tenor + French-violin/soprano/mezzo/baritone/sub-bass + octave variants + percussion), key/time signatures (mid-score changes, common/cut, additive/composite meters with metric beam grouping, non-standard `KeySignature.custom`), stems, flags, multi-level + feathered beams, tuplets, ties (incl. laissez-vibrer), slurs, articulations, ornaments + extended trills, dynamics + hairpins, grace + cue notes, tremolo, ledger lines, accidentals with measure memory + quarter-tone microtones, dots, chords, rests, N voices, barlines (incl. tick/short/reverse-final), repeats, voltas, navigation, lyrics (elision), figured bass; notehead schemes (shape-note, pitch-name, solfège); **skyline collision avoidance** |
+| Systems | `layoutStaffSystem` (N-staff systems with brackets), `layoutSystems` (line breaking), `layoutGrandStaffSystems` (wrapped grand staff), `layoutPages` (pagination with margins + vertical justification), and cross-staff onset-column gridding (`alignedColumns` / `gridAlign` — simultaneous notes align vertically across staves) |
+| Interchange | MusicXML (+ compressed `.mxl`), MEI, Humdrum `**kern`, MIDI, MuseScore (`.mscx`/`.mscz`), `.gp3`–`.gp5`/`.gpx`/`.gp`, GPIF and ABC readers/writers (+ LilyPond `.ly` export), all through the one `Score` model — `Slur` and `TupletSpan` round-trip through every note-carrying codec |
 | SMuFL | `SmuflMetadata` (engraving defaults, glyph boxes, stem anchors parsed from a SMuFL font's metadata JSON), glyph-name constants |
 
 Still **out of scope** (see [PLAN.md](../../PLAN.md) for the roadmap):
-full-system skyline collision avoidance, page frames/spacers, voices 3–4,
-microtones (all planned); audio (never).
+page frames/spacers and a physical mm/spatium scaling unit (planned); audio
+(never).
 
 ## WebAssembly
 

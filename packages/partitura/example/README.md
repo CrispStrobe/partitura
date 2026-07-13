@@ -1,17 +1,21 @@
-# partitura_example
+# partitura example
 
-A new Flutter project.
+A small Flutter app demonstrating the [`partitura`](https://pub.dev/packages/partitura)
+notation renderer. Two screens:
 
-## Getting Started
+- **Gallery** (`lib/gallery.dart`) — a scrollable catalogue of rendered scores
+  covering the feature set (clefs, accidentals, chords, beams, tuplets, ties,
+  slurs, articulations, ornaments, dynamics, grace notes, key/time signatures,
+  repeats, grand staff, tablature, …). Handy as a visual reference.
+- **Interactive** (`lib/interactive.dart`) — a place-a-note demo built on
+  `InteractiveStaff`: tap the staff to add a note (quantized to the nearest
+  line/space), tap a note to select/remove it.
 
-This project is a starting point for a Flutter application.
+## Run
 
-A few resources to get you started if this is your first Flutter project:
+```sh
+flutter run            # pick a device; works on macOS, web and iOS
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+The music font loads once at startup (`await Bravura.load()` in `main.dart`)
+before the first frame.

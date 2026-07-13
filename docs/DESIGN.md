@@ -448,6 +448,160 @@ terse is fine. See HANDOVER.md §6.
 - The bracket is a `TextPrimitive` label + dashed `LinePrimitive`s +
   end hook, placed above/below all spanned ink.
 
+## v0.6.5 cross-staff onset-column gridding (2026-07-11)
+
+- The rule every serious engraver enforces: simultaneous notes align
+  vertically across staves. Built as a shared per-measure column model —
+  `alignedColumns(staves, settings)` (in `grand_staff.dart`) maps each
+  onset `Fraction` to an x, gaps spaced by the optical time rule but
+  floored by the *widest ink across all staves* at that column, fed to a
+  new `LayoutEngine.layout(…, forcedColumns:)`. Each staff's single-voice
+  path anchors its heads on the shared columns (`noteXOverride`).
+- Opt-in via `gridAlign` (default true) on `layoutGrandStaff` /
+  `layoutStaffSystem` / `layoutGrandStaffSystems` and their views; a staff
+  that cannot align cleanly falls back to barline-only alignment.
+- The shared column is the **notehead** x, not ink-left: keying on ink-left
+  would let an accidental on only one staff's note at a beat shove that head
+  right and break the vertical line. Instead each element's ink is split
+  into left (accidental) and right (head/stem/dots); columns are spaced so
+  one column's right ink never collides with the next column's left ink, and
+  a lone accidental extends *left* of the shared column while the heads stay
+  aligned.
+- Justification composes rather than fights it: `alignedColumns` takes the
+  binary-searched `spacingStretch`, so the width-fill search scales the
+  shared grid uniformly instead of re-deriving columns per candidate and
+  drifting the staves apart.
+- Landed in four increments (grand staff → N-staff systems → 2–4-voice
+  staves → accidental-aware columns) so each could re-render and pin its
+  own goldens; the multi-voice case gathers onsets from every voice into the
+  one grid.
+
+## v0.6.6 additive / compound beam grouping (2026-07-11)
+
+- `TimeSignature.beamGroups()` returns the metric beam-group lengths
+  (`Fraction`s) for a measure, and the beam engine groups notes by them:
+  an additive meter's `components` (3+2/8 → [3/8, 2/8]), a compound
+  eighth-/sixteenth-unit meter grouped in threes (6/8, 9/8, 12/8),
+  otherwise one group per beat.
+- So 6/8 finally beams in threes instead of falling back to flags, and an
+  additive meter beams by its written components rather than by a fictitious
+  single beat. Simple x/4 meters resolve to one group per beat under the
+  same rule, so no simple-meter golden moved — the change is inert where it
+  should be.
+
+## v0.6.7 notehead schemes (2026-07-11)
+
+- `LayoutSettings.noteheadScheme` chooses a per-pitch notehead by its
+  movable-do scale degree in the current key: `NoteheadScheme.sacredHarp`
+  (four-shape) and `.aikin` (seven-shape) for shape-note singing, plus
+  `.pitchName` (draws the letter C–G in place of the head) and `.solfege`
+  (draws the syllable) as teaching aids — one enum, four schemes.
+- Degree is taken against the key signature, so the shapes shift *with* the
+  key (a key's relative minor shares them) — the whole point of movable-do;
+  a fixed table would defeat it. An explicit per-note `NoteheadShape` still
+  wins over the scheme (the note asked for a specific head). Exposed on the
+  Flutter view as `StaffView.noteheadScheme`.
+
+## v0.6.8 ink-skyline collision avoidance (Phase 1.2, 2026-07-11)
+
+- The real engraving-quality gap, now closed. Every glyph's ink rectangle
+  is recorded as it is placed (`_inkRects`, `(l, t, r, b)`); two helpers,
+  `_skylineTop(xL, xR)` / `_skylineBottom(xL, xR)`, return the highest /
+  lowest ink whose x-range overlaps a column. Every floating pass —
+  accidentals, articulations, dynamics, ornaments, chord diagrams, slurs —
+  now clears only the *actual ink in its own horizontal span*, not the
+  system's global extremes, so a low note elsewhere on the line no longer
+  shoves the chord symbols up or the lyrics down.
+- Pass order is load-bearing: a query sees only ink placed so far, so each
+  pass stacks above the marks already below it. Deliberately kept as a
+  linear scan over the rect list — the column counts are small and it stays
+  bit-for-bit deterministic (no spatial index, no float drift).
+
+## v0.6.9 editor moat — overlays + imperative control (Phase 3.3/3.4/3.8, 2026-07-12)
+
+- Design stance made explicit: **partitura renders, the app drives.** The
+  multi-line and grand-staff views gain repaint-only overlays —
+  `errorOverlay` (`Map<String, EditorMark>`, each mark a `Color` + optional
+  `message`, drawn as the element's ink color plus a small wedge above it),
+  `loopRange` (`(startId, endId)`, a translucent band spanning systems /
+  both staves), and `rectOfElement(id)` geometry on the render object. The
+  `message` is *carried, not drawn* — the app surfaces it from its own
+  `onElementTap` / `onHover` hit, so partitura owns no tooltip UI.
+- `ScoreEditorController` is a `ChangeNotifier` that is the single source of
+  truth for a view's overlay state (`setLoop`/`clearLoop`,
+  `mark`/`unmark`/`setMarks`, `highlight`/…), bound into the views via
+  `AnimatedBuilder`. Crucially it drives an **app-owned** `ScrollController`
+  rather than seizing the viewport: `attachViewport(scrollController:,
+  rectOfElement:)`, then `scrollToNote(id, alignment:)` (or
+  `offsetToReveal(id)` to compute the offset and animate it yourself). The
+  app keeps ownership of scroll physics, focus and coordinate space.
+- Caveat carried forward: a `GrandStaff` auto-numbers its upper and lower
+  staff each from `e0…`, so element ids collide across the two staves —
+  overlay maps and controller calls must disambiguate which staff they mean.
+
+## v0.6.10 interactive grand staff + wrapped systems, contracts C1–C5 (2026-07-11)
+
+- `MultiSystemView` and the new `InteractiveGrandStaffView` reach editor-hook
+  parity: `onStaffTap` / `onElementTap`, `onHover(StaffTarget?)` (null on
+  exit, via a `MouseTrackerAnnotation`), a full-height `EditorCaret`
+  insertion bar, a `ghostTarget` + `ghostDuration` preview notehead, and
+  `onElementDragStart/Update/End`. `StaffTarget` carries `systemIndex` +
+  `staffIndex` (0 upper, 1 lower), so a hit resolves to the exact staff of
+  the exact system on a wrapped, multi-staff score.
+- Range geometry for app-side marquee / shift-click lives on the render
+  objects: `elementRegions` (`(id, Rect bounds, measureIndex)` in local
+  pixels, resolved across systems and both staves) and `elementIdsIn(Rect)`.
+  `InteractiveGrandStaffView` wraps a two-clef `GrandStaff` into
+  width-fitting systems via core `layoutGrandStaffSystems` (packed by the
+  wider of the two staves so barlines stay aligned).
+
+## v0.6.11 OMR — three engines through one command (2026-07-12)
+
+- `partitura omr` routes three CrispEmbed engines, auto-selected by dialect
+  (`omrDialectOf` → `OmrDialect`): SMT `bekern` → grand staff, Polyphonic-
+  TrOMR semantic → polyphonic staff, Flova simple-notes LilyPond
+  (`scoreFromLilyNotes`) → handwritten single staff. `--page` splits a
+  full-page scan into systems first (`segmentStaffSystems`, a pure-Dart
+  horizontal-projection band splitter) and concatenates them; `--model
+  <name>` auto-downloads the GGUF from Hugging Face by name and caches it.
+- Division of labour is the point: token→score parsing stays **pure Dart**
+  (testable without a model, web-safe, deterministic), and only the
+  recognition engine is FFI. The whole pipeline is re-exported as
+  `package:partitura_cli/omr.dart`, so any Dart program where `dart:ffi`
+  works can drive OMR — the CLI and Flutter desktop alike — not just the
+  CLI binary. Web stays out of reach (no `dart:ffi`).
+
+## v0.6.12 tablature technique depth (Phase 6.4, 2026-07-12)
+
+- No new model where the notation model already carries the data: tab
+  ornaments (trill/mordent/turn) and articulations (staccato/accent/
+  marcato/tenuto/fermata) reuse `NoteElement.ornament` / `.articulations`,
+  drawn above the fret by the tab engine — the same fields the notation
+  engine reads.
+- What notation genuinely lacks becomes per-note-id `Score` lists, each keyed
+  by note id and ignored by the standard-notation engine so one score renders
+  correctly both ways: `Rasgueado` (downward strum arrow), right-hand p-i-m-a
+  fingering (`TabFingering` + `RightHandFinger`), `SlapPop`, `TremoloPicking`,
+  plus bends / whammy / slides / strum / portamento.
+
+## v0.6.13 microtones, non-standard keys, extra clefs (2026-07-12)
+
+- `Pitch.microtone` (an optional `MicrotonalAccidental` — half / three-quarter
+  sharp/flat, ±50 / ±150 cents) draws the Stein-Zimmermann quarter-tone
+  glyphs and *always* shows (a quarter tone is never implied by the key
+  signature). The integer `alter` and MIDI number are unchanged, so it is
+  fully additive; `centsOffset` exposes the tuning for pitch-bend playback.
+  Contract change: the prior "microtonal out" boundary is lifted.
+- `KeySignature.custom([KeyAccidental(step, alter), …])` expresses
+  modal / atonal signatures the circle of fifths cannot (a mixed B♭ + F♯, a
+  non-traditional order). It drives both the drawn signature and
+  note-accidental suppression, and is left *as written* under transposition —
+  it has no tonic to move (the notes still transpose).
+- Five more `Clef` values as C/G/F clefs on non-default lines —
+  `frenchViolin`, `soprano`, `mezzoSoprano`, `baritone`, `subbass`. All staff
+  arithmetic already flows from the clef's reference line, so each is a table
+  entry rather than a code path.
+
 ## Blockers
 
 (none)

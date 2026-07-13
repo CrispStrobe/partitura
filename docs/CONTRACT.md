@@ -50,7 +50,7 @@ Changing any of them is a breaking change:
 |---|---|
 | `Step` | 7 diatonic letters, `semitonesFromC` |
 | `Pitch` | `midiNumber`, `diatonicIndex`, `staffPosition(clef)`, `transposeBy(interval, descending:)` (diatonic spelling; throws `ArgumentError` beyond double alterations), `isEnharmonicWith`, `Pitch.parse('f#3')` |
-| `Clef` | `treble`, `bass`, `alto`, `tenor`; `pitchAt(staffPosition)`, `bottomLineDiatonicIndex` |
+| `Clef` | `treble`, `bass`, `alto`, `tenor`, octave clefs (`treble8va`/`treble8vb`/`bass8vb`), the C/F positions `frenchViolin`/`soprano`/`mezzoSoprano`/`baritone`/`subbass`, and neutral `percussion`; `pitchAt(staffPosition)`, `bottomLineDiatonicIndex` |
 | `Interval` | quality d/m/P/M/A × number 1–8 (class-checked by assert); 15 named constants; `semitones`; order-insensitive `Interval.between(a, b)` ≤ one octave (throws if unnameable) |
 | `NoteDuration` | base breve/whole…sixty-fourth × 0–2 dots; exact `(int, int) fraction` and `toFraction()` (breve = 2/1) |
 | `Fraction` | exact, always reduced, sign on the numerator; `+ − × < ≤ > ≥ compareTo toDouble`; equal values are `==` and hash equally |
@@ -241,10 +241,63 @@ stem and any articulation/ornament ink) · arpeggio as a vertical wavy line
 (tiled `wiggleArpeggiatoUp`) just left of the chord, capped by an up/down
 direction arrowhead · glissando as a straight line between two noteheads ·
 tremolo strokes (`tremolo1`…`tremolo5`) centered on the stem · sustain-pedal
-"Ped."/release-star marks below the staff.
+"Ped."/release-star marks below the staff · quarter-tone **microtonal
+accidentals** (`Pitch.microtone` → `MicrotonalAccidental`: half/three-quarter
+sharp/flat, ±50/±150 cents) drawn with the Stein-Zimmermann glyphs and always
+shown (never implied by the key), remappable via
+`LayoutSettings.microtonalGlyphs` · **notehead schemes**
+(`LayoutSettings.noteheadScheme`: `NoteheadScheme.sacredHarp` four-shape,
+`.aikin` seven-shape, `.pitchName` letter, `.solfege` movable-do syllable —
+the shape/label chosen per pitch by its scale degree in the current key; an
+explicit `NoteheadShape` still wins) · **cue / small notes** (`Score.cueNoteIds`
+— notehead, stem, flag and augmentation dots at 0.72×) · **extended trills**
+(`TrillExtension(startId, endId)` — a `tr` glyph over the start note then a
+tiled `wiggleTrill` wavy line to the end of the trilled span) · **laissez-vibrer
+ties** (`LaissezVibrer(noteId, {down})` — a short trailing tie off each notehead
+with no destination) · **lyric elision / synalepha** (`Lyric.elidesToNext` — an
+undertie bridging two syllables sung on one note) · **figured-bass** slashed
+figures (trailing `\` → the raised-digit glyph) and continuation/extension lines
+(`_` row) — with theory helpers `figuredChordPitchClasses(bass, figure, key)`
+and `realizeFiguredBass(pairs, key)` (four-part SATB realization) · **jazz
+articulations** lift/flip/smear/bend (`JazzArticulation`, brass glyphs,
+render-only) alongside scoop/doit/fall/plop · **tick / short /
+reverse-final barlines** (`BarlineStyle.tick`/`.short`/`.reverseFinal`) ·
+**additive / compound metric beam grouping** (`TimeSignature.beamGroups()` — 6/8,
+9/8, 12/8 beam in threes; `3+2/8` beams by its components; simple meters
+unchanged) · **non-standard key signatures** (`KeySignature.custom` — each
+accidental placed at its own step, with mid-score cancellation naturals
+generalized to custom keys) · **French violin / soprano / mezzo-soprano /
+baritone / sub-bass** C- and F-clef positions and the neutral percussion clef
+(on-staff key signatures derived by fifth-stacking where no hand-tuned table
+exists) · **two-to-four voices per staff** (`_layoutMultiVoiceMeasure`: odd
+voices 1/3 stem up, even 2/4 down; onsets share columns; rests stagger away from
+the centre per voice; a colliding second/unison shifts rightward; a clear
+column's accidentals share one block) · **per-column skyline collision
+avoidance** — accidentals, articulations, dynamics, ornaments, annotations,
+lyrics, navigation marks, figured bass and chord diagrams clear only the ink in
+their own horizontal span (passes run notes → ties → slurs → … → text, each
+later mark clearing earlier ink), and slurs arch above the full local interior
+skyline, not just the spanned noteheads · **palm-mute / let-ring / vibrato on
+the notation staff** (`PalmMute`/`LetRing` as a "P.M."/"let ring" dashed bracket,
+`Vibrato` as a wavy line above the note — previously tab-only).
 
 Caveat: interaction quantization (`StaffTarget.pitchFor`) takes an
 explicit clef — apps using mid-score clef changes must map per measure.
+
+### Systems & cross-staff onset-column gridding
+
+Simultaneous notes align vertically across the staves of a system — the rule
+serious engravers enforce. Core `alignedColumns(staves, settings)` builds a
+shared per-measure column table (onset → x), splitting each element's ink into a
+left (accidental) and right (notehead/stem/dots) part so a column's right ink
+never collides with the next column's left ink and the noteheads themselves line
+up even when only some carry an accidental at that beat. It is fed to the
+single-voice path via `LayoutEngine.layout(..., forcedColumns:)` (and, for
+multi-voice staves, `_layoutMultiVoiceMeasure` honours the shared columns).
+`layoutGrandStaff` / `layoutGrandStaffSystems` / `layoutStaffSystem` take a
+`gridAlign` flag (default true) to enable it across a grand staff or an N-staff
+ensemble system; it is accidental-aware and composes with justification (the
+`spacingStretch` scales the shared columns rather than fighting them).
 
 **Guitar/bass tablature** (v0.8, in progress): `TabLayoutEngine.layout(score,
 tuning, settings)` renders a `Score`'s pitches as fret numbers on an N-line
@@ -279,15 +332,26 @@ note on a shared row above the staff — the lead-sheet convention — rendered 
 `Score.taps` (`Tap(noteId)` — a "T" above the
 fret) and `Score.tremoloBars` (`TremoloBar(noteId, {steps})` — a whammy-bar V
 with the dip amount, a system separate from string bends) add tapping and
-tremolo-bar. Still to come: artificial / pinch harmonics…
+tremolo-bar. `TabNoteStyle` also covers `artificialHarmonic` / `pinchHarmonic`
+(angle-bracketed fret + an "A.H."/"P.H." label). The tab engine additionally
+draws **grace notes** (small fret digits with a legato arc; acciaccatura slash
+per `GraceStyle`), **ornaments and articulations** (reusing
+`NoteElement.ornament` / `.articulations` above the fret), **rasgueado**
+(`Score.rasgueados` — `Rasgueado(noteId)`, a downward strum arrow), **right-hand
+p-i-m-a fingering** (`Score.tabFingerings` — `TabFingering(noteId,
+RightHandFinger)`, the letter below the fret), **slap / pop**
+(`Score.slapPops` — `SlapPop(noteId, …)`, "S"/"P" above), and **tremolo
+picking** (`Score.tremoloPickings` — `TremoloPicking(noteId)`, stacked slashes).
 *(This lifts the former "tablature out" clause — a consumer requested it.)*
 
-**Not implemented (v0.x non-goals)**: multi-voice collision avoidance,
-cross-staff beaming, audio (never),
-transposing instruments, compound-meter beam grouping (x/8
-meters render flags). Alto/tenor clefs shipped in v0.2; slurs/ties,
-tuplets, grace notes, articulations and dynamics in v0.3; two voices,
-grand staff, line breaking, lyrics and chord symbols/annotations in
+**Now in scope** (formerly non-goals): per-column skyline collision avoidance,
+voices 3–4 per staff, quarter-tone microtones, cross-staff (grand-staff)
+beaming, transposing instruments, and compound/additive-meter beam grouping all
+ship. **Still in progress**: page frames / spacers and a physical mm/spatium
+unit (layout is in staff spaces). **Never**: audio (finer just-intonation ratios
+and full non-Western theory also remain out). Alto/tenor clefs shipped in v0.2;
+slurs/ties, tuplets, grace notes, articulations and dynamics in v0.3; two
+voices, grand staff, line breaking, lyrics and chord symbols/annotations in
 v0.4.
 
 ## 5b. MusicXML import & export (`partitura_core`)
@@ -389,11 +453,12 @@ techniques), validated against the alphaTab `.gp5` corpus.
 `scoreToMscx(score, {partName})` / `scoreFromMscx(mscx, {staffIndex})` write and
 read a MuseScore-4 `.mscx` document — a **subset** (clef with mid-score changes,
 key/time signatures, measures, notes/chords, rests, durations breve…64th with
-dots, two voices, ties, pickup measures), pure Dart. Pitch spelling round-trips
-through the MuseScore tonal-pitch-class (`tpcOf`), so enharmonics are preserved.
-Common/cut time degrades to numeric; slurs, tuplets, articulations, lyrics,
-dynamics, ornaments, grace notes and repeat/navigation structure are out of
-scope. The reader also accepts the shapes real MuseScore 3/4 files use for the
+dots, up to four voices, ties, pickup measures, articulations, ornaments, and —
+via the location-based `<Spanner>` — **slurs** (`<Spanner type="Slur">`, paired
+positionally on read) and **tuplets** (`<Tuplet>`/`<endTuplet>`)), pure Dart.
+Pitch spelling round-trips through the MuseScore tonal-pitch-class (`tpcOf`), so
+enharmonics are preserved. Common/cut time degrades to numeric; lyrics,
+dynamics, grace notes and repeat/navigation structure are out of scope. The reader also accepts the shapes real MuseScore 3/4 files use for the
 supported subset (`<KeySig>` as `concertKey`/`accidental`/`subtype`,
 whole-measure `durationType>measure` rests). The `.mscz` container is a ZIP of
 the `.mscx`, read/written by `readMscxFromMscz` / `writeMsczFromMscx` — pure
@@ -410,8 +475,9 @@ shared `Score` model.
 additive, measures, notes/chords, rests, durations breve…64th with dots, two
 voices as `<layer>`s, ties, pickup via `@metcon="false"`), pure Dart. Pitch
 spelling round-trips through gestural accidentals (`@accid.ges`), so enharmonics
-are preserved; written accidentals (`@accid`) map to `showAccidental`. Slurs,
-tuplets, articulations, lyrics and dynamics are out of scope.
+are preserved; written accidentals (`@accid`) map to `showAccidental`. Slurs
+(`<slur>`), tuplets (`<tuplet>`), articulations and ornaments round-trip;
+lyrics and dynamics are out of scope.
 
 ### Humdrum `**kern` (`.krn`) import & export
 
@@ -419,8 +485,9 @@ tuplets, articulations, lyrics and dynamics are out of scope.
 `**kern` document — a **subset** (clef with mid-score changes, key/time incl.
 common/cut and additive, measures, notes/chords, rests, durations breve…64th
 with dots, ties), pure Dart. Enharmonic spelling and natural courtesy
-accidentals round-trip; a short first measure is read back as a pickup. Two
-voices, slurs, tuplets and lyrics are out of scope.
+accidentals round-trip; a short first measure is read back as a pickup. Slurs
+(`(`/`)`), tuplets (reciprocals), articulations and ornaments round-trip; two
+voices and lyrics are out of scope.
 
 ### LilyPond (`.ly`) export
 
@@ -469,10 +536,15 @@ export rides the Flutter renderer — see the `partitura` package.)*
   cached, single-flight; failures are not cached and retry). Apps should
   `await` it in `main()`; otherwise the first `StaffView` frame is empty
   and the widget self-heals when the load completes.
-- `StaffView(score, theme, staffSpace, highlightedIds, onElementTap)` —
-  a `LeafRenderObjectWidget`. `staffSpace` = px per staff space; `null`
-  fits the available width. Glyphs paint via `TextPainter`
-  (baseline-anchored, font size = 4 × staff space).
+- `StaffView(score, theme, staffSpace, highlightedIds, elementColors,
+  onElementTap, noteheadScheme, showNoteNames, showBeatNumbers,
+  showMeasureNumbers)` — a `LeafRenderObjectWidget`. `staffSpace` = px per staff
+  space; `null` fits the available width. Glyphs paint via `TextPainter`
+  (baseline-anchored, font size = 4 × staff space). `noteheadScheme` selects the
+  shape-note / pitch-name / solfège heads; `showNoteNames` draws each note's
+  letter below it and `showBeatNumbers` the counting overlay above — teaching
+  overlays that also render through the SVG back-end. `elementColors` is a
+  repaint-only per-id color map that mirrors `highlightedIds`.
 - `PartituraTheme` — `staffColor` (furniture), `noteColor` (element ink),
   `highlightColor` (wins over everything), `elementColors` per-id
   overrides, `kidMode`/`hitSlop`/`lineBoost`, `textFontFamily` for
@@ -495,6 +567,12 @@ export rides the Flutter renderer — see the `partitura` package.)*
   dropped; non-final systems justified via uniform spacing stretch; thin
   closing barline on continuing systems, `barlineFinal` only at the
   end). `staffSpace` is fixed here — the width budget drives breaking.
+- `InteractiveGrandStaffView(grandStaff, …)` is the grand-staff counterpart:
+  it wraps a two-clef `GrandStaff` into width-fitting systems (core
+  `layoutGrandStaffSystems`), bracing and barline-connecting each system, with
+  `gridAlign`/`justify` shared across both staves. Element and empty-staff taps
+  resolve on both staves (the `StaffTarget` carries `systemIndex` and
+  `staffIndex`, 0 = upper), plus hover / caret / ghost / drag editor hooks.
 - `RenderStaffView` is public as the geometry service: `scoreLayout`,
   `scale`, `localToStaff`/`staffToLocal`, `elementIdAt`,
   `quantizeStaffPosition`, `ghostNote`.
@@ -522,6 +600,34 @@ onStaffTap, showGhostNote, ghostDuration)`:
   the pointer and vanishes on release.
 - Selection is app state: pass `highlightedIds` down; partitura never
   stores a selection.
+
+### Editor surface (the multi-line and grand-staff views)
+
+`MultiSystemView` and `InteractiveGrandStaffView` add the app-owned editing
+moat — all repaint-only, no relayout:
+
+- `errorOverlay: Map<String, EditorMark>` — draws the flagged note in the mark's
+  `color` (with a small wedge above its staff) for assessment / ear-training /
+  proofreading; `EditorMark(color, {message})` carries an optional
+  app-surfaced message (not drawn).
+- `loopRange: (String startId, String endId)?` — a translucent loop / selection
+  band spanning the range across systems (and both staves on the grand staff).
+- `rectOfElement(id) -> Rect?` on the render object — the local pixel rect of any
+  element, for scroll-to-note geometry; `elementRegions`
+  (`(id, Rect bounds, measureIndex)` across systems / both staves) and
+  `elementIdsIn(Rect)` back marquee / shift-click range selection.
+- Desktop placement: `onHover(StaffTarget?)`, a `caret` (`EditorCaret`, a
+  full-height insertion bar) and a `ghostTarget` + `ghostDuration` preview
+  notehead; element drag hooks `onElementDragStart(id)` /
+  `onElementDragUpdate(id, target)` / `onElementDragEnd(id, target)` report a
+  drag on an existing element (partitura only reports; the app rebuilds the
+  score). `StaffTarget` carries `systemIndex` + `staffIndex`.
+- `ScoreEditorController` (a `ChangeNotifier`) is the single source of truth for
+  a view's overlay state: `setLoop`/`clearLoop`, `mark`/`unmark`/`setMarks`/
+  `clearMarks`, `highlight`/`clearHighlight`. It also drives scroll-to-note on an
+  **app-owned** `ScrollController` — `attachViewport(scrollController:,
+  rectOfElement:)`, then `scrollToNote(id, {alignment})` (or `offsetToReveal(id)`
+  to compute the offset and animate yourself).
 
 ## 8. Guarantees
 
