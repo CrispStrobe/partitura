@@ -23,6 +23,12 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-13)
 
+> 🚧 **Actively working on (Phase 4.4 tail):** extended-chord identification
+> (9 / 11 / 13, add9, 6/9) plus **augmented-sixth** recognition (It / Fr / Ger,
+> spelling-aware so a German 6th isn't misread as a dominant 7th) in
+> `chord_analysis.dart`. Pure core, unit-tested. Worktree `partitura-tab`, branch
+> `feat/chord-id-extended`.
+
 > **No active claim on this worktree — safe to pick up.** The editor-moat thread
 > is complete and on public `main`: Phase 3.3/3.4 overlays (`errorOverlay`,
 > `loopRange`) + 3.8 `ScoreEditorController` (`rectOfElement`/scroll-to-note),
