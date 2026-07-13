@@ -91,6 +91,33 @@ void main() {
       expect(left(layout.upper, 'e3'), closeTo(left(layout.lower, 'e2'), 0.01));
     });
 
+    test('multi-voice staves join the cross-staff grid (§2.9 increment 3)', () {
+      // Upper staff has two voices (four quarters + two halves); lower is a
+      // half then two quarters. Beat 3 (onset 1/2) exists in both upper voices
+      // and the lower staff — all three must line up.
+      final layout = layoutGrandStaff(
+        demo(upper: 'c5:q d5 e5 f5 ; g4:h a4:h', lower: 'c3:h e3:q g3:q'),
+        settings,
+      );
+      double noteX(ScoreLayout staff, String id) => staff.primitives
+          .whereType<GlyphPrimitive>()
+          .firstWhere(
+              (g) => g.elementId == id && g.smuflName.startsWith('notehead'))
+          .position
+          .x;
+
+      // Ids count across voices: voice 1 = e0..e3, voice 2 = e4,e5.
+      // Beat 3 (onset 1/2): upper voice-1 e5 (id e2) over lower e3 (id e1).
+      expect(noteX(layout.upper, 'e2'),
+          closeTo(noteX(layout.lower, 'e1'), 0.01));
+      // Upper voice-2's second half note (a4, id e5) shares that column too.
+      expect(noteX(layout.upper, 'e5'),
+          closeTo(noteX(layout.upper, 'e2'), 0.01));
+      // Barlines still align.
+      expect(layout.upper.measureRegions[0].endX,
+          closeTo(layout.lower.measureRegions[0].endX, 1e-6));
+    });
+
     test('gridAlign: false restores independent (barline-only) spacing', () {
       // The lower half note is NOT under the upper's beat 1 the same way; the
       // point here is just that turning gridding off still aligns barlines.

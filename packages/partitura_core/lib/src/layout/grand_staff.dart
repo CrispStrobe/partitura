@@ -34,19 +34,26 @@ List<Map<Fraction, double>> alignedColumns(
   final measureCount = staves.first.measures.length;
   final result = <Map<Fraction, double>>[];
   for (var m = 0; m < measureCount; m++) {
-    // The widest element ink at each onset, across all staves.
+    // The widest element ink at each onset, across all staves and all their
+    // voices (voice 0 carries any tuplet adjustment; other voices use raw
+    // durations, matching the engine's multi-voice onset arithmetic).
     final inkAt = <Fraction, double>{};
     var measureEnd = Fraction.zero;
     for (var si = 0; si < staves.length; si++) {
       final measure = staves[si].measures[m];
-      var onset = Fraction.zero;
-      for (var i = 0; i < measure.elements.length; i++) {
-        final id = measure.elements[i].id;
-        final width = (id == null ? null : widthById[si][id]) ?? 1.0;
-        inkAt[onset] = max(inkAt[onset] ?? 0.0, width);
-        onset += measure.effectiveDurationAt(i);
+      final voices = measure.voices;
+      for (var v = 0; v < voices.length; v++) {
+        var onset = Fraction.zero;
+        for (var i = 0; i < voices[v].length; i++) {
+          final id = voices[v][i].id;
+          final width = (id == null ? null : widthById[si][id]) ?? 1.0;
+          inkAt[onset] = max(inkAt[onset] ?? 0.0, width);
+          onset += v == 0
+              ? measure.effectiveDurationAt(i)
+              : voices[v][i].duration.toFraction();
+        }
+        if (onset > measureEnd) measureEnd = onset;
       }
-      if (onset > measureEnd) measureEnd = onset;
     }
 
     final onsets = inkAt.keys.toList()..sort((a, b) => a.compareTo(b));
@@ -254,13 +261,8 @@ GrandStaffLayout layoutGrandStaff(
     }
   }
 
-  // §2.9: align simultaneous notes across the two staves. Single-voice only;
-  // a staff with 2+ voices falls back to shared measure widths (barlines still
-  // align, onsets do not yet).
-  final canGrid = gridAlign &&
-      grandStaff.upper.measures.every((m) => m.voices.length == 1) &&
-      grandStaff.lower.measures.every((m) => m.voices.length == 1);
-  final columns = canGrid
+  // §2.9: align simultaneous notes across the two staves (all voices).
+  final columns = gridAlign
       ? alignedColumns([grandStaff.upper, grandStaff.lower], settings,
           spacingStretch: spacingStretch)
       : null;

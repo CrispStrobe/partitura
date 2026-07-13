@@ -2,6 +2,12 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Cross-staff gridding — multi-voice staves** (§2.9, increment 3): a staff
+  with two-to-four voices now joins the shared column grid too. `alignedColumns`
+  gathers onsets from every voice, `_layoutMultiVoiceMeasure` honours the shared
+  `forcedColumns`, and the grand-staff / N-staff layouts drop their single-voice
+  guard — so e.g. a two-voice piano hand aligns with the other staff. Fully
+  additive (no golden changed).
 - **Cross-staff gridding — N-staff systems** (§2.9, increment 2):
   `layoutStaffSystem` / `StaffSystemView` now grid-align simultaneous notes
   across every staff of an ensemble system (SATB, orchestral), reusing the same

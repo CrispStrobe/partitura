@@ -674,7 +674,7 @@ class _LayoutBuilder {
       return;
     }
     if (measure.voices.length > 1) {
-      _layoutMultiVoiceMeasure(measure);
+      _layoutMultiVoiceMeasure(measure, measureIndex);
       return;
     }
     final groups = _computeBeamGroups(
@@ -771,9 +771,14 @@ class _LayoutBuilder {
   /// placed in the column is shifted rightward. When every sounding note in a
   /// column clears the others, their accidentals share one column block and the
   /// heads align behind it.
-  void _layoutMultiVoiceMeasure(Measure measure) {
+  void _layoutMultiVoiceMeasure(Measure measure, int measureIndex) {
     final voices = measure.voices;
     final n = voices.length;
+    // §2.9: shared cross-staff column table (onset → x from measure start).
+    final forced = forcedColumns != null && measureIndex < forcedColumns!.length
+        ? forcedColumns![measureIndex]
+        : null;
+    final measureContentStart = _x;
     Fraction effectiveAt(int voice, int index) => voice == 0
         ? measure.effectiveDurationAt(index)
         : voices[voice][index].duration.toFraction();
@@ -824,6 +829,10 @@ class _LayoutBuilder {
 
     for (var c = 0; c < distinct.length; c++) {
       final onset = distinct[c];
+      // Force this column onto the shared cross-staff grid when supplied.
+      if (forced != null && forced[onset] != null) {
+        _x = measureContentStart + forced[onset]!;
+      }
       final columnX = _x;
       final nextOnset = c + 1 < distinct.length ? distinct[c + 1] : measureEnd;
       final delta = nextOnset - onset;
@@ -952,6 +961,11 @@ class _LayoutBuilder {
         }
       }
       _x = max(idealEnd, inkRight + s.minNoteGap);
+    }
+
+    // The shared measure-end column fixes the trailing width so barlines align.
+    if (forced != null && forced[measureEnd] != null) {
+      _x = max(_x, measureContentStart + forced[measureEnd]!);
     }
 
     for (var v = 0; v < n; v++) {

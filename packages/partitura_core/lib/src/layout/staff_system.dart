@@ -170,12 +170,9 @@ StaffSystemLayout layoutStaffSystem(
     leading = _max(leading, leadingOf(l));
   }
 
-  // §2.9: align simultaneous notes across every staff of the system, when they
-  // are all single-voice; otherwise fall back to shared measure widths
-  // (barlines align, onsets not yet).
-  final canGrid = gridAlign &&
-      system.staves.every((s) => s.measures.every((m) => m.voices.length == 1));
-  final columns = canGrid ? alignedColumns(system.staves, settings) : null;
+  // §2.9: align simultaneous notes across every staff of the system (all
+  // voices).
+  final columns = gridAlign ? alignedColumns(system.staves, settings) : null;
 
   final measureWidths = columns != null
       ? null
