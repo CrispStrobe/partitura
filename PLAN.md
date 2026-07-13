@@ -557,6 +557,8 @@ pitch → (string, fret) assignment. Also requires lifting the current
       fret + "A.H."/"P.H." label) — golden 63. **Left:** tremolo picking, grace
       notes, trill, staccato/accent, slap/pop, fingering, rasgueado, and the
       rest of the checklist.
+      *[🚧 in progress: parallel agent — right-hand fingering, slap/pop, tremolo
+      picking (model + tab_layout); tab-only]*
 - [x] **6.5 Tunings & other fretted instruments** — preset `Tuning`s for
       DADGAD, open-G, 7- and 8-string guitar, 5-string bass, 5-string banjo
       (reentrant high-G drone), ukulele (reentrant high-G) and mandolin, on top
