@@ -32,10 +32,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dart-lang/setup-dart@v1
+      # Flutter bundles the Dart SDK. The pub *workspace* includes the Flutter
+      # `partitura` package, so resolving any member needs Flutter present —
+      # even though the CLI itself is pure Dart and compiles with `dart`.
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
 
       - name: Resolve dependencies
-        run: dart pub get
+        run: flutter pub get
 
       - name: Compile CLI (pure Dart)
         shell: bash
