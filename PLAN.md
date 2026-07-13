@@ -23,19 +23,22 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-13)
 
-> **HANDOFF — `partitura-public-lacunae` has no active claim; safe to pick up.**
-> Just landed from this worktree: **Phase 3.1** instrument visualizers
-> (`PianoKeyboardView` golden 119 + `FretboardView` golden 120), **3.7**
-> play-the-right-note drills (`evaluateDrill` / `showDrill`), and the **3.8** tail
-> (`soundingPitches` set-visualizer + part-visibility toggle) — 3.8 complete.
-> Earlier: editor moat 3.3/3.4 + `ScoreEditorController`, the full **Workshop
-> contract set C1–C9**, and the **v0.4.0 release** (CLI + Android APK + WASM).
+> 🚧 **Actively working on (Phase 2.3 — hide empty staves):** a
+> `hideEmptyStaves` option on `layoutStaffSystem` / `StaffSystemView` that omits
+> staves whose measures are entirely rests in this system (keeping ≥1),
+> remapping the brackets to the visible subset. Self-contained; core + view +
+> golden. Worktree `partitura-tab`, branch `feat/hide-empty-staves`.
+
+> 🚧 **Actively working on (Phase 3.5 — warped-time cursor):** a core `TempoMap`
+> (piecewise-constant tempo → seconds↔musical-time, extending `secondsFor`) and
+> `SyncPoints` (app-supplied `(musical time, wall seconds)` anchors, linearly
+> interpolated — follow a live / slowed performance), plus a `Tempo.quarterBpm`
+> normalization. Pure core, unit-tested. Worktree `partitura-public-lacunae`.
 >
-> **Next up** (claim with 🚧, push origin/main at every checkpoint): remaining
-> Phase 3 items **3.5** warped-time cursor, **3.6** live-transposition UI, **3.9**
-> accessibility `Semantics`; or a Phase 4/5/6 tail from the section lists below.
-> pub.dev publishing is the maintainer's call (both libs 0-warning) — see the
-> README Install section.
+> *(Done from this worktree and on `main`: Phase 3.1 visualizers, 3.7 drills, 3.8
+> complete; editor moat 3.3/3.4 + `ScoreEditorController`; Workshop C1–C9; the
+> v0.4.0 release. Still open after 3.5: 3.6 live-transposition UI, 3.9
+> accessibility `Semantics`, and Phase 4/5/6 tails.)*
 
 
 
