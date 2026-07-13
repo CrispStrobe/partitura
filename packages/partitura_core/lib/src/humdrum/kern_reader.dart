@@ -87,15 +87,22 @@ StaffSystem staffSystemFromKern(String kern) {
 Score _spineScore(List<String> lines, int column) =>
     _KernReader(lines, spineColumn: column, idPrefix: 's${column}e').read();
 
-/// The tab-column indices that carry a `**kern` exclusive interpretation, taken
-/// from the first record that declares any. Empty when the document has none.
+/// Whether [interp] is a kern-family exclusive interpretation — plain `**kern`
+/// or extended `**ekern` (the encoding SMT optical music recognition emits,
+/// e.g. `**ekern_1.0`).
+bool _isKernSpine(String interp) =>
+    interp == '**kern' || interp.startsWith('**ekern');
+
+/// The tab-column indices that carry a kern-family exclusive interpretation,
+/// taken from the first record that declares any. Empty when the document has
+/// none.
 List<int> _kernSpineColumns(List<String> lines) {
   for (final raw in lines) {
     final cols = raw.trimRight().split('\t');
-    if (!cols.contains('**kern')) continue;
+    if (!cols.any(_isKernSpine)) continue;
     return [
       for (var i = 0; i < cols.length; i++)
-        if (cols[i] == '**kern') i,
+        if (_isKernSpine(cols[i])) i,
     ];
   }
   return const [];

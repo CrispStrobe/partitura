@@ -81,4 +81,34 @@ void main() {
     expect(score.clef, Clef.treble);
     expect(score.measures.expand((Measure m) => m.elements).length, 2);
   });
+
+  group('extended kern (**ekern) spines', () {
+    // The SMT GrandStaff model emits `**ekern_1.0`, not plain `**kern`.
+    const ekern = '**ekern_1.0\t**ekern_1.0\n'
+        '*clefF4\t*clefG2\n'
+        '*k[b-]\t*k[b-]\n'
+        '*M2/4\t*M2/4\n'
+        '4C\t4c\n'
+        '=\t=\n'
+        '*-\t*-';
+
+    test('grandStaffFromKern reads **ekern headers natively', () {
+      final gs = grandStaffFromKern(ekern);
+      expect(gs.upper.clef, Clef.treble);
+      expect(gs.lower.clef, Clef.bass);
+    });
+
+    test('bekernToGrandStaff round-trips **ekern output to MusicXML', () {
+      // Reconstruct the same document from bekern tokens.
+      const bekern = '**ekern_1.0 <t> **ekern_1.0 <b> '
+          '*clefF4 <t> *clefG2 <b> '
+          '*k[b-] <t> *k[b-] <b> '
+          '*M2/4 <t> *M2/4 <b> '
+          '4 C <t> 4 c <b> = <t> = <b> *- <t> *-';
+      final gs = bekernToGrandStaff(bekern);
+      expect(gs.upper.clef, Clef.treble);
+      expect(gs.lower.clef, Clef.bass);
+      expect(grandStaffToMusicXml(gs), contains('<part '));
+    });
+  });
 }

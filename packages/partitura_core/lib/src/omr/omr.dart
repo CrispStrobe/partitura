@@ -82,9 +82,10 @@ StaffSystem bekernToStaffSystem(String bekern) =>
 /// spine count. A document that already declares its spines is returned as-is.
 String _ensureKernHeaders(String kern) {
   final lines = kern.split('\n');
-  final hasExclusive = lines.any((l) => l.trimRight().split('\t').contains(
-        '**kern',
-      ));
+  final hasExclusive = lines.any((l) => l
+      .trimRight()
+      .split('\t')
+      .any((c) => c == '**kern' || c.startsWith('**ekern')));
   if (hasExclusive) return kern;
   var spines = 1;
   for (final l in lines) {
