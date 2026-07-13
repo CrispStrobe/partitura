@@ -2,6 +2,9 @@
 
 ## 0.4.1-dev.1 (in progress)
 
+- **`NotationTabView`** (Phase 6.3): renders a `Score` as a notation staff over
+  a tab staff of the same music, barlines aligned and joined by connectors
+  across the gap — the standard guitar/bass score layout. Golden 118.
 - **Tab Tier-3 tail** (Phase 6.4, fully completes 6.4): `TabStaffView` now
   renders tapped/semi/feedback harmonics, named rasgueado patterns
   (`Rasgueado.pattern`), golpe (`Golpe`), wah open/close (`Wah`), and fade-in/out

@@ -2513,4 +2513,36 @@ void main() {
       Tuning.standardGuitar,
     );
   });
+
+  testWidgets('118 notation staff paired with tab (Phase 6.3)', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Colors.white,
+          body: Center(
+            child: RepaintBoundary(
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(12),
+                child: NotationTabView(
+                  score: Score.simple(
+                    timeSignature: TimeSignature.fourFour,
+                    notes: 'e3:q g3 c4 e4 | d4:q b3 g3 d3 | c4:h e4:h',
+                  ),
+                  tuning: Tuning.standardGuitar,
+                  staffSpace: 12,
+                  theme: const PartituraTheme(textFontFamily: 'Roboto'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await expectLater(
+      find.byType(RepaintBoundary).last,
+      matchesGoldenFile('goldens/118_notation_tab_pair.png'),
+    );
+  });
 }

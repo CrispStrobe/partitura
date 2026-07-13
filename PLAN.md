@@ -49,13 +49,6 @@ ships* at the end for the mechanics.
 > pub.dev (both libs 0-warning) is the maintainer's call — see the root README
 > Install section.
 
-> **Actively working on (Phase 6.3):** tab paired with a notation staff — a
-> notation staff over a tab staff of the same `Score`, barlines aligned via
-> shared measure widths. Adding `leadingWidth`/`measureWidths` to
-> `TabLayoutEngine.layout`, a `layoutNotationTab` combiner (`NotationTabLayout`),
-> and a `NotationTabView` with connected barlines. Tests + a golden. Worktree
-> `partitura-tab`, branch `feat/tab-notation-pair`.
-
 
 
 
@@ -721,7 +714,15 @@ pitch → (string, fret) assignment. Also requires lifting the current
       stems/beams below the staff; per-note string override
       (`Score.tabVoicings` — `TabVoicing(noteId, strings)`); capo + tuning
       labels (golden 60).
-- [ ] **6.3 Tab paired with a notation staff** (rides on Phase 2.1).
+- [x] **6.3 Tab paired with a notation staff** — a notation staff over a tab
+      staff of the same `Score`, barlines aligned. `TabLayoutEngine.layout` gains
+      `leadingWidth` + absolute `barlineXs` (the two engines use different
+      inter-measure gaps, so the tab barlines are pinned to the notation's
+      canonical x); `layoutNotationTab` (`NotationTabLayout`) lays each staff out
+      once for natural widths then re-lays with the shared maxima; the Flutter
+      `NotationTabView` stacks them and draws barline connectors across the gap
+      (golden 118). Onset-column alignment within a measure is a possible later
+      refinement — barline alignment is the standard for tab+notation.
 - [x] **6.4 Techniques** — the full set below. **Done:** rhythm stems/flags/
       beams below the staff; slides (reuse `glissandos`) and hammer-on/pull-off
       arcs (reuse `slurs`) — goldens 53, 54; string bends (`Bend`) — golden 55;

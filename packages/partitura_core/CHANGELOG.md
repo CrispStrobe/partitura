@@ -2,6 +2,15 @@
 
 ## 0.4.1-dev.1 (in progress)
 
+- **Tab paired with a notation staff** (Phase 6.3): `layoutNotationTab` returns
+  a `NotationTabLayout` — a notation staff over a tab staff of the same `Score`,
+  laid out once for natural widths then re-laid with the column-wise maxima so
+  every barline aligns. `TabLayoutEngine.layout` gains `leadingWidth` and
+  absolute `barlineXs` (the notation and tab engines use different inter-measure
+  gaps, so the tab barlines are pinned to the notation's canonical x rather than
+  shared relative widths, which would drift). `notation_tab_test.dart` asserts
+  barline alignment across guitar and bass tunings. Rendered by the new Flutter
+  `NotationTabView` (golden 118).
 - **Tab Tier-3 completeness tail** (Phase 6.4, fully completes 6.4): tapped /
   semi / feedback harmonics (`TabNoteStyle.tappedHarmonic` / `.semiHarmonic` /
   `.feedbackHarmonic` — angle-bracketed fret + `harmonicLabel` "T.H." / "S.H." /

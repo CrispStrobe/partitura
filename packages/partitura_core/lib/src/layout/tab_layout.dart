@@ -50,12 +50,20 @@ class TabLayoutEngine {
   /// [capo] (default 0) clamps the nut up that many frets: the shown numbers
   /// become relative to the capo and a "capo N" label is drawn. [showTuning]
   /// draws each open string's note letter in a gutter on the left.
+  ///
+  /// [leadingWidth] sets the x of the first measure (a minimum). [barlineXs],
+  /// if given, pins each measure's barline to that **absolute** x — so a tab
+  /// staff can be aligned barline-for-barline with a paired notation staff even
+  /// though the two engines use different inter-measure gaps (see
+  /// `layoutNotationTab`).
   ScoreLayout layout(
     Score score,
     Tuning tuning,
     LayoutSettings settings, {
     int capo = 0,
     bool showTuning = false,
+    double? leadingWidth,
+    List<double>? barlineXs,
   }) {
     final n = tuning.stringCount;
     final s = settings;
@@ -107,6 +115,8 @@ class TabLayoutEngine {
     final clefBaseline = bottomY / 2 + (clefBox.neY + clefBox.swY) / 2;
     primitives.add(GlyphPrimitive(clefGlyph, Point(x, clefBaseline)));
     x += clefBox.width + 1.2;
+    // Align the first measure with a paired staff's leading, when asked.
+    if (leadingWidth != null) x = max(x, leadingWidth);
 
     for (var m = 0; m < score.measures.length; m++) {
       final measure = score.measures[m];
@@ -197,6 +207,10 @@ class TabLayoutEngine {
       }
       measureCols.add(cols);
       x = max(x, startX + 2.0);
+      // Pin the barline to the paired staff's absolute position, when asked.
+      if (barlineXs != null && m < barlineXs.length) {
+        x = max(x, barlineXs[m]);
+      }
       measureRegions.add(MeasureRegion(m, startX: startX, endX: x));
       final barX = x;
       primitives.add(LinePrimitive(
