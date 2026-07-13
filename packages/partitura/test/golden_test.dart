@@ -808,6 +808,55 @@ void main() {
     );
   });
 
+  testWidgets('111 grand-staff editor overlay: marks + loop band across staves',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Colors.white,
+          body: Center(
+            child: RepaintBoundary(
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(12),
+                child: SizedBox(
+                  width: 320,
+                  child: InteractiveGrandStaffView(
+                    staffSpace: 9,
+                    grandStaff: GrandStaff(
+                      upper: Score.simple(
+                        timeSignature: TimeSignature.fourFour,
+                        notes: 'c5:q d5 e5 f5 | g5:q a5 b5 c6 | '
+                            'c6:q b5 a5 g5 | f5:h e5',
+                      ),
+                      lower: Score.simple(
+                        clef: Clef.bass,
+                        timeSignature: TimeSignature.fourFour,
+                        notes: 'c3:h e3 | g3:h c4 | e3:h c3 | g2:h c3',
+                      ),
+                    ),
+                    // A red flag on an upper note and a green one on a lower
+                    // note; the loop band spans the second measure (e4..e7).
+                    errorOverlay: const {
+                      'e2': EditorMark(Color(0xFFD32F2F), message: 'blue note'),
+                      'e5': EditorMark(Color(0xFF388E3C)),
+                    },
+                    loopRange: ('e4', 'e7'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await expectLater(
+      find.byType(RepaintBoundary).last,
+      matchesGoldenFile('goldens/111_grand_staff_overlay.png'),
+    );
+  });
+
   testWidgets('37 lyrics with hyphens and extender', (tester) async {
     await golden(
       tester,

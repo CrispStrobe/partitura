@@ -265,4 +265,54 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(identical(render.grandStaffSystems, before), isTrue);
   });
+
+  testWidgets('rectOfElement locates notes on either staff (scroll-to-note)',
+      (tester) async {
+    await tester.pumpWidget(
+      wrap(InteractiveGrandStaffView(
+          grandStaff: eightBarPiano(), staffSpace: 10)),
+    );
+    final render = renderOf(tester);
+    final rect = render.rectOfElement('e0')!;
+    // Its centre hit-tests back to an element (the upper e0 is found first).
+    expect(render.elementIdAt(rect.center), 'e0');
+    // A later measure's note has a rect further down the widget (later system).
+    final systems = render.grandStaffSystems!;
+    final last = systems.systems.length - 1;
+    final lastId = 'e${systems.systems[last].firstMeasure * 4}';
+    final lastRect = render.rectOfElement(lastId);
+    if (lastRect != null) {
+      expect(lastRect.top, greaterThan(rect.top));
+    }
+    expect(render.rectOfElement('no-such-id'), isNull);
+  });
+
+  testWidgets('errorOverlay and loopRange paint without error, repaint-only',
+      (tester) async {
+    Widget build({
+      Map<String, EditorMark> overlay = const {},
+      (String, String)? loop,
+    }) =>
+        wrap(InteractiveGrandStaffView(
+          grandStaff: eightBarPiano(),
+          staffSpace: 10,
+          errorOverlay: overlay,
+          loopRange: loop,
+        ));
+    await tester.pumpWidget(build());
+    final render = renderOf(tester);
+    final before = render.grandStaffSystems;
+
+    await tester.pumpWidget(build(
+      overlay: const {
+        'e2': EditorMark(Color(0xFFD32F2F), message: 'wrong pitch'),
+        'e9': EditorMark(Color(0xFF388E3C)),
+      },
+      // A loop spanning from the first system into a later one.
+      loop: ('e1', 'e20'),
+    ));
+    expect(tester.takeException(), isNull);
+    // Overlays are repaint-only — never relayout.
+    expect(identical(render.grandStaffSystems, before), isTrue);
+  });
 }

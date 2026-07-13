@@ -12,7 +12,10 @@
   a translucent selection/loop band that spans across systems), and
   `rectOfElement(id)` on the render object (the local pixel rect of any element,
   for the app to scroll-to-note). Overlays are repaint-only. New exported
-  `EditorMark`; golden `109_editor_overlay`.
+  `EditorMark`; golden `109_editor_overlay`. The same `errorOverlay`,
+  `loopRange`, and `rectOfElement(id)` are also on `InteractiveGrandStaffView`
+  (the loop band spans both staves; error wedges sit above the note's own
+  staff) — golden `111_grand_staff_overlay`.
 
 - **Cross-staff gridding — accidental-aware columns** (§2.9): the shared column
   is now the **notehead** x, so heads align across staves even when only some

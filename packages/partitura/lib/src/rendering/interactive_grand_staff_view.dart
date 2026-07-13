@@ -8,6 +8,7 @@ import 'package:flutter/widgets.dart';
 import 'package:partitura_core/partitura_core.dart';
 
 import '../interaction/editor_caret.dart';
+import '../interaction/editor_mark.dart';
 import '../interaction/staff_target.dart';
 import 'layout_painter.dart';
 import 'music_font.dart';
@@ -53,6 +54,18 @@ class InteractiveGrandStaffView extends LeafRenderObjectWidget {
   /// Per-element ink colors.
   final Map<String, Color> elementColors;
 
+  /// Per-element overlay flags: each keyed element is drawn in its [EditorMark]
+  /// color with a small wedge above its staff. Wins over [elementColors]. For
+  /// assessment / ear-training / proofreading editors. Like [elementColors] and
+  /// [highlightedIds], ids match on either staff, so give the two hands globally
+  /// unique element ids if a mark must land on only one of them.
+  final Map<String, EditorMark> errorOverlay;
+
+  /// A loop/selection band painted behind the notes, spanning both staves from
+  /// the `startId` element to the `endId` element (across systems), or null. The
+  /// endpoints resolve to the first matching element on either staff.
+  final (String startId, String endId)? loopRange;
+
   /// Called with the element id when the user taps an element on any staff.
   final void Function(String elementId)? onElementTap;
 
@@ -95,6 +108,8 @@ class InteractiveGrandStaffView extends LeafRenderObjectWidget {
     this.gridAlign = true,
     this.highlightedIds = const {},
     this.elementColors = const {},
+    this.errorOverlay = const {},
+    this.loopRange,
     this.onElementTap,
     this.onStaffTap,
     this.onHover,
@@ -119,6 +134,8 @@ class InteractiveGrandStaffView extends LeafRenderObjectWidget {
         highlightedIds: highlightedIds,
         elementColors: elementColors,
       )
+        ..errorOverlay = errorOverlay
+        ..loopRange = loopRange
         ..onElementTap = onElementTap
         ..onStaffTap = onStaffTap
         ..onHover = onHover
@@ -144,6 +161,8 @@ class InteractiveGrandStaffView extends LeafRenderObjectWidget {
       ..gridAlign = gridAlign
       ..highlightedIds = highlightedIds
       ..elementColors = elementColors
+      ..errorOverlay = errorOverlay
+      ..loopRange = loopRange
       ..onElementTap = onElementTap
       ..onStaffTap = onStaffTap
       ..onHover = onHover
@@ -355,8 +374,41 @@ class RenderInteractiveGrandStaffView extends RenderBox
   set elementColors(Map<String, Color> value) {
     if (mapEquals(value, _elementColors)) return;
     _elementColors = value;
-    _painter.elementColors = value;
+    _syncPainterColors();
     markNeedsPaint();
+  }
+
+  Map<String, EditorMark> _errorOverlay = const {};
+
+  /// Per-element overlay flags. Repaint only.
+  Map<String, EditorMark> get errorOverlay => _errorOverlay;
+  set errorOverlay(Map<String, EditorMark> value) {
+    if (mapEquals(value, _errorOverlay)) return;
+    _errorOverlay = value;
+    _syncPainterColors();
+    markNeedsPaint();
+  }
+
+  (String, String)? _loopRange;
+
+  /// The loop/selection band range. Repaint only.
+  (String, String)? get loopRange => _loopRange;
+  set loopRange((String, String)? value) {
+    if (value == _loopRange) return;
+    _loopRange = value;
+    markNeedsPaint();
+  }
+
+  /// Feeds the painter the widget's element colors with the overlay colors
+  /// merged on top (overlay wins), so flagged notes draw in their mark color.
+  void _syncPainterColors() {
+    _painter.elementColors = _errorOverlay.isEmpty
+        ? _elementColors
+        : {
+            ..._elementColors,
+            for (final entry in _errorOverlay.entries)
+              entry.key: entry.value.color,
+          };
   }
 
   // -------------------------------------------------------------- geometry
@@ -537,6 +589,39 @@ class RenderInteractiveGrandStaffView extends RenderBox
           if (region.bounds.overlaps(localRect)) region.id,
       ];
 
+  /// The (system index, staff index 0=upper/1=lower, staff-space bounds) of
+  /// element [id], or null.
+  (int, int, math.Rectangle<double>)? _locate(String id) {
+    final systems = _systems;
+    if (systems == null) return null;
+    for (var i = 0; i < systems.systems.length; i++) {
+      final layout = systems.systems[i].layout;
+      for (var s = 0; s < 2; s++) {
+        final staff = s == 0 ? layout.upper : layout.lower;
+        for (final region in staff.regions) {
+          if (region.elementId == id) return (i, s, region.bounds);
+        }
+      }
+    }
+    return null;
+  }
+
+  /// The local **pixel** rectangle of element [id] on either staff, or null —
+  /// for scroll-to-note (the app scrolls its viewport to reveal this rect).
+  Rect? rectOfElement(String id) {
+    final located = _locate(id);
+    if (located == null) return null;
+    final origin =
+        located.$2 == 0 ? upperOrigin(located.$1) : lowerOrigin(located.$1);
+    final b = located.$3;
+    return Rect.fromLTWH(
+      origin.dx + b.left * _staffSpace,
+      origin.dy + b.top * _staffSpace,
+      b.width * _staffSpace,
+      b.height * _staffSpace,
+    );
+  }
+
   /// The empty-staff location under [local]: the nearest system, then the
   /// nearer of its two staves, quantized to the nearest line/space.
   StaffTarget? resolveStaffTarget(Offset local) {
@@ -682,6 +767,8 @@ class RenderInteractiveGrandStaffView extends RenderBox
     final braceBox =
         MusicFonts.metadataOrNull(_theme.musicFont)?.bBoxOf('brace');
 
+    _paintLoopBand(canvas, offset); // behind the notes
+
     for (var i = 0; i < systems.systems.length; i++) {
       final layout = systems.systems[i].layout;
       final upper = offset + upperOrigin(i);
@@ -722,8 +809,65 @@ class RenderInteractiveGrandStaffView extends RenderBox
       }
     }
 
+    _paintErrorMarks(canvas, offset);
     _paintGhost(canvas, offset);
     _paintCaret(canvas, offset);
+  }
+
+  void _paintLoopBand(Canvas canvas, Offset offset) {
+    final range = _loopRange;
+    final systems = _systems;
+    if (range == null || systems == null) return;
+    var start = _locate(range.$1);
+    var end = _locate(range.$2);
+    if (start == null || end == null) return;
+    // Order start before end (by system, then x).
+    if (start.$1 > end.$1 ||
+        (start.$1 == end.$1 && start.$3.left > end.$3.left)) {
+      final swap = start;
+      start = end;
+      end = swap;
+    }
+    final paint = Paint()
+      ..color = _theme.highlightColor.withValues(alpha: 0.18);
+    for (var i = start.$1; i <= end.$1; i++) {
+      // A band spanning both staves of the system, at the resolved x range.
+      final upper = offset + upperOrigin(i);
+      final lower = offset + lowerOrigin(i);
+      final left = i == start.$1 ? start.$3.left : 0.0;
+      final right =
+          i == end.$1 ? end.$3.right : systems.systems[i].layout.width;
+      canvas.drawRect(
+        Rect.fromLTRB(
+          upper.dx + left * _staffSpace,
+          upper.dy + -1 * _staffSpace,
+          upper.dx + right * _staffSpace,
+          lower.dy + 5 * _staffSpace,
+        ),
+        paint,
+      );
+    }
+  }
+
+  void _paintErrorMarks(Canvas canvas, Offset offset) {
+    if (_errorOverlay.isEmpty) return;
+    for (final entry in _errorOverlay.entries) {
+      final located = _locate(entry.key);
+      if (located == null) continue;
+      final origin = offset +
+          (located.$2 == 0 ? upperOrigin(located.$1) : lowerOrigin(located.$1));
+      final b = located.$3;
+      final cx = origin.dx + (b.left + b.width / 2) * _staffSpace;
+      final topY = origin.dy + -1.6 * _staffSpace;
+      final w = 0.55 * _staffSpace;
+      // A small downward wedge above the note's staff, in the mark's color.
+      final path = Path()
+        ..moveTo(cx - w / 2, topY)
+        ..lineTo(cx + w / 2, topY)
+        ..lineTo(cx, topY + w)
+        ..close();
+      canvas.drawPath(path, Paint()..color = entry.value.color);
+    }
   }
 
   /// The (system index, staff layout, staff origin, measure start x) of
