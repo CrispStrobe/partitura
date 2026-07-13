@@ -29,6 +29,11 @@ ships* at the end for the mechanics.
 > left — needs a shared two-staff spacing stretch). C6 deferred. The three deep
 > Score-model lacunae are done; microtones landed via the parallel agent.
 
+> **Actively working on (MuseScore slurs):** the deferred codec follow-up —
+> round-trip `Slur` through MuseScore's location-based `<Spanner type="Slur">`
+> (`<next>`/`<prev>`), completing slur interchange. `musescore/` only, no
+> views/model. Worktree `partitura-msslur`, branch `feat/musescore-slur`.
+
 ### Workshop editor contracts (C1–C6)
 
 External consumer (KlangUniversum "Composition Workshop",
