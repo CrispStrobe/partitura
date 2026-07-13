@@ -23,10 +23,10 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-11)
 
-> **Actively working on:** non-standard meters/keys — senza-misura / open meter
-> and custom (modal/atonal) key signatures (5.7 tail + 5.8). *Microtones (5.10)
-> is owned by the parallel agent — do not touch `Pitch`/accidental layout.*
-> Next: cross-staff notes/beaming. Worktree `partitura-public-lacunae`, branch
+> **Actively working on:** cross-staff notes & beaming (last of the deep
+> lacunae). *Non-standard meters/keys just landed (5.7 tail + 5.8, golden 92);
+> microtones (5.10) is owned by the parallel agent — do not touch `Pitch`/note-
+> accidental layout.* Worktree `partitura-public-lacunae`, branch
 > `feat/model-lacunae`.
 
 > **Actively working on (OMR / TrOMR):** second OMR engine — a pure-Dart parser
@@ -411,10 +411,19 @@ No peer renderer does any of this; all build on the existing pitch / interval
       (`TimeSymbol`, `TimeSignature.commonTime`/`cutTime` → the C / ¢ glyphs;
       golden 82) and **additive/composite meters** (`TimeSignature.additive`
       `[3,2]` → 3+2/8 drawn with the `timeSigPlus` glyph; golden 85). Both
-      round-trip through MusicXML `<time>` and ABC `M:`. **Left:** local
-      per-staff meters, and additive-aware beam grouping.
-- 🚧 **5.8 Custom / atonal key signatures + cancelling-naturals policy.**
-      [in progress: non-standard key sigs — model + layout + MusicXML]
+      round-trip through MusicXML `<time>` and ABC `M:`. **Senza misura /
+      open meter** is `timeSignature: null` — no signature drawn, no metric
+      subdivision (round-trip locked in by `non_standard_key_test.dart`).
+      **Left:** local per-staff meters, interchangeable/alternating meters, and
+      additive-aware beam grouping.
+- [x] **5.8 Custom / atonal key signatures + cancelling-naturals policy.**
+      `KeySignature.custom([KeyAccidental(step, alter), …])` — modal/atonal
+      signatures the circle of fifths can't express (mixed B♭ + F♯, or a
+      non-traditional order). `alterFor`/`alteredSteps` drive the drawn
+      signature (each accidental at its step) and note-accidental suppression;
+      mid-score key changes emit cancellation naturals for custom keys too.
+      Round-trips through MusicXML `<key-step>`/`<key-alter>`; left as written
+      under transposition. Golden 92; `non_standard_key_test.dart`.
 - [~] **5.9 Jazz articulations** — **Done:** scoop, doit, fall (falloff), plop
       (`JazzMark`/`JazzArticulation`, brass glyphs before/after the notehead,
       MusicXML `<articulations>` round-trip, golden 69). **Left:** lift, flip,
@@ -683,9 +692,11 @@ Marked `[cheap]` (an additive field/enum, low blast radius) or `[deep]`
   enrichment on the codec backlog).
 - **Microtones** — ✅ quarter tones done (`Pitch.microtone`, Phase 5.10);
   integer `Pitch.alter` stays −2..2. Finer just-intonation ratios still `[deep]`.
-- **Non-standard meters** — senza misura / open / interchangeable; and
-  **non-standard key signatures** (modal/custom accidental order; `fifths` is
-  −7..7). `[deep]`
+- **Non-standard meters** — **✓ senza misura / open** is `timeSignature: null`
+  (no signature, no subdivision; round-trip tested). *Left:* interchangeable/
+  alternating meters. **Non-standard key signatures** — **✓ Done:**
+  `KeySignature.custom` (modal/atonal, any accidental order) drives layout +
+  note suppression + MusicXML round-trip (5.8, golden 92).
 - **Cross-staff notes & beaming, cue/ossia notes, explicit beam grouping.**
   `[deep]`
 - **Tuplet/​slur constraints** — tuplets cannot cross barlines or nest;

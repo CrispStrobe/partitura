@@ -16,6 +16,17 @@
   `LayoutSettings.microtonalGlyphs`. **Contract change:** the prior "microtonal
   out" boundary is lifted — quarter-tone notation is in scope (finer
   just-intonation ratios and full non-Western theory remain out).
+- **Non-standard key signatures + senza misura** (Score-model lacuna, Phase
+  5.7 tail / 5.8): `KeySignature.custom([KeyAccidental(step, alter), …])`
+  expresses modal/atonal signatures the circle of fifths cannot — a mixed
+  B♭ + F♯, or a non-traditional accidental order. `alterFor`/`alteredSteps`
+  drive both the drawn signature (each accidental placed at its own step, with
+  mid-score cancellation naturals generalized to custom keys) and
+  note-accidental suppression; it round-trips through MusicXML `<key>`
+  `<key-step>`/`<key-alter>` pairs. A non-standard signature is left as written
+  under transposition — it has no tonic to move (the notes still transpose).
+  Senza-misura (unmetered) scores, already `timeSignature: null`, are now locked
+  in by a round-trip test. Golden `92_custom_key_signature`.
 - **Optical music recognition** (v0.8): `src/omr/` turns a CrispEmbed Sheet
   Music Transformer `bekern` recognition into the score model — `bekernToKern`
   reconstructs Humdrum, and a multi-spine, `**ekern`-aware kern reader

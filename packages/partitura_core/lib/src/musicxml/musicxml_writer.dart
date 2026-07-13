@@ -213,7 +213,19 @@ class _PartWriter {
       if (index == 0) out.writeln('        <divisions>$divisions</divisions>');
       final key = index == 0 ? score.keySignature : measure.keyChange;
       if (key != null) {
-        out.writeln('        <key><fifths>${key.fifths}</fifths></key>');
+        final custom = key.custom;
+        if (custom != null) {
+          // Non-traditional key signature: explicit key-step/key-alter pairs.
+          out.writeln('        <key>');
+          for (final acc in custom) {
+            out.writeln(
+                '          <key-step>${acc.step.name.toUpperCase()}</key-step>'
+                '<key-alter>${acc.alter}</key-alter>');
+          }
+          out.writeln('        </key>');
+        } else {
+          out.writeln('        <key><fifths>${key.fifths}</fifths></key>');
+        }
       }
       final time = index == 0 ? score.timeSignature : measure.timeChange;
       if (time != null) {

@@ -725,6 +725,9 @@ class Score {
   /// fifths; results beyond ±7 wrap to the enharmonic key.
   static KeySignature _transposedKey(KeySignature key, Interval interval,
       {required bool descending}) {
+    // A non-standard signature has no tonic on the circle of fifths to
+    // transpose; it is left as written (the notes themselves still move).
+    if (!key.isStandard) return key;
     const stepOfFifth = {
       0: Step.c,
       1: Step.g,

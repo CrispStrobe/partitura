@@ -522,6 +522,23 @@ void main() {
     );
   });
 
+  testWidgets('92 non-standard key signature', (tester) async {
+    await golden(
+      tester,
+      '92_custom_key_signature',
+      Score.simple(
+        // A mixed B♭ + F♯ signature the circle of fifths cannot express.
+        keySignature: const KeySignature.custom([
+          KeyAccidental(Step.b, -1),
+          KeyAccidental(Step.f, 1),
+        ]),
+        timeSignature: TimeSignature.fourFour,
+        // B and F sit in the signature (no accidental); a B natural cancels.
+        notes: 'f4:q b4 f5 bn4',
+      ),
+    );
+  });
+
   testWidgets('35 grand staff', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

@@ -285,6 +285,19 @@ class _LayoutBuilder {
     return out;
   }
 
+  /// The conventional key-signature staff position for [step] in [clef]: its
+  /// lowest occurrence on/above the bottom line, lifted as high as it fits
+  /// (matching the traditional starting octave). Used to place the accidentals
+  /// of a non-standard [KeySignature.custom].
+  static int _keyStepPosition(Clef clef, Step step) {
+    const high = 9;
+    var p = (step.index - clef.bottomLineDiatonicIndex) % 7;
+    while (p + 7 <= high) {
+      p += 7;
+    }
+    return p;
+  }
+
   // log2(dot factor) for 0..2 dots: 1, 3/2, 7/4.
   static const List<double> _dotLog2 = [
     0.0,
@@ -521,11 +534,23 @@ class _LayoutBuilder {
         Clef.percussion => (SmuflGlyph.percussionClef, 4), // centered
       };
 
-  /// Rule 2: key signature in standard order at conventional octaves.
+  /// Rule 2: key signature in standard order at conventional octaves, or a
+  /// non-standard [KeySignature.custom] with each accidental at its own step.
   void _layoutKeySignature() {
-    final fifths = _key.fifths;
     // A neutral percussion staff carries no key signature.
-    if (fifths == 0 || _clef == Clef.percussion) return;
+    if (_clef == Clef.percussion) return;
+    final custom = _key.custom;
+    if (custom != null) {
+      for (final acc in custom) {
+        final glyph = SmuflGlyph.accidentalFor(acc.alter);
+        _addGlyph(glyph, _x, _yOf(_keyStepPosition(_clef, acc.step)));
+        _x += _glyphWidth(glyph) + s.keyAccidentalGap;
+      }
+      _x += s.signatureGap - s.keyAccidentalGap;
+      return;
+    }
+    final fifths = _key.fifths;
+    if (fifths == 0) return;
     final count = fifths.abs();
     final table = _keyAccidentalPositions(_clef, sharp: fifths > 0);
     final glyph =
@@ -2350,19 +2375,20 @@ class _LayoutBuilder {
     }
     final keyChange = measure.keyChange;
     if (keyChange != null && keyChange != _key) {
-      // Cancellation naturals for steps the new signature drops.
-      final oldFifths = _key.fifths;
-      final oldTable =
-          oldFifths > 0 ? _sharpPositions[_clef]! : _flatPositions[_clef]!;
+      // Cancellation naturals for steps the new signature no longer alters the
+      // same way (dropped, or changed sign / amount).
       final oldSteps = _key.alteredSteps;
-      final newSteps = keyChange.alteredSteps.toSet();
+      final oldPositions = _key.custom != null
+          ? [for (final step in oldSteps) _keyStepPosition(_clef, step)]
+          : (_key.fifths > 0
+              ? _sharpPositions[_clef]!
+              : _flatPositions[_clef]!);
       final naturalWidth = _glyphWidth(SmuflGlyph.accidentalNatural);
       for (var i = 0; i < oldSteps.length; i++) {
-        if (newSteps.contains(oldSteps[i]) &&
-            (keyChange.fifths > 0) == (oldFifths > 0)) {
+        if (keyChange.alterFor(oldSteps[i]) == _key.alterFor(oldSteps[i])) {
           continue;
         }
-        _addGlyph(SmuflGlyph.accidentalNatural, _x, _yOf(oldTable[i]));
+        _addGlyph(SmuflGlyph.accidentalNatural, _x, _yOf(oldPositions[i]));
         _x += naturalWidth + s.keyAccidentalGap;
       }
       _key = keyChange;

@@ -383,10 +383,30 @@ class _PartReader {
         case 'attributes':
           final divisions = int.tryParse(node.childText('divisions') ?? '');
           if (divisions != null) _divisions = divisions;
-          final fifths =
-              int.tryParse(node.child('key')?.childText('fifths') ?? '');
-          if (fifths != null) {
-            final key = KeySignature(fifths);
+          final keyNode = node.child('key');
+          KeySignature? key;
+          final keySteps =
+              keyNode?.childrenNamed('key-step').toList() ?? const [];
+          if (keySteps.isNotEmpty) {
+            // Non-traditional key signature: key-step/key-alter pairs.
+            final keyAlters = keyNode!.childrenNamed('key-alter').toList();
+            final accidentals = <KeyAccidental>[];
+            for (var i = 0; i < keySteps.length; i++) {
+              final step =
+                  Step.values.asNameMap()[keySteps[i].text.toLowerCase()];
+              final alter = i < keyAlters.length
+                  ? int.tryParse(keyAlters[i].text) ?? 0
+                  : 0;
+              if (step != null) accidentals.add(KeyAccidental(step, alter));
+            }
+            if (accidentals.isNotEmpty) {
+              key = KeySignature.custom(accidentals);
+            }
+          } else {
+            final fifths = int.tryParse(keyNode?.childText('fifths') ?? '');
+            if (fifths != null) key = KeySignature(fifths);
+          }
+          if (key != null) {
             if (!_leadingSet) {
               _key = key;
             } else if (key != (_key ?? const KeySignature(0))) {
