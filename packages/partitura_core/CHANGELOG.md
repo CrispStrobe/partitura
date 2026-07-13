@@ -2,6 +2,12 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Voice-leading checker** (Phase 4.2): `checkVoiceLeading(chords)` — each chord
+  a list of pitches from the top voice down — flags the classic part-writing
+  errors: parallel and hidden (direct) perfect fifths/octaves, voice crossing
+  (within a chord), voice overlap (between chords) and upper-voice spacing over
+  an octave (the bass–tenor gap is exempt). Returns typed `VoiceLeadingIssue`s
+  (rule + chord index + the voice pair). Pure theory.
 - **Cross-measure beaming** (Phase 1.4): `CrossMeasureBeam(startId, endId)` on
   `Score` beams a run of notes across a barline. The spanned notes are excluded
   from per-measure beaming and their stems deferred; the beam is drawn in a

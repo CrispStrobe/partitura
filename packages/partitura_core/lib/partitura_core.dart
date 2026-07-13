@@ -67,3 +67,4 @@ export 'src/theory/time_signature.dart';
 export 'src/theory/transposition.dart';
 export 'src/theory/triad.dart';
 export 'src/theory/tuning.dart';
+export 'src/theory/voice_leading.dart';
