@@ -154,12 +154,19 @@ y-down coords. Priority: **C1+C2 → C3 → C5 → C4**.
   - Verified working after G6/G7: the 23-staff orchestral **ActorPrelude** and
     the Mozart string quartet (4 staves) import fully via
     `staffSystemFromMusicXml`.
-  - [ ] **Multi-voice per staff (hardening G12).** The external oracle
-    (`tool/oracle_diff.dart` vs music21) shows partitura keeps only ~3 internal
-    voices per staff and **drops** notes in staves with 4+ MusicXML `<voice>`s
-    (Voice_Alignment loses voices 5/6/7; Dichterliebe ~32%). It's the dominant
-    cause of the 14/47 oracle divergences. Needs a model + reader change to carry
-    an arbitrary number of voices per staff. See `docs/HARDENING.md` §G12.
+  - [ ] **Multi-voice export to kern / ABC (hardening G12).** The external
+    oracle (`tool/oracle_diff.dart` vs music21) confirmed **import is correct** —
+    45/47 scores agree exactly; the model + MusicXML/MEI/MuseScore readers carry
+    all four voices (the earlier "importer drops voices" claim was the oracle
+    tool reading only voice 1 — corrected). The genuine gap is on **export**: the
+    kern and ABC *writers* are single-voice subset codecs and drop `voice2/3/4`
+    (round-trip 90%; loss == inner-voice note count). kern needs spine-split
+    (`*^`/`*v`) output; ABC needs `V:`/`&` polyphony. The model's 4-voice/staff
+    cap (Voice_Alignment's 5th voice) is a separate, low-value extension.
+  - [ ] **Tremolo as a mark, not expanded notes (hardening G13).** The MusicXML
+    reader expands `<tremolo type="single">` into repeated notes at import
+    (ActorPrelude: 244 phantom notes), losing the notation. Should be a mark on
+    the base note, expanded only for playback.
 - [x] **C7 — region controller.** The private render objects' `elementRegions`
   / `elementIdsIn(Rect)` (from C4) are now reachable from app code via a public
   `ElementRegionController` (alias `MultiSystemViewController`), attached with

@@ -41,12 +41,16 @@ quantifies parse fidelity. Two harnesses:
   |---|---|---|
   | MusicXML | 100% (79/79) | 100.0% |
   | MEI | 100% (79/79) | 100.0% |
-  | kern | 100% (79/79) | 100.0% |
   | MuseScore | 100% (79/79) | 100.0% |
-  | ABC | 99% (78/79) | 99.9% |
-  | MIDI | 32% (25/79) | 88.4% |
+  | kern | 90% (71/79) | 96.8% |
+  | ABC | 90% (71/79) | 96.7% |
+  | MIDI | 32% (25/79) | 87.7% |
 
-  MIDI's lower "exact" is **expected** — the multiset key includes duration, and
+  (These numbers count **all four voices** — an earlier version of the sweep read
+  only voice 1 and so reported a misleading kern/ABC 100%.) kern and ABC drop to
+  90% because their **writers are single-voice subset codecs** — they emit only
+  voice 1, losing `voice2/3/4` (→ G12). MusicXML / MEI / MuseScore preserve every
+  voice. MIDI's lower "exact" is **expected** — the multiset key includes duration, and
   MIDI re-notates dotted/tied rhythm; the committed test's sampled-sounding
   metric confirms MIDI keeps what sounds. A round-trip only proves reader+writer
   are **mutually consistent**; the external oracle (`tool/oracle_diff.*`) tests
@@ -62,13 +66,27 @@ reader+writer that are wrong in the *same* way round-trip cleanly. music21 is
 "trusted" only as a mature independent parser; a confirmed divergence is
 investigated, not blindly blamed on partitura.
 
-Latest sweep — **33/47 MusicXML+kern scores agree exactly** (all 12 Bach kern
-chorales; Mozart quartet; Clementi; Telemann; Schubert; Debussy; …). The 14
-divergences are almost all *partitura-only: 0* — partitura **drops** notes,
-never invents them → **G12** below. Two earlier "divergences" (Mozart AnChloe /
-Clarinet Quintet) were a **bug in the oracle tool**, not partitura: it compared
-the *nominal* notated duration, flagging every triplet; fixed to use
-`measure.effectiveDurationAt` (tuplet-scaled) — they now agree.
+Latest sweep — **45/47 MusicXML+kern scores agree exactly** (all 12 Bach kern
+chorales; Mozart quartet + Clarinet Quintet; Clementi; Telemann; Schubert;
+Debussy; Dichterliebe; Gounod; Haydn; the lieder — every multi-voice piano
+score). partitura's importer is, on this corpus, essentially correct.
+
+**Two rounds of "divergences" turned out to be bugs in the oracle *tool*, not in
+partitura** — a live demonstration of the user's caution that the oracle script
+`s` can be the buggy one:
+1. It first compared the *nominal* notated duration, flagging every triplet
+   (Mozart AnChloe / Clarinet Quintet). Fixed to use `effectiveDurationAt`
+   (tuplet-scaled).
+2. It then counted only voice 1 (`measure.elements`), ignoring the model's
+   `voice2/voice3/voice4` — so it mis-reported every multi-voice piano score as
+   "partitura dropped notes." Fixed to read all four voices. This collapsed the
+   apparent gap from 14 scores to 2, and confirmed the importer *does* capture
+   inner voices (Dichterliebe: 410 of music21's 411 notes).
+
+The **2 genuine residuals**: `Voice_Alignment` (a synthetic 5-voice test — the
+model caps at 4 voices/staff, so 2 notes shift) and `ActorPrelude` (partitura
+*expands* the 14 `<tremolo type="single">` into repeated notes — 244 extra — a
+representation choice, not a parse error). See G12 / G13.
 
 ## Gaps
 
@@ -85,8 +103,8 @@ the *nominal* notated duration, flagging every triplet; fixed to use
 | G9 | high (crash) | musicxml reader | A **guitar-tablature** MusicXML staff carries `<clef><sign>TAB</sign>`, which `_clefOf` didn't recognize → threw `Unsupported clef: TAB5`, aborting the whole import. | `partitura render BrookeWestSample.mxl …` | **fixed at the source** — `TAB` maps to the guitar clef (`treble8vb`, sounding 8vb) so the staff's real `<pitch>`es render; any other/malformed sign now defaults to treble instead of aborting (reader-leniency, per G3/G6/G7). BrookeWest → 2 staves. Regression test in `musicxml_test.dart`. |
 | G10 | high (crash) | CLI file read | A **UTF-16 LE (BOM)** MusicXML — a legal, common export encoding, its XML prolog even declaring `encoding="UTF-16"` — threw `FileSystemException: Failed to decode data using encoding 'utf-8'` because the CLI read every text score via `File.readAsStringSync` (UTF-8 only). | `partitura render test_UTF16LEBOM_decoding_nested_tuplet.musicxml …` | **fixed at the byte→String boundary** — a `_readText` helper sniffs the BOM (UTF-16 LE/BE, UTF-8) and decodes accordingly (`dart:convert` ships no UTF-16 codec); all text-format reads route through it. CLI round-trip test in `cli_test.dart`. |
 | G11 | low (rhythm fidelity) | abc writer/reader | An ABC round-trip of a dense syncopated ragtime (Joplin *The Entertainer*) preserves **every pitch, note and measure** (520 notes / 955 pitches / 92 bars identical) but re-encodes a handful of sub-beat **durations** (some 1/16 / dotted-1/16 in broken rhythm come back as a different value). Found by `tool/roundtrip_sweep.dart` (99.9% note-preserved). | round-trip of `ScottJoplin_The_Entertainer.xml` through ABC | **open** — narrow: likely ABC broken-rhythm (`>`/`<`) or dotted-sixteenth encoding. No notes lost; low priority. |
-| G12 | high (fidelity) | reader / model | A staff with **many voices** loses the voices beyond a small per-staff cap. Confirmed by the external oracle: `OSMD_Function_Test_Voice_Alignment` has voices 1/2/5/6/7 but partitura captures only internal voices {0,1,2}, dropping voices 5/6/7 (22 notes); `Dichterliebe01` (voices 1–5) drops file-voices 4–5 (~101 notes, 32%). Note *count* is only ever short, never over (partitura drops, never invents). | `dart run tool/oracle_diff.dart …Voice_Alignment.musicxml` → 64% agree, music21-only 14 | **open (systematic)** — the model/reader doesn't preserve arbitrary MusicXML `<voice>`s per staff. The dominant cause of the 14 oracle divergences (also Christbaum 31%, Land der Berge 30%, Gounod 7%, Bach BWV846 11%). Fix is a model + reader change (N voices per staff); tracked for a dedicated pass. |
-| G13 | low | musicxml reader (percussion) | The orchestral **ActorPrelude** is the only score where partitura has notes music21 *doesn't* (partitura-only 18, of 1951 → 95.7% agree) — most likely the `<unpitched>` percussion display-line mapping (G7) placing hits music21 counts differently. | `dart run tool/oracle_diff.dart ActorPreludeSample.xml` | **open** — small; tied to the percussion-staff follow-up. |
+| G12 | medium (export fidelity) | **kern / abc writers** | The kern and ABC **writers are single-voice subset codecs** — they emit only voice 1 and silently drop `voice2/3/4`, so a multi-voice score loses its inner voices on export (round-trip 90%, the loss exactly equals the voice2-4 note count: Bach *Ein feste Burg* 38/38, Ahle 40/40, Haydn 55/65). **Import is fine** — the model + all readers (MusicXML/MEI/MuseScore) carry four voices, verified 100% by the oracle. *(This gap was originally mis-logged as an importer bug; that was the oracle tool reading only voice 1 — corrected.)* Separately, the model caps at **4 voices/staff**, so `Voice_Alignment`'s 5th voice shifts (synthetic, 2 notes). | round-trip of `Bach-JS_Ein_feste_Burg.mei` through kern/ABC | **open** — kern needs spine-split (`*^`/`*v`) multi-voice output; ABC needs `V:`/`&` polyphony. Both are real features (the writers document themselves as single-spine). Model's 4-voice cap is a separate, low-value extension. |
+| G13 | low (representation) | musicxml reader (tremolo) | The orchestral **ActorPrelude** is the only score where partitura has *more* notes than music21 (partitura-only 321, of 1951 → 95.7% agree). Cause: partitura **expands the 14 `<tremolo type="single">` into repeated notes** at import (244 notes at 3/32 on 3 pitches), while music21 keeps the single written note + a tremolo expression. | `dart run tool/oracle_diff.dart ActorPreludeSample.xml` | **open** — a representation choice, not a parse error. For notation fidelity a tremolo should be a mark on the base note (expanded only for playback); tracked. |
 
 ### G4 + G5 — fixed, and generalized
 Root cause: **every** span/annotation layout pass threw on a degenerate span

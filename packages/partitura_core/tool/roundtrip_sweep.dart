@@ -36,15 +36,18 @@ final _formats = <Fmt>[
       (s) => scoreFromMidi(Uint8List.fromList(s.codeUnits))),
 ];
 
-/// Multiset of `<sorted-midi>@<dur>` note keys across the whole score.
+/// Multiset of `<sorted-midi>@<dur>` note keys across the whole score — all
+/// four voices per measure, not just voice 1.
 Map<String, int> _notes(Score s) {
   final bag = <String, int>{};
   for (final m in s.measures) {
-    for (final e in m.elements) {
-      if (e is NoteElement) {
-        final midis = e.pitches.map((p) => p.midiNumber).toList()..sort();
-        final key = '${midis.join(',')}@${e.duration.toFraction()}';
-        bag[key] = (bag[key] ?? 0) + 1;
+    for (final voice in [m.elements, m.voice2, m.voice3, m.voice4]) {
+      for (final e in voice) {
+        if (e is NoteElement) {
+          final midis = e.pitches.map((p) => p.midiNumber).toList()..sort();
+          final key = '${midis.join(',')}@${e.duration.toFraction()}';
+          bag[key] = (bag[key] ?? 0) + 1;
+        }
       }
     }
   }

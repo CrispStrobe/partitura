@@ -49,18 +49,31 @@ Map<String, int>? _partituraNotes(String path) {
     return null;
   }
   final bag = <String, int>{};
+  void addNote(NoteElement e, double ql) {
+    for (final p in e.pitches) {
+      final key = '${p.midiNumber}@${ql.toStringAsFixed(6)}';
+      bag[key] = (bag[key] ?? 0) + 1;
+    }
+  }
+
   for (final s in staves) {
     for (final m in s.measures) {
+      // Voice 1 (`elements`) carries tuplet time-modification, so use the
+      // tuplet-scaled duration (a triplet eighth is 1/3 quarter, not 1/2) to
+      // match music21's quarterLength.
       for (var i = 0; i < m.elements.length; i++) {
         final e = m.elements[i];
         if (e is NoteElement) {
-          // Tuplet-scaled duration (a triplet eighth is 1/3 quarter, not 1/2) —
-          // matches music21's quarterLength. Using the nominal notated value
-          // would spuriously flag every tuplet.
-          final ql = m.effectiveDurationAt(i).toDouble() * 4; // whole→quarter
-          for (final p in e.pitches) {
-            final key = '${p.midiNumber}@${ql.toStringAsFixed(6)}';
-            bag[key] = (bag[key] ?? 0) + 1;
+          addNote(e, m.effectiveDurationAt(i).toDouble() * 4);
+        }
+      }
+      // Voices 2–4 are held in the model too and must be counted — the oracle
+      // compares against music21's *all-voices* flatten. Tuplets are voice-1
+      // only, so their nominal duration is their effective duration.
+      for (final voice in [m.voice2, m.voice3, m.voice4]) {
+        for (final e in voice) {
+          if (e is NoteElement) {
+            addNote(e, e.duration.toFraction().toDouble() * 4);
           }
         }
       }
