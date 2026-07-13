@@ -213,13 +213,71 @@ ChordAnalysis? identifyChord(List<Pitch> pitches) {
 /// The chord symbol for [pitches] (shorthand for `identifyChord(...)?.symbol`).
 String? chordSymbolFor(List<Pitch> pitches) => identifyChord(pitches)?.symbol;
 
+/// Every tonal reading of a **pitch-class set** [pcs] (integers 0–11) — one per
+/// root whose chord template matches, roots spelled canonically. This surfaces
+/// the enharmonic re-reads of the same notes that a single spelled reading
+/// hides: `{0,4,7,9}` reads as both **C6** and **Am7**; a fully-diminished
+/// seventh `{0,3,6,9}` reads as four equivalent chords (C°7 = E♭°7 = G♭°7 =
+/// A°7); an augmented triad `{0,4,8}` as three (C+ = E+ = A♭+).
+///
+/// [bassPc], if given and present in [pcs], puts the reading rooted on the bass
+/// first and drives the inversion; otherwise every reading is root position.
+/// Augmented sixths are spelling-dependent and are **not** enumerated here (use
+/// [identifyChord] with real pitches for those). Returns `[]` if nothing fits.
+List<ChordAnalysis> chordReadings(Set<int> pcs, {int? bassPc}) {
+  if (pcs.length < 3) return const [];
+  final roots = <int>[
+    if (bassPc != null && pcs.contains(bassPc)) bassPc,
+    for (final pc in pcs)
+      if (pc != bassPc) pc,
+  ];
+  final readings = <ChordAnalysis>[];
+  final seen = <String>{};
+  for (final rootPc in roots) {
+    final intervals = {for (final pc in pcs) (pc - rootPc + 12) % 12};
+    for (final type in ChordType.values) {
+      if (type.isAugmentedSixth) continue; // spelling-only
+      if (!_setEquals(intervals, type.intervals)) continue;
+      final root = _canonicalPitch(rootPc);
+      final order = type.intervals.toList()..sort();
+      final bassInterval = ((bassPc ?? rootPc) - rootPc + 12) % 12;
+      final inversion = order.indexOf(bassInterval).clamp(0, order.length - 1);
+      final bass = bassPc != null ? _canonicalPitch(bassPc) : root;
+      if (seen.add('$rootPc:${type.name}')) {
+        readings.add(ChordAnalysis(root, type, inversion, bass));
+      }
+    }
+  }
+  return readings;
+}
+
+// A default single-accidental spelling of a pitch class (flats for the black
+// keys, except pc 6 as F#), for naming a reading that carries no spelling.
+Pitch _canonicalPitch(int pc) {
+  const table = <int, (Step, int)>{
+    0: (Step.c, 0),
+    1: (Step.d, -1),
+    2: (Step.d, 0),
+    3: (Step.e, -1),
+    4: (Step.e, 0),
+    5: (Step.f, 0),
+    6: (Step.f, 1),
+    7: (Step.g, 0),
+    8: (Step.a, -1),
+    9: (Step.a, 0),
+    10: (Step.b, -1),
+    11: (Step.b, 0),
+  };
+  final (step, alter) = table[pc % 12]!;
+  return Pitch(step, alter: alter, octave: 4);
+}
+
 /// Detects an Italian / French / German augmented sixth in [pitches] by its
 /// spelled augmented-sixth interval (a diatonic sixth spanning 10 semitones),
 /// between the lowered submediant (♭6, the lower note) and the raised
 /// subdominant (♯4). Returns null if no such interval + matching sonority is
 /// present. The [pcs] set and [bass] are supplied by [identifyChord].
-ChordAnalysis? _augmentedSixth(
-    List<Pitch> pitches, Set<int> pcs, Pitch bass) {
+ChordAnalysis? _augmentedSixth(List<Pitch> pitches, Set<int> pcs, Pitch bass) {
   // One spelled representative per pitch class.
   final byPc = <int, Pitch>{};
   for (final p in pitches) {

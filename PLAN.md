@@ -592,7 +592,10 @@ No peer renderer does any of this; all build on the existing pitch / interval
       standard-voicing templates; and **augmented sixths** (Italian / French /
       German) recognized by the *spelled* augmented-sixth interval, so a German
       6th is not misread as its enharmonic dominant 7th (`It+6`/`Fr+6`/`Ger+6`).
-      **Left:** alternate spellings / enharmonic re-reads of the same pc-set.
+      **Left:** ~~alternate spellings / enharmonic re-reads~~ → done:
+      `chordReadings(pcs, {bassPc})` enumerates every tonal reading of a
+      pitch-class set (C6 vs Am7; dim7 four ways; aug three).
+      `chord_readings_test.dart`.
 - [x] **4.5 Post-tonal set theory** — `normalForm`, Forte `primeForm`,
       `intervalClassVector` and `zRelated` for a pitch-class set, plus
       `transposeSet`/`invertSet`/`pitchClassSet` helpers

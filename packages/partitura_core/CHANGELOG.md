@@ -2,6 +2,14 @@
 
 ## 0.4.1-dev.1 (in progress)
 
+- **Enharmonic chord re-reads** (Phase 4.4 tail): `chordReadings(pcs, {bassPc})`
+  returns *every* tonal reading of a pitch-class set — one per root whose
+  template matches — surfacing the ambiguities a single spelled reading hides:
+  `{0,4,7,9}` reads as both C6 and Am7; a diminished seventh reads four ways
+  (C°7 = E♭°7 = G♭°7 = A°7), an augmented triad three. `bassPc` orders the
+  readings and drives inversion. (Spelling-dependent augmented sixths stay with
+  `identifyChord`.)
+
 - **Accessible score labels** (Phase 3.9): `semanticLabel(element)` gives a
   spoken, screen-reader-friendly description of a note/rest — pitch names spelled
   out and the duration named (`"C sharp 4 quarter note"`, `"C 4, E 4, G 4 chord,
