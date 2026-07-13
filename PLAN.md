@@ -33,6 +33,13 @@ ships* at the end for the mechanics.
 > `partitura-public-lacunae`. *(Editor moat 3.3/3.4/3.8 + `ScoreEditorController`
 > done; v0.4.0 released with CLI/APK/WASM artifacts. All of C1–C9 now done.)*
 
+> **Actively working on (Phase 6.3):** tab paired with a notation staff — a
+> notation staff over a tab staff of the same `Score`, barlines aligned via
+> shared measure widths. Adding `leadingWidth`/`measureWidths` to
+> `TabLayoutEngine.layout`, a `layoutNotationTab` combiner (`NotationTabLayout`),
+> and a `NotationTabView` with connected barlines. Tests + a golden. Worktree
+> `partitura-tab`, branch `feat/tab-notation-pair`.
+
 
 
 
