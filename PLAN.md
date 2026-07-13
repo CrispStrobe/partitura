@@ -30,6 +30,12 @@ ships* at the end for the mechanics.
 > (stem/dots) ink in the column gaps. Worktree `partitura-public-lacunae`.
 > *(Increments 1–4, editor contracts C1–C5, justification done on `main`.)*
 
+> **Actively working on (OMR test hardening):** more unit tests across the OMR
+> parsers (semantic clefs/keys/meters/mid-score changes, LilyPond double
+> accidentals / unrecognised tokens, bekern header synthesis / StaffSystem,
+> dialect edges, segmenter / model-resolver edges). Test files only. Worktree
+> `partitura-tests`, branch `test/omr-hardening`.
+
 
 
 
