@@ -1,6 +1,10 @@
 # Changelog
 
-## 0.4.0-dev.1 (in progress)
+## 0.4.1-dev.1 (in progress)
+
+## 0.4.0 (2026-07-13)
+
+First tagged release. Everything below shipped during the 0.4.0 cycle.
 
 - **Interchangeable / alternating meters** (Phase 5.7): `TimeSignature.alternate`
   carries a companion signature drawn beside the primary at the start of the

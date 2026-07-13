@@ -1,6 +1,10 @@
 # Changelog
 
-## 0.4.0-dev.1 (in progress)
+## 0.4.1-dev.1 (in progress)
+
+## 0.4.0 (2026-07-13)
+
+First tagged release. Everything below shipped during the 0.4.0 cycle.
 
 - **Tab technique tail** (Phase 6.4, completes 6.4): `TabStaffView` now renders
   multi-point bend contours (`Bend.curve`), whammy dip/dive/return curves

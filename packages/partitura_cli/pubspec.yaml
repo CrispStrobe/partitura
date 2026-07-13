@@ -1,6 +1,6 @@
 name: partitura_cli
 description: Command-line tool for the partitura music notation libraries — import, convert (MusicXML/MIDI), inspect, and render to SVG.
-version: 0.4.0-dev.1
+version: 0.4.0
 repository: https://github.com/CrispStrobe/partitura
 publish_to: none
 

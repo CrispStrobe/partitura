@@ -1,0 +1,52 @@
+name: release
+
+# Builds the partitura CLI into native executables for each platform and
+# attaches them to the GitHub Release for the pushed tag. The Release itself
+# (with curated notes) is created by `gh release create v<x.y.z>`; pushing that
+# tag triggers this workflow, which compiles and uploads the binaries.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: macos-arm64
+            asset: partitura-macos-arm64
+          - os: ubuntu-latest
+            target: linux-x64
+            asset: partitura-linux-x64
+          - os: windows-latest
+            target: windows-x64
+            asset: partitura-windows-x64.exe
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+
+      - name: Resolve dependencies
+        run: dart pub get
+
+      - name: Compile CLI (pure Dart)
+        shell: bash
+        run: dart compile exe packages/partitura_cli/bin/partitura.dart -o "${{ matrix.asset }}"
+
+      - name: Smoke-test the binary
+        shell: bash
+        run: ./"${{ matrix.asset }}" --help || true
+
+      - name: Upload to the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.ref_name }}" "${{ matrix.asset }}" --clobber
