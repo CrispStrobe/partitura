@@ -23,12 +23,6 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-13)
 
-> 🚧 **Actively working on (Phase 7.5 — Braille music export):** `scoreToBraille`
-> in a new `braille/` core module — Unicode braille-music note/rest cells
-> (name+value), accidentals, octave marks (standard interval rule), measure
-> separation. Pure core, no overlap with the 2.x/3.x/4.x threads. Worktree
-> `partitura-tab`, branch `feat/braille-export`.
-
 > **C6 multi-part document — core wrapping landed on `main`**
 > (`layoutStaffSystemSystems` / `StaffSystemSystems`; contract C6 now `[~]`, see
 > its handover below for increments 2–4). Phase 2.3 hide-empty-staves also on
@@ -865,8 +859,18 @@ enum encodings so files round-trip cleanly), tiered by importance:
       repeat-count model field (every `:|` currently repeats once); volta
       brackets that are also inner-repeat starts (ambiguous); repeat
       re-expansion after a D.C./D.S. return.
-- [ ] **7.5 Braille music export** — rare in this space; a real accessibility
-      differentiator.
+- [~] **7.5 Braille music export** — rare in this space; a real accessibility
+      differentiator. **Done (core stream):** `scoreToBraille(Score)` in a new
+      `braille/` module emits Unicode braille-music cells for the single-staff
+      melodic stream — note signs (name + value, the eighth signs = literary
+      d–j; whole/half/quarter add dots 3/6), rests, accidentals (shown only when
+      not implied by the key), octave marks by the standard interval rule
+      (always first; never a 2nd/3rd; a 4th/5th only across an octave; a 6th+
+      always), dotted-note augmentation cells, and measures separated by a blank
+      cell. Wired into the CLI (`--to brl` / `.brl`); `braille_writer_test.dart`
+      checks the cells against dot numbers. **Left:** chords (interval signs),
+      in-accord voices, key/time/clef signatures, dynamics/slurs/fingering, and
+      line/format rules.
 - [x] **7.6 CLI tool** (`partitura_cli`) — a pure-Dart command line for
       `info` / `timeline` / `convert` (MusicXML ↔ MIDI) / `render` (SVG or,
       by delegating to the Flutter SDK, PNG; notation or `--tab`), with live

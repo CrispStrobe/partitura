@@ -62,8 +62,9 @@ Common:
                                        plain-text tab; .mscx/.mscz = MuseScore
                                        XML / zip; .gp = v7/8, .gpx = v6,
                                        .gp5/.gp4/.gp3 = binary tab)
-  --to   <musicxml|mxl|mei|kern|ly|midi|abc|mscx|mscz|gp|gpif>
-                                       (.ly = LilyPond, export only)
+  --to   <musicxml|mxl|mei|kern|ly|midi|abc|brl|mscx|mscz|gp|gpif>
+                                       (.ly = LilyPond, .brl = braille music;
+                                       export only)
                                        Force the convert output format
 
 render options:
@@ -360,6 +361,8 @@ int _convert(List<String> args) {
       File(outPath).writeAsBytesSync(scoreToMidi(score));
     case 'abc':
       File(outPath).writeAsStringSync(scoreToAbc(score));
+    case 'brl':
+      File(outPath).writeAsStringSync(scoreToBraille(score));
     case 'mscx':
       File(outPath).writeAsStringSync(scoreToMscx(score));
     case 'mscz':
@@ -490,6 +493,7 @@ String _formatOf(String path) {
   if (lower.endsWith('.svg')) return 'svg';
   if (lower.endsWith('.png')) return 'png';
   if (lower.endsWith('.abc')) return 'abc';
+  if (lower.endsWith('.brl')) return 'brl';
   if (lower.endsWith('.mscz')) return 'mscz';
   if (lower.endsWith('.mscx')) return 'mscx';
   if (lower.endsWith('.tab') ||

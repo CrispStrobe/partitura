@@ -7,6 +7,12 @@
   out and the duration named (`"C sharp 4 quarter note"`, `"C 4, E 4, G 4 chord,
   half note"`, `"quarter rest"`); `semanticLabels(score)` maps every element id
   to one. Drives the new per-note `Semantics` on `StaffView` (Flutter side).
+- **Braille music export** (Phase 7.5): `scoreToBraille(Score)` renders a
+  single-staff score as Unicode braille-music cells — note signs (name + value),
+  rests, accidentals (only when not implied by the key signature), octave marks
+  by the standard interval rule, dotted-note augmentation cells, and blank-cell
+  measure separators. A first accessibility export; chords, in-accord voices,
+  signatures and dynamics are follow-ups. Backed by `braille_writer_test.dart`.
 
 - **Multi-part document wrapping** (Workshop contract C6, increment 1):
   `layoutStaffSystemSystems(StaffSystem document, …, maxWidth:)` breaks an

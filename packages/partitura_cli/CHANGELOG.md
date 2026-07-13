@@ -2,6 +2,9 @@
 
 ## 0.4.1-dev.1 (in progress)
 
+- **Braille music output**: `convert --to brl` (or a `.brl` output path) writes
+  Unicode braille-music notation via the new core `scoreToBraille`.
+
 ## 0.4.0 (2026-07-13)
 
 First tagged release. The `partitura` CLI: inspect scores; convert between
