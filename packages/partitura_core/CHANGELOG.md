@@ -2,6 +2,11 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Post-tonal set theory** (Phase 4.5): `normalForm`, Forte `primeForm`,
+  `intervalClassVector` and `zRelated` for a pitch-class set (0–11), plus
+  `transposeSet`/`invertSet`/`pitchClassSet` helpers — the analysis toolkit for
+  atonal music. Pure theory. (The Forte set-class *number* is a naming table
+  over prime forms; the prime form itself is the canonical identifier.)
 - **Key finding** (Phase 4.3): Krumhansl-Schmuckler. `findKey(pcWeights)` and
   `keyOf(pitches, {durations})` correlate a pitch-class weight profile against
   the 24 rotated major/minor key profiles and return the best-matching `Key`

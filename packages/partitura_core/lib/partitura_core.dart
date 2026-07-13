@@ -64,6 +64,7 @@ export 'src/theory/meter.dart';
 export 'src/theory/pitch.dart';
 export 'src/theory/roman_numeral.dart';
 export 'src/theory/scale.dart';
+export 'src/theory/set_theory.dart';
 export 'src/theory/time_signature.dart';
 export 'src/theory/transposition.dart';
 export 'src/theory/triad.dart';

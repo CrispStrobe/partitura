@@ -414,9 +414,11 @@ No peer renderer does any of this; all build on the existing pitch / interval
       sixths, sus) and inversion (as a slash chord) from a pitch set, spelled
       from the input, bass disambiguating (C6 vs Am7). **Left:** extended
       chords (9/11/13), augmented-sixth recognition, alternate spellings.
-- 🚧 **4.5 Post-tonal set theory** — normal order, prime form, set-class
-      number, interval-class vector, Z-relation.
-      *[in progress: parallel agent — pure theory, new theory/set_theory.dart]*
+- [x] **4.5 Post-tonal set theory** — `normalForm`, Forte `primeForm`,
+      `intervalClassVector` and `zRelated` for a pitch-class set, plus
+      `transposeSet`/`invertSet`/`pitchClassSet` helpers
+      (`theory/set_theory.dart`). *Left:* the Forte set-class *number* naming
+      table (the prime form is the canonical identifier).
 - [ ] **4.6 Figured-bass realization** — SATB completion with a voice-leading
       rule engine (pairs with 4.2).
 - [x] **4.7 Metrical-accent hierarchy** (`beatStrength`) — a `TimeSignature`
