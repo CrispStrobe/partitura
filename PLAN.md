@@ -238,7 +238,23 @@ Raises the quality of everything already rendered. Slice order:
       (golden 78). **Left:** the hard-coded 5-line-staff generalization (tab
       already has its own N-line engine).
 - [ ] **2.2 Cross-staff notes / stems / beams** — a chord or beam spanning
-      both staves of a keyboard system.
+      both staves of a keyboard system. *Engine investigation (map):* the
+      `LayoutEngine` is strictly single-staff — one `Score` = one 5-line staff
+      in its own coords (top line y=0, middle y=2, bottom y=4). `_yOf(pos) =
+      (8-pos)/2` and the middle-line stem clamps (`>=2`/`<=2` in `_layoutNote`
+      and `_layoutBeamGroup`) bake in one staff; grand-staff / multi-part
+      assembly stacks *independent* `ScoreLayout`s with a `staffGap`, so no code
+      can place a stem/beam into an adjacent staff, and a beam group cannot span
+      two separate `engine.layout()` calls. Minimal touch-set: (1) an opt-in
+      per-note stem-target-y override that bypasses the middle-line clamp
+      (purely additive — notes without it are unchanged, so existing beaming
+      goldens are safe); (2) the engine suppresses stem/flag/beam for notes
+      tagged cross-staff-deferred and exposes their stem-attach geometry;
+      (3) the assembler (grand_staff / multi_part), which alone knows both
+      staves' positions in a shared frame, draws the connecting stems + beam
+      across the `staffGap`. A model span (`CrossStaffBeam` on `MultiPartScore`,
+      ordered note ids) feeds it. This is a delicate engine change (touches the
+      beaming code); size it as its own focused effort, not a quick add.
 - [~] **2.3 Hide-empty / ossia / divisi / cutaway staves** — dynamic staff
       count: drop empty staves per system, add temporary alternative (ossia)
       staves, split a part into subsections, remove empty bars. **Done:**
