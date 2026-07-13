@@ -128,19 +128,25 @@ y-down coords. Priority: **C1+C2 → C3 → C5 → C4**.
     Covered in `multi_part_view_test.dart`.
   C6 is now **complete** end-to-end (model → layout → pagination → view →
   interchange → editor).
-- [ ] **Complete the multi-part importers** *(from the real-input hardening pass,
-  `docs/HARDENING.md`)* — remaining gaps after the C6 interchange bridges landed:
-  - **MEI**: add `staffSystemFromMei` (ABC / kern / MusicXML now have both a
-    multi-part importer and a `multiPartScoreFrom*` bridge, but real MEI —
-    Brandenburg, concertos — still collapses to one part).
-  - **CLI `render`**: detect a multi-part input and render via
-    `layoutMultiPartPages` / `MultiPartView` (today it always uses the single
-    `Score` path, so `partitura render quartet.musicxml` shows only one part —
-    even though `staffSystemFromMusicXml` / `multiPartScoreFromMusicXml` import
-    every part).
-  - **Percussion**: `<unpitched>` notes now import on their display line (no
-    crash — hardening G7), but a proper percussion clef / staff and a MuseScore
-    drumset mapping are still missing.
+- [~] **Complete the multi-part importers** *(from the real-input hardening pass,
+  `docs/HARDENING.md`)* — mostly done; one open item remains.
+  - **MEI** — **done.** `staffSystemFromMei` reads every `<staffDef>` into an
+    aligned staff (staffGrp `@symbol` → brackets) and `multiPartScoreFromMei`
+    bridges to a paginating document. `mei_test.dart`.
+  - **CLI `render`** — **done.** A multi-part input (MusicXML/MXL/MEI/kern/ABC)
+    with ≥2 parts now renders every part stacked via the new `staffSystemToSvg`
+    (N staves + per-group systemic barlines), instead of collapsing to the first
+    `Score`. `cli_test.dart` / `svg_test.dart`. *(Multi-part **PNG** still uses
+    the single-`Score` path — needs the Flutter `render_png.dart` tool to accept
+    a `StaffSystem`.)*
+  - **Percussion** — clef / staff **done**: `<clef><sign>percussion</sign>` →
+    `Clef.percussion`, `<unpitched>` notes import on their display line, the
+    layout renders the neutral percussion clef with no key signature, and
+    MuseScore `PERC`/`PERC2` clefs map both ways (`musicxml_test.dart`
+    percussion group). **Still open:** a MuseScore `<Drumset>` note→line/notehead
+    mapping (drum hits currently read via their raw MIDI pitch, not the drumset's
+    per-instrument line + notehead group) — needs notehead-group model support
+    and real `.mscx` drum fixtures, so it is a standalone feature, not a tail.
   - Verified working after G6/G7: the 23-staff orchestral **ActorPrelude** and
     the Mozart string quartet (4 staves) import fully via
     `staffSystemFromMusicXml`.

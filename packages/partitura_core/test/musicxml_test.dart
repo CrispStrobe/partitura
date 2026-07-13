@@ -794,4 +794,45 @@ void main() {
       expect(doc.effectiveBarlineGroups, const [BarlineGroup(0, 1)]);
     });
   });
+
+  group('percussion', () {
+    // A one-bar percussion part: a percussion clef and two <unpitched> hits.
+    String drumPart() => '''
+<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list><score-part id="P1"/></part-list>
+  <part id="P1"><measure number="1">
+    <attributes><divisions>2</divisions>
+      <time><beats>4</beats><beat-type>4</beat-type></time>
+      <clef><sign>percussion</sign></clef></attributes>
+    <note><unpitched><display-step>E</display-step><display-octave>5</display-octave></unpitched><duration>2</duration><type>quarter</type></note>
+    <note><unpitched><display-step>F</display-step><display-octave>4</display-octave></unpitched><duration>2</duration><type>quarter</type></note>
+  </measure></part>
+</score-partwise>''';
+
+    test('a percussion clef imports as Clef.percussion', () {
+      final score = scoreFromMusicXml(drumPart());
+      expect(score.clef, Clef.percussion);
+      // Both <unpitched> hits import as notes on their display lines.
+      final notes = score.measures.single.elements.cast<NoteElement>();
+      expect(notes, hasLength(2));
+      expect(notes[0].pitches.single.step, Step.e);
+      expect(notes[1].pitches.single.step, Step.f);
+    });
+
+    test('a percussion staff lays out (neutral clef, no key signature)', () {
+      final meta = SmuflMetadata.fromJson(jsonDecode(
+          File('../partitura/assets/smufl/bravura_metadata.json')
+              .readAsStringSync()) as Map<String, Object?>);
+      final layout = const LayoutEngine()
+          .layout(scoreFromMusicXml(drumPart()), LayoutSettings(metadata: meta));
+      expect(layout.width, greaterThan(0));
+      // The percussion clef glyph is on the staff.
+      expect(
+        layout.primitives.whereType<GlyphPrimitive>().any(
+            (g) => g.smuflName == SmuflGlyph.percussionClef),
+        isTrue,
+      );
+    });
+  });
 }
