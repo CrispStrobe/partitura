@@ -2,6 +2,13 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Metrical-accent hierarchy** (Phase 4.7): `TimeSignature.beatStrength(pos)`
+  gives the accent strength of a metric position, normalized so the downbeat is
+  `1.0` and each level down the meter's hierarchy of subdivisions halves it —
+  4/4 makes beat 3 `0.5` and beats 2/4 `0.25`, 3/4 makes both weak beats `0.5`,
+  6/8 accents the second dotted beat, and additive meters accent each group
+  start; off-grid (e.g. triplet) positions score `0.0`. Built on the exact
+  `Fraction` grid (`TimeSignature.metricGrid()`), resolved to the 64th note.
 - **Beam subdivision at metric points** (Phase 1.4): secondary/tertiary beams
   now break at the quarter-note metric point, so a beam group longer than a
   quarter — a half-note beat in cut time (or any x/2 meter) — keeps one

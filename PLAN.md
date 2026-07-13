@@ -326,8 +326,13 @@ No peer renderer does any of this; all build on the existing pitch / interval
       number, interval-class vector, Z-relation.
 - [ ] **4.6 Figured-bass realization** — SATB completion with a voice-leading
       rule engine (pairs with 4.2).
-- [ ] **4.7 Metrical-accent hierarchy** (`beatStrength`) on the exact-duration
-      core — also improves automatic beaming.
+- [x] **4.7 Metrical-accent hierarchy** (`beatStrength`) — a `TimeSignature`
+      extension mapping each metric position to an accent strength (downbeat
+      1.0, halving down the meter's hierarchy): 4/4 → beat 3 = ½, beats 2/4 = ¼;
+      3/4 → both weak beats ½; 6/8 accents the second dotted beat; additive
+      meters accent each group start; off-grid (triplet) positions score 0.
+      Exact-`Fraction` grid resolved to the 64th. Wiring it into automatic
+      beaming is a follow-up.
 - [ ] **4.8 Extras** — scale derivation (rank matching scales for a pitch
       set), triad L/P/R transforms, twelve-tone matrix, an analysis text I/O
       format.
