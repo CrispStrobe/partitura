@@ -52,15 +52,19 @@ automatically). The Flutter SDK must be on `PATH`; SVG needs only the Dart SDK.
 
 ### `omr` — optical music recognition
 
-Recognizes a staff-notation image (PNG/JPEG) into a score. Recognition runs on
-the [CrispEmbed](https://github.com/CrispStrobe/CrispEmbed) Sheet Music
-Transformer via FFI: the image is decoded in pure Dart, the engine returns
-`bekern` tokens, and those parse into a two-staff `GrandStaff` (or a single
-staff with `--single`). Output is `.musicxml`, `.mxl`, or `.krn`.
+Recognizes a staff-notation image (PNG/JPEG) into a score via
+[CrispEmbed](https://github.com/CrispStrobe/CrispEmbed) over FFI. The image is
+decoded in pure Dart; the **engine is auto-detected** from the model:
+
+- **Sheet Music Transformer** → `bekern` tokens → a two-staff `GrandStaff`
+  (or a single staff with `--single`);
+- **Polyphonic-TrOMR** → *semantic* notation → a single polyphonic `Score`.
+
+Output is `.musicxml`, `.mxl`, or `.krn`.
 
 | Option | Meaning |
 |---|---|
-| `--model <path>` | SMT GrandStaff GGUF model (or set `PARTITURA_OMR_MODEL`) |
+| `--model <path>` | OMR GGUF — SMT GrandStaff or TrOMR (or set `PARTITURA_OMR_MODEL`) |
 | `--lib <path>` | `libcrispembed` shared library (or set `CRISPEMBED_LIB`) |
 | `--single` | Import only the first spine (single staff, not a grand staff) |
 | `--threads <n>` | Inference threads (default: auto) |

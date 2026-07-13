@@ -44,6 +44,7 @@ export 'src/musicxml/musicxml_reader.dart';
 export 'src/musicxml/musicxml_writer.dart';
 export 'src/omr/bekern.dart';
 export 'src/omr/omr.dart';
+export 'src/omr/semantic.dart';
 export 'src/playback/playback_timeline.dart';
 export 'src/smufl/glyph_names.dart';
 export 'src/smufl/smufl_codepoints.dart';

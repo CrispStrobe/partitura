@@ -32,8 +32,12 @@
   reconstructs Humdrum, and a multi-spine, `**ekern`-aware kern reader
   (`grandStaffFromKern`/`staffSystemFromKern`) yields a `GrandStaff`/`Score`/
   `StaffSystem`. Tuplet reciprocals approximate to their written note value
-  instead of throwing. Recognition itself plugs in via the `OmrEngine`
-  abstraction (FFI engine lives in `partitura_cli`, `partitura omr`).
+  instead of throwing. A second engine — **Polyphonic-TrOMR** — is supported via
+  `scoreFromSemantic` (`src/omr/semantic.dart`), which parses PrIMuS-style
+  *semantic* notation (`clef-G2 note-C4_quarter …`, chords via `|`) into a
+  single-staff `Score`; `omrDialectOf` auto-detects which dialect an engine
+  returned. Recognition itself plugs in via the `OmrEngine` abstraction (FFI
+  engine lives in `partitura_cli`, `partitura omr` — engine auto-detected).
 - **Roman-numeral analysis** (Phase 4.1, bidirectional): `romanNumeralOf(pitches,
   key)` reads a chord as a `RomanNumeral` — scale degree (with a chromatic
   `b`/`#` prefix for borrowed/Neapolitan chords), quality-driven case plus

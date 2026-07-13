@@ -35,12 +35,14 @@ Commands:
   render    <in> <out.(svg|png)> [options]
                                        Render a score (SVG pure-Dart; PNG via
                                        the Flutter SDK)
-  omr       <image> <out.(musicxml|mxl|krn)> --model <smt.gguf> [options]
-                                       Recognize a staff image via the CrispEmbed
-                                       Sheet Music Transformer (needs libcrispembed)
+  omr       <image> <out.(musicxml|mxl|krn)> --model <gguf> [options]
+                                       Recognize a staff image via CrispEmbed —
+                                       Sheet Music Transformer (grand staff) or
+                                       Polyphonic-TrOMR (single staff), engine
+                                       auto-detected (needs libcrispembed)
 
 omr options:
-  --model <path>                       SMT GrandStaff GGUF (or set
+  --model <path>                       OMR GGUF: SMT GrandStaff or TrOMR (or set
                                        PARTITURA_OMR_MODEL)
   --lib <path>                         libcrispembed shared library (or set
                                        CRISPEMBED_LIB)
@@ -176,13 +178,13 @@ int _omr(List<String> args) {
   final outFormat = options['to'] ?? _formatOf(outPath);
   final threads = int.tryParse(options['threads'] ?? '') ?? 0;
 
-  final String bekern;
+  final String tokens;
   try {
     final image = decodeOmrImage(imagePath);
     final engine = CrispEmbedOmrEngine.load(modelPath,
         libraryPath: options['lib'], threads: threads);
     try {
-      bekern = engine.recognizeSync(image);
+      tokens = engine.recognizeSync(image);
     } finally {
       engine.dispose();
     }
@@ -190,18 +192,28 @@ int _omr(List<String> args) {
     throw _CliError(e.message);
   }
 
+  // The engine's output dialect is auto-detected: the Sheet Music Transformer
+  // emits `bekern` (a grand staff), Polyphonic-TrOMR emits semantic notation
+  // (a single polyphonic staff).
   String musicXml;
-  int upper, lower;
-  if (options.containsKey('single')) {
-    final score = bekernToScore(bekern);
+  String kern;
+  String summary;
+  if (omrDialectOf(tokens) == OmrDialect.semantic) {
+    final score = scoreFromSemantic(tokens);
     musicXml = scoreToMusicXml(score);
-    upper = score.measures.length;
-    lower = 0;
+    kern = scoreToKern(score);
+    summary = 'single staff (TrOMR), ${score.measures.length} measures';
+  } else if (options.containsKey('single')) {
+    final score = bekernToScore(tokens);
+    musicXml = scoreToMusicXml(score);
+    kern = bekernToKern(tokens);
+    summary = 'single staff, ${score.measures.length} measures';
   } else {
-    final grand = bekernToGrandStaff(bekern);
+    final grand = bekernToGrandStaff(tokens);
     musicXml = grandStaffToMusicXml(grand);
-    upper = grand.upper.measures.length;
-    lower = grand.lower.measures.length;
+    kern = bekernToKern(tokens);
+    summary = 'grand staff, upper ${grand.upper.measures.length} / '
+        'lower ${grand.lower.measures.length} measures';
   }
 
   switch (outFormat) {
@@ -210,13 +222,11 @@ int _omr(List<String> args) {
     case 'mxl':
       File(outPath).writeAsBytesSync(writeMusicXmlToMxl(musicXml));
     case 'kern':
-      File(outPath).writeAsStringSync(bekernToKern(bekern));
+      File(outPath).writeAsStringSync(kern);
     default:
       throw _CliError('omr can write musicxml, mxl or kern (got "$outFormat")');
   }
-  stderr.writeln(lower == 0
-      ? 'omr: single staff, $upper measures -> $outPath'
-      : 'omr: grand staff, upper $upper / lower $lower measures -> $outPath');
+  stderr.writeln('omr: $summary -> $outPath');
   return 0;
 }
 

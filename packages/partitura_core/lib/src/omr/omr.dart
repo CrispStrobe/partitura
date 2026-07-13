@@ -20,6 +20,28 @@ import '../layout/staff_system.dart';
 import '../model/score.dart';
 import 'bekern.dart';
 
+/// Which OMR token dialect an engine returned.
+enum OmrDialect {
+  /// SMT `bekern` (a linearised grand-staff Humdrum) — parse with
+  /// [bekernToGrandStaff] / [bekernToScore].
+  bekern,
+
+  /// TrOMR PrIMuS-style *semantic* notation (`clef-G2 note-C4_quarter …`) —
+  /// parse with `scoreFromSemantic`.
+  semantic,
+}
+
+/// Sniffs which dialect [tokens] are, so a caller can pick the right parser
+/// without knowing which engine (SMT vs TrOMR) produced them. Semantic notation
+/// uses `note-`/`clef-`/`timeSignature-`/`keySignature-` prefixes that `bekern`
+/// never contains.
+OmrDialect omrDialectOf(String tokens) => tokens.contains('note-') ||
+        tokens.contains('clef-') ||
+        tokens.contains('timeSignature-') ||
+        tokens.contains('keySignature-')
+    ? OmrDialect.semantic
+    : OmrDialect.bekern;
+
 /// A pixel buffer for [OmrEngine.recognize]: row-major `width`×`height`, with
 /// `channels` bytes per pixel (1 = gray, 3 = RGB, 4 = RGBA). The engine applies
 /// its own grayscale/invert/resize preprocessing.

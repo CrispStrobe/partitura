@@ -29,13 +29,6 @@ ships* at the end for the mechanics.
 > accidental layout.* Worktree `partitura-public-lacunae`, branch
 > `feat/model-lacunae`.
 
-> **Actively working on (OMR / TrOMR):** second OMR engine — a pure-Dart parser
-> for CrispEmbed's Polyphonic-TrOMR *semantic* notation (`clef-G2 note-C4_quarter
-> …`) → `Score`/`GrandStaff`, plus wiring it into the `partitura omr` CLI
-> (engine auto-detected). Touches `partitura_core/src/omr/` + `partitura_cli`
-> only — no `Pitch`/meter/key model work. Worktree `partitura-tromr`, branch
-> `feat/omr-tromr`.
-
 - **Shipped: v0.1 → v0.7.2** — the full common-notation set plus the
   piano/technical layer. All green.
 - **In progress (partial):**
@@ -136,6 +129,13 @@ turn); multi-measure rests; octave clefs (8va/8vb) + ottava brackets.
   `partitura omr` CLI command (image → MusicXML/`.mxl`/`.krn`). Verified
   end-to-end: FFI bekern is byte-identical to the reference engine on the
   GrandStaff samples, and each round-trips through MusicXML.
+- **Second engine — Polyphonic-TrOMR.** CrispEmbed's TrOMR engine emits PrIMuS-
+  style *semantic* notation (`clef-G2 note-C4_quarter …`, chords via `|`) for a
+  single polyphonic staff; `scoreFromSemantic` (`src/omr/semantic.dart`, pure
+  Dart) parses it to a `Score`. The `partitura omr` command **auto-detects the
+  dialect** (`omrDialectOf`) and routes SMT→`GrandStaff`, TrOMR→`Score` through
+  the same FFI engine and output formats. Verified end-to-end on the TrOMR
+  sample (image → `Score` → MusicXML).
 
 ---
 
