@@ -19,7 +19,7 @@ unrecognized or malformed element should be skipped (ideally logged), not throw.
 
 | # | Severity | Area | Symptom | Repro | Status |
 |---|---|---|---|---|---|
-| G1 | medium | CLI packaging | `render` to SVG fails *"SMuFL metadata not found"* when the CLI binary runs outside the repo tree — so the **released standalone binary** can't render without `--metadata`. | `partitura render x.musicxml x.svg` from `/tmp` | open |
+| G1 | medium | CLI packaging | `render` to SVG failed *"SMuFL metadata not found"* when the CLI binary ran outside the repo tree — so the **released standalone binary** couldn't render without `--metadata`. | `partitura render x.musicxml x.svg` from `/tmp` | **fixed** — Bravura metadata embedded (deflate+base64, ~136 KB) as an offline fallback |
 | G2 | high (fidelity) | reader / model | Multi-part scores (orchestra, string quartet, piano grand staff) collapse to a **single part** through the single-`Score` path (`scoreFromMusicXml` / CLI render): a Mozart quartet imports as one melodic line. | `partitura info Mozart_String_Quartet…` → 1 clef, 72 elements | open — tracked by **C6** multi-part model (other worktree) |
 | G3 | high | musicxml reader | A slur `start`/`stop` imbalance (a `type="continue"` reusing a number, or a lost `stop`) left a slur open → parse aborted *"Unclosed `<slur>`"*. | `partitura info Debussy_Mandoline.xml` | **fixed** — dangling slur dropped, parse continues |
 | G4 | high (crash) | layout engine | A degenerate `Hairpin(eN → eN)` (start == end) threw `must run forward in reading order` — uncaught. | `partitura render Dichterliebe01.xml …` | **fixed** (a2… ) |
