@@ -19,6 +19,7 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:partitura_cli/src/crispembed_omr.dart';
 import 'package:partitura_core/partitura_core.dart';
 
 const _usage = '''
@@ -34,6 +35,17 @@ Commands:
   render    <in> <out.(svg|png)> [options]
                                        Render a score (SVG pure-Dart; PNG via
                                        the Flutter SDK)
+  omr       <image> <out.(musicxml|mxl|krn)> --model <smt.gguf> [options]
+                                       Recognize a staff image via the CrispEmbed
+                                       Sheet Music Transformer (needs libcrispembed)
+
+omr options:
+  --model <path>                       SMT GrandStaff GGUF (or set
+                                       PARTITURA_OMR_MODEL)
+  --lib <path>                         libcrispembed shared library (or set
+                                       CRISPEMBED_LIB)
+  --threads <n>                        Inference threads (default: auto)
+  --single                             Import the first spine only (single staff)
 
 Common:
   --from <musicxml|mxl|mei|kern|midi|abc|asciitab|mscx|mscz|gp|gpx|gp5|gp4|gp3|gpif>
@@ -83,6 +95,8 @@ int _run(List<String> argv) {
         return _convert(rest);
       case 'render':
         return _render(rest);
+      case 'omr':
+        return _omr(rest);
       default:
         stderr.writeln('Unknown command: $command\n');
         stderr.writeln(_usage);
@@ -98,7 +112,13 @@ int _run(List<String> argv) {
 }
 
 /// Flags that never take a value (so they don't swallow a following argument).
-const _booleanFlags = {'tab', 'no-embed-font', 'no-expand', 'infer-rhythm'};
+const _booleanFlags = {
+  'tab',
+  'no-embed-font',
+  'no-expand',
+  'infer-rhythm',
+  'single',
+};
 
 int _info(List<String> args) {
   final (positional, options) = _parse(args);
@@ -140,6 +160,63 @@ int _timeline(List<String> args) {
     stdout.writeln('${n.elementId}\t${n.start}\t${n.duration}\t$secs\t'
         'm${n.measureIndex}${n.isRest ? '\trest' : ''}');
   }
+  return 0;
+}
+
+int _omr(List<String> args) {
+  final (positional, options) = _parse(args);
+  if (positional.length < 2) throw _CliError('omr needs <image> <out>');
+  final imagePath = positional[0];
+  final outPath = positional[1];
+  final modelPath =
+      options['model'] ?? Platform.environment['PARTITURA_OMR_MODEL'];
+  if (modelPath == null || modelPath.isEmpty) {
+    throw _CliError('omr needs --model <smt.gguf> (or PARTITURA_OMR_MODEL)');
+  }
+  final outFormat = options['to'] ?? _formatOf(outPath);
+  final threads = int.tryParse(options['threads'] ?? '') ?? 0;
+
+  final String bekern;
+  try {
+    final image = decodeOmrImage(imagePath);
+    final engine = CrispEmbedOmrEngine.load(modelPath,
+        libraryPath: options['lib'], threads: threads);
+    try {
+      bekern = engine.recognizeSync(image);
+    } finally {
+      engine.dispose();
+    }
+  } on OmrEngineException catch (e) {
+    throw _CliError(e.message);
+  }
+
+  String musicXml;
+  int upper, lower;
+  if (options.containsKey('single')) {
+    final score = bekernToScore(bekern);
+    musicXml = scoreToMusicXml(score);
+    upper = score.measures.length;
+    lower = 0;
+  } else {
+    final grand = bekernToGrandStaff(bekern);
+    musicXml = grandStaffToMusicXml(grand);
+    upper = grand.upper.measures.length;
+    lower = grand.lower.measures.length;
+  }
+
+  switch (outFormat) {
+    case 'musicxml':
+      File(outPath).writeAsStringSync(musicXml);
+    case 'mxl':
+      File(outPath).writeAsBytesSync(writeMusicXmlToMxl(musicXml));
+    case 'kern':
+      File(outPath).writeAsStringSync(bekernToKern(bekern));
+    default:
+      throw _CliError('omr can write musicxml, mxl or kern (got "$outFormat")');
+  }
+  stderr.writeln(lower == 0
+      ? 'omr: single staff, $upper measures -> $outPath'
+      : 'omr: grand staff, upper $upper / lower $lower measures -> $outPath');
   return 0;
 }
 

@@ -14,6 +14,11 @@ executables:
 
 dependencies:
   partitura_core: any
+  # Optical music recognition: FFI bridge to CrispEmbed's Sheet Music
+  # Transformer engine (`omr` command). `ffi`/`image` are pure Dart at compile
+  # time; only running `omr` needs the native libcrispembed at runtime.
+  ffi: ^2.1.0
+  image: ^4.2.0
 
 dev_dependencies:
   lints: ^5.0.0

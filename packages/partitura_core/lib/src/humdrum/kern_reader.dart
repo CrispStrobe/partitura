@@ -1,12 +1,17 @@
 /// Humdrum `**kern` import (subset): a `**kern` document → [Score]. Reads the
-/// subset the writer emits — a single spine: clef (with mid-score changes),
+/// subset the writer emits — per spine: clef (with mid-score changes),
 /// key/time signatures (incl. common/cut and additive), measures,
 /// notes/chords, rests, durations (breve…64th with dots), ties, articulations
-/// and ornaments. Multiple
-/// spines beyond the first, and unsupported records, are ignored. Pickup is
-/// detected from a short first measure. Pure Dart.
+/// and ornaments. Unsupported records are ignored. Pickup is detected from a
+/// short first measure.
+///
+/// A single spine parses to a [Score]; two spines to a [GrandStaff]
+/// ([grandStaffFromKern]); any number to a [StaffSystem] ([staffSystemFromKern]).
+/// Pure Dart.
 library;
 
+import '../layout/grand_staff.dart';
+import '../layout/staff_system.dart';
 import '../model/element.dart';
 import '../model/measure.dart';
 import '../model/score.dart';
@@ -33,18 +38,88 @@ const _recipBases = {
 /// Throws [FormatException] on documents this subset cannot represent.
 Score scoreFromKern(String kern) {
   final lines = kern.split('\n');
-  if (!lines.any((l) => l.trimRight().split('\t').contains('**kern'))) {
-    throw const FormatException('not a **kern document');
-  }
-  return _KernReader(lines).read();
+  final cols = _kernSpineColumns(lines);
+  if (cols.isEmpty) throw const FormatException('not a **kern document');
+  return _KernReader(lines, spineColumn: cols.first).read();
 }
+
+/// Parses a two-spine `**kern` document into a [GrandStaff]. The two `**kern`
+/// spines are assigned to the upper and lower staves by their leading clef
+/// (treble family → upper, bass family → lower); when the clefs don't
+/// disambiguate, the right-hand (higher-numbered) column is taken as the upper
+/// staff, matching the Humdrum convention that spines run low-to-high left to
+/// right. Element ids are unique across both staves.
+///
+/// This is the shape optical music recognition produces for piano/grand-staff
+/// scores (see `omr/omr.dart`). Throws [FormatException] if the document does
+/// not hold at least two `**kern` spines.
+GrandStaff grandStaffFromKern(String kern) {
+  final lines = kern.split('\n');
+  final cols = _kernSpineColumns(lines);
+  if (cols.length < 2) {
+    throw const FormatException('grand staff needs two **kern spines');
+  }
+  final a = _spineScore(lines, cols[0]);
+  final b = _spineScore(lines, cols[1]);
+  final aUpper = _isUpperClef(a.clef);
+  final bUpper = _isUpperClef(b.clef);
+  // Clef-based assignment; fall back to column order (rightmost = upper).
+  final upperIsA = aUpper == bUpper ? false : aUpper;
+  return GrandStaff(
+    upper: upperIsA ? a : b,
+    lower: upperIsA ? b : a,
+  );
+}
+
+/// Parses every `**kern` spine into a [StaffSystem], ordered top to bottom
+/// (rightmost Humdrum spine — the highest-sounding part — on top). Element ids
+/// are unique across staves. Throws [FormatException] if there are no spines.
+StaffSystem staffSystemFromKern(String kern) {
+  final lines = kern.split('\n');
+  final cols = _kernSpineColumns(lines);
+  if (cols.isEmpty) throw const FormatException('not a **kern document');
+  final staves = [for (final c in cols.reversed) _spineScore(lines, c)];
+  return StaffSystem(staves);
+}
+
+/// Reads one spine column into a [Score], giving its element ids a
+/// column-specific prefix so they stay unique when several spines are combined.
+Score _spineScore(List<String> lines, int column) =>
+    _KernReader(lines, spineColumn: column, idPrefix: 's${column}e').read();
+
+/// The tab-column indices that carry a `**kern` exclusive interpretation, taken
+/// from the first record that declares any. Empty when the document has none.
+List<int> _kernSpineColumns(List<String> lines) {
+  for (final raw in lines) {
+    final cols = raw.trimRight().split('\t');
+    if (!cols.contains('**kern')) continue;
+    return [
+      for (var i = 0; i < cols.length; i++)
+        if (cols[i] == '**kern') i,
+    ];
+  }
+  return const [];
+}
+
+/// Whether [clef] belongs to the treble (upper-staff) family.
+bool _isUpperClef(Clef clef) => switch (clef) {
+      Clef.treble ||
+      Clef.treble8va ||
+      Clef.treble8vb ||
+      Clef.frenchViolin ||
+      Clef.soprano ||
+      Clef.mezzoSoprano =>
+        true,
+      _ => false,
+    };
 
 class _KernReader {
   final List<String> lines;
-  _KernReader(this.lines);
+  final int spineColumn;
+  final String idPrefix;
+  _KernReader(this.lines, {required this.spineColumn, this.idPrefix = 'e'});
 
   int _nextId = 0;
-  int _spine = 0; // which tab-column holds the **kern data
   bool _started = false;
   Clef _clef = Clef.treble;
   KeySignature _key = const KeySignature(0);
@@ -56,17 +131,15 @@ class _KernReader {
   KeySignature? _pendingKey;
   TimeSignature? _pendingTime;
 
-  String _newId() => 'e${_nextId++}';
+  String _newId() => '$idPrefix${_nextId++}';
 
   Score read() {
     for (final raw in lines) {
       final line = raw.trimRight();
       if (line.isEmpty || line.startsWith('!')) continue; // blank / comment
       final token = line.split('\t')[_columnFor(line)];
-      if (token == '**kern') {
-        _spine = line.split('\t').indexOf('**kern');
-        continue;
-      }
+      if (token == '**kern') continue; // exclusive-interpretation header
+      if (token.startsWith('**')) continue; // some other exclusive spine
       if (token == '*-') break; // spine terminator
       if (token.startsWith('=')) {
         _finishMeasure();
@@ -93,7 +166,7 @@ class _KernReader {
 
   int _columnFor(String line) {
     final cols = line.split('\t');
-    return _spine < cols.length ? _spine : 0;
+    return spineColumn < cols.length ? spineColumn : cols.length - 1;
   }
 
   void _finishMeasure() {
