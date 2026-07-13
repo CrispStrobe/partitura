@@ -23,14 +23,10 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-13)
 
-> 🚧 **Actively working on (Workshop contract C6 — multi-part document):**
-> increment 1, the core wrapping — `layoutStaffSystemSystems(StaffSystem, …,
-> maxWidth:)` breaks an N-part system into justified systems with shared barlines
-> (generalizes the two-staff `layoutGrandStaffSystems`, reusing `_slice` /
-> `_stateArrays`); needs a `spacingStretch` on `layoutStaffSystem`. Unblocks 5.6
-> cross-part barlines. Follow-ups (handover): paginated Flutter view, interchange
-> into the wrapped doc. Worktree `partitura-tab`, branch `feat/c6-multipart`.
-> *(Phase 2.3 hide-empty-staves already landed on `main` — 7e817fb.)*
+> **C6 multi-part document — core wrapping landed on `main`**
+> (`layoutStaffSystemSystems` / `StaffSystemSystems`; contract C6 now `[~]`, see
+> its handover below for increments 2–4). Phase 2.3 hide-empty-staves also on
+> `main` (7e817fb). No active claim on this worktree line.
 
 > 🚧 **Actively working on (Phase 3.6 + 3.9 — the last Phase 3 items):**
 > 3.6 `TranspositionController` (a `ChangeNotifier` wrapping `Score.transposedBy`
@@ -85,9 +81,26 @@ y-down coords. Priority: **C1+C2 → C3 → C5 → C4**.
   justification** (`justify` flag; shared two-staff note-spacing stretch,
   binary-searched — barlines stay aligned) now on `InteractiveGrandStaffView`.
   *Left (deeper):* full cross-staff onset-column gridding.
-- [ ] **C6 — (later) multi-part document model.** First-class multi-part
-  document (shared barlines across parts) + multi-part page layout. Deferred;
-  C1–C5 unblock the near-term editor.
+- [~] **C6 — multi-part document model.** First-class multi-part document
+  (shared barlines across parts) + multi-part page layout. **Done (increment 1 —
+  the core wrapping):** `layoutStaffSystemSystems(StaffSystem document, …,
+  maxWidth:)` → `StaffSystemSystems` breaks an N-part document into systems with
+  barlines aligned across every part (packs measures by the widest part, reuses
+  the `_slice`/`_stateArrays` sub-scoring), draws the time signature only on the
+  first system, and justifies non-final systems by a shared note-spacing stretch
+  — the multi-part counterpart of `layoutGrandStaffSystems`. Needed a
+  `spacingStretch` (+ `drawTimeSignature`/`finalBarline`) on `layoutStaffSystem`.
+  `staff_system_systems_test.dart` covers wrap/coverage/alignment/first-system-
+  time-sig/justify. **Handover — remaining increments (all additive on top):**
+  (2) a **paginated Flutter view** — `StaffSystemSystems` → `layoutPages`
+  (`PagedLayout` already paginates a `List<StaffSystem>`; add a
+  `MultiPartPageView` mirroring `ScorePageView`, drawing each system's staves +
+  brackets + connectors) with a golden; (3) **interchange** — have
+  `staffSystemFromMusicXml` feed the wrapped document (currently one
+  `StaffSystem`), round-tripping multi-part MusicXML → wrapped pages; (4)
+  **editor integration** — the C1–C5 hit-testing / overlays over the multi-part
+  view (cross-part `elementRegions`, `rectOfElement`). None are blocked; each is
+  a self-contained follow-up.
 - [x] **C7 — region controller.** The private render objects' `elementRegions`
   / `elementIdsIn(Rect)` (from C4) are now reachable from app code via a public
   `ElementRegionController` (alias `MultiSystemViewController`), attached with

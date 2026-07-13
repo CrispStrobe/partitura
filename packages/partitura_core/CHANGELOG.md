@@ -2,6 +2,17 @@
 
 ## 0.4.1-dev.1 (in progress)
 
+- **Multi-part document wrapping** (Workshop contract C6, increment 1):
+  `layoutStaffSystemSystems(StaffSystem document, …, maxWidth:)` breaks an
+  N-part system into justified systems with barlines aligned across every part —
+  the multi-part counterpart of `layoutGrandStaffSystems`. It packs measures by
+  the widest part, draws the time signature only on the first system, closes
+  non-final systems with a plain barline and stretches them to fill the width
+  (shared note-spacing stretch), and returns `StaffSystemSystems`
+  (`StaffSystemSystem` per line, with its measure range). `layoutStaffSystem`
+  gains `spacingStretch` / `drawTimeSignature` / `finalBarline` to support it.
+  Backed by `staff_system_systems_test.dart`.
+
 - **Warped-time cursor** (Phase 3.5): `TempoMap` converts musical time
   (whole-note `Fraction`s) ↔ wall-clock seconds under piecewise-constant tempo
   (`TempoSpan`s), extending the fixed-clock `secondsFor` to scores with tempo

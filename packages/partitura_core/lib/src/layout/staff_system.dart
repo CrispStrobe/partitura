@@ -159,12 +159,22 @@ StaffSystemLayout layoutStaffSystem(
   double staffGap = 4.0,
   bool gridAlign = true,
   bool hideEmptyStaves = false,
+  bool drawTimeSignature = true,
+  bool finalBarline = true,
+  double spacingStretch = 1.0,
 }) {
   if (hideEmptyStaves) {
     system = _withEmptyStavesHidden(system);
   }
   const engine = LayoutEngine();
-  final natural = [for (final s in system.staves) engine.layout(s, settings)];
+  // The natural pass carries the same [spacingStretch] as the final pass, so
+  // the shared per-measure widths grow with the stretch and the staves stay
+  // aligned (used when wrapping into justified systems).
+  final natural = [
+    for (final s in system.staves)
+      engine.layout(s, settings,
+          drawTimeSignature: drawTimeSignature, spacingStretch: spacingStretch),
+  ];
 
   final measureCount = natural.first.measureRegions.length;
   for (final layout in natural) {
@@ -182,7 +192,9 @@ StaffSystemLayout layoutStaffSystem(
 
   // §2.9: align simultaneous notes across every staff of the system (all
   // voices).
-  final columns = gridAlign ? alignedColumns(system.staves, settings) : null;
+  final columns = gridAlign
+      ? alignedColumns(system.staves, settings, spacingStretch: spacingStretch)
+      : null;
 
   final measureWidths = columns != null
       ? null
@@ -200,7 +212,10 @@ StaffSystemLayout layoutStaffSystem(
         engine.layout(s, settings,
             leadingWidth: leading,
             measureWidths: measureWidths,
-            forcedColumns: columns),
+            forcedColumns: columns,
+            drawTimeSignature: drawTimeSignature,
+            finalBarline: finalBarline,
+            spacingStretch: spacingStretch),
     ],
     staffGap: staffGap,
     source: system,

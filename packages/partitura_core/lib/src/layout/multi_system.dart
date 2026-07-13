@@ -12,6 +12,7 @@ import 'grand_staff.dart';
 import 'layout_engine.dart';
 import 'layout_settings.dart';
 import 'score_layout.dart';
+import 'staff_system.dart';
 
 /// One system (line) of a broken score.
 class SystemLayout {
@@ -316,6 +317,143 @@ GrandStaffSystems layoutGrandStaffSystems(
     start = end + 1;
   }
   return GrandStaffSystems(systems: systems, maxWidth: maxWidth);
+}
+
+/// One system (line) of a wrapped multi-part [StaffSystem] document.
+class StaffSystemSystem {
+  /// The laid-out system line (all parts, aligned).
+  final StaffSystemLayout layout;
+
+  /// Index of the first original measure on this system.
+  final int firstMeasure;
+
+  /// Index of the last original measure on this system (inclusive).
+  final int lastMeasure;
+
+  /// Creates a multi-part system.
+  const StaffSystemSystem({
+    required this.layout,
+    required this.firstMeasure,
+    required this.lastMeasure,
+  });
+}
+
+/// An N-part [StaffSystem] document (Workshop contract C6) broken into systems.
+class StaffSystemSystems {
+  /// The systems, top to bottom.
+  final List<StaffSystemSystem> systems;
+
+  /// The target width in staff spaces.
+  final double maxWidth;
+
+  /// Creates a wrapped multi-part document.
+  const StaffSystemSystems({required this.systems, required this.maxWidth});
+
+  /// Total height in staff spaces when systems are stacked [systemGap] spaces
+  /// apart (bounding box to bounding box).
+  double heightWith(double systemGap) {
+    var height = 0.0;
+    for (final system in systems) {
+      height += system.layout.height;
+    }
+    return height + systemGap * (systems.length - 1);
+  }
+}
+
+/// Breaks an N-part [document] into systems no wider than [maxWidth] staff
+/// spaces — the multi-part counterpart of [layoutGrandStaffSystems]. Measures
+/// are packed by the widest part so barlines stay aligned across every part,
+/// then each system is laid out with [layoutStaffSystem] (its brackets and
+/// barline connectors intact). The time signature is drawn only on the first
+/// system (and at explicit changes); every non-final system closes with a plain
+/// barline and, unless [justify] is false, is stretched to fill [maxWidth] via
+/// a shared note-spacing stretch (so slack becomes note spacing and barlines
+/// stay aligned).
+///
+/// Throws if the parts disagree on measure count or [maxWidth] is not positive.
+StaffSystemSystems layoutStaffSystemSystems(
+  StaffSystem document,
+  LayoutSettings settings, {
+  required double maxWidth,
+  double staffGap = 4.0,
+  bool justify = true,
+  bool gridAlign = true,
+  bool hideEmptyStaves = false,
+}) {
+  if (maxWidth <= 0) {
+    throw ArgumentError.value(maxWidth, 'maxWidth', 'must be positive');
+  }
+  final parts = document.staves;
+  final n = parts.first.measures.length;
+  for (final p in parts) {
+    if (p.measures.length != n) {
+      throw ArgumentError('all parts must have the same measure count');
+    }
+  }
+  const engine = LayoutEngine();
+  final naturals = [for (final p in parts) engine.layout(p, settings)];
+  double measureWidth(ScoreLayout l, int i) =>
+      l.measureRegions[i].endX - l.measureRegions[i].startX;
+  final combined = [
+    for (var i = 0; i < n; i++)
+      naturals.map((l) => measureWidth(l, i)).reduce(max),
+  ];
+  double leadingOf(ScoreLayout l) =>
+      l.measureRegions.isEmpty ? l.width : l.measureRegions.first.startX;
+  final leadEstimate = naturals.map(leadingOf).reduce(max);
+  final states = [for (final p in parts) _stateArrays(p)];
+
+  final systems = <StaffSystemSystem>[];
+  var start = 0;
+  while (start < n) {
+    var end = start;
+    var used = leadEstimate + combined[start];
+    while (end + 1 < n && used + combined[end + 1] <= maxWidth) {
+      end++;
+      used += combined[end];
+    }
+    final drawTime =
+        start == 0 || parts.first.measures[start].timeChange != null;
+    final isLast = end == n - 1;
+    final sysDoc = StaffSystem(
+      [
+        for (var pi = 0; pi < parts.length; pi++)
+          _slice(parts[pi], start, end, states[pi].$1, states[pi].$2,
+              states[pi].$3),
+      ],
+      brackets: document.brackets,
+      connectBarlines: document.connectBarlines,
+    );
+    StaffSystemLayout render(double stretch) => layoutStaffSystem(
+          sysDoc,
+          settings,
+          staffGap: staffGap,
+          gridAlign: gridAlign,
+          hideEmptyStaves: hideEmptyStaves,
+          drawTimeSignature: drawTime,
+          finalBarline: isLast,
+          spacingStretch: stretch,
+        );
+    var layout = render(1.0);
+    if (justify && !isLast && layout.width < maxWidth) {
+      var low = 1.0, high = 4.0;
+      for (var iteration = 0; iteration < 24; iteration++) {
+        final mid = (low + high) / 2;
+        final candidate = render(mid);
+        if (candidate.width > maxWidth) {
+          high = mid;
+        } else {
+          low = mid;
+          layout = candidate;
+          if (maxWidth - candidate.width < 0.05) break;
+        }
+      }
+    }
+    systems.add(StaffSystemSystem(
+        layout: layout, firstMeasure: start, lastMeasure: end));
+    start = end + 1;
+  }
+  return StaffSystemSystems(systems: systems, maxWidth: maxWidth);
 }
 
 /// The running clef/key/time state at each measure start of [score].
