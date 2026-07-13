@@ -110,8 +110,14 @@ own goldens):**
    all voices' onsets; `_layoutMultiVoiceMeasure` honours `forcedColumns`; the
    grand-staff/N-staff layouts drop the single-voice guard. `grand_staff_test.dart`
    asserts a two-voice hand aligns across staves. Additive (no golden changed).
-4. [ ] **Justification on columns** — stretch the shared columns to fill width
-   (fold the grand-staff `spacingStretch` search into the column model).
+4. [x] **Justification on columns** — achieved: `alignedColumns` takes
+   `spacingStretch`, so the wrapped grand staff's justification search scales the
+   shared columns and grid + justify compose (non-final system fills width *and*
+   onsets stay aligned — `grand_staff_systems_test.dart`). *(A one-shot
+   column-scaling optimization to avoid re-searching layouts is a possible future
+   refinement.)*
+- [ ] **Accidental-aware columns** — align noteheads (not the pre-accidental x)
+  when staves carry different accidentals at the same onset.
 
 - **Shipped: v0.1 → v0.7.2** — the full common-notation set plus the
   piano/technical layer. All green.

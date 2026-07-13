@@ -2,6 +2,11 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Cross-staff gridding — justification composes** (§2.9, increment 4): the
+  wrapped grand staff now fills the line *and* keeps simultaneous notes aligned
+  — `alignedColumns` takes the `spacingStretch`, so the justification search
+  scales the shared columns rather than fighting them (verified by
+  `grand_staff_systems_test.dart`).
 - **Cross-staff gridding — multi-voice staves** (§2.9, increment 3): a staff
   with two-to-four voices now joins the shared column grid too. `alignedColumns`
   gathers onsets from every voice, `_layoutMultiVoiceMeasure` honours the shared

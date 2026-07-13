@@ -91,6 +91,30 @@ void main() {
         reason: 'the last system is not stretched');
   });
 
+  test('justification and gridding compose (§2.9 increment 4)', () {
+    // Rhythmically-different hands (upper quarters, lower halves), justified.
+    final wrapped =
+        layoutGrandStaffSystems(eightBarPiano(), settings, maxWidth: 40);
+    expect(wrapped.systems.length, greaterThan(1));
+    final first = wrapped.systems.first.layout;
+
+    // The non-final system fills the width...
+    expect(first.width, closeTo(40, 0.6));
+
+    // ...and simultaneous notes still align across the two staves (the shared
+    // columns scale with the justification stretch).
+    double noteX(ScoreLayout staff, String id) => staff.primitives
+        .whereType<GlyphPrimitive>()
+        .firstWhere(
+            (g) => g.elementId == id && g.smuflName.startsWith('notehead'))
+        .position
+        .x;
+    // Beat 1 (onset 0): upper c5 over lower c3.
+    expect(noteX(first.upper, 'e0'), closeTo(noteX(first.lower, 'e0'), 0.01));
+    // Beat 3 (onset 1/2): upper's third quarter over the lower's second half.
+    expect(noteX(first.upper, 'e2'), closeTo(noteX(first.lower, 'e1'), 0.01));
+  });
+
   test('justify: false leaves non-final systems ragged', () {
     final ragged = layoutGrandStaffSystems(eightBarPiano(), settings,
         maxWidth: 40, justify: false);
