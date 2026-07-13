@@ -98,6 +98,20 @@ void main() {
       expect(gs.lower.clef, Clef.bass);
     });
 
+    test('tuplet reciprocals are approximated, not rejected', () {
+      // Real GrandStaff output contains triplets (recip 6/12); the model has
+      // no tuplet ratio, so they map to the written note value.
+      const kern = '**kern\n*clefG2\n6f\n6g\n6a\n12c\n*-';
+      final score = scoreFromKern(kern);
+      final notes = score.measures
+          .expand((Measure m) => m.elements)
+          .whereType<NoteElement>()
+          .toList();
+      expect(notes, hasLength(4));
+      expect(notes[0].duration.base, DurationBase.quarter); // 6 -> quarter
+      expect(notes[3].duration.base, DurationBase.eighth); // 12 -> eighth
+    });
+
     test('bekernToGrandStaff round-trips **ekern output to MusicXML', () {
       // Reconstruct the same document from bekern tokens.
       const bekern = '**ekern_1.0 <t> **ekern_1.0 <b> '

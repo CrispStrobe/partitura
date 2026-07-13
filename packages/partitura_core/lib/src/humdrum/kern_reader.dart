@@ -336,9 +336,25 @@ class _KernReader {
 
   NoteDuration _durationOf(String subtoken) {
     final match = RegExp(r'(\d+)(\.*)').firstMatch(subtoken);
-    final base = match == null ? null : _recipBases[match[1]];
-    if (base == null) throw FormatException('bad kern duration: "$subtoken"');
-    return NoteDuration(base, dots: match![2]!.length.clamp(0, 2));
+    if (match == null) throw FormatException('bad kern duration: "$subtoken"');
+    final recip = match[1]!;
+    final dots = match[2]!.length.clamp(0, 2);
+    final base = _recipBases[recip];
+    if (base != null) return NoteDuration(base, dots: dots);
+    // Tuplet reciprocal (not a power of two, e.g. 6 = eighth-note triplet).
+    // The model has no tuplet ratio, so approximate with the written note
+    // value — the largest power-of-two reciprocal ≤ N — and drop the ratio.
+    // Better than rejecting the whole document; OMR output is approximate.
+    final n = int.tryParse(recip);
+    if (n != null && n > 0) {
+      var p = 1;
+      while (p * 2 <= n && p < 64) {
+        p *= 2;
+      }
+      final approx = _recipBases['$p'];
+      if (approx != null) return NoteDuration(approx, dots: dots);
+    }
+    throw FormatException('bad kern duration: "$subtoken"');
   }
 
   static (Pitch?, bool) _pitchOf(String subtoken) {
