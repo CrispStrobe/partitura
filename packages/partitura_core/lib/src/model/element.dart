@@ -1236,6 +1236,35 @@ class BreathMark {
   String toString() => 'BreathMark($noteId, ${symbol.name})';
 }
 
+/// A laissez-vibrer ("let vibrate", l.v.) tie: a short curved tie trailing off
+/// the right of [noteId] with no destination note — the ring-on notation for
+/// piano, harp, vibraphone and cymbals. One is drawn per notehead of the
+/// (possibly chord) element. [down] forces the curve below (true) or above
+/// (false) the note; null follows the note's stem direction like an ordinary
+/// tie.
+class LaissezVibrer {
+  /// Id of the note the l.v. tie hangs off.
+  final String noteId;
+
+  /// Curve direction override: true = below, false = above, null = auto
+  /// (opposite the stem, as a normal tie).
+  final bool? down;
+
+  /// Marks [noteId] with a laissez-vibrer tie.
+  const LaissezVibrer(this.noteId, {this.down});
+
+  @override
+  bool operator ==(Object other) =>
+      other is LaissezVibrer && other.noteId == noteId && other.down == down;
+
+  @override
+  int get hashCode => Object.hash(noteId, down);
+
+  @override
+  String toString() => 'LaissezVibrer($noteId${down == null ? '' : ', '
+      '${down! ? 'down' : 'up'}'})';
+}
+
 /// Figured-bass figures under a bass note (thoroughbass / continuo),
 /// referenced by the note's id. [figures] are the stacked rows top-to-bottom —
 /// each a short spec string of digits and alterations rendered with the SMuFL

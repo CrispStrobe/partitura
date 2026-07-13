@@ -171,6 +171,9 @@ class _PartWriter {
   late final Map<String, BreathSymbol> _breathById = {
     for (final bm in score.breathMarks) bm.noteId: bm.symbol,
   };
+  late final Map<String, LaissezVibrer> _laissezVibrerById = {
+    for (final lv in score.laissezVibrer) lv.noteId: lv,
+  };
   late final Map<String, String> _slurStartsById = {
     for (var i = 0; i < score.slurs.length; i++)
       score.slurs[i].startId: '${i % 6 + 1}',
@@ -534,6 +537,14 @@ class _PartWriter {
       }
       final gStop = _glissStopsById[id];
       if (gStop != null) parts.add('<slide type="stop" number="$gStop"/>');
+      final lv = _laissezVibrerById[id];
+      if (lv != null) {
+        final orient = lv.down == null
+            ? ''
+            : ' orientation="'
+                '${lv.down! ? 'under' : 'over'}"';
+        parts.add('<tied type="let-ring"$orient/>');
+      }
     }
     if (span != null && index == span.startIndex) {
       parts.add('<tuplet type="start"/>');

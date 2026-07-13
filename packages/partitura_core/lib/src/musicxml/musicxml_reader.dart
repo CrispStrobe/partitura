@@ -259,6 +259,7 @@ class _PartReader {
   final _jazzMarks = <JazzMark>[];
   final _figuredBass = <FiguredBass>[];
   final _breathMarks = <BreathMark>[];
+  final _laissezVibrer = <LaissezVibrer>[];
 
   // Open spans keyed by MusicXML "number" attribute.
   final _openSlurs = <String, String>{};
@@ -292,6 +293,7 @@ class _PartReader {
       jazzMarks: _jazzMarks,
       figuredBass: _figuredBass,
       breathMarks: _breathMarks,
+      laissezVibrer: _laissezVibrer,
       transposition: _transposition,
       metadata: metadata,
       tempo: _tempo,
@@ -618,6 +620,8 @@ class _PartReader {
             if (jazz != null) _jazzMarks.add(JazzMark(id, jazz));
             final breath = _breathOf(node);
             if (breath != null) _breathMarks.add(BreathMark(id, breath));
+            final lv = _laissezVibrerOf(node, id);
+            if (lv != null) _laissezVibrer.add(lv);
           }
 
           // Tuplets (voice 1 only, mirroring the DSL).
@@ -800,6 +804,25 @@ class _PartReader {
       for (final mark in articulations.children) {
         if (mark.name == 'breath-mark') return BreathSymbol.comma;
         if (mark.name == 'caesura') return BreathSymbol.caesura;
+      }
+    }
+    return null;
+  }
+
+  /// A `<tied type="let-ring"/>` in the note's notations is a laissez-vibrer
+  /// tie; its optional `orientation` (under/over) maps to [LaissezVibrer.down].
+  LaissezVibrer? _laissezVibrerOf(XmlNode note, String id) {
+    for (final notations in _notations(note)) {
+      for (final tied in notations.childrenNamed('tied')) {
+        if (tied.attributes['type'] == 'let-ring') {
+          final o = tied.attributes['orientation'];
+          return LaissezVibrer(id,
+              down: o == 'under'
+                  ? true
+                  : o == 'over'
+                      ? false
+                      : null);
+        }
       }
     }
     return null;

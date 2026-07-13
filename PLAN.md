@@ -541,9 +541,13 @@ No peer renderer does any of this; all build on the existing pitch / interval
 - [~] **5.6 More barlines & lines** — **Done:** closing-barline styles
       (double / final / heavy / dashed / dotted / none — `BarlineStyle`, MusicXML
       `<bar-style>` round-trip, golden 65); breath marks + caesura
-      (`BreathMark`, MusicXML `<breath-mark>`/`<caesura>`, golden 71).
+      (`BreathMark`, MusicXML `<breath-mark>`/`<caesura>`, golden 71);
+      **laissez-vibrer (l.v.) ties** (`LaissezVibrer` keyed by note id — a short
+      trailing tie curve per notehead, auto-placed opposite the stem or forced
+      via `down`; MusicXML `<tied type="let-ring">` round-trip with
+      over/under orientation; golden 100).
       **Left:** tick/short/reverse-final;
-      custom-span barlines across staves; laissez-vibrer ties; palm-mute /
+      custom-span barlines across staves; palm-mute /
       let-ring / vibrato lines (exist in tab; add to notation); trill extension
       line + baroque variants; portamento; system dividers.
 - [~] **5.7 Time-signature breadth** — **Done:** common/cut symbols

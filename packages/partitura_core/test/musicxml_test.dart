@@ -393,6 +393,23 @@ void main() {
       expect(back.jazzMarks, score.jazzMarks);
     });
 
+    test('laissez-vibrer ties round-trip through MusicXML', () {
+      final base = Score.simple(notes: 'c4:q d4 e4 f4');
+      final score = Score(
+        clef: base.clef,
+        measures: base.measures,
+        laissezVibrer: const [
+          LaissezVibrer('e0'),
+          LaissezVibrer('e2', down: true),
+        ],
+      );
+      final xml = scoreToMusicXml(score);
+      expect(xml, contains('<tied type="let-ring"/>'));
+      expect(xml, contains('<tied type="let-ring" orientation="under"/>'));
+      final back = scoreFromMusicXml(xml);
+      expect(back.laissezVibrer, score.laissezVibrer);
+    });
+
     test('multi-verse lyrics round-trip through MusicXML', () {
       final base = Score.simple(notes: 'c4:q d4 e4 f4');
       final score = Score(

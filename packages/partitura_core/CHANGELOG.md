@@ -2,6 +2,12 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Laissez-vibrer ("let ring") ties** (Phase 5.6): `LaissezVibrer`, keyed by
+  note id on `Score`, draws a short trailing tie curve off each notehead of the
+  marked element with no destination note — the ring-on notation for piano,
+  harp and mallet percussion. Placed opposite the stem like an ordinary tie, or
+  forced to a side via `down`. Round-trips through MusicXML
+  `<tied type="let-ring">` (with over/under orientation). Golden 100.
 - **Figured bass: slashed figures & continuation lines** (Phase 5.3): a trailing
   `\` on a figure (e.g. `6\`) draws the SMuFL raised-digit glyph (a slash through
   the number — the engraver's alternative to a prefixed sharp), using the

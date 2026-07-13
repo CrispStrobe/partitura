@@ -367,6 +367,7 @@ class _LayoutBuilder {
     }
     _layoutCrossMeasureBeams();
     _layoutTies();
+    _layoutLaissezVibrer();
     _layoutSlurs();
     _layoutGlissandos();
     _layoutOttavas();
@@ -1731,6 +1732,37 @@ class _LayoutBuilder {
     }
   }
 
+  /// Laissez-vibrer ("let ring") ties: a short curved tie trailing off the
+  /// right of each notehead of the marked element, with no destination note.
+  /// Curves opposite the stem like an ordinary tie unless [LaissezVibrer.down]
+  /// forces a side.
+  void _layoutLaissezVibrer() {
+    for (final lv in score.laissezVibrer) {
+      final idx =
+          _tieInfos.indexWhere((i) => i.note != null && i.id == lv.noteId);
+      if (idx < 0) {
+        throw ArgumentError('$lv references an unknown note element id');
+      }
+      final info = _tieInfos[idx];
+      final dir = lv.down == null
+          ? (info.stemsDown ? -1.0 : 1.0)
+          : (lv.down! ? 1.0 : -1.0);
+      for (final (_, _, xRight, y) in info.heads) {
+        final x1 = xRight + 0.15;
+        final x2 = x1 + 1.3; // trails off — there is no destination note
+        final baseY = y + dir * 0.6;
+        final controlY = baseY + dir * 0.5;
+        _addCurve(
+          Point(x1, baseY),
+          Point(x1 + 0.4, controlY),
+          Point(x2 - 0.35, controlY),
+          Point(x2, baseY + dir * 0.15),
+          0.18,
+        );
+      }
+    }
+  }
+
   /// v0.3.2: slurs between note elements referenced by id. The curve goes
   /// above unless every spanned note stems up; endpoints anchor just
   /// outside each end element's ink, and the arc clears everything in
@@ -2198,8 +2230,9 @@ class _LayoutBuilder {
             orElse: () => info.right,
           );
           final lineY = y - 0.5;
-          _addLine(Point(info.left, lineY), Point(next, lineY),
-              s.staffLineThickness, elementId: fb.noteId);
+          _addLine(
+              Point(info.left, lineY), Point(next, lineY), s.staffLineThickness,
+              elementId: fb.noteId);
           continue;
         }
         final glyphs = _figuredBassGlyphs(fb.figures[row]);

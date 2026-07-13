@@ -528,9 +528,41 @@ void main() {
       // e1 itself draws no figbass digit glyph (it is a continuation only).
       final e1Digits = layout.primitives
           .whereType<GlyphPrimitive>()
-          .where((g) => g.elementId == 'e1' && g.smuflName.startsWith('figbass'))
+          .where(
+              (g) => g.elementId == 'e1' && g.smuflName.startsWith('figbass'))
           .toList();
       expect(e1Digits, isEmpty);
+    });
+  });
+
+  group('laissez-vibrer', () {
+    test('draws a trailing curve off the note', () {
+      final base = Score.simple(notes: 'c5:q');
+      final layout = layoutOf(Score(
+        clef: base.clef,
+        measures: base.measures,
+        laissezVibrer: const [LaissezVibrer('e0')],
+      ));
+      final curves = layout.primitives.whereType<CurvePrimitive>().toList();
+      // A lone note with no tie/slur: the only curve is the l.v. tie.
+      expect(curves, hasLength(1));
+      // It trails to the RIGHT of its start (there is no destination note).
+      expect(curves.single.end.x, greaterThan(curves.single.start.x));
+    });
+
+    test('the down override flips the curve to the underside', () {
+      final base = Score.simple(notes: 'c5:q');
+      double lvStartY(bool? down) {
+        final layout = layoutOf(Score(
+          clef: base.clef,
+          measures: base.measures,
+          laissezVibrer: [LaissezVibrer('e0', down: down)],
+        ));
+        return layout.primitives.whereType<CurvePrimitive>().single.start.y;
+      }
+
+      // y grows downward, so the underside (down) sits at a larger y.
+      expect(lvStartY(true), greaterThan(lvStartY(false)));
     });
   });
 

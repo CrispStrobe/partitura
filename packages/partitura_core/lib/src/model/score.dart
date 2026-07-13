@@ -120,6 +120,9 @@ class Score {
   /// Breath marks / caesuras drawn after note elements.
   final List<BreathMark> breathMarks;
 
+  /// Laissez-vibrer ("let ring") ties trailing off note elements.
+  final List<LaissezVibrer> laissezVibrer;
+
   /// For a transposing instrument, how the written pitch (what this score
   /// holds) relates to the sounding/concert pitch; null for a concert-pitch
   /// part. See [atConcertPitch].
@@ -169,6 +172,7 @@ class Score {
     this.jazzMarks = const [],
     this.figuredBass = const [],
     this.breathMarks = const [],
+    this.laissezVibrer = const [],
     this.transposition,
     this.metadata = const ScoreMetadata(),
     this.tempo,
@@ -722,6 +726,7 @@ class Score {
       jazzMarks: jazzMarks,
       figuredBass: figuredBass,
       breathMarks: breathMarks,
+      laissezVibrer: laissezVibrer,
       transposition: keepTransposition ? transposition : null,
       metadata: metadata,
       tempo: tempo,
@@ -827,6 +832,7 @@ class Score {
       listEquals(other.jazzMarks, jazzMarks) &&
       listEquals(other.figuredBass, figuredBass) &&
       listEquals(other.breathMarks, breathMarks) &&
+      listEquals(other.laissezVibrer, laissezVibrer) &&
       other.transposition == transposition &&
       other.metadata == metadata &&
       other.tempo == tempo;
@@ -868,6 +874,7 @@ class Score {
           Object.hashAll(jazzMarks),
           Object.hashAll(figuredBass),
           Object.hashAll(breathMarks),
+          Object.hashAll(laissezVibrer),
           transposition,
           metadata,
           tempo,

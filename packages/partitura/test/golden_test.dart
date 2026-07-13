@@ -1793,6 +1793,29 @@ void main() {
     );
   });
 
+  testWidgets('100 laissez-vibrer ties (let ring)', (tester) async {
+    final base = Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'c5:q g4 e5 c4',
+    );
+    await golden(
+      tester,
+      '100_laissez_vibrer',
+      Score(
+        clef: base.clef,
+        timeSignature: base.timeSignature,
+        measures: base.measures,
+        laissezVibrer: const [
+          LaissezVibrer('e0'), // auto (opposite the stem)
+          LaissezVibrer('e1'), // auto
+          LaissezVibrer('e2', down: true), // forced underside
+          LaissezVibrer('e3', down: false), // forced topside
+        ],
+      ),
+      staffSpace: 12,
+    );
+  });
+
   testWidgets('69 jazz articulations: scoop, doit, fall, plop', (tester) async {
     final base = Score.simple(
       timeSignature: TimeSignature.fourFour,
