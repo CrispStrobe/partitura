@@ -30,11 +30,6 @@ ships* at the end for the mechanics.
 > (stem/dots) ink in the column gaps. Worktree `partitura-public-lacunae`.
 > *(Increments 1–4, editor contracts C1–C5, justification done on `main`.)*
 
-> **Actively working on (OMR frontier):** the reach-beyond-CLI piece — expose the
-> OMR engine as a public `partitura_cli` library (`package:partitura_cli/omr.dart`)
-> so Flutter-**desktop** apps can use it (`dart:ffi` works there); web/WASM stays
-> blocked upstream (no `dart:ffi` on web + CrispEmbed's WASM doesn't expose OMR).
-> `partitura_cli` only. Worktree `partitura-lib`, branch `feat/omr-lib`.
 
 
 
@@ -260,13 +255,18 @@ turn); multi-measure rests; octave clefs (8va/8vb) + ottava brackets.
   upper/lower counts). Verified live: a stacked two-system page → 2 systems →
   one 10+10-measure grand staff. *Heuristic (clean bands); element ids may
   repeat across systems.*
-- **Remaining OMR gaps:** OMR is **CLI-only** (`dart:ffi`) — no Flutter widget or
-  WASM/web path (the engine is native; `dart:ffi` is unavailable on web, and
-  CrispEmbed's WASM build doesn't expose the OMR engines — an upstream task).
-  Still needs `libcrispembed` at runtime (via `--lib`, no bundled binary; the
-  dylib is rebuilt by hand when a new engine lands). No confidence signals,
-  batch mode or PDF input; page segmentation is projection-only (no staff-line
-  detection / deskew).
+- **Reusable OMR library.** The whole pipeline (engine + image decode /
+  segmentation / model download + the pure-Dart parsers) is exposed as
+  `package:partitura_cli/omr.dart`, so any Dart program — the CLI **and Flutter
+  desktop** (macOS/Windows/Linux, where `dart:ffi` works) — can drive OMR, then
+  render/export with `partitura_core`.
+- **Remaining OMR gaps:** **no web/WASM path** — Dart/Flutter web has no
+  `dart:ffi`, and CrispEmbed's WASM build does not expose the OMR engines (an
+  upstream change would be required); a Flutter *widget* is not provided (the
+  library + existing views suffice). Still needs `libcrispembed` at runtime (via
+  `--lib`, no bundled binary; the dylib is rebuilt by hand when a new engine
+  lands). No confidence signals, batch mode or PDF input; page segmentation is
+  projection-only (no staff-line detection / deskew).
 
 ---
 

@@ -2,6 +2,11 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Reusable OMR library** (CLI): the OMR pipeline (CrispEmbed FFI engine + image
+  decode/segmentation + model download + the pure-Dart parsers) is exposed as
+  `package:partitura_cli/omr.dart`, so any Dart program — the CLI and Flutter
+  **desktop** (wherever `dart:ffi` works) — can drive OMR, not just the CLI. Web
+  stays out of reach (no `dart:ffi` on web).
 - **Palm-mute / let-ring / vibrato on the notation staff** (Phase 5.6): the
   existing `PalmMute` and `LetRing` spans now draw a "P.M."/"let ring" label
   followed by a dashed bracket (with a downward end hook) above the notation
