@@ -20,3 +20,6 @@ build
 
 # Claude Code agent worktrees (isolated, not tracked)
 .claude/worktrees/
+
+# Claude Code local working notes (not tracked)
+CLAUDE.md

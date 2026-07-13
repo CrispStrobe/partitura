@@ -23,6 +23,11 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-11)
 
+> **Actively working on:** microtones (quarter-tone `Pitch` alteration through
+> the pitch model, layout accidentals and interchange codecs) — first of three
+> remaining deep lacunae (microtones → non-standard meters/keys → cross-staff
+> notes/beaming). Worktree `partitura-public-lacunae`, branch `feat/model-lacunae`.
+
 - **Shipped: v0.1 → v0.7.2** — the full common-notation set plus the
   piano/technical layer. All green.
 - **In progress (partial):**
