@@ -3,7 +3,7 @@
 Command-line tool for the [partitura](https://github.com/CrispStrobe/partitura)
 music notation libraries: inspect scores, convert between a dozen formats
 (MusicXML / `.mxl` / MEI / `**kern` / MIDI / MuseScore / the `.gp` tablature
-family / ABC, plus LilyPond export), render to SVG or PNG (notation or tab), and
+family / ABC, plus LilyPond and braille-music export), render to SVG or PNG (notation or tab), and
 recognize sheet-music images (OMR) — all pure Dart (OMR and PNG aside).
 
 ## Usage
@@ -28,7 +28,7 @@ Input formats are inferred from file extensions — `.xml`/`.musicxml`,
 `mei` / `kern` / `midi` / `abc` / `mscx` / `mscz` / `gp` / `gpx` / `gp5` /
 `gp4` / `gp3` / `gpif` / `asciitab`). Output formats use `--to` or the output
 extension (`.svg`, `.png`, `.mid`, `.musicxml`, `.mxl`, `.mei`, `.krn`,
-`.ly` (LilyPond, export only), `.abc`, `.mscx`, `.mscz`, `.gp`, `.gpif`). All formats
+`.ly` (LilyPond, export only), `.brl` (braille music, export only), `.abc`, `.mscx`, `.mscz`, `.gp`, `.gpif`). All formats
 funnel through one score model, so any pair round-trips transparently for the
 data they share. Plain-text tab is a lossy import; use `--tuning` to set the
 tuning (also for `.gp`), and `--infer-rhythm` to guess durations from the tab's
@@ -91,6 +91,7 @@ dart run partitura_cli:partitura convert song.musicxml song.mxl   # zipped Music
 dart run partitura_cli:partitura convert song.mei song.musicxml   # MEI
 dart run partitura_cli:partitura convert song.krn song.musicxml   # Humdrum **kern
 dart run partitura_cli:partitura convert song.musicxml song.ly    # LilyPond (export)
+dart run partitura_cli:partitura convert song.musicxml song.brl   # braille music (export)
 dart run partitura_cli:partitura render song.musicxml song.svg
 dart run partitura_cli:partitura render song.musicxml song.png       # needs Flutter
 dart run partitura_cli:partitura render riff.musicxml riff.svg --tab --tuning dropD
