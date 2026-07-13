@@ -1142,10 +1142,10 @@ class _LayoutBuilder {
       final endIdx =
           _tieInfos.indexWhere((i) => i.note != null && i.id == gliss.endId);
       if (startIdx < 0 || endIdx < 0) {
-        throw ArgumentError('$gliss references an unknown note element id');
+        continue;
       }
       if (endIdx <= startIdx) {
-        throw ArgumentError('$gliss must run forward in reading order');
+        continue;
       }
       final start = _tieInfos[startIdx];
       final end = _tieInfos[endIdx];
@@ -1168,10 +1168,10 @@ class _LayoutBuilder {
       final endIdx =
           _tieInfos.indexWhere((i) => i.note != null && i.id == port.endId);
       if (startIdx < 0 || endIdx < 0) {
-        throw ArgumentError('$port references an unknown note element id');
+        continue;
       }
       if (endIdx <= startIdx) {
-        throw ArgumentError('$port must run forward in reading order');
+        continue;
       }
       final start = _tieInfos[startIdx];
       final end = _tieInfos[endIdx];
@@ -1888,7 +1888,7 @@ class _LayoutBuilder {
       final idx =
           _tieInfos.indexWhere((i) => i.note != null && i.id == lv.noteId);
       if (idx < 0) {
-        throw ArgumentError('$lv references an unknown note element id');
+        continue;
       }
       final info = _tieInfos[idx];
       final dir = lv.down == null
@@ -1921,10 +1921,10 @@ class _LayoutBuilder {
       final endIndex =
           _tieInfos.indexWhere((i) => i.note != null && i.id == slur.endId);
       if (startIndex < 0 || endIndex < 0) {
-        throw ArgumentError('$slur references an unknown note element id');
+        continue;
       }
       if (endIndex <= startIndex) {
-        throw ArgumentError('$slur must run forward in reading order');
+        continue;
       }
       final spanned = _tieInfos.sublist(startIndex, endIndex + 1);
       final notes = spanned.where((i) => i.note != null);
@@ -1986,14 +1986,6 @@ class _LayoutBuilder {
   /// wedges between two elements, both on the dynamics line under the
   /// staff (pushed lower by any element ink reaching below it).
   void _layoutDynamics() {
-    _TieInfo infoOf(String id, String what) {
-      final index = _tieInfos.indexWhere((i) => i.note != null && i.id == id);
-      if (index < 0) {
-        throw ArgumentError('$what references an unknown note element id');
-      }
-      return _tieInfos[index];
-    }
-
     double lineFor(Iterable<_TieInfo> infos) {
       var y = 6.2;
       for (final info in infos) {
@@ -2004,7 +1996,10 @@ class _LayoutBuilder {
     }
 
     for (final marking in score.dynamics) {
-      final info = infoOf(marking.elementId, '$marking');
+      final index = _tieInfos
+          .indexWhere((i) => i.note != null && i.id == marking.elementId);
+      if (index < 0) continue; // skip a dynamic on a missing note
+      final info = _tieInfos[index];
       final glyph = SmuflGlyph.dynamicGlyph(marking.level);
       final box = meta.bBoxOf(glyph);
       final centerX = (info.left + info.right) / 2;
@@ -2018,16 +2013,15 @@ class _LayoutBuilder {
     }
 
     for (final hairpin in score.hairpins) {
-      final start = infoOf(hairpin.startId, '$hairpin');
+      final startIndex = _tieInfos
+          .indexWhere((i) => i.note != null && i.id == hairpin.startId);
       final endIndex =
           _tieInfos.indexWhere((i) => i.note != null && i.id == hairpin.endId);
-      if (endIndex < 0) {
-        throw ArgumentError('$hairpin references an unknown note element id');
-      }
-      final startIndex = _tieInfos.indexOf(start);
-      if (endIndex <= startIndex) {
-        throw ArgumentError('$hairpin must run forward in reading order');
-      }
+      // Skip a degenerate (start == end) or dangling hairpin instead of
+      // crashing: real imports carry them — most often a span whose other end
+      // is in a part that was not imported. Render everything else.
+      if (startIndex < 0 || endIndex <= startIndex) continue;
+      final start = _tieInfos[startIndex];
       final end = _tieInfos[endIndex];
       final x1 = (start.left + start.right) / 2;
       final x2 = (end.left + end.right) / 2;
@@ -2049,12 +2043,8 @@ class _LayoutBuilder {
           _tieInfos.indexWhere((i) => i.note != null && i.id == pedal.startId);
       final endIdx =
           _tieInfos.indexWhere((i) => i.note != null && i.id == pedal.endId);
-      if (startIdx < 0 || endIdx < 0) {
-        throw ArgumentError('$pedal references an unknown note element id');
-      }
-      if (endIdx < startIdx) {
-        throw ArgumentError('$pedal must run forward in reading order');
-      }
+      // Skip a dangling or backwards pedal rather than crash (see hairpins).
+      if (startIdx < 0 || endIdx < 0 || endIdx < startIdx) continue;
       final start = _tieInfos[startIdx];
       final end = _tieInfos[endIdx];
       // Below all spanned ink and clear of the dynamics line.
@@ -2088,7 +2078,7 @@ class _LayoutBuilder {
       final start = infoOf[ottava.startId];
       final end = infoOf[ottava.endId];
       if (start == null || end == null) {
-        throw ArgumentError('$ottava references an unknown note element id');
+        continue;
       }
       final left = start.left;
       final right = end.right;
@@ -2137,7 +2127,7 @@ class _LayoutBuilder {
       final start = infoOf[trill.startId];
       final end = infoOf[trill.endId];
       if (start == null || end == null) {
-        throw ArgumentError('$trill references an unknown note element id');
+        continue;
       }
       final left = start.left;
       // Run the wavy line to the end of the trilled note's duration — the
@@ -2229,7 +2219,7 @@ class _LayoutBuilder {
     for (final vib in score.vibratos) {
       final info = infoOf[vib.noteId];
       if (info == null || info.note == null) {
-        throw ArgumentError('$vib references an unknown note element id');
+        continue;
       }
       final centerX = (info.left + info.right) / 2;
       final amp = vib.wide ? 0.42 : 0.26;
@@ -2328,7 +2318,7 @@ class _LayoutBuilder {
       for (final lyric in lyrics) {
         final index = infoIndexOf[lyric.elementId];
         if (index == null || _tieInfos[index].note == null) {
-          throw ArgumentError('$lyric references an unknown note element id');
+          continue;
         }
         final info = _tieInfos[index];
         centers.add((info.left + info.right) / 2);
@@ -2516,7 +2506,7 @@ class _LayoutBuilder {
     for (final fb in score.figuredBass) {
       final info = infoOf[fb.noteId];
       if (info == null || info.note == null) {
-        throw ArgumentError('$fb references an unknown note element id');
+        continue;
       }
       final centerX = (info.left + info.right) / 2;
       for (var row = 0; row < fb.figures.length; row++) {
@@ -2605,7 +2595,7 @@ class _LayoutBuilder {
     for (final bm in score.breathMarks) {
       final info = infoOf[bm.noteId];
       if (info == null || info.note == null) {
-        throw ArgumentError('$bm references an unknown note element id');
+        continue;
       }
       final glyph = bm.symbol == BreathSymbol.comma
           ? SmuflGlyph.breathMarkComma
@@ -2765,7 +2755,7 @@ class _LayoutBuilder {
     for (final mark in score.jazzMarks) {
       final info = infoOf[mark.noteId];
       if (info == null || info.note == null || info.heads.isEmpty) {
-        throw ArgumentError('$mark references an unknown note element id');
+        continue;
       }
       // Vertical anchor: the notehead nearest the gesture — the top head for
       // marks that rise (doit/plop), the bottom head for those that fall.
@@ -2810,7 +2800,7 @@ class _LayoutBuilder {
     for (final placed in score.chordDiagrams) {
       final info = infoOf[placed.elementId];
       if (info == null || info.note == null) {
-        throw ArgumentError('$placed references an unknown note element id');
+        continue;
       }
       final centerX = (info.left + info.right) / 2;
       final (prims, l, t, r, b) = placeChordDiagram(

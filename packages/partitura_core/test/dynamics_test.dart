@@ -155,21 +155,23 @@ void main() {
       }
     });
 
-    test('unknown or reversed ids fail loudly', () {
+    test('unknown or reversed ids are skipped, not fatal', () {
+      // A dynamic on a missing note, a hairpin to a missing note, and a
+      // reversed hairpin are each skipped rather than crashing the render.
       expect(
         () => layoutOf(
             demo(dynamics: const [DynamicMarking('nope', DynamicLevel.p)])),
-        throwsArgumentError,
+        returnsNormally,
       );
       expect(
         () => layoutOf(demo(
             hairpins: const [Hairpin('e0', 'nope', HairpinType.crescendo)])),
-        throwsArgumentError,
+        returnsNormally,
       );
       expect(
         () => layoutOf(
             demo(hairpins: const [Hairpin('e3', 'e0', HairpinType.crescendo)])),
-        throwsArgumentError,
+        returnsNormally,
       );
     });
 

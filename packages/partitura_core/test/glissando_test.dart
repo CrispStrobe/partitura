@@ -69,18 +69,21 @@ void main() {
       expect(diagonals, isEmpty);
     });
 
-    test('an unknown id throws', () {
-      expect(
-        () => layoutOf(scoreWith(const [Glissando('a', 'zzz')])),
-        throwsArgumentError,
-      );
+    List<LinePrimitive> diagonalsOf(ScoreLayout layout) => layout.primitives
+        .whereType<LinePrimitive>()
+        .where((line) => line.from.x != line.to.x && line.from.y != line.to.y)
+        .toList();
+
+    test('an unknown id is skipped, not fatal', () {
+      // A dangling glissando (its end id is not in the score) must not crash
+      // the render — it is skipped and no diagonal is drawn.
+      final layout = layoutOf(scoreWith(const [Glissando('a', 'zzz')]));
+      expect(diagonalsOf(layout), isEmpty);
     });
 
-    test('a reversed glissando throws', () {
-      expect(
-        () => layoutOf(scoreWith(const [Glissando('b', 'a')])),
-        throwsArgumentError,
-      );
+    test('a reversed glissando is skipped, not fatal', () {
+      final layout = layoutOf(scoreWith(const [Glissando('b', 'a')]));
+      expect(diagonalsOf(layout), isEmpty);
     });
   });
 

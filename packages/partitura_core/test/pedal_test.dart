@@ -74,14 +74,16 @@ void main() {
       expect(pedalGlyphs(layoutOf(scoreWith(const []))), isEmpty);
     });
 
-    test('an unknown id throws', () {
-      expect(() => layoutOf(scoreWith(const [Pedal('a', 'zzz')])),
-          throwsArgumentError);
+    test('an unknown id is skipped, not fatal', () {
+      // A dangling pedal (e.g. its end lands in a part that was not imported)
+      // must not crash the render — it is skipped, drawing no pedal marks.
+      expect(
+          pedalGlyphs(layoutOf(scoreWith(const [Pedal('a', 'zzz')]))), isEmpty);
     });
 
-    test('a reversed pedal throws', () {
-      expect(() => layoutOf(scoreWith(const [Pedal('d', 'a')])),
-          throwsArgumentError);
+    test('a reversed pedal is skipped, not fatal', () {
+      expect(
+          pedalGlyphs(layoutOf(scoreWith(const [Pedal('d', 'a')]))), isEmpty);
     });
   });
 

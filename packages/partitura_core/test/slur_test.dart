@@ -102,7 +102,7 @@ void main() {
       expect(curvesOf(layout), hasLength(2));
     });
 
-    test('unknown or reversed ids fail loudly', () {
+    test('unknown or reversed ids are skipped, not fatal', () {
       Score withSlur(Slur slur) => Score(
             clef: Clef.treble,
             measures: [
@@ -115,10 +115,10 @@ void main() {
             ],
             slurs: [slur],
           );
-      expect(() => layoutOf(withSlur(const Slur('a', 'nope'))),
-          throwsArgumentError);
-      expect(
-          () => layoutOf(withSlur(const Slur('b', 'a'))), throwsArgumentError);
+      // A dangling ('a'→'nope') or reversed ('b'→'a') slur is skipped, not
+      // fatal — it simply draws no curve; a valid slur still does.
+      expect(curvesOf(layoutOf(withSlur(const Slur('a', 'nope')))), isEmpty);
+      expect(curvesOf(layoutOf(withSlur(const Slur('b', 'a')))), isEmpty);
       expect(curvesOf(layoutOf(withSlur(const Slur('a', 'b')))), hasLength(1));
     });
 

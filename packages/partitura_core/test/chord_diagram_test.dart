@@ -126,7 +126,7 @@ void main() {
     expect(layout.top, lessThan(-3.0));
   });
 
-  test('a diagram on an unknown note id throws', () {
+  test('a diagram on an unknown note id is skipped, not fatal', () {
     final base = Score.simple(notes: 'c4:q');
     final score = Score(
       clef: base.clef,
@@ -135,8 +135,8 @@ void main() {
         PlacedChordDiagram('nope', ChordDiagram([0, 0, 0, 0, 0, 0])),
       ],
     );
-    expect(() => const LayoutEngine().layout(score, settings),
-        throwsArgumentError);
+    // A dangling chord diagram is skipped, not fatal.
+    expect(() => const LayoutEngine().layout(score, settings), returnsNormally);
   });
 
   test('value semantics', () {
