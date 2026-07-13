@@ -363,8 +363,10 @@ No peer renderer does any of this; all build on the existing pitch / interval
 - [~] **4.8 Extras** — scale derivation (rank matching scales for a pitch set),
       triad L/P/R transforms, twelve-tone matrix, an analysis text I/O format.
       **Done:** the twelve-tone `ToneRow` (P/I/R/RI row forms + the 12×12
-      matrix), building on 4.5's pitch-class math. **Left:** scale derivation,
-      neo-Riemannian L/P/R transforms, analysis I/O.
+      matrix), building on 4.5's pitch-class math; neo-Riemannian L/P/R triad
+      transforms (`Triad.parallel`/`leadingToneExchange`/`relative`, each an
+      involution over consonant triads). **Left:** scale derivation, analysis
+      I/O.
 
 ### Phase 5 — Notation breadth
 - [~] **5.1 Noteheads** — **Done:** the shape set (x, diamond, triangle-up,

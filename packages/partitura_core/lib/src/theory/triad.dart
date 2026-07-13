@@ -58,6 +58,61 @@ class Triad {
     ];
   }
 
+  /// Whether this is a consonant (major or minor) triad — the domain of the
+  /// neo-Riemannian [parallel] / [leadingToneExchange] / [relative] transforms.
+  bool get isConsonant =>
+      quality == ChordQuality.major || quality == ChordQuality.minor;
+
+  /// The **P** (Parallel) transform: swaps major ↔ minor on the same root
+  /// (C major ↔ C minor). Returns a root-position triad.
+  ///
+  /// Throws [StateError] on a diminished or augmented triad.
+  Triad parallel() => Triad(
+        root,
+        _flipped('parallel (P)'),
+      );
+
+  /// The **L** (Leittonwechsel / leading-tone exchange) transform: a major
+  /// triad becomes the minor triad on its third (C major → E minor); a minor
+  /// triad becomes the major triad a major third below its root (E minor →
+  /// C major). An involution. Returns a root-position triad.
+  ///
+  /// Throws [StateError] on a diminished or augmented triad.
+  Triad leadingToneExchange() {
+    _requireConsonant('leading-tone exchange (L)');
+    return quality == ChordQuality.major
+        ? Triad(root.transposeBy(Interval.majorThird), ChordQuality.minor)
+        : Triad(root.transposeBy(Interval.majorThird, descending: true),
+            ChordQuality.major);
+  }
+
+  /// The **R** (Relative) transform: a major triad becomes its relative minor
+  /// (C major → A minor); a minor triad becomes its relative major (A minor →
+  /// C major). An involution. Returns a root-position triad.
+  ///
+  /// Throws [StateError] on a diminished or augmented triad.
+  Triad relative() {
+    _requireConsonant('relative (R)');
+    return quality == ChordQuality.major
+        ? Triad(root.transposeBy(Interval.minorThird, descending: true),
+            ChordQuality.minor)
+        : Triad(root.transposeBy(Interval.minorThird), ChordQuality.major);
+  }
+
+  ChordQuality _flipped(String op) {
+    _requireConsonant(op);
+    return quality == ChordQuality.major
+        ? ChordQuality.minor
+        : ChordQuality.major;
+  }
+
+  void _requireConsonant(String op) {
+    if (!isConsonant) {
+      throw StateError('the $op transform needs a major or minor triad, '
+          'not ${quality.name}');
+    }
+  }
+
   @override
   bool operator ==(Object other) =>
       other is Triad &&

@@ -2,6 +2,11 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Neo-Riemannian triad transforms** (Phase 4.8): `Triad.parallel()` (**P**),
+  `leadingToneExchange()` (**L**) and `relative()` (**R**) — the three
+  parsimonious voice-leading moves on a consonant triad, each an involution
+  keeping two common tones (C major ↔ C minor, C major ↔ E minor, C major ↔
+  A minor). Diminished/augmented triads are rejected (`isConsonant`).
 - **Twelve-tone rows** (Phase 4.8): a `ToneRow` (an ordered permutation of the
   twelve pitch classes, from integers or `Pitch`es) with the four serial row
   forms — prime/transposition, inversion (about a chosen axis, defaulting to
