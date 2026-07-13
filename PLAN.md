@@ -29,11 +29,6 @@ ships* at the end for the mechanics.
 > accidental layout.* Worktree `partitura-public-lacunae`, branch
 > `feat/model-lacunae`.
 
-> **Actively working on (OMR render):** `grandStaffToSvg`/`staffSystemToSvg` SVG
-> export (compose the per-staff `ScoreLayout`s) + wire the `partitura omr`
-> command to render straight to `.svg`. Touches `svg/svg_export.dart` +
-> `partitura_cli` only. Worktree `partitura-svg`, branch `feat/omr-svg`.
-
 - **Shipped: v0.1 → v0.7.2** — the full common-notation set plus the
   piano/technical layer. All green.
 - **In progress (partial):**
@@ -141,6 +136,12 @@ turn); multi-measure rests; octave clefs (8va/8vb) + ottava brackets.
   dialect** (`omrDialectOf`) and routes SMT→`GrandStaff`, TrOMR→`Score` through
   the same FFI engine and output formats. Verified end-to-end on the TrOMR
   sample (image → `Score` → MusicXML).
+- **Scan → rendered notation.** `grandStaffToSvg` (`svg/svg_export.dart`) renders
+  a two-staff `GrandStaffLayout` — the per-staff emitter is shared with
+  `scoreToSvg`, so `scoreToSvg` is byte-for-byte unchanged. `partitura omr` now
+  writes `.svg` directly (a grand staff for SMT, a single staff for TrOMR;
+  falling back to the upper staff if a recognized grand staff's staves disagree
+  on measure count). Verified live: both engines render a scan to SVG.
 
 ---
 

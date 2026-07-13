@@ -8,6 +8,7 @@
 /// fully self-contained.
 library;
 
+import '../layout/grand_staff.dart';
 import '../layout/score_layout.dart';
 import '../smufl/smufl_codepoints.dart';
 
@@ -51,7 +52,27 @@ String scoreToSvg(
 
   // One transform: staff spaces → px, shifting the (possibly negative) top of
   // the ink to y = 0.
-  b.writeln('<g transform="translate(0 ${_n(-layout.top * staffSpace)}) '
+  _emitStaff(b, layout, staffSpace, -layout.top * staffSpace, color,
+      glyphFontFamily, textFontFamily, elementColors);
+
+  b.writeln('</svg>');
+  return b.toString();
+}
+
+/// Emits one staff's [ScoreLayout] as an SVG group, transforming staff spaces →
+/// px and translating by [offsetY] px. Shared by [scoreToSvg] and
+/// [grandStaffToSvg].
+void _emitStaff(
+  StringBuffer b,
+  ScoreLayout layout,
+  double staffSpace,
+  double offsetY,
+  String color,
+  String glyphFontFamily,
+  String textFontFamily,
+  Map<String, String> elementColors,
+) {
+  b.writeln('<g transform="translate(0 ${_n(offsetY)}) '
       'scale($staffSpace)" fill="$color" stroke="$color">');
 
   for (final p in layout.primitives) {
@@ -104,6 +125,49 @@ String scoreToSvg(
   }
 
   b.writeln('</g>');
+}
+
+/// Serializes a laid-out [GrandStaffLayout] (two staves) to a standalone SVG
+/// document — the same emitter as [scoreToSvg], with the upper and lower staves
+/// stacked [GrandStaffLayout.staffGap] spaces apart. Parameters match
+/// [scoreToSvg]; [elementColors] applies across both staves.
+String grandStaffToSvg(
+  GrandStaffLayout layout, {
+  double staffSpace = 12,
+  String glyphFontFamily = 'Bravura',
+  String textFontFamily = 'sans-serif',
+  String color = '#000000',
+  String background = '#ffffff',
+  String? fontFaceDataUri,
+  Map<String, String> elementColors = const {},
+}) {
+  final widthPx = layout.width * staffSpace;
+  final heightPx = layout.height * staffSpace;
+  final b = StringBuffer();
+  b.writeln('<?xml version="1.0" encoding="UTF-8"?>');
+  b.write('<svg xmlns="http://www.w3.org/2000/svg" ');
+  b.write('width="${_n(widthPx)}" height="${_n(heightPx)}" ');
+  b.writeln('viewBox="0 0 ${_n(widthPx)} ${_n(heightPx)}">');
+
+  if (fontFaceDataUri != null) {
+    b.writeln('<defs><style>@font-face{font-family:"$glyphFontFamily";'
+        'src:url($fontFaceDataUri);}</style></defs>');
+  }
+  if (background != 'none') {
+    b.writeln('<rect x="0" y="0" width="${_n(widthPx)}" '
+        'height="${_n(heightPx)}" fill="$background"/>');
+  }
+
+  // Upper ink top shifts to y = 0; the lower staff's top line sits its own top
+  // line at (upper bottom line = 4) + staffGap below that.
+  final upperOffset = -layout.upper.top * staffSpace;
+  final lowerOffset =
+      (4 - layout.upper.top + layout.staffGap) * staffSpace;
+  _emitStaff(b, layout.upper, staffSpace, upperOffset, color, glyphFontFamily,
+      textFontFamily, elementColors);
+  _emitStaff(b, layout.lower, staffSpace, lowerOffset, color, glyphFontFamily,
+      textFontFamily, elementColors);
+
   b.writeln('</svg>');
   return b.toString();
 }

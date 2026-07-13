@@ -110,4 +110,37 @@ void main() {
     final layout = layoutOf(Score.simple(notes: 'c4:q d4 e4'));
     expect(scoreToSvg(layout), scoreToSvg(layout));
   });
+
+  group('grandStaffToSvg', () {
+    GrandStaffLayout gsLayout() => layoutGrandStaff(
+          GrandStaff(
+            upper: Score.simple(clef: Clef.treble, notes: 'c5:q d5 e5 f5'),
+            lower: Score.simple(clef: Clef.bass, notes: 'c3:q d3 e3 f3'),
+          ),
+          settings,
+        );
+
+    test('emits a well-formed SVG with both staves stacked', () {
+      final svg = grandStaffToSvg(gsLayout(), staffSpace: 10);
+      expect(svg, startsWith('<?xml'));
+      expect(svg.trimRight(), endsWith('</svg>'));
+      // Two staff groups (upper + lower), each transformed.
+      expect('<g transform='.allMatches(svg).length, 2);
+    });
+
+    test('height spans both staves plus the gap', () {
+      final layout = gsLayout();
+      final svg = grandStaffToSvg(layout, staffSpace: 10);
+      expect(svg, contains('height='));
+      // Taller than either staff alone (both staves + the gap).
+      expect(layout.height, greaterThan(layout.upper.height));
+      expect(layout.height,
+          greaterThan(layout.upper.height + layout.lower.height));
+    });
+
+    test('deterministic', () {
+      final layout = gsLayout();
+      expect(grandStaffToSvg(layout), grandStaffToSvg(layout));
+    });
+  });
 }

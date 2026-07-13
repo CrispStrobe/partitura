@@ -35,7 +35,7 @@ Commands:
   render    <in> <out.(svg|png)> [options]
                                        Render a score (SVG pure-Dart; PNG via
                                        the Flutter SDK)
-  omr       <image> <out.(musicxml|mxl|krn)> --model <gguf> [options]
+  omr       <image> <out.(musicxml|mxl|krn|svg)> --model <gguf> [options]
                                        Recognize a staff image via CrispEmbed —
                                        Sheet Music Transformer (grand staff) or
                                        Polyphonic-TrOMR (single staff), engine
@@ -195,39 +195,77 @@ int _omr(List<String> args) {
   // The engine's output dialect is auto-detected: the Sheet Music Transformer
   // emits `bekern` (a grand staff), Polyphonic-TrOMR emits semantic notation
   // (a single polyphonic staff).
-  String musicXml;
+  Score? score;
+  GrandStaff? grand;
   String kern;
   String summary;
   if (omrDialectOf(tokens) == OmrDialect.semantic) {
-    final score = scoreFromSemantic(tokens);
-    musicXml = scoreToMusicXml(score);
+    score = scoreFromSemantic(tokens);
     kern = scoreToKern(score);
     summary = 'single staff (TrOMR), ${score.measures.length} measures';
   } else if (options.containsKey('single')) {
-    final score = bekernToScore(tokens);
-    musicXml = scoreToMusicXml(score);
+    score = bekernToScore(tokens);
     kern = bekernToKern(tokens);
     summary = 'single staff, ${score.measures.length} measures';
   } else {
-    final grand = bekernToGrandStaff(tokens);
-    musicXml = grandStaffToMusicXml(grand);
+    grand = bekernToGrandStaff(tokens);
     kern = bekernToKern(tokens);
     summary = 'grand staff, upper ${grand.upper.measures.length} / '
         'lower ${grand.lower.measures.length} measures';
   }
+  String musicXml() =>
+      score != null ? scoreToMusicXml(score) : grandStaffToMusicXml(grand!);
 
   switch (outFormat) {
     case 'musicxml':
-      File(outPath).writeAsStringSync(musicXml);
+      File(outPath).writeAsStringSync(musicXml());
     case 'mxl':
-      File(outPath).writeAsBytesSync(writeMusicXmlToMxl(musicXml));
+      File(outPath).writeAsBytesSync(writeMusicXmlToMxl(musicXml()));
     case 'kern':
       File(outPath).writeAsStringSync(kern);
+    case 'svg':
+      File(outPath).writeAsStringSync(_omrSvg(score, grand, options));
     default:
-      throw _CliError('omr can write musicxml, mxl or kern (got "$outFormat")');
+      throw _CliError(
+          'omr can write musicxml, mxl, kern or svg (got "$outFormat")');
   }
   stderr.writeln('omr: $summary -> $outPath');
   return 0;
+}
+
+/// Lays out and renders an OMR result to SVG — a [Score] (TrOMR / `--single`)
+/// or a [GrandStaff] (SMT). If the recognized grand staff's staves disagree on
+/// measure count (a recognition slip), falls back to rendering the upper staff.
+String _omrSvg(Score? score, GrandStaff? grand, Map<String, String> options) {
+  final staffSpace = double.tryParse(options['staff-space'] ?? '12') ?? 12;
+  final metadataFile = _findMetadata(options['metadata']);
+  if (metadataFile == null) {
+    throw _CliError('SMuFL metadata not found; pass --metadata <path>');
+  }
+  final metadata = SmuflMetadata.fromJson(
+      jsonDecode(metadataFile.readAsStringSync()) as Map<String, Object?>);
+  final settings = LayoutSettings(metadata: metadata);
+  String? fontUri;
+  if (!options.containsKey('no-embed-font')) {
+    final font = _siblingFont(metadataFile);
+    if (font != null) {
+      fontUri = 'data:font/otf;base64,${base64Encode(font.readAsBytesSync())}';
+    }
+  }
+  if (score != null) {
+    final layout = const LayoutEngine().layout(score, settings);
+    return scoreToSvg(layout, staffSpace: staffSpace, fontFaceDataUri: fontUri);
+  }
+  try {
+    final layout = layoutGrandStaff(grand!, settings);
+    return grandStaffToSvg(layout,
+        staffSpace: staffSpace, fontFaceDataUri: fontUri);
+  } on ArgumentError {
+    stderr.writeln('omr: staves disagree on measure count; '
+        'rendering the upper staff only');
+    final layout = const LayoutEngine().layout(grand!.upper, settings);
+    return scoreToSvg(layout, staffSpace: staffSpace, fontFaceDataUri: fontUri);
+  }
 }
 
 int _convert(List<String> args) {

@@ -38,6 +38,9 @@
   single-staff `Score`; `omrDialectOf` auto-detects which dialect an engine
   returned. Recognition itself plugs in via the `OmrEngine` abstraction (FFI
   engine lives in `partitura_cli`, `partitura omr` — engine auto-detected).
+  `grandStaffToSvg` renders a two-staff `GrandStaffLayout` (sharing `scoreToSvg`'s
+  emitter, so `scoreToSvg` is unchanged), and `partitura omr` can write `.svg`
+  directly.
 - **Roman-numeral analysis** (Phase 4.1, bidirectional): `romanNumeralOf(pitches,
   key)` reads a chord as a `RomanNumeral` — scale degree (with a chromatic
   `b`/`#` prefix for borrowed/Neapolitan chords), quality-driven case plus
