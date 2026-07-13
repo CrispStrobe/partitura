@@ -237,8 +237,14 @@ Raises the quality of everything already rendered. Slice order:
       per-depth leftward offsets so an outer bracket clears an inner brace
       (golden 78). **Left:** the hard-coded 5-line-staff generalization (tab
       already has its own N-line engine).
-- [ ] **2.2 Cross-staff notes / stems / beams** — a chord or beam spanning
-      both staves of a keyboard system. *Engine investigation (map):* the
+- [~] **2.2 Cross-staff notes / stems / beams** 🚧 [in progress: model +
+      engine] — a chord or beam spanning both staves of a keyboard system.
+      *Design:* per-note staff shift kept in the note's own `Score` (so the beam
+      group stays inside one `engine.layout()` call — spacing + beaming intact),
+      matching MusicXML `<staff>`; the engine repositions the shifted noteheads
+      onto the adjacent staff (target clef + gap offset) and lets stems/beams
+      span the gap. Fully opt-in (a note with no shift is untouched, so existing
+      beaming goldens are safe). *Engine investigation (map):* the
       `LayoutEngine` is strictly single-staff — one `Score` = one 5-line staff
       in its own coords (top line y=0, middle y=2, bottom y=4). `_yOf(pos) =
       (8-pos)/2` and the middle-line stem clamps (`>=2`/`<=2` in `_layoutNote`
