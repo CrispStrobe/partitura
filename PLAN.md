@@ -351,18 +351,21 @@ No peer renderer does any of this; all build on the existing pitch / interval
       sixths, sus) and inversion (as a slash chord) from a pitch set, spelled
       from the input, bass disambiguating (C6 vs Am7). **Left:** extended
       chords (9/11/13), augmented-sixth recognition, alternate spellings.
-- [~] **4.5 Post-tonal set theory** 🚧 [in progress] — normal order, prime
-      form, set-class number, interval-class vector, Z-relation. **In progress:**
-      `PitchClassSet` (normal order, prime form, ICV, Tn/TnI, complement,
+- [~] **4.5 Post-tonal set theory** — normal order, prime form, set-class
+      number, interval-class vector, Z-relation. **Done:** `PitchClassSet`
+      (normal order, prime form, ICV, Tn/TnI, complement, same-set-class test,
       Z-relation) — pure integer-set math, verified against published reference
       values. **Left:** Forte-name catalogue lookup (a hand-transcribed table).
 - [ ] **4.6 Figured-bass realization** — SATB completion with a voice-leading
       rule engine (pairs with 4.2).
 - [ ] **4.7 Metrical-accent hierarchy** (`beatStrength`) on the exact-duration
       core — also improves automatic beaming.
-- [ ] **4.8 Extras** — scale derivation (rank matching scales for a pitch
-      set), triad L/P/R transforms, twelve-tone matrix, an analysis text I/O
-      format.
+- [~] **4.8 Extras** 🚧 [in progress: twelve-tone matrix] — scale derivation
+      (rank matching scales for a pitch set), triad L/P/R transforms,
+      twelve-tone matrix, an analysis text I/O format. **In progress:** the
+      twelve-tone `ToneRow` (P/I/R/RI row forms + the 12×12 matrix), building on
+      4.5's pitch-class math. **Left:** scale derivation, L/P/R transforms,
+      analysis I/O.
 
 ### Phase 5 — Notation breadth
 - [~] **5.1 Noteheads** — **Done:** the shape set (x, diamond, triangle-up,
