@@ -259,4 +259,64 @@ void main() {
     expect(scoreFromMei(xml).measures.single.tuplets,
         const [TupletSpan(0, 2, actual: 3, normal: 2)]);
   });
+
+  // A minimal MEI wrapper around one measure body (staff 1 / layer 1).
+  String meiWith(String layerBody, {String? extraSection}) => '''
+<mei xmlns="http://www.music-encoding.org/ns/mei">
+ <music><body><mdiv><score>
+  <scoreDef><staffGrp><staffDef n="1" clef.shape="G" clef.line="2"/></staffGrp></scoreDef>
+  <section>
+   <measure n="1"><staff n="1"><layer n="1">$layerBody</layer></staff></measure>
+  </section>${extraSection ?? ''}
+ </score></mdiv></body></music>
+</mei>''';
+
+  test('reads notes inside a <beam> (they are not dropped)', () {
+    // Beams are visual grouping only — Baroque scores are almost entirely
+    // beamed, so dropping beamed notes lost ~90% of the music (hardening G14).
+    final xml = meiWith('<beam>'
+        '<note pname="c" oct="5" dur="8"/><note pname="d" oct="5" dur="8"/>'
+        '<note pname="e" oct="5" dur="8"/><note pname="f" oct="5" dur="8"/>'
+        '</beam>');
+    final notes = scoreFromMei(xml)
+        .measures
+        .single
+        .elements
+        .whereType<NoteElement>()
+        .toList();
+    expect(notes, hasLength(4));
+    expect(notes.map((n) => n.pitches.single.step.name),
+        ['c', 'd', 'e', 'f']);
+  });
+
+  test('reads notes inside a <beam> nested in a <beam>', () {
+    final xml = meiWith('<beam><note pname="c" oct="5" dur="8"/>'
+        '<beam><note pname="d" oct="5" dur="16"/>'
+        '<note pname="e" oct="5" dur="16"/></beam></beam>');
+    expect(
+        scoreFromMei(xml)
+            .measures
+            .single
+            .elements
+            .whereType<NoteElement>()
+            .length,
+        3);
+  });
+
+  test('reads measures from every <section>, not just the first', () {
+    // A chorale commonly has one <section> per verse; reading only the first
+    // dropped every later verse (hardening G15).
+    final xml = meiWith(
+      '<note pname="c" oct="5" dur="4"/>',
+      extraSection: '<section>'
+          '<measure n="2"><staff n="1"><layer n="1">'
+          '<note pname="d" oct="5" dur="4"/></layer></staff></measure>'
+          '</section>'
+          '<section>'
+          '<measure n="3"><staff n="1"><layer n="1">'
+          '<note pname="e" oct="5" dur="4"/></layer></staff></measure>'
+          '</section>',
+    );
+    expect(scoreFromMei(xml).measures, hasLength(3));
+  });
 }

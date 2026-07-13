@@ -216,13 +216,24 @@ class _MeiReader {
     final leadingKey = _key;
     final leadingTime = _time;
 
+    // Gather measures from *every* <section> (a score commonly has several —
+    // one per verse / strophe), descending through nested sections and repeat
+    // <ending>s in document order. Reading only the first section dropped every
+    // later verse (e.g. a 4-section chorale kept only 4 of 18 measures).
     final measures = <Measure>[];
-    final section = score.child('section');
-    if (section != null) {
-      for (final node in section.childrenNamed('measure')) {
-        measures.add(_readMeasure(node));
+    void collect(XmlNode node) {
+      for (final child in node.children) {
+        switch (child.name) {
+          case 'measure':
+            measures.add(_readMeasure(child));
+          case 'section':
+          case 'ending':
+            collect(child);
+        }
       }
     }
+
+    collect(score);
 
     final instrument = staffDef?.attributes['label'];
     Tempo? tempo;
@@ -312,7 +323,7 @@ class _MeiReader {
     final tuplets = <TupletSpan>[];
     for (var l = 0; l < layers.length; l++) {
       final elements = <MusicElement>[];
-      for (final node in layers[l].children) {
+      for (final node in _flattenBeams(layers[l].children)) {
         switch (node.name) {
           case 'clef':
             final clef = _clefFrom(node, 'shape', 'line', 'dis', 'dis.place');
@@ -342,7 +353,7 @@ class _MeiReader {
                 id: _idFor(node.attributes['xml:id'])));
           case 'tuplet':
             final start = elements.length;
-            for (final child in node.children) {
+            for (final child in _flattenBeams(node.children)) {
               switch (child.name) {
                 case 'note':
                   elements.add(_noteFrom(child));
@@ -522,5 +533,21 @@ class _MeiReader {
           count.split('+').map(int.parse).toList(), unit);
     }
     return TimeSignature(int.parse(count), unit, symbol: symbol);
+  }
+}
+
+/// Unwraps `<beam>` containers (recursively, since beams nest) so their child
+/// notes/chords/rests/tuplets join the sequence in order. In MEI a beam is
+/// purely visual grouping — without this, every beamed note is dropped (Baroque
+/// scores are almost entirely beamed: e.g. a Brandenburg movement is 92% beamed
+/// notes). Non-beam nodes pass through unchanged; grace groups and tremolos are
+/// intentionally *not* unwrapped here.
+Iterable<XmlNode> _flattenBeams(Iterable<XmlNode> nodes) sync* {
+  for (final node in nodes) {
+    if (node.name == 'beam') {
+      yield* _flattenBeams(node.children);
+    } else {
+      yield node;
+    }
   }
 }

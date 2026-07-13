@@ -88,6 +88,12 @@ model caps at 4 voices/staff, so 2 notes shift) and `ActorPrelude` (partitura
 *expands* the 14 `<tremolo type="single">` into repeated notes — 244 extra — a
 representation choice, not a parse error). See G12 / G13.
 
+**Extending the oracle to the MEI corpus (14 files) then paid off big** — it
+found two *real* MEI-reader bugs (not tool artifacts this time), now fixed:
+0/14 → **10/14 exact**, and the remaining 4 capture 100% of music21's notes
+(minor repeat-ending over-reads / enharmonic spelling). See **G14** (beams) and
+**G15** (sections).
+
 ## Gaps
 
 | # | Severity | Area | Symptom | Repro | Status |
@@ -105,6 +111,8 @@ representation choice, not a parse error). See G12 / G13.
 | G11 | low (rhythm fidelity) | abc writer/reader | An ABC round-trip of a dense syncopated ragtime (Joplin *The Entertainer*) preserves **every pitch, note and measure** (520 notes / 955 pitches / 92 bars identical) but re-encodes a handful of sub-beat **durations** (some 1/16 / dotted-1/16 in broken rhythm come back as a different value). Found by `tool/roundtrip_sweep.dart` (99.9% note-preserved). | round-trip of `ScottJoplin_The_Entertainer.xml` through ABC | **open** — narrow: likely ABC broken-rhythm (`>`/`<`) or dotted-sixteenth encoding. No notes lost; low priority. |
 | G12 | medium (export fidelity) | **kern / abc writers** | The kern and ABC **writers are single-voice subset codecs** — they emit only voice 1 and silently drop `voice2/3/4`, so a multi-voice score loses its inner voices on export (round-trip 90%, the loss exactly equals the voice2-4 note count: Bach *Ein feste Burg* 38/38, Ahle 40/40, Haydn 55/65). **Import is fine** — the model + all readers (MusicXML/MEI/MuseScore) carry four voices, verified 100% by the oracle. *(This gap was originally mis-logged as an importer bug; that was the oracle tool reading only voice 1 — corrected.)* Separately, the model caps at **4 voices/staff**, so `Voice_Alignment`'s 5th voice shifts (synthetic, 2 notes). | round-trip of `Bach-JS_Ein_feste_Burg.mei` through kern/ABC | **open** — kern needs spine-split (`*^`/`*v`) multi-voice output; ABC needs `V:`/`&` polyphony. Both are real features (the writers document themselves as single-spine). Model's 4-voice cap is a separate, low-value extension. |
 | G13 | low (representation) | musicxml reader (tremolo) | The orchestral **ActorPrelude** is the only score where partitura has *more* notes than music21 (partitura-only 321, of 1951 → 95.7% agree). Cause: partitura **expands the 14 `<tremolo type="single">` into repeated notes** at import (244 notes at 3/32 on 3 pitches), while music21 keeps the single written note + a tremolo expression. | `dart run tool/oracle_diff.dart ActorPreludeSample.xml` | **open** — a representation choice, not a parse error. For notation fidelity a tremolo should be a mark on the base note (expanded only for playback); tracked. |
+| G14 | high (fidelity) | **mei reader** | MEI wraps beamed notes in `<beam>` containers; the layer reader handled `note/chord/rest/tuplet` but let `<beam>` fall through `default`, so **every beamed note was dropped**. Baroque scores are ~90% beamed — a Brandenburg movement read 758 of 9140 notes (8.3%). Found by the music21 oracle over the MEI corpus. | `dart run tool/oracle_diff.dart Bach-JS_BrandenburgConcert_No2_I_BWV1047.mei` → 8.3% | **fixed** — `_flattenBeams` unwraps `<beam>` (recursively; also inside `<tuplet>`) so its children join the sequence. Brandenburg I now 9140/9140 exact. Regression tests in `mei_test.dart`. |
+| G15 | high (fidelity) | **mei reader** | The reader read only the **first** `<section>` of a score (`score.child('section')`), dropping every later section — a chorale with one section per verse kept 4 of 18 measures. | `dart run tool/oracle_diff.dart Altenburg_Macht_auf_die_Tor.mei` → 23% | **fixed** — gather measures from *all* `<section>`s (recursing through nested sections / repeat `<ending>`s) in document order. MEI oracle 0/14 → 10/14 exact after G14+G15. Regression test in `mei_test.dart`. |
 
 ### G4 + G5 — fixed, and generalized
 Root cause: **every** span/annotation layout pass threw on a degenerate span
