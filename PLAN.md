@@ -23,12 +23,45 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-11)
 
-> **Between features (model-lacunae worktree).** The three deep Score-model
-> lacunae are addressed: voices 3–4 (5.5), non-standard meters/keys (5.7 tail +
-> 5.8), and cross-staff beams (2.2); microtones (5.10) landed via the parallel
-> agent. *Left as follow-ups:* slanted/16th cross-staff beams + MusicXML
-> `<staff>`, cross-staff chords, cue/ossia, explicit beam grouping,
-> interchangeable meters. Worktree `partitura-public-lacunae`.
+> **Actively working on:** Workshop editor contracts C1–C5 (interactive-editor
+> APIs the KlangUniversum Composition Workshop needs — `MultiSystemView`/
+> `GrandStaffView` staff-tap, hover/caret, drag-move, multiline grand staff,
+> region hit-testing). All additive. In priority order C1+C2 → C3 → C5 → C4.
+> Worktree `partitura-public-lacunae`. *(The three deep Score-model lacunae —
+> voices 3–4, non-standard meters/keys, cross-staff beams — are done; microtones
+> landed via the parallel agent.)*
+
+### Workshop editor contracts (C1–C6)
+
+External consumer (KlangUniversum "Composition Workshop",
+`mus-workshop/docs/WORKSHOP_PARTITURA_CONTRACTS.md`) needs these interactive-
+editor APIs on `partitura-public@main`. All **additive / backward-compatible**
+(new optional params / new widgets; no signature breaks). Convention:
+`StaffTarget`, element `id` strings, `PartituraTheme`, `staffSpace`, staff-space
+y-down coords. Priority: **C1+C2 → C3 → C5 → C4**.
+
+- 🚧 **C1 — Staff-tap on the multi-line view** [in progress]. Add
+  `MultiSystemView.onStaffTap(StaffTarget)`, resolving system + measure + staff
+  position on the wrapped layout; extend `StaffTarget` with `systemIndex`
+  (backward-compatible default). Quantize to the nearest line/space like
+  `InteractiveStaff`.
+- [ ] **C2 — Hover preview + persistent caret.** `onHover(StaffTarget?)`,
+  an `EditorCaret` (`beforeElementId`/`measureIndex`/`staffPosition`) drawn
+  across systems, and the ghost-note preview extended to `MultiSystemView`
+  (mouse hover on desktop, drag on touch).
+- [ ] **C3 — Drag an existing element.** `onElementDragStart/Update/End`
+  (elementId + live `StaffTarget`) on `InteractiveStaff` and `MultiSystemView`;
+  ghost at the live target. partitura only reports; the app mutates.
+- [ ] **C4 — Range hit-testing / region geometry.** Expose read-only
+  `ElementRegion`s (id, bounds, measureIndex) from the computed `ScoreLayout`
+  (preferred) and/or `elementIdsIn(Rect)`, for marquee / shift-click ranges.
+- [ ] **C5 — Interactive multi-line grand staff** *(the big one)*. `wrap`
+  (multi-system line-breaking) + `onStaffTap` (+ C2/C3 hooks, each carrying a
+  staff index) on `GrandStaffView` — minimum viable — or a unified
+  `InteractiveScoreView`. Ids stay globally unique across staves.
+- [ ] **C6 — (later) multi-part document model.** First-class multi-part
+  document (shared barlines across parts) + multi-part page layout. Deferred;
+  C1–C5 unblock the near-term editor.
 
 - **Shipped: v0.1 → v0.7.2** — the full common-notation set plus the
   piano/technical layer. All green.
