@@ -19,6 +19,7 @@ unrecognized or malformed element should be skipped (ideally logged), not throw.
 | **C6 multi-part probe** (via `staffSystemFromMusicXml`) | 10 | Mozart quartet → 4 staves, Beethoven/Debussy → 3, Bach/Clementi → 2, **ActorPrelude orchestral → 23 staves / 2377 elements** ✅ (all after G6/G7) |
 | **Round 4** — 10 more each: MusicXML (Gounod 7-staff, Haydn, Mozart songs), MEI (Brandenburg II/III/IV, Chopin, chorales), `**kern` (10 Bach chorales → 4-part SATB) | 30 | all parse + render ✅; multi-part probe 19/20 (1 `.mxl` = probe artifact) |
 | **Round 4** — MIDI + ABC round-trips of the real XMLs | 10 + 10 | MIDI all ✅; **3 ABC (vocal) rendered a crash → G8** |
+| **Round 5** — end-to-end **CLI `render` sweep** of the whole corpus (XML + MEI + kern) through the newly-wired multi-part path | 19 | 17 render ✅ (incl. MEI now multi-part: Altenburg → 8, **Brandenburg → 9**), **1 tab MusicXML crash → G9**, 1 corpus artifact (`chor150.krn` = a 0-byte "404: Not Found" failed download; rejecting it is correct) |
 
 ## Gaps
 
@@ -32,6 +33,7 @@ unrecognized or malformed element should be skipped (ideally logged), not throw.
 | G3 | high | musicxml reader | A slur `start`/`stop` imbalance (a `type="continue"` reusing a number, or a lost `stop`) left a slur open → parse aborted *"Unclosed `<slur>`"*. | `partitura info Debussy_Mandoline.xml` | **fixed** — dangling slur dropped, parse continues |
 | G4 | high (crash) | layout engine | A degenerate `Hairpin(eN → eN)` (start == end) threw `must run forward in reading order` — uncaught. | `partitura render Dichterliebe01.xml …` | **fixed** (a2… ) |
 | G5 | high (crash) | layout engine | A `Pedal(e0 → e29)` whose end id is not in the imported score threw `references an unknown note element id` — uncaught. | `partitura render OSMD_Function_Test_Pedals.musicxml …` | **fixed** |
+| G9 | high (crash) | musicxml reader | A **guitar-tablature** MusicXML staff carries `<clef><sign>TAB</sign>`, which `_clefOf` didn't recognize → threw `Unsupported clef: TAB5`, aborting the whole import. | `partitura render BrookeWestSample.mxl …` | **fixed at the source** — `TAB` maps to the guitar clef (`treble8vb`, sounding 8vb) so the staff's real `<pitch>`es render; any other/malformed sign now defaults to treble instead of aborting (reader-leniency, per G3/G6/G7). BrookeWest → 2 staves. Regression test in `musicxml_test.dart`. |
 
 ### G4 + G5 — fixed, and generalized
 Root cause: **every** span/annotation layout pass threw on a degenerate span

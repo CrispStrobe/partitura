@@ -797,7 +797,11 @@ class _PartReader {
       ('C', 5, _) => Clef.baritone,
       ('C', _, _) => Clef.alto, // line 3
       ('percussion', _, _) => Clef.percussion,
-      _ => throw FormatException('Unsupported clef: $sign$line'),
+      ('TAB', _, _) => Clef.treble8vb, // guitar tab staff: read its pitches on
+      // the conventional guitar clef (sounds an octave below written).
+      // Any other / malformed sign: default to treble rather than abort the
+      // whole import — a renderer must never crash on real input.
+      _ => Clef.treble,
     };
   }
 

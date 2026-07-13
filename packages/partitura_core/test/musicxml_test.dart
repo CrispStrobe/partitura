@@ -118,6 +118,11 @@ void main() {
       expect(clefOf('F', 4), Clef.bass);
       expect(clefOf('C', 3), Clef.alto);
       expect(clefOf('C', 4), Clef.tenor);
+      // A guitar-tab staff (`<sign>TAB</sign>`) reads its pitches on the guitar
+      // clef (treble, sounding an octave lower) instead of aborting the import.
+      expect(clefOf('TAB', 5), Clef.treble8vb);
+      // An exotic / malformed sign never crashes: default to treble.
+      expect(clefOf('jianpu', 1), Clef.treble);
     });
 
     test('whole-measure rest without <type> derives from divisions', () {
