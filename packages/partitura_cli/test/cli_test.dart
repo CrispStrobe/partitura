@@ -183,13 +183,31 @@ void main() {
     final out = '${tmp.path}/duet.svg';
     final r = await run(['render', multiPath, out, '--metadata', metadataPath]);
     expect(r.exitCode, 0);
-    expect(r.stdout, contains('2 parts'));
+    expect(r.stdout, contains('2 staves'));
     final svg = File(out).readAsStringSync();
     // Both clefs are present — proof it rendered both staves, not just the top.
     expect(svg, contains(smuflCodepoints['gClef']!));
     expect(svg, contains(smuflCodepoints['fClef']!));
     // Two staff groups stacked into one system.
     expect('<g transform'.allMatches(svg).length, greaterThanOrEqualTo(2));
+  });
+
+  test('render decodes a UTF-16 LE (BOM) MusicXML instead of crashing',
+      () async {
+    // Real MusicXML is often exported UTF-16; File.readAsStringSync assumes
+    // UTF-8 and would throw. Encode the sample as UTF-16 LE with a BOM.
+    final text = File(samplePath).readAsStringSync();
+    final bytes = <int>[0xFF, 0xFE];
+    for (final unit in text.codeUnits) {
+      bytes.add(unit & 0xFF);
+      bytes.add((unit >> 8) & 0xFF);
+    }
+    final u16Path = '${tmp.path}/utf16.musicxml';
+    File(u16Path).writeAsBytesSync(bytes);
+    final out = '${tmp.path}/utf16.svg';
+    final r = await run(['render', u16Path, out, '--metadata', metadataPath]);
+    expect(r.exitCode, 0, reason: '${r.stdout}\n${r.stderr}');
+    expect(File(out).readAsStringSync(), contains(smuflCodepoints['gClef']!));
   });
 
   test('render --tab writes a tab SVG', () async {

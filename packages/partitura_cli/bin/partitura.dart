@@ -450,16 +450,16 @@ StaffSystem? _loadStaffSystem(String path, Map<String, String> options) {
   if (!file.existsSync()) throw _CliError('no such file: $path');
   switch (options['from'] ?? _formatOf(path)) {
     case 'musicxml':
-      return staffSystemFromMusicXml(file.readAsStringSync());
+      return staffSystemFromMusicXml(_readText(file));
     case 'mxl':
       return staffSystemFromMusicXml(
           readMusicXmlFromMxl(file.readAsBytesSync()));
     case 'mei':
-      return staffSystemFromMei(file.readAsStringSync());
+      return staffSystemFromMei(_readText(file));
     case 'kern':
-      return staffSystemFromKern(file.readAsStringSync());
+      return staffSystemFromKern(_readText(file));
     case 'abc':
-      return staffSystemFromAbc(file.readAsStringSync());
+      return staffSystemFromAbc(_readText(file));
     default:
       return null; // single-part formats (MIDI, MuseScore, GP, …)
   }
@@ -473,29 +473,29 @@ Score _loadScore(String path, Map<String, String> options) {
   if (!file.existsSync()) throw _CliError('no such file: $path');
   switch (options['from'] ?? _formatOf(path)) {
     case 'musicxml':
-      return scoreFromMusicXml(file.readAsStringSync());
+      return scoreFromMusicXml(_readText(file));
     case 'mxl':
       return scoreFromMusicXml(readMusicXmlFromMxl(file.readAsBytesSync()));
     case 'mei':
-      return scoreFromMei(file.readAsStringSync());
+      return scoreFromMei(_readText(file));
     case 'kern':
-      return scoreFromKern(file.readAsStringSync());
+      return scoreFromKern(_readText(file));
     case 'midi':
       return scoreFromMidi(file.readAsBytesSync());
     case 'abc':
-      return scoreFromAbc(file.readAsStringSync());
+      return scoreFromAbc(_readText(file));
     case 'mscx':
-      return scoreFromMscx(file.readAsStringSync());
+      return scoreFromMscx(_readText(file));
     case 'mscz':
       return scoreFromMscx(readMscxFromMscz(file.readAsBytesSync()));
     case 'asciitab':
       return asciiTabToScore(
-        file.readAsStringSync(),
+        _readText(file),
         tuning: _tuningOf(options['tuning']),
         inferRhythm: options.containsKey('infer-rhythm'),
       );
     case 'gpif':
-      return scoreFromGpif(file.readAsStringSync(),
+      return scoreFromGpif(_readText(file),
           trackIndex: int.tryParse(options['track'] ?? '0') ?? 0);
     case 'gp':
       return scoreFromGpif(readGpifFromGp(file.readAsBytesSync()),
@@ -515,6 +515,37 @@ Score _loadScore(String path, Map<String, String> options) {
     default:
       throw _CliError('unknown input format for $path (use --from)');
   }
+}
+
+/// Reads a text score file, honouring a Unicode BOM. `File.readAsStringSync`
+/// assumes UTF-8 and throws on a UTF-16 file (real MusicXML is often exported
+/// UTF-16 LE with a BOM, and its XML prolog may declare `encoding="UTF-16"`).
+/// `dart:convert` ships no UTF-16 codec, so decode it by hand from the BOM.
+String _readText(File file) {
+  final bytes = file.readAsBytesSync();
+  if (bytes.length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE) {
+    // UTF-16 little-endian.
+    final units = <int>[];
+    for (var i = 2; i + 1 < bytes.length; i += 2) {
+      units.add(bytes[i] | (bytes[i + 1] << 8));
+    }
+    return String.fromCharCodes(units);
+  }
+  if (bytes.length >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF) {
+    // UTF-16 big-endian.
+    final units = <int>[];
+    for (var i = 2; i + 1 < bytes.length; i += 2) {
+      units.add((bytes[i] << 8) | bytes[i + 1]);
+    }
+    return String.fromCharCodes(units);
+  }
+  if (bytes.length >= 3 &&
+      bytes[0] == 0xEF &&
+      bytes[1] == 0xBB &&
+      bytes[2] == 0xBF) {
+    return utf8.decode(bytes.sublist(3)); // UTF-8 BOM
+  }
+  return utf8.decode(bytes, allowMalformed: true);
 }
 
 Tuning _tuningOf(String? name) => switch (name) {
