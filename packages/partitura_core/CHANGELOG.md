@@ -2,6 +2,15 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Post-tonal set theory** (Phase 4.5): a `PitchClassSet` (built from integers
+  or `Pitch`es, mod 12) with the standard atonal-analysis operations — normal
+  order, prime form, the interval-class vector, the T_n / T_nI transforms,
+  complementation, same-set-class test and the Z-relation. Pure integer-set
+  math, verified against published reference values (major/minor triads share
+  prime form `[0,3,7]`, the dominant seventh is `[0,2,5,8]`, the whole-tone
+  scale's vector is `[0,6,0,6,0,3]`, and the all-interval tetrachords 4-Z15 /
+  4-Z29 come out Z-related). The Forte-name catalogue lookup is the remaining
+  piece.
 - **Cross-staff notes — assembler** (Phase 2.2, increment 3): the grand-staff,
   N-staff-system and multi-part layouts now pass each staff its inter-staff
   offset (`4 + staffGap`) and its neighbours' clefs, so a `Score.crossStaff`
