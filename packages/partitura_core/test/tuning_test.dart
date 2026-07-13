@@ -52,4 +52,50 @@ void main() {
       expect(Tuning.standardGuitar, isNot(Tuning.dropDGuitar));
     });
   });
+
+  group('fretted-instrument presets (Phase 6.5)', () {
+    test('string counts and labels', () {
+      expect(Tuning.dadgadGuitar.stringCount, 6);
+      expect(Tuning.openGGuitar.stringCount, 6);
+      expect(Tuning.sevenStringGuitar.stringCount, 7);
+      expect(Tuning.eightStringGuitar.stringCount, 8);
+      expect(Tuning.fiveStringBass.stringCount, 5);
+      expect(Tuning.banjoOpenG.stringCount, 5);
+      expect(Tuning.ukulele.stringCount, 4);
+      expect(Tuning.mandolin.stringCount, 4);
+      expect(Tuning.mandolin.name, 'Mandolin');
+    });
+
+    test('DADGAD drops the 3rd, 2nd and 1st strings vs standard', () {
+      expect(Tuning.dadgadGuitar.strings.first, Pitch.parse('d4')); // string 1
+      expect(Tuning.dadgadGuitar.strings.last, Pitch.parse('d2')); // string 6
+      // Open low D plays fret 0 on the bottom string.
+      expect(Tuning.dadgadGuitar.fretFor(Pitch.parse('d2')), (5, 0));
+    });
+
+    test('7- and 8-string guitars extend below low E', () {
+      expect(Tuning.sevenStringGuitar.strings.last, Pitch.parse('b1'));
+      expect(Tuning.sevenStringGuitar.fretFor(Pitch.parse('b1')), (6, 0));
+      expect(Tuning.eightStringGuitar.strings.last, Pitch.parse('f#1'));
+      expect(Tuning.eightStringGuitar.fretFor(Pitch.parse('f#1')), (7, 0));
+    });
+
+    test('five-string bass adds a low B0', () {
+      expect(Tuning.fiveStringBass.strings.last, Pitch.parse('b0'));
+      expect(Tuning.fiveStringBass.fretFor(Pitch.parse('b0')), (4, 0));
+    });
+
+    test('ukulele high-G is reentrant (string 4 sounds above string 1)', () {
+      // A4 (string 1) is lower than G4 (string 4, reentrant high G).
+      expect(Tuning.ukulele.strings.first, Pitch.parse('a4'));
+      expect(Tuning.ukulele.strings.last, Pitch.parse('g4'));
+      expect(Tuning.ukulele.strings.last.midiNumber,
+          lessThan(Tuning.ukulele.strings.first.midiNumber));
+    });
+
+    test('mandolin is tuned in fifths, high E5 on top', () {
+      expect(Tuning.mandolin.strings.first, Pitch.parse('e5'));
+      expect(Tuning.mandolin.strings.last, Pitch.parse('g3'));
+    });
+  });
 }

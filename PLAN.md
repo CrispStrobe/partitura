@@ -462,10 +462,12 @@ pitch → (string, fret) assignment. Also requires lifting the current
       fret + "A.H."/"P.H." label) — golden 63. **Left:** tremolo picking, grace
       notes, trill, staccato/accent, slap/pop, fingering, rasgueado, and the
       rest of the checklist.
-- 🚧 **6.5 Tunings & other fretted instruments** (bass, drop-D, DADGAD…;
-      7/8-string, banjo, ukulele, mandolin).
-      *[in progress: parallel agent — preset `Tuning`s in theory/tuning.dart;
-      tab-only, no model/meter/key work]*
+- [x] **6.5 Tunings & other fretted instruments** — preset `Tuning`s for
+      DADGAD, open-G, 7- and 8-string guitar, 5-string bass, 5-string banjo
+      (reentrant high-G drone), ukulele (reentrant high-G) and mandolin, on top
+      of the existing standard/drop-D guitar and 4-string bass. The N-line tab
+      engine already engraves any string count, so these render directly
+      (verified: ukulele → 4 lines, 7-string → 7, low B1 open).
 
 **Exhaustive technique checklist** (adopt the well-established point-grid /
 enum encodings so files round-trip cleanly), tiered by importance:

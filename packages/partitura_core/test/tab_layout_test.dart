@@ -96,6 +96,28 @@ void main() {
     expect(layout.primitives.whereType<BeamPrimitive>(), hasLength(2));
   });
 
+  test('alternate fretted instruments render with their own line count', () {
+    int stringLines(ScoreLayout l) => l.primitives
+        .whereType<LinePrimitive>()
+        .where((line) => line.from.y == line.to.y)
+        .map((line) => line.from.y)
+        .toSet()
+        .length;
+    // Ukulele → 4 lines; a 7-string guitar → 7 lines.
+    expect(stringLines(tabOf(Score.simple(notes: 'c4:q'), Tuning.ukulele)), 4);
+    expect(
+        stringLines(
+            tabOf(Score.simple(notes: 'e2:q'), Tuning.sevenStringGuitar)),
+        7);
+    // The low B1 of the 7-string plays open on its 7th string.
+    final low = const TabLayoutEngine()
+        .layout(Score.simple(notes: 'b1:q'), Tuning.sevenStringGuitar, settings)
+        .primitives
+        .whereType<TextPrimitive>()
+        .single;
+    expect(low.text, '0');
+  });
+
   test('secondary tab beams subdivide at the quarter in cut time', () {
     // A half-note beat of eight sixteenths: one continuous primary beam, with
     // the secondary beam broken at the quarter (two segments, not one).

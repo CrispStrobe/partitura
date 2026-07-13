@@ -47,6 +47,61 @@ class Tuning {
     name: 'Drop D',
   );
 
+  /// DADGAD guitar tuning (D A D G A D), a Celtic/fingerstyle favourite.
+  static final Tuning dadgadGuitar = Tuning(
+    [
+      Pitch.parse('d4'),
+      Pitch.parse('a3'),
+      Pitch.parse('g3'),
+      Pitch.parse('d3'),
+      Pitch.parse('a2'),
+      Pitch.parse('d2'),
+    ],
+    name: 'DADGAD',
+  );
+
+  /// Open-G guitar tuning (D G D G B D) — common for slide and folk.
+  static final Tuning openGGuitar = Tuning(
+    [
+      Pitch.parse('d4'),
+      Pitch.parse('b3'),
+      Pitch.parse('g3'),
+      Pitch.parse('d3'),
+      Pitch.parse('g2'),
+      Pitch.parse('d2'),
+    ],
+    name: 'Open G',
+  );
+
+  /// Seven-string guitar (standard, adds a low B1 below standard tuning).
+  static final Tuning sevenStringGuitar = Tuning(
+    [
+      Pitch.parse('e4'),
+      Pitch.parse('b3'),
+      Pitch.parse('g3'),
+      Pitch.parse('d3'),
+      Pitch.parse('a2'),
+      Pitch.parse('e2'),
+      Pitch.parse('b1'),
+    ],
+    name: '7-string',
+  );
+
+  /// Eight-string guitar (standard, adds low B1 and F#1).
+  static final Tuning eightStringGuitar = Tuning(
+    [
+      Pitch.parse('e4'),
+      Pitch.parse('b3'),
+      Pitch.parse('g3'),
+      Pitch.parse('d3'),
+      Pitch.parse('a2'),
+      Pitch.parse('e2'),
+      Pitch.parse('b1'),
+      Pitch.parse('f#1'),
+    ],
+    name: '8-string',
+  );
+
   /// Standard four-string bass tuning (E A D G), top line = G2.
   static final Tuning standardBass = Tuning(
     [
@@ -56,6 +111,55 @@ class Tuning {
       Pitch.parse('e1'),
     ],
     name: 'Bass',
+  );
+
+  /// Five-string bass (adds a low B0 below the four-string bass).
+  static final Tuning fiveStringBass = Tuning(
+    [
+      Pitch.parse('g2'),
+      Pitch.parse('d2'),
+      Pitch.parse('a1'),
+      Pitch.parse('e1'),
+      Pitch.parse('b0'),
+    ],
+    name: '5-string bass',
+  );
+
+  /// Five-string banjo, open-G tuning. The 5th string is the high G4 drone
+  /// (physically the short string), listed last.
+  static final Tuning banjoOpenG = Tuning(
+    [
+      Pitch.parse('d4'),
+      Pitch.parse('b3'),
+      Pitch.parse('g3'),
+      Pitch.parse('d3'),
+      Pitch.parse('g4'),
+    ],
+    name: 'Banjo (open G)',
+  );
+
+  /// Standard soprano/concert ukulele (reentrant high-G: G4 C4 E4 A4),
+  /// top line = A4.
+  static final Tuning ukulele = Tuning(
+    [
+      Pitch.parse('a4'),
+      Pitch.parse('e4'),
+      Pitch.parse('c4'),
+      Pitch.parse('g4'),
+    ],
+    name: 'Ukulele',
+  );
+
+  /// Mandolin (G D A E, like a violin), top line = E5. Paired courses render
+  /// as one line each.
+  static final Tuning mandolin = Tuning(
+    [
+      Pitch.parse('e5'),
+      Pitch.parse('a4'),
+      Pitch.parse('d4'),
+      Pitch.parse('g3'),
+    ],
+    name: 'Mandolin',
   );
 
   /// The lowest-fret (string, fret) that plays [pitch] on this tuning, or

@@ -2,6 +2,11 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Fretted-instrument tunings** (Phase 6.5): preset `Tuning`s for DADGAD,
+  open-G, 7- and 8-string guitar, 5-string bass, 5-string banjo (reentrant
+  high-G drone), ukulele (reentrant high-G) and mandolin, alongside the existing
+  standard/drop-D guitar and 4-string bass. The tab engine is already N-line
+  generic, so every instrument renders directly with its own line count.
 - **Microtonal accidentals** (Phase 5.10): `Pitch.microtone` (an optional
   `MicrotonalAccidental` — half/three-quarter sharp/flat, ±50/±150 cents) draws
   the Stein-Zimmermann quarter-tone glyphs and always shows (a quarter tone is
