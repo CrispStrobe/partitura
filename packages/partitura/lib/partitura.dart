@@ -15,6 +15,7 @@ export 'src/interaction/element_region_controller.dart';
 export 'src/interaction/interactive_staff.dart';
 export 'src/interaction/score_editor_controller.dart';
 export 'src/interaction/staff_target.dart';
+export 'src/interaction/transposition_controller.dart';
 export 'src/rendering/bravura.dart';
 export 'src/rendering/font_licenses.dart' show registerBundledFontLicenses;
 export 'src/rendering/fretboard_view.dart';

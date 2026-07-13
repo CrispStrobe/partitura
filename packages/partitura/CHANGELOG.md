@@ -2,6 +2,13 @@
 
 ## 0.4.1-dev.1 (in progress)
 
+- **Live transposition / concert-pitch UI** (Phase 3.6): `TranspositionController`
+  is a `ChangeNotifier` wrapper over `Score.transposedBy` / `atConcertPitch` —
+  `transposeBy(interval)` (composes), `octaveUp` / `octaveDown`,
+  `showConcertPitch()` (sounding pitch of a transposing part) and `reset()`. The
+  app renders `controller.score` inside an `AnimatedBuilder` and drives it from
+  its own UI.
+
 - **Play-the-right-note drills** (Phase 3.7): `evaluateDrill(score, expectedIds,
   played)` → `DrillResult` compares the expected note elements against the MIDI
   pitches the player sounded, producing per-element `EditorMark`s for

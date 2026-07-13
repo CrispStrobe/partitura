@@ -530,8 +530,10 @@ Rides the existing cursor + selection; no audio needed.
       app-supplied `(musical time, seconds)` anchors (linear interp +
       extrapolation) to follow a live / slowed performance; `Tempo.quarterBpm`
       normalizes any beat unit. Pure core. `tempo_map_test.dart`.
-- [ ] **3.6 Live transposition / concert-pitch UI** — an interaction wrapper
-      over the existing `Score.transposedBy`.
+- [x] **3.6 Live transposition / concert-pitch UI** — `TranspositionController`
+      (`ChangeNotifier`): `transposeBy(interval)` (composes), `octaveUp`/`Down`,
+      `showConcertPitch()`, `reset()`; the app renders `controller.score`.
+      `transposition_controller_test.dart`.
 - [x] **3.7 Played-vs-expected MIDI-input highlighting** — `evaluateDrill(score,
       expectedIds, played)` → `DrillResult` (per-element green/red `EditorMark`s
       for `errorOverlay`, plus `extraPitches`/`missingPitches`/`isPerfect`);
