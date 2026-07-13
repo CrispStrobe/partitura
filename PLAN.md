@@ -28,14 +28,13 @@ ships* at the end for the mechanics.
 > its handover below for increments 2–4). Phase 2.3 hide-empty-staves also on
 > `main` (7e817fb). No active claim on this worktree line.
 
-> **HANDOFF — `partitura-public-lacunae` has no active claim; safe to pick up.**
-> **Phase 3 (Interactivity) is now complete** — 3.6 `TranspositionController`
-> and 3.9 accessibility (`semanticLabel` + per-note `Semantics` on `StaffView`)
-> just landed, alongside 3.1/3.3/3.4/3.5/3.7/3.8, the editor moat +
-> `ScoreEditorController`, Workshop C1–C9, and the v0.4.0 release — all from this
-> worktree, all on `main`. **Next up:** a Phase 4 (music theory/analysis) or 5/6
-> tail — see the section lists below; claim with 🚧 and push origin/main at every
-> checkpoint. (3.9's audio "sonification" is left to the app.)
+> 🚧 **Actively working on (finish Phase 4 — the analysis tails):** 4.4
+> enharmonic re-reads of a pitch-class set (`chordReadings`), 4.5 the Forte
+> set-class number table (`forteNumber` over `primeForm`), and 4.7 wiring
+> `beatStrength` into automatic (secondary-)beaming. 4.8's analysis text format
+> stays deferred (no standard interchange to target). Worktree
+> `partitura-public-lacunae`. *(Phase 3 complete; Phase 6 complete; Phase 5 tails
+> are blocked on the C6 multi-staff engine the other worktree is building.)*
 
 
 
