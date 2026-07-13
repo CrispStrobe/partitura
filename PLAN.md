@@ -23,13 +23,12 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-11)
 
-> **Actively working on:** cross-staff onset-column gridding (§2.9) — the shared
-> column model so simultaneous notes align vertically across staves.
-> **Increment 1**: `alignedColumns` + engine `forcedColumns` (single-voice) →
-> `layoutGrandStaff`, with a golden of rhythmically-different hands aligning.
-> Additive/opt-in (existing goldens untouched). Worktree
-> `partitura-public-lacunae`. *(Editor contracts C1–C5 + grand-staff
-> justification done on `main`; C6 deferred.)*
+> **Between features (model-lacunae worktree).** Cross-staff onset-column
+> gridding (§2.9) **increment 1 done** on `main` — the grand staff now aligns
+> simultaneous notes across staves (`alignedColumns` + engine `forcedColumns`;
+> `gridAlign` flag; golden 96). Left: N-staff systems, multi-voice, accidental-
+> aware columns (increments 2–4). Editor contracts C1–C5 + grand-staff
+> justification also done; C6 deferred; the three deep Score-model lacunae done.
 
 > **Actively working on (OMR frontier):** closing the OMR gaps — starting with
 > **model auto-download** (`partitura omr --model <name>` fetches the GGUF from
@@ -99,9 +98,12 @@ composes with justification (scale the columns / reuse `spacingStretch`).
 
 **Increments (each: additive, opt-in via a new `forcedColumns` engine arg, its
 own goldens):**
-1. 🚧 **Grid model + grand staff (single voice).** `alignedColumns(staves)` in
+1. [x] **Grid model + grand staff (single voice).** `alignedColumns(staves)` in
    core + `LayoutEngine.layout(..., forcedColumns:)` for the single-voice path;
-   wire into `layoutGrandStaff`. Golden: rhythmically-different hands aligning.
+   wired into `layoutGrandStaff`/`Systems`/`GrandStaffView`/
+   `InteractiveGrandStaffView` (`gridAlign` flag, default true; 2+-voice staff
+   falls back to barline-only). Goldens 35 & 95 re-rendered aligned; golden 96
+   showcases it. `grand_staff_test.dart` asserts onset alignment.
 2. [ ] **N-staff systems** — apply to `StaffSystemView`/`layoutStaffSystem`.
 3. [ ] **Multi-voice** staves participate in the grid (voices 2–4 onsets).
 4. [ ] **Justification on columns** — stretch the shared columns to fill width

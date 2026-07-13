@@ -678,6 +678,45 @@ void main() {
     );
   });
 
+  testWidgets('96 cross-staff onset gridding', (tester) async {
+    // Rhythmically-different hands: eight upper eighths over four lower
+    // quarters. Each lower quarter lines up under the upper eighth on its beat.
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Colors.white,
+          body: Center(
+            child: RepaintBoundary(
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(12),
+                child: GrandStaffView(
+                  staffSpace: 10,
+                  grandStaff: GrandStaff(
+                    upper: Score.simple(
+                      timeSignature: TimeSignature.fourFour,
+                      notes: 'c5:e d5 e5 f5 g5 a5 b5 c6',
+                    ),
+                    lower: Score.simple(
+                      clef: Clef.bass,
+                      timeSignature: TimeSignature.fourFour,
+                      notes: 'c3:q g3 c3 g3',
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await expectLater(
+      find.byType(RepaintBoundary).last,
+      matchesGoldenFile('goldens/96_cross_staff_gridding.png'),
+    );
+  });
+
   testWidgets('21 unmetered snippet in bass with chords', (tester) async {
     await golden(
       tester,

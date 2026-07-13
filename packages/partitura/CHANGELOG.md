@@ -2,6 +2,18 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Cross-staff onset-column gridding** (§2.9, increment 1): simultaneous notes
+  now align vertically across the two staves of a grand staff — the rule every
+  serious engraver enforces. A new core `alignedColumns(staves)` builds a shared
+  per-measure column table (onset → x, gaps spaced by the optical time rule
+  floored by the widest ink across staves), fed to a new
+  `LayoutEngine.layout(..., forcedColumns:)` for the single-voice path; each
+  staff places its notes on the shared columns. `layoutGrandStaff` /
+  `layoutGrandStaffSystems` / `GrandStaffView` / `InteractiveGrandStaffView` gain
+  a `gridAlign` flag (default true; a 2+-voice staff falls back to barline-only
+  alignment). Goldens 35 & 95 re-rendered aligned; new golden
+  `96_cross_staff_gridding`. *Left (later increments):* N-staff systems,
+  multi-voice staves, accidental-aware columns.
 - **Wrapped grand-staff justification.** `InteractiveGrandStaffView` gains a
   `justify` flag (default true): every non-final system now fills the width via
   a **shared note-spacing stretch applied to both staves** (binary-searched in

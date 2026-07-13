@@ -69,43 +69,38 @@ void main() {
       }
     });
 
-    test('the busier staff dictates each measure width', () {
-      // Upper measure 1 is busy (8 eighths), lower is one whole note; and
-      // vice versa in measure 2.
+    test('cross-staff onset gridding aligns simultaneous notes (§2.9)', () {
+      // Upper: four quarters (onsets 0, 1/4, 1/2, 3/4). Lower: a half then two
+      // quarters (onsets 0, 1/2, 3/4). The beats they share must line up.
       final layout = layoutGrandStaff(
-        demo(
-          upper: 'c5:e d5 e5 f5 g5 a5 b5 c6 | g5:w',
-          lower: 'c3:w | c3:e d3 e3 f3 g3 a3 b3 c4',
-        ),
+        demo(upper: 'c5:q d5 e5 f5', lower: 'c3:h e3:q g3:q'),
         settings,
       );
-      final naturalUpper = const LayoutEngine().layout(
-        Score.simple(
-          timeSignature: TimeSignature.fourFour,
-          notes: 'c5:e d5 e5 f5 g5 a5 b5 c6 | g5:w',
-        ),
+      double left(ScoreLayout staff, String id) =>
+          staff.regions.firstWhere((r) => r.elementId == id).bounds.left;
+
+      // Barlines align (shared measure width).
+      expect(layout.upper.measureRegions[0].endX,
+          closeTo(layout.lower.measureRegions[0].endX, 1e-6));
+      // Beat 1 (onset 0): upper e0 over lower e0.
+      expect(left(layout.upper, 'e0'), closeTo(left(layout.lower, 'e0'), 0.01));
+      // Beat 3 (onset 1/2): upper e2 (third quarter) over lower e1 (first
+      // quarter after the half note).
+      expect(left(layout.upper, 'e2'), closeTo(left(layout.lower, 'e1'), 0.01));
+      // Beat 4 (onset 3/4): upper e3 over lower e2.
+      expect(left(layout.upper, 'e3'), closeTo(left(layout.lower, 'e2'), 0.01));
+    });
+
+    test('gridAlign: false restores independent (barline-only) spacing', () {
+      // The lower half note is NOT under the upper's beat 1 the same way; the
+      // point here is just that turning gridding off still aligns barlines.
+      final layout = layoutGrandStaff(
+        demo(upper: 'c5:q d5 e5 f5', lower: 'c3:h e3:q g3:q'),
         settings,
+        gridAlign: false,
       );
-      // Measure 1 keeps the upper staff's natural width.
-      expect(
-        layout.upper.measureRegions[0].endX -
-            layout.upper.measureRegions[0].startX,
-        closeTo(
-          naturalUpper.measureRegions[0].endX -
-              naturalUpper.measureRegions[0].startX,
-          1e-9,
-        ),
-      );
-      // And the lower staff's measure 1 got padded to match.
-      expect(
-        layout.lower.measureRegions[0].endX -
-            layout.lower.measureRegions[0].startX,
-        closeTo(
-          layout.upper.measureRegions[0].endX -
-              layout.upper.measureRegions[0].startX,
-          1e-9,
-        ),
-      );
+      expect(layout.upper.measureRegions[0].endX,
+          closeTo(layout.lower.measureRegions[0].endX, 1e-6));
     });
 
     test('geometry helpers', () {

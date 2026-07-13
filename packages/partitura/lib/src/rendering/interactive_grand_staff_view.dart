@@ -43,6 +43,10 @@ class InteractiveGrandStaffView extends LeafRenderObjectWidget {
   /// note-spacing stretch across both staves).
   final bool justify;
 
+  /// Whether to align simultaneous notes vertically across the two staves
+  /// (cross-staff onset gridding). Single-voice staves only.
+  final bool gridAlign;
+
   /// Ids painted in the highlight color.
   final Set<String> highlightedIds;
 
@@ -88,6 +92,7 @@ class InteractiveGrandStaffView extends LeafRenderObjectWidget {
     this.staffGap = 4.0,
     this.systemGap = 6.0,
     this.justify = true,
+    this.gridAlign = true,
     this.highlightedIds = const {},
     this.elementColors = const {},
     this.onElementTap,
@@ -110,6 +115,7 @@ class InteractiveGrandStaffView extends LeafRenderObjectWidget {
         staffGap: staffGap,
         systemGap: systemGap,
         justify: justify,
+        gridAlign: gridAlign,
         highlightedIds: highlightedIds,
         elementColors: elementColors,
       )
@@ -135,6 +141,7 @@ class InteractiveGrandStaffView extends LeafRenderObjectWidget {
       ..staffGap = staffGap
       ..systemGap = systemGap
       ..justify = justify
+      ..gridAlign = gridAlign
       ..highlightedIds = highlightedIds
       ..elementColors = elementColors
       ..onElementTap = onElementTap
@@ -160,6 +167,7 @@ class RenderInteractiveGrandStaffView extends RenderBox
     required double staffGap,
     required double systemGap,
     required bool justify,
+    required bool gridAlign,
     required Set<String> highlightedIds,
     Map<String, Color> elementColors = const {},
   })  : _grandStaff = grandStaff,
@@ -168,6 +176,7 @@ class RenderInteractiveGrandStaffView extends RenderBox
         _staffGap = staffGap,
         _systemGap = systemGap,
         _justify = justify,
+        _gridAlign = gridAlign,
         _highlightedIds = highlightedIds,
         _elementColors = elementColors {
     _tap = TapGestureRecognizer(debugOwner: this)..onTapUp = _handleTapUp;
@@ -314,6 +323,16 @@ class RenderInteractiveGrandStaffView extends RenderBox
     markNeedsLayout();
   }
 
+  bool _gridAlign;
+
+  /// Whether simultaneous notes align across the two staves.
+  bool get gridAlign => _gridAlign;
+  set gridAlign(bool value) {
+    if (value == _gridAlign) return;
+    _gridAlign = value;
+    markNeedsLayout();
+  }
+
   Set<String> _highlightedIds;
 
   /// Ids painted in the highlight color. Repaint only.
@@ -407,6 +426,7 @@ class RenderInteractiveGrandStaffView extends RenderBox
       maxWidth: math.max(8.0, maxWidthSpaces),
       staffGap: _staffGap,
       justify: _justify,
+      gridAlign: _gridAlign,
     );
     _systems = systems;
     final width =

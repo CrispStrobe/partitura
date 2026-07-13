@@ -4,9 +4,75 @@ library;
 import 'dart:math';
 
 import '../model/score.dart';
+import '../theory/fraction.dart';
 import 'layout_engine.dart';
 import 'layout_settings.dart';
 import 'score_layout.dart';
+
+/// Cross-staff onset gridding (§2.9): shared per-measure column positions
+/// (onset → x from the measure's content start) that align simultaneous notes
+/// across [staves], which must share measures. Single-voice; feed the result
+/// to `LayoutEngine.layout`'s `forcedColumns` for every staff so their notes
+/// land on the same columns. Column gaps are the optical time-spacing floored
+/// by the widest ink at that column across staves + `minNoteGap`.
+List<Map<Fraction, double>> alignedColumns(
+  List<Score> staves,
+  LayoutSettings settings, {
+  double spacingStretch = 1.0,
+}) {
+  if (staves.isEmpty) return const [];
+  const engine = LayoutEngine();
+  // Natural per-staff layouts give each element's ink width (its region).
+  final widthById = [
+    for (final score in staves)
+      {
+        for (final region in engine.layout(score, settings).regions)
+          region.elementId: region.bounds.width,
+      },
+  ];
+
+  final measureCount = staves.first.measures.length;
+  final result = <Map<Fraction, double>>[];
+  for (var m = 0; m < measureCount; m++) {
+    // The widest element ink at each onset, across all staves.
+    final inkAt = <Fraction, double>{};
+    var measureEnd = Fraction.zero;
+    for (var si = 0; si < staves.length; si++) {
+      final measure = staves[si].measures[m];
+      var onset = Fraction.zero;
+      for (var i = 0; i < measure.elements.length; i++) {
+        final id = measure.elements[i].id;
+        final width = (id == null ? null : widthById[si][id]) ?? 1.0;
+        inkAt[onset] = max(inkAt[onset] ?? 0.0, width);
+        onset += measure.effectiveDurationAt(i);
+      }
+      if (onset > measureEnd) measureEnd = onset;
+    }
+
+    final onsets = inkAt.keys.toList()..sort((a, b) => a.compareTo(b));
+    final columns = <Fraction, double>{};
+    var x = 0.0;
+    for (var k = 0; k < onsets.length; k++) {
+      columns[onsets[k]] = x;
+      final next = k + 1 < onsets.length ? onsets[k + 1] : measureEnd;
+      final ideal =
+          _idealAdvanceFor(next - onsets[k], settings, spacingStretch);
+      final floor = (inkAt[onsets[k]] ?? 0.0) + settings.minNoteGap;
+      x += max(ideal, floor);
+    }
+    columns[measureEnd] = x; // the closing-barline column
+    result.add(columns);
+  }
+  return result;
+}
+
+/// The optical time-based spacing for an onset gap of [delta] (mirrors the
+/// engine's `_idealAdvance`).
+double _idealAdvanceFor(Fraction delta, LayoutSettings s, double stretch) {
+  if (delta.numerator <= 0) return 0;
+  final log2Delta = log(delta.numerator / delta.denominator) / ln2;
+  return (s.spacingBase + s.spacingPerLog2 * (4 + log2Delta)) * stretch;
+}
 
 /// A beam that spans both staves of a grand staff, joining notes written on
 /// the [upper] and [lower] staves under one beam — the keyboard "cross-staff"
@@ -137,6 +203,7 @@ GrandStaffLayout layoutGrandStaff(
   bool drawTimeSignature = true,
   bool finalBarline = true,
   double spacingStretch = 1.0,
+  bool gridAlign = true,
 }) {
   if (grandStaff.upper.measures.length != grandStaff.lower.measures.length) {
     throw ArgumentError(
@@ -187,11 +254,23 @@ GrandStaffLayout layoutGrandStaff(
     }
   }
 
+  // §2.9: align simultaneous notes across the two staves. Single-voice only;
+  // a staff with 2+ voices falls back to shared measure widths (barlines still
+  // align, onsets do not yet).
+  final canGrid = gridAlign &&
+      grandStaff.upper.measures.every((m) => m.voices.length == 1) &&
+      grandStaff.lower.measures.every((m) => m.voices.length == 1);
+  final columns = canGrid
+      ? alignedColumns([grandStaff.upper, grandStaff.lower], settings,
+          spacingStretch: spacingStretch)
+      : null;
+
   final upper = engine.layout(
     grandStaff.upper,
     settings,
     leadingWidth: leading,
-    measureWidths: measureWidths,
+    measureWidths: columns == null ? measureWidths : null,
+    forcedColumns: columns,
     deferredStems: deferUpper,
     drawTimeSignature: drawTimeSignature,
     finalBarline: finalBarline,
@@ -201,7 +280,8 @@ GrandStaffLayout layoutGrandStaff(
     grandStaff.lower,
     settings,
     leadingWidth: leading,
-    measureWidths: measureWidths,
+    measureWidths: columns == null ? measureWidths : null,
+    forcedColumns: columns,
     deferredStems: deferLower,
     drawTimeSignature: drawTimeSignature,
     finalBarline: finalBarline,

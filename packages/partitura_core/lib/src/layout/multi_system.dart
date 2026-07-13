@@ -238,6 +238,7 @@ GrandStaffSystems layoutGrandStaffSystems(
   required double maxWidth,
   double staffGap = 4.0,
   bool justify = true,
+  bool gridAlign = true,
 }) {
   if (maxWidth <= 0) {
     throw ArgumentError.value(maxWidth, 'maxWidth', 'must be positive');
@@ -291,6 +292,7 @@ GrandStaffSystems layoutGrandStaffSystems(
           drawTimeSignature: drawTime,
           finalBarline: isLast,
           spacingStretch: stretch,
+          gridAlign: gridAlign,
         );
     var layout = render(1.0);
     // Justify non-final systems: binary-search a single spacing stretch (shared

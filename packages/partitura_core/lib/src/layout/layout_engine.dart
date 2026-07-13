@@ -55,6 +55,7 @@ class LayoutEngine {
     bool showBeatNumbers = false,
     bool showMeasureNumbers = false,
     Map<String, bool> deferredStems = const {},
+    List<Map<Fraction, double>>? forcedColumns,
   }) =>
       _LayoutBuilder(score, settings,
               leadingWidth: leadingWidth,
@@ -65,7 +66,8 @@ class LayoutEngine {
               showNoteNames: showNoteNames,
               showBeatNumbers: showBeatNumbers,
               showMeasureNumbers: showMeasureNumbers,
-              deferredStems: deferredStems)
+              deferredStems: deferredStems,
+              forcedColumns: forcedColumns)
           .build();
 }
 
@@ -239,6 +241,14 @@ class _LayoutBuilder {
   /// into [_crossStaffStubs].
   final Map<String, bool> deferredStems;
 
+  /// Optional shared column table for cross-staff onset gridding (§2.9): one
+  /// map per measure, from an element's onset (a [Fraction] from the measure
+  /// start) to its x offset from the measure's content start. When set, each
+  /// single-voice element is placed at its onset's column instead of advancing
+  /// sequentially, so simultaneous notes on different staves share an x. The
+  /// key at the measure's total duration positions the closing barline.
+  final List<Map<Fraction, double>>? forcedColumns;
+
   /// Stem anchors of the [deferredStems] notes, keyed by element id.
   final Map<String, CrossStaffStub> _crossStaffStubs = {};
 
@@ -251,7 +261,8 @@ class _LayoutBuilder {
       this.showNoteNames = false,
       this.showBeatNumbers = false,
       this.showMeasureNumbers = false,
-      this.deferredStems = const {}});
+      this.deferredStems = const {},
+      this.forcedColumns});
 
   // Key signature accidental staff positions per clef, in writing order.
   // Bass/alto shift the treble pattern down 2/1 positions; the tenor sharp
@@ -339,7 +350,7 @@ class _LayoutBuilder {
       _applyMeasureChanges(measure);
       if (measure.startRepeat) _addStartRepeat();
       final startX = _x;
-      _layoutMeasure(measure);
+      _layoutMeasure(measure, i);
       final widths = measureWidths;
       if (widths != null && i < widths.length && _x < startX + widths[i]) {
         _x = startX + widths[i];
@@ -653,7 +664,7 @@ class _LayoutBuilder {
     }
   }
 
-  void _layoutMeasure(Measure measure) {
+  void _layoutMeasure(Measure measure, int measureIndex) {
     _validateTuplets(measure);
     if (measure.multiRest != null) {
       _layoutMultiRest(measure.multiRest!);
@@ -679,10 +690,26 @@ class _LayoutBuilder {
     // this measure. Resets every measure (rule 9).
     final written = <(Step, int), int>{};
 
+    // §2.9 cross-staff gridding: when a shared column table is supplied, each
+    // element is placed at its onset's column (from the measure's content
+    // start) instead of advancing sequentially, so simultaneous notes on other
+    // staves share its x.
+    final columns =
+        forcedColumns != null && measureIndex < forcedColumns!.length
+            ? forcedColumns![measureIndex]
+            : null;
+    final measureContentStart = _x;
+    var onset = Fraction.zero;
+
     for (var i = 0; i < measure.elements.length; i++) {
       final element = measure.elements[i];
       final log2Adjust = _tupletLog2Adjust(measure, i);
       tieIndexOf[i] = _tieInfos.length;
+      if (columns != null) {
+        final columnX = columns[onset];
+        if (columnX != null) _x = measureContentStart + columnX;
+      }
+      onset += measure.effectiveDurationAt(i);
       switch (element) {
         case NoteElement():
           final crossStaff = _isCrossStaff(element);
@@ -709,6 +736,13 @@ class _LayoutBuilder {
           final result = _layoutRest(element);
           _advance(result.noteX, result.inkRight, element.duration, log2Adjust);
       }
+    }
+
+    // The measure-end column (keyed by the total duration) fixes the shared
+    // trailing width so barlines align across staves.
+    if (columns != null) {
+      final endX = columns[onset];
+      if (endX != null) _x = max(_x, measureContentStart + endX);
     }
 
     for (final group in groups) {
