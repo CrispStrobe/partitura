@@ -125,4 +125,28 @@ void main() {
       expect(grandStaffToMusicXml(gs), contains('<part '));
     });
   });
+
+  group('bekern extras', () {
+    test('bekernToStaffSystem yields one staff per spine', () {
+      const bekern = '**kern <t> **kern <b> '
+          '*clefF4 <t> *clefG2 <b> 4 C <t> 4 c <b> *- <t> *-';
+      final sys = bekernToStaffSystem(bekern);
+      expect(sys.staves.length, 2);
+      // Ordered top-to-bottom: the treble (rightmost spine) is on top.
+      expect(sys.staves.first.clef, Clef.treble);
+      expect(sys.staves.last.clef, Clef.bass);
+    });
+
+    test('header synthesis: bare records with no exclusive interpretation', () {
+      // No **kern / **ekern header — the reader must synthesise one.
+      const bekern = '4 c <b> 4 d <b> 4 e';
+      final score = bekernToScore(bekern);
+      expect(score.measures.expand((Measure m) => m.elements).length, 3);
+    });
+
+    test('omrDialectOf falls back to bekern for ambiguous input', () {
+      expect(omrDialectOf('4c 4d 4e'), OmrDialect.bekern); // digit-first
+      expect(omrDialectOf(''), OmrDialect.bekern); // empty
+    });
+  });
 }

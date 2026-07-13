@@ -115,5 +115,51 @@ void main() {
       img.fill(image, color: img.ColorRgb8(255, 255, 255));
       expect(segmentStaffSystems(image).length, 1);
     });
+
+    test('splits three systems, including bands at the image edges', () {
+      final image = img.Image(width: 100, height: 200);
+      img.fill(image, color: img.ColorRgb8(255, 255, 255));
+      for (final (y1, y2) in [(0, 30), (70, 110), (160, 199)]) {
+        img.fillRect(image, x1: 0, y1: y1, x2: 99, y2: y2,
+            color: img.ColorRgb8(0, 0, 0));
+      }
+      final crops = segmentStaffSystems(image);
+      expect(crops.length, 3);
+      // The union of crop heights (minus overlap from padding) covers the page.
+      expect(crops.map((c) => c.height).reduce((a, b) => a + b),
+          greaterThan(100));
+    });
+
+    test('a small gap keeps bands in one system (minGapRows)', () {
+      final image = img.Image(width: 100, height: 120);
+      img.fill(image, color: img.ColorRgb8(255, 255, 255));
+      // Two dark strips 5 rows apart — within one staff, not two systems.
+      img.fillRect(image, x1: 0, y1: 20, x2: 99, y2: 40,
+          color: img.ColorRgb8(0, 0, 0));
+      img.fillRect(image, x1: 0, y1: 46, x2: 99, y2: 70,
+          color: img.ColorRgb8(0, 0, 0));
+      expect(segmentStaffSystems(image, minGapRows: 12).length, 1);
+    });
+  });
+
+  group('resolveOmrModel names', () {
+    test('the smt alias resolves to the grand-staff q8_0 file', () async {
+      final dir = Directory.systemTemp.createTempSync('omr_alias');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      File('${dir.path}/smt-grandstaff-q8_0.gguf').writeAsBytesSync([1]);
+      expect(await resolveOmrModel('smt', cacheDir: dir.path),
+          endsWith('smt-grandstaff-q8_0.gguf'));
+    });
+
+    test('flova and tromr map to their own files', () async {
+      final dir = Directory.systemTemp.createTempSync('omr_names');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      File('${dir.path}/flova-q8_0.gguf').writeAsBytesSync([1]);
+      File('${dir.path}/tromr-q8_0.gguf').writeAsBytesSync([1]);
+      expect(await resolveOmrModel('flova', cacheDir: dir.path),
+          endsWith('flova-q8_0.gguf'));
+      expect(await resolveOmrModel('tromr', cacheDir: dir.path),
+          endsWith('tromr-q8_0.gguf'));
+    });
   });
 }

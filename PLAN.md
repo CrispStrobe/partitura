@@ -29,12 +29,6 @@ ships* at the end for the mechanics.
 > contracts C1–C5 + grand-staff justification done; the three deep Score-model
 > lacunae done; C6 deferred. Ready for the next request.
 
-> **Actively working on (OMR test hardening):** more unit tests across the OMR
-> parsers (semantic clefs/keys/meters/mid-score changes, LilyPond double
-> accidentals / unrecognised tokens, bekern header synthesis / StaffSystem,
-> dialect edges, segmenter / model-resolver edges). Test files only. Worktree
-> `partitura-tests`, branch `test/omr-hardening`.
-
 
 
 

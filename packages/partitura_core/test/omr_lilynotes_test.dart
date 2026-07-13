@@ -63,4 +63,41 @@ void main() {
     expect(omrDialectOf('clef-G2 note-C5_eighth'), OmrDialect.semantic);
     expect(omrDialectOf('**kern <t> **kern <b> 4 c'), OmrDialect.bekern);
   });
+
+  group('lilynotes edge cases', () {
+    test('double sharp / double flat', () {
+      final els = scoreFromLilyNotes("cisis'4 deses'4")
+          .measures
+          .single
+          .elements
+          .cast<NoteElement>();
+      expect(els[0].pitches.single.alter, 2); // cisis = C𝄪
+      expect(els[1].pitches.single.alter, -2); // deses = D𝄫
+    });
+
+    test('multiple octave marks up and down', () {
+      final els = scoreFromLilyNotes("c'''4 c,,4")
+          .measures
+          .single
+          .elements
+          .cast<NoteElement>();
+      expect(els[0].pitches.single.octave, 6); // c''' = C6
+      expect(els[1].pitches.single.octave, 1); // c,, = C1
+    });
+
+    test('unrecognised tokens are skipped, not fatal', () {
+      final els = scoreFromLilyNotes(r"c'4 \time garbage d'4")
+          .measures
+          .single
+          .elements;
+      expect(els.length, 2); // only the two notes survive
+    });
+
+    test('a rest with no duration inherits the previous one', () {
+      final els =
+          scoreFromLilyNotes("c'8 r").measures.single.elements;
+      expect(els[1], isA<RestElement>());
+      expect((els[1] as RestElement).duration.base, DurationBase.eighth);
+    });
+  });
 }

@@ -94,4 +94,40 @@ void main() {
     expect(omrDialectOf('clef-G2+note-C5_eighth'), OmrDialect.semantic);
     expect(omrDialectOf('**kern <t> **kern <b> 4 c'), OmrDialect.bekern);
   });
+
+  group('semantic clefs/keys/meters', () {
+    test('bass and C-clefs map correctly', () {
+      expect(scoreFromSemantic('clef-F4+4 C').clef, Clef.bass);
+      expect(scoreFromSemantic('clef-C3+4c').clef, Clef.alto);
+      expect(scoreFromSemantic('clef-C4+4c').clef, Clef.tenor);
+    });
+
+    test('sharp and flat key signatures', () {
+      expect(scoreFromSemantic('clef-G2+keySignature-DM+4c').keySignature.fifths,
+          2); // D major = 2 sharps
+      expect(scoreFromSemantic('clef-G2+keySignature-BbM+4c').keySignature.fifths,
+          -2); // B♭ major = 2 flats
+      expect(scoreFromSemantic('clef-G2+keySignature-F#m+4c').keySignature.fifths,
+          3); // F♯ minor = 3 sharps
+    });
+
+    test('cut time maps to a 2/2 cut symbol', () {
+      final t = scoreFromSemantic('clef-G2+timeSignature-C/+4c').timeSignature;
+      expect(t, const TimeSignature(2, 2, symbol: TimeSymbol.cut));
+    });
+
+    test('mid-score clef change lands on a later measure', () {
+      final score = scoreFromSemantic(
+          'clef-G2+note-C5_quarter+barline+clef-F4+note-C3_quarter+barline');
+      expect(score.clef, Clef.treble); // leading
+      expect(
+          score.measures.any((m) => m.clefChange == Clef.bass), isTrue);
+    });
+
+    test('barlines split measures', () {
+      final score = scoreFromSemantic('clef-G2+note-C5_quarter+barline+'
+          'note-D5_quarter+barline+note-E5_quarter');
+      expect(score.measures.length, 3);
+    });
+  });
 }
