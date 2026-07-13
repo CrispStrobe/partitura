@@ -359,7 +359,14 @@ No peer renderer does any of this; all build on the existing pitch / interval
       MusicXML `<lyric number>` round-trip, golden 68). **Left:** elision
       slurs, lyric-driven horizontal spacing (wide syllables pushing notes
       apart).
-- [ ] **5.5 Voices 3 & 4** per staff + rest merging.
+- [~] **5.5 Voices 3 & 4** per staff + rest merging. **Done (increment 1 —
+      representability):** `Measure.voice3`/`voice4` + a `voices` getter (four
+      voices per staff), round-tripping through MusicXML/MEI/MuseScore and
+      covered by playback + transposition (`voices_three_four_test.dart`).
+      Additive — one-/two-voice measures unchanged. **Left (increment 2 —
+      layout):** generalize the two-voice `_layoutTwoVoiceMeasure` to N voices
+      (stem directions, rest merging, offset columns) with new 3–4-voice
+      goldens.
 - [~] **5.6 More barlines & lines** — **Done:** closing-barline styles
       (double / final / heavy / dashed / dotted / none — `BarlineStyle`, MusicXML
       `<bar-style>` round-trip, golden 65); breath marks + caesura
@@ -620,7 +627,11 @@ Marked `[cheap]` (an additive field/enum, low blast radius) or `[deep]`
   **transposable roots**, MusicXML `<harmony>` round-trip; text annotations
   moved to `<words>` (`chord_symbol_test.dart`). *Left:* MEI `<harm>` and ABC
   structured-chord round-trip (they still carry chords as text today).
-- **Voices 3–4 per staff** — model has `voice2` only (already Phase 5). `[deep]`
+- **Voices 3–4 per staff** — **✓ Done (representability):** `Measure.voice3`/
+  `voice4` + a `voices` getter, round-tripping through MusicXML/MEI/MuseScore and
+  covered by playback + transposition (`voices_three_four_test.dart`). *Left:*
+  the layout engine engraving 3–4 voices — the `[deep]` layout increment
+  (see 5.5).
 - **Appoggiatura (grace style)** — **✓ Done:** `NoteElement.graceStyle`
   (acciaccatura/appoggiatura), gated in the grace-note renderer and
   MusicXML-round-tripped (`grace_style_test.dart`). *Left:* per-grace durations,

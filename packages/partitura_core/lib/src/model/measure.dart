@@ -144,6 +144,15 @@ class Measure {
   /// one column. Tuplets are voice-1 only in v0.4.
   final List<MusicElement> voice2;
 
+  /// Optional third voice (stems up, like voice 1). Carried through the model,
+  /// interchange (MusicXML/MEI/MuseScore) and playback; the layout engine draws
+  /// voices 1–2 today, so a third/fourth voice round-trips but is not yet
+  /// engraved.
+  final List<MusicElement> voice3;
+
+  /// Optional fourth voice (stems down, like voice 2). See [voice3].
+  final List<MusicElement> voice4;
+
   /// Tuplet spans over [elements] (treat as immutable, non-overlapping).
   final List<TupletSpan> tuplets;
 
@@ -189,6 +198,8 @@ class Measure {
   const Measure(
     this.elements, {
     this.voice2 = const [],
+    this.voice3 = const [],
+    this.voice4 = const [],
     this.tuplets = const [],
     this.clefChange,
     this.keyChange,
@@ -209,6 +220,8 @@ class Measure {
   Measure copyWith({
     List<MusicElement>? elements,
     List<MusicElement>? voice2,
+    List<MusicElement>? voice3,
+    List<MusicElement>? voice4,
     List<TupletSpan>? tuplets,
     Clef? clefChange,
     KeySignature? keyChange,
@@ -224,6 +237,8 @@ class Measure {
       Measure(
         elements ?? this.elements,
         voice2: voice2 ?? this.voice2,
+        voice3: voice3 ?? this.voice3,
+        voice4: voice4 ?? this.voice4,
         tuplets: tuplets ?? this.tuplets,
         clefChange: clefChange ?? this.clefChange,
         keyChange: keyChange ?? this.keyChange,
@@ -265,11 +280,22 @@ class Measure {
         (sum, element) => sum + element.duration.toFraction(),
       );
 
+  /// All non-empty voices in order (voice 1 first). Convenient for codecs and
+  /// playback that iterate every voice.
+  List<List<MusicElement>> get voices => [
+        elements,
+        if (voice2.isNotEmpty) voice2,
+        if (voice3.isNotEmpty) voice3,
+        if (voice4.isNotEmpty) voice4,
+      ];
+
   @override
   bool operator ==(Object other) =>
       other is Measure &&
       listEquals(other.elements, elements) &&
       listEquals(other.voice2, voice2) &&
+      listEquals(other.voice3, voice3) &&
+      listEquals(other.voice4, voice4) &&
       listEquals(other.tuplets, tuplets) &&
       other.clefChange == clefChange &&
       other.keyChange == keyChange &&
@@ -286,6 +312,8 @@ class Measure {
   int get hashCode => Object.hash(
       Object.hashAll(elements),
       Object.hashAll(voice2),
+      Object.hashAll(voice3),
+      Object.hashAll(voice4),
       Object.hashAll(tuplets),
       clefChange,
       keyChange,

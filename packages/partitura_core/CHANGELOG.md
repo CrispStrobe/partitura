@@ -2,6 +2,14 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Voices 3–4 per staff — representability** (Score-model lacuna, increment 1):
+  `Measure` gains `voice3`/`voice4` (four voices per staff, the notation
+  maximum) plus a `voices` getter. They round-trip through MusicXML (multi-voice
+  `<backup>`), MEI (`<layer>`) and MuseScore (`<voice>`), and are covered by
+  playback and transposition. Fully additive — a single- or two-voice measure
+  is unchanged. *The layout engine still engraves voices 1–2; generalizing it to
+  draw 3–4 (with new goldens) is the deep follow-up increment.*
+
 - **Metrical-accent hierarchy** (Phase 4.7): `TimeSignature.beatStrength(pos)`
   gives the accent strength of a metric position, normalized so the downbeat is
   `1.0` and each level down the meter's hierarchy of subdivisions halves it —

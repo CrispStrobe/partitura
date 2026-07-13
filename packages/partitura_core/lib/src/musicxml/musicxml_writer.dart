@@ -296,17 +296,30 @@ class _PartWriter {
     }
 
     _writeVoice(measure, measure.elements, '1', measure.tuplets);
-    if (measure.voice2.isNotEmpty) {
-      // Rewind by voice 1's total duration (in divisions).
+    // Each further voice: rewind (backup) by the just-written voice's total
+    // duration to the measure start, then write it.
+    var lastVoice = measure.elements;
+    var lastIsVoice1 = true;
+    for (final (elements, label) in [
+      (measure.voice2, '2'),
+      (measure.voice3, '3'),
+      (measure.voice4, '4'),
+    ]) {
+      if (elements.isEmpty) continue;
       var total = Fraction(0, 1);
-      for (var i = 0; i < measure.elements.length; i++) {
-        total = total + _quarters(measure.effectiveDurationAt(i));
+      for (var i = 0; i < lastVoice.length; i++) {
+        total = total +
+            (lastIsVoice1
+                ? _quarters(measure.effectiveDurationAt(i))
+                : _quarters(_wholeNotes(lastVoice[i].duration)));
       }
       final scaled = total * Fraction(divisions, 1);
       out.writeln('      <backup><duration>'
           '${scaled.numerator ~/ scaled.denominator}'
           '</duration></backup>');
-      _writeVoice(measure, measure.voice2, '2', const []);
+      _writeVoice(measure, elements, label, const []);
+      lastVoice = elements;
+      lastIsVoice1 = false;
     }
 
     // Navigation instructions (D.C./D.S./To Coda/Fine) close the measure.

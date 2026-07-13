@@ -136,8 +136,30 @@ List<PlaybackNote> playbackTimeline(Score score, {bool expandRepeats = true}) {
     }
     final voice2End = clock;
 
-    var measureEnd =
-        voice1End.compareTo(voice2End) >= 0 ? voice1End : voice2End;
+    // Voices 3–4 (no tuplets) use voice 2's timing model.
+    final extraEnds = <Fraction>[];
+    for (final (v, elements) in [(2, measure.voice3), (3, measure.voice4)]) {
+      clock = measureStart;
+      for (final element in elements) {
+        final (numerator, denominator) = element.duration.fraction;
+        final duration = Fraction(numerator, denominator);
+        if (element.id != null) {
+          result.add(PlaybackNote(
+            elementId: element.id!,
+            start: clock,
+            duration: duration,
+            isRest: element is RestElement,
+            voice: v,
+            measureIndex: index,
+          ));
+        }
+        clock = clock + duration;
+      }
+      extraEnds.add(clock);
+    }
+
+    var measureEnd = [voice1End, voice2End, ...extraEnds]
+        .reduce((a, b) => a.compareTo(b) >= 0 ? a : b);
     if (measureEnd == measureStart && meter != null) {
       // Empty or multi-rest measure: advance by the current meter.
       final bars = measure.multiRest ?? 1;

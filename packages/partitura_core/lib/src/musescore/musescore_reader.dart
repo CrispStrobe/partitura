@@ -194,6 +194,8 @@ class _StaffReader {
     _measures.add(Measure(
       byVoice.isEmpty ? const [] : byVoice[0],
       voice2: byVoice.length > 1 ? byVoice[1] : const [],
+      voice3: byVoice.length > 2 ? byVoice[2] : const [],
+      voice4: byVoice.length > 3 ? byVoice[3] : const [],
       clefChange: clefChange,
       keyChange: keyChange,
       timeChange: timeChange,

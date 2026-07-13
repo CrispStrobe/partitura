@@ -177,9 +177,10 @@ class _MscxWriter {
     _writeElements(measure.elements);
     out.writeln('        </voice>');
 
-    if (measure.voice2.isNotEmpty) {
+    for (final voice in [measure.voice2, measure.voice3, measure.voice4]) {
+      if (voice.isEmpty) continue;
       out.writeln('        <voice>');
-      _writeElements(measure.voice2);
+      _writeElements(voice);
       out.writeln('        </voice>');
     }
     out.writeln('      </Measure>');

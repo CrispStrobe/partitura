@@ -648,6 +648,8 @@ class Score {
           Measure(
             measure.elements.map(moveElement).toList(),
             voice2: measure.voice2.map(moveElement).toList(),
+            voice3: measure.voice3.map(moveElement).toList(),
+            voice4: measure.voice4.map(moveElement).toList(),
             tuplets: measure.tuplets,
             clefChange: measure.clefChange,
             keyChange: measure.keyChange == null

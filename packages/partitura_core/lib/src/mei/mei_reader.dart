@@ -211,6 +211,8 @@ class _MeiReader {
     return Measure(
       byLayer.isEmpty ? const [] : byLayer[0],
       voice2: byLayer.length > 1 ? byLayer[1] : const [],
+      voice3: byLayer.length > 2 ? byLayer[2] : const [],
+      voice4: byLayer.length > 3 ? byLayer[3] : const [],
       clefChange: clefChange,
       keyChange: keyChange,
       timeChange: timeChange,

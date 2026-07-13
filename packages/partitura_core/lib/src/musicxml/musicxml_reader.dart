@@ -354,6 +354,10 @@ class _PartReader {
         measureNode.attributes['number'] == '0';
     final elements = <MusicElement>[];
     final voice2 = <MusicElement>[];
+    final voice3 = <MusicElement>[];
+    final voice4 = <MusicElement>[];
+    final voiceLists = [elements, voice2, voice3, voice4];
+    final voiceOrder = <String>[]; // distinct voice labels in first-seen order
     final tuplets = <TupletSpan>[];
     Clef? clefChange;
     KeySignature? keyChange;
@@ -365,7 +369,6 @@ class _PartReader {
     int? multiRest;
     NavigationMark? navigation;
 
-    String? firstVoice; // this measure's voice-1 label
     var pendingGraces = <Pitch>[];
     var pendingGraceStyle = GraceStyle.acciaccatura;
     String? pendingDynamic;
@@ -502,9 +505,12 @@ class _PartReader {
             break;
           }
           final voiceLabel = node.childText('voice') ?? '1';
-          firstVoice ??= voiceLabel;
-          final isVoice1 = voiceLabel == firstVoice;
-          final target = isVoice1 ? elements : voice2;
+          if (!voiceOrder.contains(voiceLabel) && voiceOrder.length < 4) {
+            voiceOrder.add(voiceLabel);
+          }
+          final voiceIndex = voiceOrder.indexOf(voiceLabel).clamp(0, 3);
+          final isVoice1 = voiceIndex == 0;
+          final target = voiceLists[voiceIndex];
 
           if (node.child('chord') != null && target.isNotEmpty) {
             final last = target.last;
@@ -623,6 +629,8 @@ class _PartReader {
     _measures.add(Measure(
       elements,
       voice2: voice2,
+      voice3: voice3,
+      voice4: voice4,
       tuplets: tuplets,
       clefChange: clefChange,
       keyChange: keyChange,

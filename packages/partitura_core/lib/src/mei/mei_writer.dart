@@ -153,8 +153,12 @@ void _writeMeasure(StringBuffer out, Score score, int index) {
   }
 
   _writeLayer(out, 1, measure.elements, changes.toString());
-  if (measure.voice2.isNotEmpty) {
-    _writeLayer(out, 2, measure.voice2, '');
+  for (final (n, voice) in [
+    (2, measure.voice2),
+    (3, measure.voice3),
+    (4, measure.voice4),
+  ]) {
+    if (voice.isNotEmpty) _writeLayer(out, n, voice, '');
   }
   out.writeln('        </staff>');
 
