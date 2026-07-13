@@ -98,6 +98,17 @@ y-down coords. Priority: **C1+C2 → C3 → C5 → C4**.
   **editor integration** — the C1–C5 hit-testing / overlays over the multi-part
   view (cross-part `elementRegions`, `rectOfElement`). None are blocked; each is
   a self-contained follow-up.
+  > ⚠️ **FORK — reconcile before adding increments 2–4.** A parallel agent built
+  > a *separate* C6 design in the **private** clone (`partitura-private`, not yet
+  > on public `main`): a `MultiPartScore` model (`MultiPartScore.fromStaffSystem`,
+  > bridges importers), multi-part line-breaking + pagination, and a
+  > `MultiPartView` (with `hideEmptyStaves`). That overlaps increments 2–4
+  > entirely. **Do not implement more C6 on public until the two are merged** —
+  > adding a third layer guarantees a conflict. Reconciliation: decide the public
+  > surface — likely keep this `layoutStaffSystemSystems` as the layout primitive
+  > *under* their `MultiPartScore`/`MultiPartView` document+widget API — then move
+  > the private work onto public and delete the loser. Owner is aware the private
+  > commits must move to public.
 - [x] **C7 — region controller.** The private render objects' `elementRegions`
   / `elementIdsIn(Rect)` (from C4) are now reachable from app code via a public
   `ElementRegionController` (alias `MultiSystemViewController`), attached with
