@@ -8,6 +8,7 @@ library;
 
 export 'package:partitura_core/partitura_core.dart';
 
+export 'src/interaction/editor_caret.dart';
 export 'src/interaction/interactive_staff.dart';
 export 'src/interaction/staff_target.dart';
 export 'src/rendering/bravura.dart';

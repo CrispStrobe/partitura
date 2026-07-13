@@ -2,6 +2,14 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Editor contract C2 — hover preview + caret on the multi-line view**
+  (Workshop APIs): `MultiSystemView` gains `onHover(StaffTarget?)` (fires on
+  mouse move, null on exit — via a `MouseTrackerAnnotation`), a `caret`
+  (`EditorCaret` — before an element or at a `measureIndex`/`staffPosition`,
+  drawn as a vertical insertion bar across systems) and a `ghostTarget` +
+  `ghostDuration` translucent preview notehead (with preview ledger lines).
+  Caret and ghost are repaint-only. Drive `ghostTarget` from `onHover` for a
+  desktop placement preview.
 - **Editor contract C1 — staff-tap on the multi-line view** (Workshop APIs):
   `MultiSystemView` gains `onStaffTap(StaffTarget)`, firing when the user taps
   empty staff (an element tap still routes to `onElementTap`). A new

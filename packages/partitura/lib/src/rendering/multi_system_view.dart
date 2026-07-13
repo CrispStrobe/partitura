@@ -3,9 +3,11 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:partitura_core/partitura_core.dart';
 
+import '../interaction/editor_caret.dart';
 import '../interaction/staff_target.dart';
 import 'layout_painter.dart';
 import 'music_font.dart';
@@ -59,6 +61,22 @@ class MultiSystemView extends LeafRenderObjectWidget {
   /// line/space `staffPosition`.
   final void Function(StaffTarget target)? onStaffTap;
 
+  /// Called on mouse hover (pointer move, no button) with the staff location
+  /// under the cursor, or null when the pointer leaves the widget. Desktop
+  /// placement preview: drive [ghostTarget] from this.
+  final void Function(StaffTarget? target)? onHover;
+
+  /// An insertion caret to draw (between elements or at a model position), or
+  /// null to hide it.
+  final EditorCaret? caret;
+
+  /// A translucent preview notehead to draw at this staff location (e.g. the
+  /// live [onHover] target), or null for none.
+  final StaffTarget? ghostTarget;
+
+  /// Duration whose notehead the [ghostTarget] preview uses.
+  final NoteDuration ghostDuration;
+
   /// Creates a multi-system view.
   const MultiSystemView({
     super.key,
@@ -71,6 +89,10 @@ class MultiSystemView extends LeafRenderObjectWidget {
     this.elementColors = const {},
     this.onElementTap,
     this.onStaffTap,
+    this.onHover,
+    this.caret,
+    this.ghostTarget,
+    this.ghostDuration = NoteDuration.quarter,
   });
 
   @override
@@ -85,7 +107,11 @@ class MultiSystemView extends LeafRenderObjectWidget {
         elementColors: elementColors,
       )
         ..onElementTap = onElementTap
-        ..onStaffTap = onStaffTap;
+        ..onStaffTap = onStaffTap
+        ..onHover = onHover
+        ..caret = caret
+        ..ghostTarget = ghostTarget
+        ..ghostDuration = ghostDuration;
 
   @override
   void updateRenderObject(
@@ -101,12 +127,17 @@ class MultiSystemView extends LeafRenderObjectWidget {
       ..highlightedIds = highlightedIds
       ..elementColors = elementColors
       ..onElementTap = onElementTap
-      ..onStaffTap = onStaffTap;
+      ..onStaffTap = onStaffTap
+      ..onHover = onHover
+      ..caret = caret
+      ..ghostTarget = ghostTarget
+      ..ghostDuration = ghostDuration;
   }
 }
 
 /// Render object behind [MultiSystemView].
-class RenderMultiSystemView extends RenderBox {
+class RenderMultiSystemView extends RenderBox
+    implements MouseTrackerAnnotation {
   /// Creates the render object.
   RenderMultiSystemView({
     required Score score,
@@ -141,6 +172,39 @@ class RenderMultiSystemView extends RenderBox {
 
   /// Called with a quantized [StaffTarget] when the user taps empty staff.
   void Function(StaffTarget target)? onStaffTap;
+
+  /// Called on mouse hover with the staff location, or null on exit.
+  void Function(StaffTarget? target)? onHover;
+
+  EditorCaret? _caret;
+
+  /// The insertion caret to draw, or null. Repaint only.
+  EditorCaret? get caret => _caret;
+  set caret(EditorCaret? value) {
+    if (value == _caret) return;
+    _caret = value;
+    markNeedsPaint();
+  }
+
+  StaffTarget? _ghostTarget;
+
+  /// The preview-notehead location, or null. Repaint only.
+  StaffTarget? get ghostTarget => _ghostTarget;
+  set ghostTarget(StaffTarget? value) {
+    if (value == _ghostTarget) return;
+    _ghostTarget = value;
+    markNeedsPaint();
+  }
+
+  NoteDuration _ghostDuration = NoteDuration.quarter;
+
+  /// The ghost preview's duration. Repaint only.
+  NoteDuration get ghostDuration => _ghostDuration;
+  set ghostDuration(NoteDuration value) {
+    if (value == _ghostDuration) return;
+    _ghostDuration = value;
+    if (_ghostTarget != null) markNeedsPaint();
+  }
 
   Score _score;
 
@@ -392,15 +456,36 @@ class RenderMultiSystemView extends RenderBox {
 
   @override
   bool hitTestSelf(Offset position) =>
-      onElementTap != null || onStaffTap != null;
+      onElementTap != null || onStaffTap != null || onHover != null;
 
   @override
   void handleEvent(PointerEvent event, covariant BoxHitTestEntry entry) {
     if (event is PointerDownEvent &&
         (onElementTap != null || onStaffTap != null)) {
       _tap.addPointer(event);
+    } else if (event is PointerHoverEvent && onHover != null) {
+      onHover!.call(resolveStaffTarget(event.localPosition));
     }
   }
+
+  // MouseTrackerAnnotation — reports null when the pointer leaves the widget.
+  /// No enter callback (hover moves drive [onHover] via [handleEvent]).
+  @override
+  PointerEnterEventListener? get onEnter => null;
+
+  /// Fires [onHover] with null when the pointer leaves the widget.
+  @override
+  PointerExitEventListener? get onExit =>
+      onHover == null ? null : (_) => onHover?.call(null);
+
+  /// The default cursor (this view does not change it).
+  @override
+  MouseCursor get cursor => MouseCursor.defer;
+
+  /// Whether this render object participates in mouse tracking (only when a
+  /// hover handler is set).
+  @override
+  bool get validForMouseTracker => onHover != null;
 
   void _handleTapUp(TapUpDetails details) {
     final id = elementIdAt(details.localPosition);
@@ -432,5 +517,110 @@ class RenderMultiSystemView extends RenderBox {
         layout.systems[i].layout,
       );
     }
+    _paintGhost(context.canvas, offset);
+    _paintCaret(context.canvas, offset);
+  }
+
+  /// The (system index, start x in staff spaces) of [measureIndex], or null if
+  /// no system holds it.
+  (int, double)? _measurePlacement(int measureIndex) {
+    final layout = _layout;
+    if (layout == null) return null;
+    for (var i = 0; i < layout.systems.length; i++) {
+      final system = layout.systems[i];
+      if (measureIndex < system.firstMeasure ||
+          measureIndex > system.lastMeasure) {
+        continue;
+      }
+      final localIndex = measureIndex - system.firstMeasure;
+      for (final region in system.layout.measureRegions) {
+        if (region.index == localIndex) return (i, region.startX);
+      }
+    }
+    return null;
+  }
+
+  void _paintGhost(Canvas canvas, Offset offset) {
+    final ghost = _ghostTarget;
+    if (ghost == null) return;
+    final placement = _measurePlacement(ghost.measureIndex);
+    if (placement == null) return;
+    final (system, startX) = placement;
+    final xSpaces = startX + 1.0; // just inside the measure
+    final glyph = switch (_ghostDuration.base) {
+      DurationBase.whole => SmuflGlyph.noteheadWhole,
+      DurationBase.half => SmuflGlyph.noteheadHalf,
+      _ => SmuflGlyph.noteheadBlack,
+    };
+    final color = _theme.highlightColor.withValues(alpha: 0.45);
+    final y = (8 - ghost.staffPosition) / 2;
+    final metadata = MusicFonts.metadataOrNull(_theme.musicFont);
+    final width = metadata?.bBoxOf(glyph).width ?? 1.18;
+    final origin = offset + originOfSystem(system);
+    _painter.paintGlyph(
+        canvas, origin, glyph, math.Point(xSpaces - width / 2, y), color);
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 0.16 * _staffSpace;
+    for (var p = -2; p >= ghost.staffPosition; p -= 2) {
+      _paintLedger(canvas, origin, xSpaces, p, width, paint);
+    }
+    for (var p = 10; p <= ghost.staffPosition; p += 2) {
+      _paintLedger(canvas, origin, xSpaces, p, width, paint);
+    }
+  }
+
+  void _paintLedger(Canvas canvas, Offset origin, double xSpaces, int position,
+      double headWidth, Paint paint) {
+    final y = (8 - position) / 2;
+    canvas.drawLine(
+      origin +
+          Offset(
+              (xSpaces - headWidth / 2 - 0.4) * _staffSpace, y * _staffSpace),
+      origin +
+          Offset(
+              (xSpaces + headWidth / 2 + 0.4) * _staffSpace, y * _staffSpace),
+      paint,
+    );
+  }
+
+  void _paintCaret(Canvas canvas, Offset offset) {
+    final caret = _caret;
+    final layout = _layout;
+    if (caret == null || layout == null) return;
+
+    int? system;
+    double? xSpaces;
+    final beforeId = caret.beforeElementId;
+    if (beforeId != null) {
+      outer:
+      for (var i = 0; i < layout.systems.length; i++) {
+        for (final region in layout.systems[i].layout.regions) {
+          if (region.elementId == beforeId) {
+            system = i;
+            xSpaces = region.bounds.left - 0.3;
+            break outer;
+          }
+        }
+      }
+    } else if (caret.measureIndex != null) {
+      final placement = _measurePlacement(caret.measureIndex!);
+      if (placement != null) {
+        system = placement.$1;
+        xSpaces = placement.$2;
+      }
+    }
+    if (system == null || xSpaces == null) return;
+
+    final origin = offset + originOfSystem(system);
+    final paint = Paint()
+      ..color = _theme.highlightColor
+      ..strokeWidth = 0.14 * _staffSpace;
+    // A vertical insertion bar spanning the staff with a small overshoot.
+    canvas.drawLine(
+      origin + Offset(xSpaces * _staffSpace, -1 * _staffSpace),
+      origin + Offset(xSpaces * _staffSpace, 5 * _staffSpace),
+      paint,
+    );
   }
 }

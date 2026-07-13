@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:partitura/partitura.dart';
@@ -206,6 +207,79 @@ void main() {
     const b = StaffTarget(staffPosition: 0, measureIndex: 0);
     expect(b.systemIndex, 0);
     expect(b.staffIndex, 0);
+  });
+
+  testWidgets('onHover reports the staff target and null on exit',
+      (tester) async {
+    final hovered = <StaffTarget?>[];
+    await tester.pumpWidget(
+      wrap(MultiSystemView(
+        score: eightMeasures(),
+        staffSpace: 10,
+        onHover: hovered.add,
+      )),
+    );
+    final render = renderOf(tester);
+    final layout = render.multiSystemLayout!;
+    final topLeft = tester.getTopLeft(find.bySubtype<MultiSystemView>());
+    final m0 = layout.systems[0].layout.measureRegions.first;
+    final over = topLeft +
+        render.originOfSystem(0) +
+        Offset((m0.startX + 2) * render.scale, 2 * render.scale);
+
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: Offset.zero);
+    addTearDown(() => mouse.removePointer());
+    await mouse.moveTo(over);
+    await tester.pump();
+    expect(hovered, isNotEmpty);
+    expect(hovered.last, isA<StaffTarget>());
+    expect(hovered.last!.systemIndex, 0);
+
+    // Move far outside the widget -> exit -> null.
+    await mouse.moveTo(topLeft - const Offset(200, 200));
+    await tester.pump();
+    expect(hovered.last, isNull);
+  });
+
+  testWidgets('caret and ghost paint without error and are repaint-only',
+      (tester) async {
+    Widget build({EditorCaret? caret, StaffTarget? ghost}) => wrap(
+          MultiSystemView(
+            score: eightMeasures(),
+            staffSpace: 10,
+            caret: caret,
+            ghostTarget: ghost,
+          ),
+        );
+    await tester.pumpWidget(build());
+    final render = renderOf(tester);
+    final before = render.multiSystemLayout;
+
+    // A caret before an element and a ghost in a later measure.
+    await tester.pumpWidget(build(
+      caret: const EditorCaret(beforeElementId: 'e4'),
+      ghost:
+          const StaffTarget(staffPosition: 6, measureIndex: 3, systemIndex: 0),
+    ));
+    expect(tester.takeException(), isNull);
+    // Overlays never relayout.
+    expect(identical(render.multiSystemLayout, before), isTrue);
+
+    // A caret at a model position (measure start) also paints.
+    await tester.pumpWidget(build(
+      caret: const EditorCaret(measureIndex: 5, staffPosition: 4),
+    ));
+    expect(tester.takeException(), isNull);
+  });
+
+  test('EditorCaret value semantics', () {
+    expect(const EditorCaret(beforeElementId: 'e1'),
+        const EditorCaret(beforeElementId: 'e1'));
+    expect(const EditorCaret(measureIndex: 2, staffPosition: 4),
+        isNot(const EditorCaret(measureIndex: 2, staffPosition: 6)));
+    expect(const EditorCaret(beforeElementId: 'e1').hashCode,
+        const EditorCaret(beforeElementId: 'e1').hashCode);
   });
 
   testWidgets('highlight changes never relayout', (tester) async {
