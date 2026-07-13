@@ -206,6 +206,15 @@ class Measure {
   /// `implicit="yes"`.
   final bool pickup;
 
+  /// An explicit *intended* length for this bar (as a fraction of a whole
+  /// note), overriding the prevailing time signature — for a mid-piece
+  /// irregular bar (a cadenza, an inserted 5/4 bar in 4/4, a written-out
+  /// upbeat) that intentionally holds a different amount than the meter without
+  /// a full meter change. Null = use the meter's capacity. It marks the bar as
+  /// intentional so pickup auto-detection and "fill the measure" checks don't
+  /// flag it; see [capacityGiven].
+  final Fraction? actualDuration;
+
   /// Creates a measure from [elements] (treat the lists as immutable).
   const Measure(
     this.elements, {
@@ -223,6 +232,7 @@ class Measure {
     this.navigation,
     this.barline = BarlineStyle.normal,
     this.pickup = false,
+    this.actualDuration,
   })  : assert(volta == null || volta >= 1, 'volta must be >= 1'),
         assert(multiRest == null || multiRest >= 2, 'multiRest must be >= 2'),
         assert(multiRest == null || elements.length == 0,
@@ -245,6 +255,7 @@ class Measure {
     NavigationMark? navigation,
     BarlineStyle? barline,
     bool? pickup,
+    Fraction? actualDuration,
   }) =>
       Measure(
         elements ?? this.elements,
@@ -262,6 +273,7 @@ class Measure {
         navigation: navigation ?? this.navigation,
         barline: barline ?? this.barline,
         pickup: pickup ?? this.pickup,
+        actualDuration: actualDuration ?? this.actualDuration,
       );
 
   /// The sounding duration of the element at [index] as an exact fraction
@@ -285,6 +297,13 @@ class Measure {
   Fraction get totalDuration => [
         for (var i = 0; i < elements.length; i++) effectiveDurationAt(i),
       ].fold(Fraction.zero, (sum, f) => sum + f);
+
+  /// This bar's intended capacity as a fraction of a whole note: the explicit
+  /// [actualDuration] if set, else the prevailing [meter]'s length (or null
+  /// when unmetered). Use this — not the raw meter — when checking whether the
+  /// bar is full or intentionally irregular.
+  Fraction? capacityGiven(TimeSignature? meter) =>
+      actualDuration ?? meter?.toFraction();
 
   /// The exact sum of the voice-2 element durations.
   Fraction get voice2Duration => voice2.fold(
@@ -318,7 +337,8 @@ class Measure {
       other.multiRest == multiRest &&
       other.navigation == navigation &&
       other.barline == barline &&
-      other.pickup == pickup;
+      other.pickup == pickup &&
+      other.actualDuration == actualDuration;
 
   @override
   int get hashCode => Object.hash(
@@ -336,7 +356,8 @@ class Measure {
       multiRest,
       navigation,
       barline,
-      pickup);
+      pickup,
+      actualDuration);
 
   @override
   String toString() => 'Measure(${elements.length} elements'
@@ -353,7 +374,12 @@ class Measure {
 List<Measure> withDetectedPickup(List<Measure> measures, TimeSignature? meter) {
   if (meter == null || measures.length < 2) return measures;
   final first = measures.first;
-  if (first.pickup || first.multiRest != null || first.elements.isEmpty) {
+  if (first.pickup ||
+      first.multiRest != null ||
+      first.elements.isEmpty ||
+      first.actualDuration != null) {
+    // An explicit actual length means the bar is intentionally sized — don't
+    // second-guess it as an anacrusis.
     return measures;
   }
   if (first.totalDuration >= meter.toFraction()) return measures;

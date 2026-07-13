@@ -10,6 +10,11 @@
   completeness test over all 2¹² subsets verifies the catalogue is exactly
   complete with the canonical per-cardinality class counts. (Hexachords return
   null for now — the prime form stays the canonical identifier.)
+- **Explicit irregular-bar length** (Phase 2.4): `Measure.actualDuration` (a
+  `Fraction?`) overrides the meter's capacity for a mid-piece irregular bar
+  (an inserted 5/4 in 4/4, a cadenza) without a meter change; `capacityGiven(meter)`
+  resolves the effective capacity and pickup auto-detection leaves an
+  explicitly-sized bar alone.
 
 - **Enharmonic chord re-reads** (Phase 4.4 tail): `chordReadings(pcs, {bassPc})`
   returns *every* tonal reading of a pitch-class set — one per root whose

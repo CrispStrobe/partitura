@@ -486,7 +486,7 @@ Raises the quality of everything already rendered. Slice order:
       follow it (golden 121). **Left:** ossia staves, divisi split, empty-bar
       removal, and per-system hiding once the multi-system wrap chooses staves
       per system.
-- [~] **2.4 Pickup / anacrusis + actual-vs-nominal measure duration +
+- [x] **2.4 Pickup / anacrusis + actual-vs-nominal measure duration +
       irregular measures** — foundational; a large fraction of real pieces
       need a partial first bar or a metric length differing from the notated
       one. **Done:** `Measure.pickup` (anacrusis) with auto-detection of a
@@ -494,8 +494,12 @@ Raises the quality of everything already rendered. Slice order:
       `implicit="yes"` read/write with anacrusis-aware renumbering, and a
       `showMeasureNumbers` overlay that skips the pickup so the first full bar
       reads `1` (golden 80). Layout already tolerates irregular measures
-      (content-proportional, no meter enforcement). **Left:** an explicit
-      actual-vs-nominal measure length (for mid-piece irregular bars).
+      (content-proportional, no meter enforcement); and an **explicit
+      actual-vs-nominal length** — `Measure.actualDuration` (a `Fraction?`)
+      overrides the meter's capacity for a mid-piece irregular bar (an inserted
+      5/4 in 4/4, a cadenza) without a full meter change; `capacityGiven(meter)`
+      resolves the effective capacity, and pickup auto-detection leaves an
+      explicitly-sized bar alone. **2.4 complete.**
 - [~] **2.5 Page-layout engine** — **Done:** `layoutPages` paginates the broken
       systems into `PageMetrics` pages (size + margins in staff spaces), packing
       systems by content height and vertically justifying every page but the

@@ -156,4 +156,41 @@ void main() {
       expect(mei, contains('<measure n="3"'));
     });
   });
+
+  group('explicit actual-vs-nominal length (irregular bars)', () {
+    test('capacityGiven prefers the explicit actualDuration over the meter', () {
+      final regular = Measure([
+        NoteElement.note(const Pitch(Step.c), NoteDuration.quarter),
+      ]);
+      expect(regular.capacityGiven(TimeSignature.fourFour), Fraction(1, 1));
+      // An inserted 5/4 bar in a 4/4 piece, without a meter change.
+      final irregular = Measure([
+        NoteElement.note(const Pitch(Step.c), NoteDuration.whole),
+      ], actualDuration: Fraction(5, 4));
+      expect(irregular.capacityGiven(TimeSignature.fourFour), Fraction(5, 4));
+      // Unmetered and unset → null.
+      expect(regular.capacityGiven(null), isNull);
+    });
+
+    test('equality and copyWith carry actualDuration', () {
+      final a = Measure(const [], actualDuration: Fraction(3, 8));
+      expect(a, Measure(const [], actualDuration: Fraction(3, 8)));
+      expect(a, isNot(Measure(const [], actualDuration: Fraction(5, 8))));
+      expect(a.copyWith(pickup: true).actualDuration, Fraction(3, 8));
+    });
+
+    test('an explicitly-sized opening bar is not auto-detected as a pickup', () {
+      // Short first bar that would normally be flagged a pickup, but its
+      // explicit actual length marks it intentional.
+      final measures = withDetectedPickup([
+        Measure([
+          NoteElement.note(const Pitch(Step.c), NoteDuration.quarter),
+        ], actualDuration: Fraction(1, 4)),
+        Measure([
+          NoteElement.note(const Pitch(Step.d), NoteDuration.whole),
+        ]),
+      ], TimeSignature.fourFour);
+      expect(measures.first.pickup, isFalse);
+    });
+  });
 }
