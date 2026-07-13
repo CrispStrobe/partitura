@@ -29,31 +29,19 @@ ships* at the end for the mechanics.
 > `chord_analysis.dart`. Pure core, unit-tested. Worktree `partitura-tab`, branch
 > `feat/chord-id-extended`.
 
-> **No active claim on this worktree — safe to pick up.** The editor-moat thread
-> is complete and on public `main`: Phase 3.3/3.4 overlays (`errorOverlay`,
-> `loopRange`) + 3.8 `ScoreEditorController` (`rectOfElement`/scroll-to-note),
-> the full **Workshop contract set C1–C9** (C7 `ElementRegionController`, C8
-> `exportScoreTo{Png,Svg}` + grand-staff overloads, C9 `Score.barNumberAt`), and
-> the **v0.4.0 release** (CLI + Android APK + WASM artifacts via `release.yml`;
-> `ci.yml` gates publish-dry-run / wasm / iOS). Reply logged in
-> `mus-workshop/docs/WORKSHOP_PARTITURA_CONTRACTS.md`.
+> 🚧 **Actively working on (Phase 3.1):** Cursor-synced instrument visualizers —
+> increment 1, the **piano-keyboard** view (`PianoKeyboardView`: highlights the
+> sounding MIDI pitches, optional per-pitch/hand colors) + a `pitchesForElements`
+> helper mapping cursor element ids → MIDI. Increment 2 will add the guitar
+> fretboard. Rides the existing no-audio timing map (`playbackTimeline`); app
+> drives, partitura renders. Worktree `partitura-public-lacunae`.
 >
-> **Next up — recommended for the next agent (pick one, claim it here with 🚧,
-> push origin/main at every checkpoint):**
-> 1. **3.1 Cursor-synced instrument visualizers** *(highest differentiation)* — a
->    piano keyboard (L/R hand) and guitar fretboard that light up with the
->    playback cursor. Rides the existing no-audio timing map; also delivers
->    3.8's remaining `set-visualizer`. Largest of the three (new widgets).
-> 2. **3.7 Played-vs-expected MIDI highlighting** *(quick win, extends this
->    session)* — a thin `markDiff(expected, played)` convenience over
->    `errorOverlay` / `ScoreEditorController.mark`; the app owns MIDI input.
-> 3. **3.9 Accessible & sonified navigable score** — Flutter `Semantics` over the
->    score tree; a genuine gap across interactive players (accessibility moat).
->
-> Also open and unblocked: 3.5 warped-time cursor, 3.6 live-transposition UI, the
-> 3.8 `toggle-part` tail. Worktree `partitura-public-lacunae`. Publishing to
-> pub.dev (both libs 0-warning) is the maintainer's call — see the root README
-> Install section.
+> *(Done and on `main`: editor moat 3.3/3.4/3.8 + `ScoreEditorController`; the
+> full **Workshop contract set C1–C9**; the **v0.4.0 release** with CLI + Android
+> APK + WASM artifacts. Other unclaimed next-ups: 3.7 played-vs-expected MIDI
+> highlighting (quick win over `errorOverlay`), 3.9 accessibility `Semantics`,
+> 3.5 warped-time cursor, 3.6 live-transposition UI, the 3.8 `toggle-part` tail.
+> pub.dev publishing is the maintainer's call — see the README Install section.)*
 
 
 
@@ -493,10 +481,12 @@ Raises the quality of everything already rendered. Slice order:
 
 ### Phase 3 — Interactivity  *(the moat — where partitura wins)*
 Rides the existing cursor + selection; no audio needed.
-- [ ] **3.1 Cursor-synced instrument visualizers** — a piano keyboard (L/R
+- 🚧 **3.1 Cursor-synced instrument visualizers** — a piano keyboard (L/R
       hand) and a guitar fretboard that light up as the playback cursor
       advances. The single highest-differentiation feature; pairs directly
-      with the no-audio timing map.
+      with the no-audio timing map. *In progress: increment 1 =
+      `PianoKeyboardView` + `pitchesForElements` id→MIDI helper; increment 2 =
+      fretboard.*
 - [x] **3.2 Note-name & rhythm-count overlays** — the note-name overlay
       (`showNoteNames`; pitch letter + accidental under each note, chords
       stacked; golden 73) and the rhythm-count overlay (`showBeatNumbers`; beat
