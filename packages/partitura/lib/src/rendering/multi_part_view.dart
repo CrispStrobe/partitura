@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart';
+import 'package:flutter/rendering.dart';
 // Flutter also defines a PageMetrics (scroll metrics); we mean the engraving
 // one from partitura_core.
 import 'package:flutter/widgets.dart' hide PageMetrics;
@@ -51,6 +53,10 @@ class MultiPartView extends LeafRenderObjectWidget {
   /// Whether to stroke a thin frame around the page edge.
   final bool drawPageBorder;
 
+  /// Called with the element id when the user taps an element on the current
+  /// page. Ids come from any part; keep them unique across parts.
+  final void Function(String elementId)? onElementTap;
+
   /// Creates a multi-part page view.
   const MultiPartView({
     super.key,
@@ -64,6 +70,7 @@ class MultiPartView extends LeafRenderObjectWidget {
     this.hideEmptyStaves = false,
     this.pageIndex = 0,
     this.drawPageBorder = false,
+    this.onElementTap,
   });
 
   @override
@@ -79,7 +86,7 @@ class MultiPartView extends LeafRenderObjectWidget {
         hideEmptyStaves: hideEmptyStaves,
         pageIndex: pageIndex,
         drawPageBorder: drawPageBorder,
-      );
+      )..onElementTap = onElementTap;
 
   @override
   void updateRenderObject(
@@ -94,7 +101,8 @@ class MultiPartView extends LeafRenderObjectWidget {
       ..justifyVertically = justifyVertically
       ..hideEmptyStaves = hideEmptyStaves
       ..pageIndex = pageIndex
-      ..drawPageBorder = drawPageBorder;
+      ..drawPageBorder = drawPageBorder
+      ..onElementTap = onElementTap;
   }
 }
 
@@ -121,11 +129,19 @@ class RenderMultiPartView extends RenderBox {
         _justifyVertically = justifyVertically,
         _hideEmptyStaves = hideEmptyStaves,
         _pageIndex = pageIndex,
-        _drawPageBorder = drawPageBorder;
+        _drawPageBorder = drawPageBorder {
+    _tap = TapGestureRecognizer(debugOwner: this)..onTapUp = _handleTapUp;
+  }
 
   /// Space reserved at the left for brackets/braces, in staff spaces — drawn
   /// into the left page margin, left of the system's x = 0.
   static const double leftInset = 1.8;
+
+  late final TapGestureRecognizer _tap;
+
+  /// Called with the element id when the user taps an element on the current
+  /// page.
+  void Function(String elementId)? onElementTap;
 
   MultiPartPagedLayout? _layout;
   late final LayoutPainter _painter =
@@ -272,6 +288,144 @@ class RenderMultiPartView extends RenderBox {
 
   @override
   Size computeDryLayout(BoxConstraints constraints) => _measure(constraints);
+
+  // ---------------------------------------------------------------- regions
+  //
+  // The region queries below are scoped to the **current page** ([pageIndex]) —
+  // the page this view paints — in local pixel coordinates.
+
+  /// The current page's placed systems, or empty while the layout is loading or
+  /// the page index is out of range.
+  List<PositionedMultiPartSystem> get _currentPageSystems {
+    final layout = _layout;
+    if (layout == null || _pageIndex < 0 || _pageIndex >= layout.pages.length) {
+      return const [];
+    }
+    return layout.pages[_pageIndex].systems;
+  }
+
+  /// The shared left x (local pixels) where every system's x = 0 maps.
+  double get _originX => _metrics.marginLeft * _staffSpace;
+
+  /// Local-pixel y where [placed]'s coordinate origin (its top-most ink) maps.
+  double _systemTopY(PositionedMultiPartSystem placed) =>
+      (_metrics.marginTop + placed.top - placed.system.layout.top) *
+      _staffSpace;
+
+  /// The id of the element containing [local] (local pixels) on the current
+  /// page, searching every part of every system, or null. Ties break to the
+  /// smallest region, like the other views.
+  String? elementIdAt(Offset local) {
+    final slop = _theme.hitSlop;
+    for (final placed in _currentPageSystems) {
+      final system = placed.system.layout;
+      final systemTopY = _systemTopY(placed);
+      String? bestId;
+      var bestArea = double.infinity;
+      for (var i = 0; i < system.staves.length; i++) {
+        final partOriginY = systemTopY + system.staffTop(i) * _staffSpace;
+        final point = math.Point(
+          (local.dx - _originX) / _staffSpace,
+          (local.dy - partOriginY) / _staffSpace,
+        );
+        for (final region in system.staves[i].regions) {
+          final b = region.bounds;
+          final inflated = math.Rectangle(
+            b.left - slop,
+            b.top - slop,
+            b.width + 2 * slop,
+            b.height + 2 * slop,
+          );
+          if (inflated.containsPoint(point)) {
+            final area = inflated.width * inflated.height;
+            if (area < bestArea) {
+              bestArea = area;
+              bestId = region.elementId;
+            }
+          }
+        }
+      }
+      if (bestId != null) return bestId;
+    }
+    return null;
+  }
+
+  /// Read-only hit regions of every element with an id on the current page, in
+  /// local pixels, each tagged with the global `measureIndex` it sits in — for
+  /// app-side marquee / range selection and custom overlays.
+  List<({String id, Rect bounds, int measureIndex})> get elementRegions {
+    final out = <({String id, Rect bounds, int measureIndex})>[];
+    for (final placed in _currentPageSystems) {
+      final system = placed.system.layout;
+      final systemTopY = _systemTopY(placed);
+      for (var i = 0; i < system.staves.length; i++) {
+        final staff = system.staves[i];
+        final partOriginY = systemTopY + system.staffTop(i) * _staffSpace;
+        for (final region in staff.regions) {
+          final b = region.bounds;
+          final centerX = b.left + b.width / 2;
+          var localMeasure = 0;
+          for (final m in staff.measureRegions) {
+            if (m.startX <= centerX) {
+              localMeasure = m.index;
+            } else {
+              break;
+            }
+          }
+          out.add((
+            id: region.elementId,
+            bounds: Rect.fromLTWH(
+              _originX + b.left * _staffSpace,
+              partOriginY + b.top * _staffSpace,
+              b.width * _staffSpace,
+              b.height * _staffSpace,
+            ),
+            measureIndex: placed.system.firstMeasure + localMeasure,
+          ));
+        }
+      }
+    }
+    return out;
+  }
+
+  /// The ids of every element whose hit region intersects [localRect] (local
+  /// pixels) on the current page — a marquee selection.
+  List<String> elementIdsIn(Rect localRect) => [
+        for (final region in elementRegions)
+          if (region.bounds.overlaps(localRect)) region.id,
+      ];
+
+  /// The local-pixel bounds of the element with [id] on the current page, or
+  /// null if it is not shown on this page.
+  Rect? rectOfElement(String id) {
+    for (final region in elementRegions) {
+      if (region.id == id) return region.bounds;
+    }
+    return null;
+  }
+
+  // ------------------------------------------------------------------ input
+
+  @override
+  bool hitTestSelf(Offset position) => onElementTap != null;
+
+  @override
+  void handleEvent(PointerEvent event, covariant BoxHitTestEntry entry) {
+    if (event is PointerDownEvent && onElementTap != null) {
+      _tap.addPointer(event);
+    }
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    final id = elementIdAt(details.localPosition);
+    if (id != null) onElementTap?.call(id);
+  }
+
+  @override
+  void dispose() {
+    _tap.dispose();
+    super.dispose();
+  }
 
   @override
   void paint(PaintingContext context, Offset offset) {

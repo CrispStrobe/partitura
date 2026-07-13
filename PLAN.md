@@ -116,11 +116,18 @@ y-down coords. Priority: **C1+C2 → C3 → C5 → C4**.
     `hideEmptyStaves`. Goldens **124** (bracket + two barline groups) and **125**
     (silent middle staff dropped mid-piece).
   - Tests: `multi_part_test.dart` (core) + `multi_part_view_test.dart` (widget).
-  **Remaining additive follow-ups (unblocked, not required by the reconcile):**
-  (3) **interchange** — point `staffSystemFromMusicXml` at the wrapped document
-  so multi-part MusicXML round-trips to wrapped pages; (4) **editor
-  integration** — the C1–C5 hit-testing / overlays across the multi-part view
-  (cross-part `elementRegions`, `rectOfElement`).
+  **Follow-up increments — both done:**
+  - (3) **interchange** — `multiPartScoreFromMusicXml` / `…FromAbc` /
+    `…FromKern` bridge the importers straight into a paginating `MultiPartScore`,
+    and MusicXML `<part-group>` `<group-barline>yes</group-barline>` (or
+    `Mensurstrich`) imports as a `BarlineGroup` — sectioned custom-span barlines
+    survive the round-trip. Covered in `musicxml_test.dart`.
+  - (4) **editor integration** — `MultiPartView` now hit-tests across parts:
+    `onElementTap`, `elementIdAt`, `elementRegions` (global measure index),
+    `elementIdsIn` (marquee), `rectOfElement`, all scoped to the current page.
+    Covered in `multi_part_view_test.dart`.
+  C6 is now **complete** end-to-end (model → layout → pagination → view →
+  interchange → editor).
 - [x] **C7 — region controller.** The private render objects' `elementRegions`
   / `elementIdsIn(Rect)` (from C4) are now reachable from app code via a public
   `ElementRegionController` (alias `MultiSystemViewController`), attached with

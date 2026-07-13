@@ -125,6 +125,64 @@ void main() {
     expect(systems.any((s) => s.layout.staves.length == 2), isTrue);
   });
 
+  testWidgets('elementRegions cover every part with global measure indices',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: MultiPartView(
+          document: quartet(),
+          metrics: const PageMetrics(width: 130, height: 90),
+          staffSpace: 6,
+        ),
+      ),
+    ));
+    final render =
+        tester.renderObject<RenderMultiPartView>(find.byType(MultiPartView));
+    final regions = render.elementRegions;
+    expect(regions, isNotEmpty);
+    // Every region has a positive-size box and an in-range measure index.
+    for (final r in regions) {
+      expect(r.bounds.width, greaterThan(0));
+      expect(r.measureIndex, inInclusiveRange(0, quartet().measureCount - 1));
+    }
+    // rectOfElement round-trips the first region's id to its bounds.
+    final first = regions.first;
+    expect(render.rectOfElement(first.id), first.bounds);
+    // A marquee over the whole page selects that id.
+    final page = Offset.zero & render.size;
+    expect(render.elementIdsIn(page), contains(first.id));
+    // A far-away id is absent.
+    expect(render.rectOfElement('no-such-id'), isNull);
+  });
+
+  testWidgets('tapping an element reports its id (cross-part)', (tester) async {
+    String? tapped;
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: MultiPartView(
+          document: quartet(),
+          metrics: const PageMetrics(width: 130, height: 90),
+          staffSpace: 6,
+          onElementTap: (id) => tapped = id,
+        ),
+      ),
+    ));
+    final render =
+        tester.renderObject<RenderMultiPartView>(find.byType(MultiPartView));
+    // Pick an element on a lower part (staff 2 or 3) to prove cross-part hit
+    // testing, and tap its center.
+    final regions = render.elementRegions;
+    final target = regions.last;
+    final localCenter = target.bounds.center;
+    expect(render.elementIdAt(localCenter), target.id);
+    final topLeft = tester.getTopLeft(find.byType(MultiPartView));
+    await tester.tapAt(topLeft + localCenter);
+    await tester.pump();
+    expect(tapped, target.id);
+    // Tapping empty space (far bottom-right corner) reports nothing.
+    expect(render.elementIdAt(render.size.bottomRight(Offset.zero)), isNull);
+  });
+
   testWidgets('124 orchestral system: bracket + two barline groups',
       (tester) async {
     await tester.pumpWidget(
