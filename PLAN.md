@@ -30,6 +30,13 @@ ships* at the end for the mechanics.
 > non-standard meters/keys, cross-staff beams — are done; microtones landed via
 > the parallel agent.)*
 
+> **Actively working on (OMR → PNG):** `partitura omr … out.png` — write the
+> recognized score to a temp MusicXML and rasterize via Flutter, adding
+> `renderGrandStaffLayoutToPng` so SMT grand staffs render both staves. Touches
+> `rendering/png_export.dart` + `tool/render_png.dart` + `partitura_cli` only —
+> **not** the interactive views (`MultiSystemView`/`InteractiveStaff`). Worktree
+> `partitura-png`, branch `feat/omr-png`.
+
 ### Workshop editor contracts (C1–C6)
 
 External consumer (KlangUniversum "Composition Workshop",
