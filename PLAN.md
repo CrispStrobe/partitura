@@ -31,6 +31,12 @@ ships* at the end for the mechanics.
 > `partitura-public-lacunae`. *(Editor contracts C1–C5 + grand-staff
 > justification done on `main`; C6 deferred.)*
 
+> **Actively working on (OMR frontier):** closing the OMR gaps — starting with
+> **model auto-download** (`partitura omr --model <name>` fetches the GGUF from
+> Hugging Face to a cache), then multi-system page segmentation and a
+> Flutter-desktop path. `partitura_cli` (+ `partitura` for Flutter) only, no
+> views. Worktree `partitura-dl`, branch `feat/omr-model-download`.
+
 
 ### Workshop editor contracts (C1–C6)
 
