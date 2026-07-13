@@ -23,6 +23,12 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-13)
 
+> 🚧 **Actively working on (Phase 7.5 — Braille music export):** `scoreToBraille`
+> in a new `braille/` core module — Unicode braille-music note/rest cells
+> (name+value), accidentals, octave marks (standard interval rule), measure
+> separation. Pure core, no overlap with the 2.x/3.x/4.x threads. Worktree
+> `partitura-tab`, branch `feat/braille-export`.
+
 > **C6 multi-part document — core wrapping landed on `main`**
 > (`layoutStaffSystemSystems` / `StaffSystemSystems`; contract C6 now `[~]`, see
 > its handover below for increments 2–4). Phase 2.3 hide-empty-staves also on
