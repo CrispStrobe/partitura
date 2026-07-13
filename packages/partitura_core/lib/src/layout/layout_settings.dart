@@ -13,6 +13,11 @@ enum NoteheadScheme {
   /// American four-shape (Sacred Harp) noteheads: fa = triangle, sol = round,
   /// la = square, mi = diamond (degrees fa-sol-la-fa-sol-la-mi).
   sacredHarp,
+
+  /// Aikin seven-shape noteheads (a distinct shape per scale degree):
+  /// do = triangle-up, re = moon, mi = diamond, fa = triangle, sol = round,
+  /// la = square, ti = rounded-triangle.
+  aikin,
 }
 
 /// Distances and thicknesses the layout engine works with.
@@ -76,9 +81,10 @@ class LayoutSettings {
   final Map<MicrotonalAccidental, String> microtonalGlyphs;
 
   /// Notehead shape scheme. [NoteheadScheme.normal] (the default) draws round
-  /// noteheads; [NoteheadScheme.sacredHarp] draws four-shape noteheads by each
-  /// pitch's scale degree. Only applies to notes whose [NoteheadShape] is
-  /// `normal` (an explicit shape such as x or diamond always wins).
+  /// noteheads; [NoteheadScheme.sacredHarp] and [NoteheadScheme.aikin] draw
+  /// four- and seven-shape noteheads by each pitch's scale degree. Only applies
+  /// to notes whose [NoteheadShape] is `normal` (an explicit shape such as x or
+  /// diamond always wins).
   final NoteheadScheme noteheadScheme;
 
   /// Gap between a notehead and its first augmentation dot.

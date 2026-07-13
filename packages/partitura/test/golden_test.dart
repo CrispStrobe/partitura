@@ -2015,6 +2015,20 @@ void main() {
     );
   });
 
+  testWidgets('106 Aikin seven-shape noteheads', (tester) async {
+    // do re mi fa sol la ti do — a distinct shape per scale degree.
+    await golden(
+      tester,
+      '106_aikin_shape_notes',
+      Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'c4:q d4 e4 f4 | g4 a4 b4 c5',
+      ),
+      noteheadScheme: NoteheadScheme.aikin,
+      staffSpace: 12,
+    );
+  });
+
   testWidgets('104 compound 6/8 beams in threes', (tester) async {
     await golden(
       tester,

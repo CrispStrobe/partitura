@@ -536,12 +536,13 @@ No peer renderer does any of this; all build on the existing pitch / interval
       slash, circled-x — `NoteheadShape`, duration-aware variants, MusicXML
       `<notehead>` round-trip, golden 66); per-element **coloring** end to end
       (`StaffView.elementColors` render param + SVG `elementColors`; golden 72);
-      **Sacred-Harp four-shape noteheads** (`LayoutSettings.noteheadScheme` /
-      `NoteheadScheme.sacredHarp`, exposed as `StaffView.noteheadScheme`) — each
-      pitch's movable-do scale degree in the current key picks fa = triangle,
-      sol = round, la = square, mi = diamond; golden 105.
-      **Left:** seven-shape (Aikin) + pitch-name / solfège schemes, cue/small
-      notes.
+      **shape-note noteheads** (`LayoutSettings.noteheadScheme`, exposed as
+      `StaffView.noteheadScheme`) — `sacredHarp` four-shape (fa = triangle,
+      sol = round, la = square, mi = diamond; golden 105) and `aikin` seven-shape
+      (do = triangle-up, re = moon, mi = diamond, fa = triangle, sol = round,
+      la = square, ti = rounded-triangle; golden 106), each picked per pitch by
+      its movable-do scale degree in the current key.
+      **Left:** pitch-name / solfège (letter/syllable) schemes, cue/small notes.
 - [x] **5.2 Extra clefs** — neutral / unpitched **percussion** clef
       (`Clef.percussion` → `unpitchedPercussionClef1`, no key signature; ABC
       `clef=perc`; golden 83), and the **French violin / soprano / mezzo-soprano

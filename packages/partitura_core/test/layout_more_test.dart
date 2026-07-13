@@ -615,6 +615,29 @@ void main() {
       expect(shapeHeads(layout), ['noteShapeTriangleLeftWhite']);
     });
 
+    test('Aikin seven-shape draws a distinct shape per degree', () {
+      final layout = const LayoutEngine().layout(
+          Score.simple(notes: 'c4:q d4 e4 f4 g4 a4 b4'),
+          LayoutSettings(
+              metadata: metadata, noteheadScheme: NoteheadScheme.aikin));
+      final heads = (layout.primitives
+              .whereType<GlyphPrimitive>()
+              .where((g) => g.smuflName.startsWith('noteShape'))
+              .toList()
+            ..sort((a, b) => a.position.x.compareTo(b.position.x)))
+          .map((g) => g.smuflName)
+          .toList();
+      expect(heads, [
+        'noteShapeTriangleUpBlack', // do
+        'noteShapeMoonBlack', //       re
+        'noteShapeDiamondBlack', //    mi
+        'noteShapeTriangleLeftBlack', //fa
+        'noteShapeRoundBlack', //      sol
+        'noteShapeSquareBlack', //     la
+        'noteShapeTriangleRoundBlack', // ti
+      ]);
+    });
+
     test('an explicit notehead shape overrides the scheme', () {
       final layout = shapedLayout(Score(
         clef: Clef.treble,

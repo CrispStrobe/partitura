@@ -2,12 +2,14 @@
 
 ## 0.4.0-dev.1 (in progress)
 
-- **Sacred-Harp four-shape noteheads** (Phase 5.1): `LayoutSettings.noteheadScheme`
-  (`NoteheadScheme.sacredHarp`) draws four-shape noteheads — fa = triangle,
-  sol = round, la = square, mi = diamond — chosen per pitch by its movable-do
-  scale degree in the current key (so the shapes shift with the key signature,
-  and its relative minor shares them). An explicit `NoteheadShape` still wins.
-  Exposed on the Flutter view as `StaffView.noteheadScheme`. Golden 105.
+- **Shape-note noteheads** (Phase 5.1): `LayoutSettings.noteheadScheme` draws
+  shape noteheads chosen per pitch by its movable-do scale degree in the current
+  key — `NoteheadScheme.sacredHarp` (four-shape: fa = triangle, sol = round,
+  la = square, mi = diamond; golden 105) and `NoteheadScheme.aikin` (seven-shape:
+  do = triangle-up, re = moon, mi = diamond, fa = triangle, sol = round,
+  la = square, ti = rounded-triangle; golden 106). The shapes shift with the key
+  signature (its relative minor shares them); an explicit `NoteheadShape` still
+  wins. Exposed on the Flutter view as `StaffView.noteheadScheme`.
 - **ABC robustness — unequal voices are padded, not fatal**: a multi-voice ABC
   tune whose voices have different bar counts (an imperfect encoding) no longer
   crashes `layoutStaffSystem`; `staffSystemFromAbc` pads the short voices with

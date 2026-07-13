@@ -1359,7 +1359,7 @@ class _LayoutBuilder {
     final headWidth = _glyphWidth(headGlyph);
     // A shape-note scheme replaces the round head per pitch by scale degree,
     // but never overrides an explicit notehead shape (x, diamond, …).
-    final useShapes = s.noteheadScheme == NoteheadScheme.sacredHarp &&
+    final useShapes = s.noteheadScheme != NoteheadScheme.normal &&
         element.notehead == NoteheadShape.normal;
     final hasStem = base != DurationBase.whole && base != DurationBase.breve;
 
@@ -1409,7 +1409,9 @@ class _LayoutBuilder {
     }
 
     for (var i = 0; i < positions.length; i++) {
-      final glyph = useShapes ? _sacredHarpGlyph(pitches[i], base) : headGlyph;
+      final glyph = useShapes
+          ? _shapeNoteGlyph(pitches[i], base, s.noteheadScheme)
+          : headGlyph;
       _addGlyph(glyph, columnX[i], _yOf(positions[i]), elementId: id);
     }
     _tieInfos.add(_TieInfo(
@@ -3130,20 +3132,33 @@ class _LayoutBuilder {
     return stepOfFifth[((_key.fifths % 7) + 7) % 7];
   }
 
-  /// The Sacred-Harp four-shape notehead glyph for [pitch] at duration [base]:
-  /// fa = triangle, sol = round, la = square, mi = diamond, mapped from the
-  /// pitch's movable-do scale degree (fa-sol-la-fa-sol-la-mi).
-  String _sacredHarpGlyph(Pitch pitch, DurationBase base) {
+  // Shape per movable-do scale degree (0-6) for each shape-note [scheme].
+  static const _sacredHarpShapes = [
+    'TriangleLeft', // fa (1)
+    'Round', //        sol (2)
+    'Square', //       la (3)
+    'TriangleLeft', // fa (4)
+    'Round', //        sol (5)
+    'Square', //       la (6)
+    'Diamond', //      mi (7)
+  ];
+  static const _aikinShapes = [
+    'TriangleUp', //    do (1)
+    'Moon', //          re (2)
+    'Diamond', //       mi (3)
+    'TriangleLeft', //  fa (4)
+    'Round', //         sol (5)
+    'Square', //        la (6)
+    'TriangleRound', // ti (7)
+  ];
+
+  /// The shape-note notehead glyph for [pitch] at duration [base] under
+  /// [scheme], mapped from the pitch's movable-do scale degree in the key.
+  String _shapeNoteGlyph(
+      Pitch pitch, DurationBase base, NoteheadScheme scheme) {
     final degree = ((pitch.step.index - _keyTonicStepIndex()) % 7 + 7) % 7;
-    const shapes = [
-      'TriangleLeft', // fa (1)
-      'Round', //        sol (2)
-      'Square', //       la (3)
-      'TriangleLeft', // fa (4)
-      'Round', //        sol (5)
-      'Square', //       la (6)
-      'Diamond', //      mi (7)
-    ];
+    final shapes =
+        scheme == NoteheadScheme.aikin ? _aikinShapes : _sacredHarpShapes;
     final variant = switch (base) {
       DurationBase.breve => 'DoubleWhole',
       DurationBase.whole || DurationBase.half => 'White',
