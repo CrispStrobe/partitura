@@ -2,6 +2,11 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Interchangeable / alternating meters** (Phase 5.7): `TimeSignature.alternate`
+  carries a companion signature drawn beside the primary at the start of the
+  system (e.g. 3/4 with a 2/4 alternate). Display-only — `measureCapacity` and
+  `beamGroups()` use the primary meter; individual bars switch via their own
+  change. Round-trips through MusicXML `<interchangeable>`. Golden 115.
 - **Baroque ornaments** (Phase 5.6): four new `Ornament`s — `invertedTurn` and
   the trill-with-accidental trio (`trillSharp`/`trillFlat`/`trillNatural`, drawn
   as a small standard accidental above the `tr`, so any SMuFL font works). They

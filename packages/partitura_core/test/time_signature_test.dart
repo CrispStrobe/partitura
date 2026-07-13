@@ -2,6 +2,33 @@ import 'package:partitura_core/partitura_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('TimeSignature.alternate (interchangeable meters)', () {
+    const inter = TimeSignature(3, 4, alternate: TimeSignature(2, 4));
+
+    test('capacity and beam groups come from the primary meter', () {
+      expect(inter.measureCapacity, (3, 4));
+      expect(
+          inter.beamGroups(), [Fraction(1, 4), Fraction(1, 4), Fraction(1, 4)]);
+    });
+
+    test('participates in equality and toString', () {
+      expect(inter, const TimeSignature(3, 4, alternate: TimeSignature(2, 4)));
+      expect(inter, isNot(const TimeSignature(3, 4)));
+      expect(inter.toString(), '3/4~2/4');
+    });
+
+    test('round-trips through MusicXML <interchangeable>', () {
+      final score = Score.simple(
+        timeSignature: inter,
+        notes: 'c4:q d4 e4',
+      );
+      final xml = scoreToMusicXml(score);
+      expect(xml, contains('<interchangeable>'));
+      final back = scoreFromMusicXml(xml);
+      expect(back.timeSignature, inter);
+    });
+  });
+
   group('TimeSignature.measureCapacity', () {
     test('reduces to a fraction of a whole note', () {
       expect(TimeSignature.fourFour.measureCapacity, (1, 1));

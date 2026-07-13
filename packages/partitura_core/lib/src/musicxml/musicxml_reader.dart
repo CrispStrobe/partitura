@@ -341,6 +341,32 @@ class _PartReader {
     return Interval(quality, number);
   }
 
+  /// Parses a `<time>` (or its `<interchangeable>` companion) into a
+  /// [TimeSignature] — symbol (common/cut), additive `beats` like `3+2`, and,
+  /// when [allowAlternate], an interchangeable [TimeSignature.alternate].
+  TimeSignature _parseTimeSig(XmlNode time, {bool allowAlternate = true}) {
+    final symbol = switch (time.attributes['symbol']) {
+      'common' => TimeSymbol.common,
+      'cut' => TimeSymbol.cut,
+      _ => TimeSymbol.numeric,
+    };
+    final beatsText = time.childText('beats')!;
+    final beatUnit = int.parse(time.childText('beat-type')!);
+    final groups = beatsText.contains('+')
+        ? beatsText.split('+').map(int.parse).toList()
+        : null;
+    TimeSignature? alt;
+    if (allowAlternate) {
+      final inter = time.child('interchangeable');
+      if (inter != null) alt = _parseTimeSig(inter, allowAlternate: false);
+    }
+    return groups != null
+        ? TimeSignature(groups.reduce((a, b) => a + b), beatUnit,
+            components: List.unmodifiable(groups), alternate: alt)
+        : TimeSignature(int.parse(beatsText), beatUnit,
+            symbol: symbol, alternate: alt);
+  }
+
   /// Reassembles a `<figure>` element (prefix/number/suffix) into a compact
   /// figure spec string (`#6`, `6`, `4+`) matching the writer's parse.
   static String _figureText(XmlNode figure) {
@@ -429,20 +455,7 @@ class _PartReader {
           }
           final time = node.child('time');
           if (time != null) {
-            final symbol = switch (time.attributes['symbol']) {
-              'common' => TimeSymbol.common,
-              'cut' => TimeSymbol.cut,
-              _ => TimeSymbol.numeric,
-            };
-            final beatsText = time.childText('beats')!;
-            final beatUnit = int.parse(time.childText('beat-type')!);
-            // A `<beats>` value like "3+2" is an additive/composite meter.
-            final groups = beatsText.contains('+')
-                ? beatsText.split('+').map(int.parse).toList()
-                : null;
-            final signature = groups != null
-                ? TimeSignature.additive(groups, beatUnit)
-                : TimeSignature(int.parse(beatsText), beatUnit, symbol: symbol);
+            final signature = _parseTimeSig(time);
             if (!_leadingSet) {
               _time = signature;
             } else if (signature != _time) {

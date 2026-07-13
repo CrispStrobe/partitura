@@ -607,6 +607,16 @@ class _LayoutBuilder {
   void _layoutTimeSignature() {
     final time = _time;
     if (time == null) return;
+    _drawTimeSig(time);
+    // An interchangeable meter draws its alternate beside the primary.
+    final alt = time.alternate;
+    if (alt != null) {
+      _x += 0.4;
+      _drawTimeSig(alt);
+    }
+  }
+
+  void _drawTimeSig(TimeSignature time) {
     if (time.symbol != TimeSymbol.numeric) {
       // A single C / ¢ glyph, centered on the middle staff line (y = 2).
       final glyph = time.symbol == TimeSymbol.cut

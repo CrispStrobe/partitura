@@ -631,7 +631,11 @@ No peer renderer does any of this; all build on the existing pitch / interval
       8th/16th meters group in threes; else one per beat), and the beam engine
       groups notes by them. 6/8, 9/8, 12/8 now beam in threes and 3+2/8 by its
       components (golden 104; golden 85 re-rendered). Simple meters unchanged.
-      **Left:** local per-staff meters, interchangeable/alternating meters.
+      **Interchangeable / alternating meters** — `TimeSignature.alternate` draws
+      a companion signature beside the primary at the start (e.g. 3/4 + 2/4);
+      display-only (capacity/beaming use the primary), round-trips through
+      MusicXML `<interchangeable>`; golden 115.
+      **Left:** local per-staff meters (polymeter — needs the multi-staff engine).
 - [x] **5.8 Custom / atonal key signatures + cancelling-naturals policy.**
       `KeySignature.custom([KeyAccidental(step, alter), …])` — modal/atonal
       signatures the circle of fifths can't express (mixed B♭ + F♯, or a

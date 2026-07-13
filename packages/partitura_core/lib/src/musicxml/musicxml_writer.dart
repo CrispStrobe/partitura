@@ -246,8 +246,14 @@ class _PartWriter {
           TimeSymbol.numeric => '',
         };
         final beatsText = time.components?.join('+') ?? '${time.beats}';
+        final alt = time.alternate;
+        final inter = alt == null
+            ? ''
+            : '<interchangeable>'
+                '<beats>${alt.components?.join('+') ?? alt.beats}</beats>'
+                '<beat-type>${alt.beatUnit}</beat-type></interchangeable>';
         out.writeln('        <time$timeSym><beats>$beatsText</beats>'
-            '<beat-type>${time.beatUnit}</beat-type></time>');
+            '<beat-type>${time.beatUnit}</beat-type>$inter</time>');
       }
       final clef = index == 0 ? score.clef : measure.clefChange;
       if (clef != null) {

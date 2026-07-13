@@ -34,10 +34,18 @@ class TimeSignature {
   /// is their sum.
   final List<int>? components;
 
+  /// An **interchangeable** (alternating) meter's companion signature, drawn
+  /// beside this one at the start (e.g. 3/4 with a 2/4 alternate). Display-only:
+  /// [measureCapacity]/[beamGroups] use this (primary) signature; individual
+  /// measures switch meter through their own change. Null for a plain meter, and
+  /// never itself carries a further [alternate].
+  final TimeSignature? alternate;
+
   /// Creates a time signature of [beats] over [beatUnit], optionally drawn
-  /// with a [symbol] glyph or additive [components].
+  /// with a [symbol] glyph, additive [components], or an interchangeable
+  /// [alternate] companion.
   const TimeSignature(this.beats, this.beatUnit,
-      {this.symbol = TimeSymbol.numeric, this.components})
+      {this.symbol = TimeSymbol.numeric, this.components, this.alternate})
       : assert(beats >= 1, 'beats must be >= 1'),
         assert(
           beatUnit >= 1 && beatUnit <= 16 && (beatUnit & (beatUnit - 1)) == 0,
@@ -107,7 +115,8 @@ class TimeSignature {
       other.beats == beats &&
       other.beatUnit == beatUnit &&
       other.symbol == symbol &&
-      _sameComponents(other.components, components);
+      _sameComponents(other.components, components) &&
+      other.alternate == alternate;
 
   static bool _sameComponents(List<int>? a, List<int>? b) {
     if (a == null || b == null) return a == b;
@@ -119,13 +128,16 @@ class TimeSignature {
   }
 
   @override
-  int get hashCode => Object.hash(
-      beats, beatUnit, symbol, Object.hashAll(components ?? const []));
+  int get hashCode => Object.hash(beats, beatUnit, symbol,
+      Object.hashAll(components ?? const []), alternate);
 
   @override
-  String toString() => switch (symbol) {
-        TimeSymbol.common => 'C',
-        TimeSymbol.cut => 'C|',
-        TimeSymbol.numeric => '${components?.join('+') ?? beats}/$beatUnit',
-      };
+  String toString() {
+    final self = switch (symbol) {
+      TimeSymbol.common => 'C',
+      TimeSymbol.cut => 'C|',
+      TimeSymbol.numeric => '${components?.join('+') ?? beats}/$beatUnit',
+    };
+    return alternate == null ? self : '$self~$alternate';
+  }
 }

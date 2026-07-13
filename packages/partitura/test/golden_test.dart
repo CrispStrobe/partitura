@@ -2121,6 +2121,20 @@ void main() {
     );
   });
 
+  testWidgets('115 interchangeable meter (3/4 + 2/4)', (tester) async {
+    // Both signatures shown at the start; the second bar switches to 2/4.
+    await golden(
+      tester,
+      '115_interchangeable_meter',
+      Score.simple(
+        timeSignature:
+            const TimeSignature(3, 4, alternate: TimeSignature(2, 4)),
+        notes: 'c5:q d5 e5 | !time=2/4 f5:q g5',
+      ),
+      staffSpace: 12,
+    );
+  });
+
   testWidgets('114 baroque ornaments (inverted turn, trilled accidentals)',
       (tester) async {
     NoteElement orn(int step, Ornament o, String id) => NoteElement(
