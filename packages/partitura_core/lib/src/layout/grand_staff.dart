@@ -134,6 +134,8 @@ GrandStaffLayout layoutGrandStaff(
   GrandStaff grandStaff,
   LayoutSettings settings, {
   double staffGap = 4.0,
+  bool drawTimeSignature = true,
+  bool finalBarline = true,
 }) {
   if (grandStaff.upper.measures.length != grandStaff.lower.measures.length) {
     throw ArgumentError(
@@ -143,8 +145,10 @@ GrandStaffLayout layoutGrandStaff(
     );
   }
   const engine = LayoutEngine();
-  final upperNatural = engine.layout(grandStaff.upper, settings);
-  final lowerNatural = engine.layout(grandStaff.lower, settings);
+  final upperNatural = engine.layout(grandStaff.upper, settings,
+      drawTimeSignature: drawTimeSignature);
+  final lowerNatural = engine.layout(grandStaff.lower, settings,
+      drawTimeSignature: drawTimeSignature);
 
   double leadingOf(ScoreLayout layout) => layout.measureRegions.isEmpty
       ? layout.width
@@ -185,6 +189,8 @@ GrandStaffLayout layoutGrandStaff(
     leadingWidth: leading,
     measureWidths: measureWidths,
     deferredStems: deferUpper,
+    drawTimeSignature: drawTimeSignature,
+    finalBarline: finalBarline,
   );
   final lower = engine.layout(
     grandStaff.lower,
@@ -192,6 +198,8 @@ GrandStaffLayout layoutGrandStaff(
     leadingWidth: leading,
     measureWidths: measureWidths,
     deferredStems: deferLower,
+    drawTimeSignature: drawTimeSignature,
+    finalBarline: finalBarline,
   );
 
   final beamPrimitives = _crossStaffBeamPrimitives(

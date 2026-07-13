@@ -7,6 +7,17 @@
   layout painter so the two staves stack `staffGap` apart. Wires up
   `partitura omr … out.png` (via the `render_png` harness' new `PARTITURA_GRAND`
   mode), so an optical-recognition scan renders straight to a two-staff image.
+- **Editor contract C5 — interactive multi-line grand staff** (Workshop APIs):
+  a new `InteractiveGrandStaffView` wraps a two-clef `GrandStaff` into multiple
+  systems that fit the width, with `onElementTap` and `onStaffTap` on both
+  staves (the `StaffTarget` carries `systemIndex` and `staffIndex` — 0 upper,
+  1 lower). Backed by a new core `layoutGrandStaffSystems` (in `multi_system.dart`)
+  that packs measures by the wider of the two staves so barlines align, draws
+  the time signature only on the first system, and braces + barline-connects
+  each system. `layoutGrandStaff` gains `drawTimeSignature`/`finalBarline` flags.
+  Golden `95_grand_staff_wrapped`; `grand_staff_systems_test.dart`,
+  `interactive_grand_staff_view_test.dart`. *Left:* per-system justification and
+  hover/caret/drag (C2/C3) on the grand staff.
 - **Editor contract C3 — drag an existing element** (Workshop APIs):
   `InteractiveStaff` and `MultiSystemView` gain `onElementDragStart(id)`,
   `onElementDragUpdate(id, StaffTarget)` and `onElementDragEnd(id, StaffTarget)`.

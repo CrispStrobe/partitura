@@ -23,9 +23,9 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-11)
 
-> **Actively working on:** Workshop editor contracts — **C1, C2, C3 done**
-> (staff-tap, hover/caret/ghost, drag-move); now **C5** (interactive multi-line
-> grand staff), then C4 (region hit-testing). All additive. Worktree
+> **Actively working on:** Workshop editor contracts — **C1, C2, C3, C5 done**
+> (staff-tap, hover/caret/ghost, drag-move, wrapped interactive grand staff);
+> now **C4** (region hit-testing) — the last one. All additive. Worktree
 > `partitura-public-lacunae`. *(The three deep Score-model lacunae — voices 3–4,
 > non-standard meters/keys, cross-staff beams — are done; microtones landed via
 > the parallel agent.)*
@@ -56,10 +56,13 @@ y-down coords. Priority: **C1+C2 → C3 → C5 → C4**.
 - [ ] **C4 — Range hit-testing / region geometry.** Expose read-only
   `ElementRegion`s (id, bounds, measureIndex) from the computed `ScoreLayout`
   (preferred) and/or `elementIdsIn(Rect)`, for marquee / shift-click ranges.
-- 🚧 **C5 — Interactive multi-line grand staff** *(the big one)* [in progress].
-  `wrap` (multi-system line-breaking) + `onStaffTap` (+ C2/C3 hooks, each
-  carrying a staff index) on `GrandStaffView` — minimum viable — or a unified
-  `InteractiveScoreView`. Ids stay globally unique across staves.
+- [x] **C5 — Interactive multi-line grand staff** *(the big one)*. New
+  `InteractiveGrandStaffView` wraps a two-clef `GrandStaff` into systems
+  (`layoutGrandStaffSystems`, packing by the wider staff so barlines align, time
+  signature on the first system only) with `onElementTap` + `onStaffTap`
+  (`StaffTarget` carries `systemIndex`/`staffIndex`). Golden 95;
+  `grand_staff_systems_test.dart`, `interactive_grand_staff_view_test.dart`.
+  *Left:* per-system justification, and hover/caret/drag on the grand staff.
 - [ ] **C6 — (later) multi-part document model.** First-class multi-part
   document (shared barlines across parts) + multi-part page layout. Deferred;
   C1–C5 unblock the near-term editor.

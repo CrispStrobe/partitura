@@ -1,11 +1,14 @@
 /// Line breaking: wrap a score into systems of a target width.
 library;
 
+import 'dart:math';
+
 import '../model/measure.dart';
 import '../model/score.dart';
 import '../theory/clef.dart';
 import '../theory/key_signature.dart';
 import '../theory/time_signature.dart';
+import 'grand_staff.dart';
 import 'layout_engine.dart';
 import 'layout_settings.dart';
 import 'score_layout.dart';
@@ -171,6 +174,140 @@ MultiSystemLayout layoutSystems(
     start = end + 1;
   }
   return MultiSystemLayout(systems: systems, maxWidth: maxWidth);
+}
+
+/// One system (line) of a wrapped grand staff.
+class GrandStaffSystem {
+  /// The laid-out grand-staff line (upper + lower).
+  final GrandStaffLayout layout;
+
+  /// Index of the first original measure on this system.
+  final int firstMeasure;
+
+  /// Index of the last original measure on this system (inclusive).
+  final int lastMeasure;
+
+  /// Creates a grand-staff system.
+  const GrandStaffSystem({
+    required this.layout,
+    required this.firstMeasure,
+    required this.lastMeasure,
+  });
+}
+
+/// A grand staff broken into systems.
+class GrandStaffSystems {
+  /// The systems, top to bottom.
+  final List<GrandStaffSystem> systems;
+
+  /// The target width in staff spaces.
+  final double maxWidth;
+
+  /// Creates a wrapped grand staff.
+  const GrandStaffSystems({required this.systems, required this.maxWidth});
+
+  /// Total height in staff spaces when systems are stacked [systemGap] spaces
+  /// apart (bounding box to bounding box).
+  double heightWith(double systemGap) {
+    var height = 0.0;
+    for (final system in systems) {
+      height += system.layout.height;
+    }
+    return height + systemGap * (systems.length - 1);
+  }
+}
+
+/// Breaks a two-staff [grandStaff] into systems no wider than [maxWidth] staff
+/// spaces, packing measures by the wider of the two staves so barlines stay
+/// aligned, then laying out each system as its own [layoutGrandStaff] (upper +
+/// lower). The time signature is drawn only on the first system (and at
+/// explicit changes); every non-final system closes with a plain barline.
+///
+/// Cross-staff beams are not carried onto wrapped systems (use a single-system
+/// [layoutGrandStaff] for those). Throws if the staves disagree on measure
+/// count or [maxWidth] is not positive.
+GrandStaffSystems layoutGrandStaffSystems(
+  GrandStaff grandStaff,
+  LayoutSettings settings, {
+  required double maxWidth,
+  double staffGap = 4.0,
+}) {
+  if (maxWidth <= 0) {
+    throw ArgumentError.value(maxWidth, 'maxWidth', 'must be positive');
+  }
+  final upper = grandStaff.upper;
+  final lower = grandStaff.lower;
+  if (upper.measures.length != lower.measures.length) {
+    throw ArgumentError('Grand staff staves must have the same measure count '
+        '(${upper.measures.length} vs ${lower.measures.length})');
+  }
+  const engine = LayoutEngine();
+  final naturalU = engine.layout(upper, settings);
+  final naturalL = engine.layout(lower, settings);
+  final n = upper.measures.length;
+
+  double measureWidth(ScoreLayout layout, int i) =>
+      layout.measureRegions[i].endX - layout.measureRegions[i].startX;
+  final combined = [
+    for (var i = 0; i < n; i++)
+      max(measureWidth(naturalU, i), measureWidth(naturalL, i)),
+  ];
+  double leadingOf(ScoreLayout layout) => layout.measureRegions.isEmpty
+      ? layout.width
+      : layout.measureRegions.first.startX;
+  final leadEstimate = max(leadingOf(naturalU), leadingOf(naturalL));
+
+  final upperState = _stateArrays(upper);
+  final lowerState = _stateArrays(lower);
+
+  final systems = <GrandStaffSystem>[];
+  var start = 0;
+  while (start < n) {
+    var end = start;
+    var used = leadEstimate + combined[start];
+    while (end + 1 < n && used + combined[end + 1] <= maxWidth) {
+      end++;
+      used += combined[end];
+    }
+    final drawTime = start == 0 || upper.measures[start].timeChange != null;
+    final isLast = end == n - 1;
+    final gs = GrandStaff(
+      upper: _slice(
+          upper, start, end, upperState.$1, upperState.$2, upperState.$3),
+      lower: _slice(
+          lower, start, end, lowerState.$1, lowerState.$2, lowerState.$3),
+    );
+    final layout = layoutGrandStaff(
+      gs,
+      settings,
+      staffGap: staffGap,
+      drawTimeSignature: drawTime,
+      finalBarline: isLast,
+    );
+    systems.add(GrandStaffSystem(
+        layout: layout, firstMeasure: start, lastMeasure: end));
+    start = end + 1;
+  }
+  return GrandStaffSystems(systems: systems, maxWidth: maxWidth);
+}
+
+/// The running clef/key/time state at each measure start of [score].
+(List<Clef>, List<KeySignature>, List<TimeSignature?>) _stateArrays(
+    Score score) {
+  final n = score.measures.length;
+  final clefAt = List<Clef>.filled(n + 1, score.clef);
+  final keyAt = List<KeySignature>.filled(n + 1, score.keySignature);
+  final timeAt = List<TimeSignature?>.filled(n + 1, score.timeSignature);
+  for (var i = 0; i < n; i++) {
+    final m = score.measures[i];
+    clefAt[i + 1] = m.clefChange ?? clefAt[i];
+    keyAt[i + 1] = m.keyChange ?? keyAt[i];
+    timeAt[i + 1] = m.timeChange ?? timeAt[i];
+    if (m.clefChange != null) clefAt[i] = clefAt[i + 1];
+    if (m.keyChange != null) keyAt[i] = keyAt[i + 1];
+    if (m.timeChange != null) timeAt[i] = timeAt[i + 1];
+  }
+  return (clefAt, keyAt, timeAt);
 }
 
 /// A sub-score of measures [first]..[last] with the correct starting

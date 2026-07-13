@@ -638,6 +638,47 @@ void main() {
     );
   });
 
+  testWidgets('95 wrapped grand staff', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Colors.white,
+          body: Center(
+            child: RepaintBoundary(
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(12),
+                child: SizedBox(
+                  width: 320,
+                  child: InteractiveGrandStaffView(
+                    staffSpace: 9,
+                    grandStaff: GrandStaff(
+                      upper: Score.simple(
+                        timeSignature: TimeSignature.fourFour,
+                        notes: 'c5:q d5 e5 f5 | g5:q a5 b5 c6 | '
+                            'c6:q b5 a5 g5 | f5:h e5',
+                      ),
+                      lower: Score.simple(
+                        clef: Clef.bass,
+                        timeSignature: TimeSignature.fourFour,
+                        notes: 'c3:h e3 | g3:h c4 | e3:h c3 | g2:h c3',
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await expectLater(
+      find.byType(RepaintBoundary).last,
+      matchesGoldenFile('goldens/95_grand_staff_wrapped.png'),
+    );
+  });
+
   testWidgets('21 unmetered snippet in bass with chords', (tester) async {
     await golden(
       tester,
