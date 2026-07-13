@@ -332,7 +332,11 @@ w:Mar- y had a lit- tle lamb whose fleece was white as snow.
       expect(sys.staves, hasLength(2));
       expect(_pitches(sys.staves[0]),
           ['c0/4', 'd0/4', 'e0/4', 'f0/4', 'g0/4', 'a0/4', 'b0/4', 'c0/5']);
-      expect(_pitches(sys.staves[1]), ['g0/3', 'a0/3', 'b0/3', 'c0/4']);
+      // Voice 2 has one bar to voice 1's two, so it is padded with a
+      // full-measure rest to keep the system aligned.
+      expect(_pitches(sys.staves[1]),
+          ['g0/3', 'a0/3', 'b0/3', 'c0/4', 'rest']);
+      expect(sys.staves[1].measures, hasLength(2));
     });
 
     test('element ids are unique across voices', () {

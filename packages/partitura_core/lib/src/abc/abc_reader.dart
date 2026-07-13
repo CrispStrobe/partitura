@@ -46,12 +46,42 @@ Score scoreFromAbc(String abc) {
 /// (from `V:… clef=…` or the `K:` header) and lyrics; element ids are prefixed
 /// per voice so they stay unique across staves.
 ///
+/// Voices with fewer bars than the longest (an imperfect encoding) are padded
+/// with trailing full-measure rests so the system still aligns and renders
+/// rather than failing.
+///
 /// Throws [FormatException] if no tune body / `K:` field is found.
 StaffSystem staffSystemFromAbc(String abc) {
   final tune = _collectTune(abc);
+  final scores = [for (final id in tune.order) tune.buildScore(id)];
+  var maxBars = 0;
+  for (final score in scores) {
+    if (score.measures.length > maxBars) maxBars = score.measures.length;
+  }
   return StaffSystem([
-    for (final id in tune.order) tune.buildScore(id),
+    for (var i = 0; i < scores.length; i++) _padToBars(scores[i], maxBars, i),
   ]);
+}
+
+/// [score] extended to [bars] measures with trailing full-measure (whole) rests
+/// (ids prefixed for voice [voiceIndex]), or unchanged if already long enough.
+Score _padToBars(Score score, int bars, int voiceIndex) {
+  if (score.measures.length >= bars) return score;
+  final measures = [
+    ...score.measures,
+    for (var p = score.measures.length; p < bars; p++)
+      Measure([RestElement(NoteDuration.whole, id: 'v${voiceIndex}pad$p')]),
+  ];
+  return Score(
+    clef: score.clef,
+    keySignature: score.keySignature,
+    timeSignature: score.timeSignature,
+    measures: measures,
+    annotations: score.annotations,
+    slurs: score.slurs,
+    dynamics: score.dynamics,
+    lyrics: score.lyrics,
+  );
 }
 
 /// Accumulates a tune's shared header (`M`/`L`/`K`) and its per-voice bodies,

@@ -8,6 +8,14 @@
   scale degree in the current key (so the shapes shift with the key signature,
   and its relative minor shares them). An explicit `NoteheadShape` still wins.
   Exposed on the Flutter view as `StaffView.noteheadScheme`. Golden 105.
+- **ABC robustness — unequal voices are padded, not fatal**: a multi-voice ABC
+  tune whose voices have different bar counts (an imperfect encoding) no longer
+  crashes `layoutStaffSystem`; `staffSystemFromAbc` pads the short voices with
+  trailing full-measure rests so the system still aligns and renders. Backed by
+  a new end-to-end `abc_pipeline_test.dart` that drives real tunes through
+  parse → single/multi-staff layout (cross-staff gridding) → MusicXML/MEI/kern
+  round-trips → SVG, and asserts the two hands align at shared beats (including
+  rest-vs-note, accidental-aware and pickup cases).
 - **Reusable OMR library** (CLI): the OMR pipeline (CrispEmbed FFI engine + image
   decode/segmentation + model download + the pure-Dart parsers) is exposed as
   `package:partitura_cli/omr.dart`, so any Dart program — the CLI and Flutter
