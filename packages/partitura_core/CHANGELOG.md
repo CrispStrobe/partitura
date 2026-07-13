@@ -22,6 +22,16 @@
   `barlineSpans`: one `BarlineSpan` (top..bottom y) per barline group, so a
   systemic barline runs continuously within a group and breaks in the gap
   between groups.
+- **Multi-part line-breaking & pagination** (Phase 2.8 / C6, increment 3):
+  `layoutMultiPartSystems` breaks a whole `MultiPartScore` into systems at
+  shared measure boundaries (every system spans the same bars across all parts,
+  driven by the combined per-measure widths so a bar wide in any one part
+  reserves that width in all), justifying every system but the last;
+  `layoutMultiPartPages` packs those systems into `PageMetrics` pages with
+  vertical page-fill, mirroring the single-part `layoutPages`. Justification
+  scales the shared measure widths uniformly, so all parts stretch identically
+  and barlines stay aligned. The single- and multi-part line breakers now share
+  the measure-slicing / running-state helper (`system_break.dart`).
 - **Extended dynamics vocabulary** (Score-model lacuna): `DynamicLevel` gains
   `ppp/pppp/fff/ffff` and the sforzando family (`sf/sfz/sffz/fz/fp/rf`) on top
   of `pp…ff` — each mapped to a real SMuFL glyph (`dynamicPPP`, `dynamicSforzato`,

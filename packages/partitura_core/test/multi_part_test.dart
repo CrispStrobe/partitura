@@ -222,5 +222,158 @@ void main() {
       expect(layout.top, lessThan(0));
       expect(layout.height, greaterThan(27));
     });
+
+    test('justifyToWidth stretches every part to fill and keeps alignment', () {
+      final natural = layoutMultiPartSystem(quartet(), settings);
+      final target = natural.width + 20;
+      final justified =
+          layoutMultiPartSystem(quartet(), settings, justifyToWidth: target);
+      expect(justified.width, closeTo(target, 0.1));
+      // All parts still share the (now wider) total width.
+      for (final p in justified.parts) {
+        expect(p.width, closeTo(justified.width, 1e-6));
+      }
+      // Barlines still align across parts after stretching.
+      final ref = justified.parts.first.measureRegions;
+      for (final p in justified.parts) {
+        for (var i = 0; i < ref.length; i++) {
+          expect(p.measureRegions[i].endX, closeTo(ref[i].endX, 1e-6));
+        }
+      }
+    });
+  });
+
+  // A long single-line-per-part document that must break into several systems.
+  MultiPartScore longDuet() {
+    final bars = List.generate(8, (i) => 'c5:q d5 e5 f5').join(' | ');
+    final low = List.generate(8, (i) => 'c3:q d3 e3 f3').join(' | ');
+    return MultiPartScore([
+      Score.simple(
+          clef: Clef.treble,
+          timeSignature: TimeSignature.fourFour,
+          notes: bars),
+      Score.simple(
+          clef: Clef.bass, timeSignature: TimeSignature.fourFour, notes: low),
+    ], brackets: const [
+      StaffBracket(0, 1)
+    ]);
+  }
+
+  group('layoutMultiPartSystems', () {
+    test('breaks the document into several systems', () {
+      final multi = layoutMultiPartSystems(longDuet(), settings, maxWidth: 60);
+      expect(multi.systems.length, greaterThan(1));
+      expect(multi.maxWidth, 60);
+    });
+
+    test('systems cover every measure once, contiguously, in order', () {
+      final multi = layoutMultiPartSystems(longDuet(), settings, maxWidth: 60);
+      expect(multi.systems.first.firstMeasure, 0);
+      expect(multi.systems.last.lastMeasure, 7);
+      for (var i = 1; i < multi.systems.length; i++) {
+        expect(multi.systems[i].firstMeasure,
+            multi.systems[i - 1].lastMeasure + 1);
+      }
+    });
+
+    test('every system spans the same measure range across all parts', () {
+      final multi = layoutMultiPartSystems(longDuet(), settings, maxWidth: 60);
+      for (final system in multi.systems) {
+        final bars = system.lastMeasure - system.firstMeasure + 1;
+        for (final part in system.parts) {
+          expect(part.measureRegions, hasLength(bars));
+        }
+        // And barlines align within the system.
+        final ref = system.parts.first.measureRegions;
+        for (final part in system.parts) {
+          for (var i = 0; i < ref.length; i++) {
+            expect(part.measureRegions[i].endX, closeTo(ref[i].endX, 1e-6));
+          }
+        }
+      }
+    });
+
+    test('non-final systems are justified to maxWidth; the last is not', () {
+      final multi = layoutMultiPartSystems(longDuet(), settings, maxWidth: 60);
+      for (var i = 0; i < multi.systems.length - 1; i++) {
+        expect(multi.systems[i].width, closeTo(60, 0.5),
+            reason: 'system $i should fill the width');
+      }
+      expect(multi.systems.last.width, lessThanOrEqualTo(60 + 1e-6));
+    });
+
+    test('justify: false leaves systems at their natural width', () {
+      final multi = layoutMultiPartSystems(longDuet(), settings,
+          maxWidth: 60, justify: false);
+      for (final system in multi.systems) {
+        expect(system.width, lessThanOrEqualTo(60 + 1e-6));
+      }
+      // At least one interior system is narrower than the full width.
+      expect(
+          multi.systems.take(multi.systems.length - 1).any((s) => s.width < 59),
+          isTrue);
+    });
+
+    test('a non-positive maxWidth is rejected', () {
+      expect(() => layoutMultiPartSystems(longDuet(), settings, maxWidth: 0),
+          throwsArgumentError);
+    });
+
+    test('parts must agree on measure count', () {
+      final bad = MultiPartScore([
+        Score.simple(notes: 'c4:q d4 e4 f4'),
+        Score.simple(notes: 'c4:w | d4:w'),
+      ]);
+      expect(() => layoutMultiPartSystems(bad, settings, maxWidth: 60),
+          throwsArgumentError);
+    });
+  });
+
+  group('layoutMultiPartPages', () {
+    test('paginates the systems into pages of the given box', () {
+      final paged = layoutMultiPartPages(longDuet(), settings,
+          metrics: const PageMetrics(width: 70, height: 40), systemGap: 6);
+      expect(paged.pages, isNotEmpty);
+      expect(paged.systemWidth, closeTo(70 - 16, 1e-9)); // width - 2*8 margins
+      // No page overflows the content height.
+      for (final page in paged.pages) {
+        final content = page.systems.isEmpty
+            ? 0.0
+            : page.systems.last.top + page.systems.last.system.height;
+        expect(content, lessThanOrEqualTo(40 - 16 + 1e-6));
+      }
+    });
+
+    test('every system lands on exactly one page, in order', () {
+      final metrics = const PageMetrics(width: 70, height: 40);
+      final multi = layoutMultiPartSystems(longDuet(), settings,
+          maxWidth: metrics.contentWidth);
+      final paged =
+          layoutMultiPartPages(longDuet(), settings, metrics: metrics);
+      final placed = [
+        for (final page in paged.pages)
+          for (final s in page.systems) s.system.firstMeasure,
+      ];
+      expect(placed, [for (final s in multi.systems) s.firstMeasure]);
+    });
+
+    test('a taller-than-page system still gets its own page', () {
+      // A tall four-part system into a short page: one system per page, never
+      // dropped.
+      final paged = layoutMultiPartPages(
+        MultiPartScore([
+          Score.simple(clef: Clef.treble, notes: 'c5:w | d5:w'),
+          Score.simple(clef: Clef.treble, notes: 'g4:w | a4:w'),
+          Score.simple(clef: Clef.bass, notes: 'c3:w | d3:w'),
+          Score.simple(clef: Clef.bass, notes: 'c2:w | d2:w'),
+        ]),
+        settings,
+        metrics: const PageMetrics(width: 80, height: 20),
+      );
+      expect(paged.pages, isNotEmpty);
+      for (final page in paged.pages) {
+        expect(page.systems, isNotEmpty);
+      }
+    });
   });
 }
