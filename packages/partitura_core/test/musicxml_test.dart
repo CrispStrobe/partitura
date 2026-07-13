@@ -393,6 +393,27 @@ void main() {
       expect(back.jazzMarks, score.jazzMarks);
     });
 
+    test('extended trills round-trip through MusicXML', () {
+      final base = Score.simple(notes: 'c5:h d5:h');
+      final score = Score(
+        clef: base.clef,
+        measures: base.measures,
+        trillExtensions: const [TrillExtension('e0', 'e1')],
+      );
+      final xml = scoreToMusicXml(score);
+      expect(xml, contains('<wavy-line type="start"'));
+      expect(xml, contains('<wavy-line type="stop"'));
+      final back = scoreFromMusicXml(xml);
+      expect(back.trillExtensions, score.trillExtensions);
+      // The wavy-line does not also leave a redundant single-note trill.
+      expect(
+          back.measures
+              .expand((m) => m.elements)
+              .whereType<NoteElement>()
+              .every((n) => n.ornament == null),
+          isTrue);
+    });
+
     test('laissez-vibrer ties round-trip through MusicXML', () {
       final base = Score.simple(notes: 'c4:q d4 e4 f4');
       final score = Score(

@@ -371,6 +371,7 @@ class _LayoutBuilder {
     _layoutSlurs();
     _layoutGlissandos();
     _layoutOttavas();
+    _layoutTrillExtensions();
     _layoutDynamics();
     _layoutPedals();
     _layoutLyrics();
@@ -2000,6 +2001,49 @@ class _LayoutBuilder {
         0.12,
       );
       _ink.expand(left, y - 0.8, right, y + 0.8);
+    }
+  }
+
+  /// Extended trills: a `tr` glyph over the start note, then a run of
+  /// `wiggleTrill` segments to the end of the span, above the staff ink.
+  void _layoutTrillExtensions() {
+    if (score.trillExtensions.isEmpty) return;
+    final infoOf = <String, _TieInfo>{
+      for (final info in _tieInfos)
+        if (info.id != null) info.id!: info,
+    };
+    final trWidth = _glyphWidth(SmuflGlyph.ornamentTrill);
+    final wiggleWidth = _glyphWidth(SmuflGlyph.wiggleTrill);
+    for (final trill in score.trillExtensions) {
+      final start = infoOf[trill.startId];
+      final end = infoOf[trill.endId];
+      if (start == null || end == null) {
+        throw ArgumentError('$trill references an unknown note element id');
+      }
+      final left = start.left;
+      // Run the wavy line to the end of the trilled note's duration — the
+      // onset (left edge) of the next note after the span, or its own right
+      // edge if it is the last note.
+      var right = end.right;
+      final endIdx = _tieInfos.indexOf(end);
+      for (var j = endIdx + 1; j < _tieInfos.length; j++) {
+        if (_tieInfos[j].left > end.right) {
+          right = _tieInfos[j].left - 0.4;
+          break;
+        }
+      }
+      final top = _skylineTop(left, right) ?? 0.0;
+      final y = min(-1.2, top - 0.6);
+      // The `tr` sits over the start note; its baseline is ~0.7 below the top.
+      _addGlyph(SmuflGlyph.ornamentTrill, left, y + 0.9,
+          elementId: trill.startId);
+      // Wavy line from after the `tr` to the span end, tiling wiggle segments.
+      var x = left + trWidth + 0.1;
+      while (x + wiggleWidth <= right + 0.05) {
+        _addGlyph(SmuflGlyph.wiggleTrill, x, y + 0.6, elementId: trill.startId);
+        x += wiggleWidth;
+      }
+      _ink.expand(left, y - 0.2, right, y + 1.0);
     }
   }
 

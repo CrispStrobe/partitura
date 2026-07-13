@@ -595,8 +595,11 @@ No peer renderer does any of this; all build on the existing pitch / interval
       `PalmMute`/`LetRing` spans draw a "P.M."/"let ring" label + dashed bracket
       above the staff, and `Vibrato` a wavy line, on the notation engine too (not
       just tab); golden 103.
-      **Left:** custom-span barlines across staves; trill extension
-      line + baroque variants; portamento; system dividers.
+      **Extended trills** — `TrillExtension(startId, endId)` draws a `tr` + a
+      wavy line (tiled `wiggleTrill` segments) running to the end of the trilled
+      note's duration; round-trips through MusicXML `<wavy-line>` (golden 108).
+      **Left:** custom-span barlines across staves; baroque trill variants;
+      portamento; system dividers.
 - [~] **5.7 Time-signature breadth** — **Done:** common/cut symbols
       (`TimeSymbol`, `TimeSignature.commonTime`/`cutTime` → the C / ¢ glyphs;
       golden 82) and **additive/composite meters** (`TimeSignature.additive`

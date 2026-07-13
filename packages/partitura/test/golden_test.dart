@@ -2015,6 +2015,21 @@ void main() {
     );
   });
 
+  testWidgets('108 extended trill (tr + wavy line)', (tester) async {
+    // A trill whose wavy line runs across three notes to the final one.
+    await golden(
+      tester,
+      '108_trill_extension',
+      Score(
+        clef: Clef.treble,
+        timeSignature: TimeSignature.fourFour,
+        measures: Score.simple(notes: 'c5:q d5 e5 f5').measures,
+        trillExtensions: const [TrillExtension('e0', 'e2')],
+      ),
+      staffSpace: 12,
+    );
+  });
+
   testWidgets('106 Aikin seven-shape noteheads', (tester) async {
     // do re mi fa sol la ti do — a distinct shape per scale degree.
     await golden(

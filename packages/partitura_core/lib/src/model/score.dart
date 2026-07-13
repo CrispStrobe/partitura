@@ -54,6 +54,9 @@ class Score {
   /// notes draw an octave off their sounding pitch.
   final List<Ottava> ottavas;
 
+  /// Extended trills — a `tr` + wavy line spanning a note (or run of notes).
+  final List<TrillExtension> trillExtensions;
+
   /// Glissando/slide lines between note elements (model-only).
   final List<Glissando> glissandos;
 
@@ -151,6 +154,7 @@ class Score {
     this.annotations = const [],
     this.chordSymbols = const [],
     this.ottavas = const [],
+    this.trillExtensions = const [],
     this.glissandos = const [],
     this.pedals = const [],
     this.featheredBeams = const [],
@@ -705,6 +709,7 @@ class Score {
               bass: c.bass == null ? null : move(c.bass!)),
       ],
       ottavas: ottavas,
+      trillExtensions: trillExtensions,
       glissandos: glissandos,
       pedals: pedals,
       featheredBeams: featheredBeams,
@@ -811,6 +816,7 @@ class Score {
       listEquals(other.annotations, annotations) &&
       listEquals(other.chordSymbols, chordSymbols) &&
       listEquals(other.ottavas, ottavas) &&
+      listEquals(other.trillExtensions, trillExtensions) &&
       listEquals(other.glissandos, glissandos) &&
       listEquals(other.pedals, pedals) &&
       listEquals(other.featheredBeams, featheredBeams) &&
@@ -875,6 +881,7 @@ class Score {
           Object.hashAll(figuredBass),
           Object.hashAll(breathMarks),
           Object.hashAll(laissezVibrer),
+          Object.hashAll(trillExtensions),
           transposition,
           metadata,
           tempo,

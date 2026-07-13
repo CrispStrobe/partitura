@@ -186,6 +186,14 @@ class _PartWriter {
     for (var i = 0; i < score.glissandos.length; i++)
       score.glissandos[i].startId: '${i % 6 + 1}',
   };
+  late final Map<String, String> _trillStartsById = {
+    for (var i = 0; i < score.trillExtensions.length; i++)
+      score.trillExtensions[i].startId: '${i % 6 + 1}',
+  };
+  late final Map<String, String> _trillStopsById = {
+    for (var i = 0; i < score.trillExtensions.length; i++)
+      score.trillExtensions[i].endId: '${i % 6 + 1}',
+  };
   late final Map<String, String> _glissStopsById = {
     for (var i = 0; i < score.glissandos.length; i++)
       score.glissandos[i].endId: '${i % 6 + 1}',
@@ -568,8 +576,20 @@ class _PartWriter {
     final tremoloTag = element.tremolo == null
         ? ''
         : '<tremolo type="single">${element.tremolo}</tremolo>';
-    if (ornamentTag.isNotEmpty || tremoloTag.isNotEmpty) {
-      parts.add('<ornaments>$ornamentTag$tremoloTag</ornaments>');
+    // Extended-trill wavy lines (a trill-mark + wavy-line start on the first
+    // note, a wavy-line stop on the last).
+    final wavyTag = StringBuffer();
+    final wavyStart = id == null ? null : _trillStartsById[id];
+    if (wavyStart != null) {
+      if (ornamentTag.isEmpty) wavyTag.write('<trill-mark/>');
+      wavyTag.write('<wavy-line type="start" number="$wavyStart"/>');
+    }
+    final wavyStop = id == null ? null : _trillStopsById[id];
+    if (wavyStop != null) {
+      wavyTag.write('<wavy-line type="stop" number="$wavyStop"/>');
+    }
+    if (ornamentTag.isNotEmpty || tremoloTag.isNotEmpty || wavyTag.isNotEmpty) {
+      parts.add('<ornaments>$ornamentTag$tremoloTag$wavyTag</ornaments>');
     }
     final jazz = id == null ? null : _jazzById[id];
     final marks = <String>[

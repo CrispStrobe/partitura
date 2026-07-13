@@ -136,6 +136,7 @@ const Map<String, String> smuflCodepoints = {
   'gClef8vb': '\uE052',
   'fClef8vb': '\uE064',
   'ornamentTrill': '\uE566',
+  'wiggleTrill': '\uEAA4',
   'ornamentTurn': '\uE567',
   'ornamentShortTrill': '\uE56C',
   'ornamentMordent': '\uE56D',

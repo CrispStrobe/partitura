@@ -1394,3 +1394,30 @@ class Ottava {
   @override
   String toString() => 'Ottava($startId -> $endId, ${down ? '8vb' : '8va'})';
 }
+
+/// An extended trill: a `tr` above [startId] followed by a wavy line running to
+/// the end of [endId] (a single note if [startId] == [endId]). Drawn above the
+/// staff. Use this instead of `Ornament.trill` when the trill should show its
+/// duration with a wiggle line.
+class TrillExtension {
+  /// Id of the note the trill starts on.
+  final String startId;
+
+  /// Id of the last note the wavy line reaches (inclusive).
+  final String endId;
+
+  /// Creates an extended-trill span from [startId] to [endId].
+  const TrillExtension(this.startId, this.endId);
+
+  @override
+  bool operator ==(Object other) =>
+      other is TrillExtension &&
+      other.startId == startId &&
+      other.endId == endId;
+
+  @override
+  int get hashCode => Object.hash(startId, endId);
+
+  @override
+  String toString() => 'TrillExtension($startId -> $endId)';
+}

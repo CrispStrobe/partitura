@@ -250,6 +250,7 @@ class _PartReader {
   final _measures = <Measure>[];
   final _slurs = <Slur>[];
   final _glissandos = <Glissando>[];
+  final _trillExtensions = <TrillExtension>[];
   final _pedals = <Pedal>[];
   final _dynamics = <DynamicMarking>[];
   final _hairpins = <Hairpin>[];
@@ -264,6 +265,7 @@ class _PartReader {
   // Open spans keyed by MusicXML "number" attribute.
   final _openSlurs = <String, String>{};
   final _openGliss = <String, String>{};
+  final _openTrills = <String, String>{};
   final _openPedals = <String, String>{};
   final _openWedges = <String, (String, HairpinType)>{};
   final _openOttavas = <String, (String, bool)>{};
@@ -289,6 +291,7 @@ class _PartReader {
       chordSymbols: _chordSymbols,
       ottavas: _ottavas,
       glissandos: _glissandos,
+      trillExtensions: _trillExtensions,
       pedals: _pedals,
       jazzMarks: _jazzMarks,
       figuredBass: _figuredBass,
@@ -911,9 +914,12 @@ class _PartReader {
     for (final notations in _notations(note)) {
       final ornaments = notations.child('ornaments');
       if (ornaments == null) continue;
+      // A trill-mark paired with a wavy-line is an extended trill (handled as a
+      // TrillExtension span), so it is not also a single-note trill ornament.
+      final hasWavy = ornaments.childrenNamed('wavy-line').isNotEmpty;
       for (final mark in ornaments.children) {
         final ornament = switch (mark.name) {
-          'trill-mark' => Ornament.trill,
+          'trill-mark' => hasWavy ? null : Ornament.trill,
           'inverted-mordent' => Ornament.shortTrill,
           'mordent' => Ornament.mordent,
           'turn' => Ornament.turn,
@@ -945,6 +951,21 @@ class _PartReader {
           case 'stop':
             final start = _openGliss.remove(number);
             if (start != null) _glissandos.add(Glissando(start, id));
+        }
+      }
+      // Extended-trill wavy lines live inside <ornaments>.
+      for (final ornaments in notations.childrenNamed('ornaments')) {
+        for (final wavy in ornaments.childrenNamed('wavy-line')) {
+          final number = wavy.attributes['number'] ?? '1';
+          switch (wavy.attributes['type']) {
+            case 'start':
+              _openTrills[number] = id;
+            case 'stop':
+              final start = _openTrills.remove(number);
+              if (start != null) {
+                _trillExtensions.add(TrillExtension(start, id));
+              }
+          }
         }
       }
     }

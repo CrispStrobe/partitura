@@ -658,6 +658,27 @@ void main() {
     });
   });
 
+  group('trill extension', () {
+    test('draws a tr glyph and a run of wiggle segments above the staff', () {
+      final base = Score.simple(notes: 'c5:h d5:h');
+      final layout = layoutOf(Score(
+        clef: base.clef,
+        measures: base.measures,
+        trillExtensions: const [TrillExtension('e0', 'e1')],
+      ));
+      final glyphs = layout.primitives
+          .whereType<GlyphPrimitive>()
+          .where((g) => g.position.y < 0)
+          .toList();
+      expect(
+          glyphs.map((g) => g.smuflName), contains(SmuflGlyph.ornamentTrill));
+      final wiggles =
+          glyphs.where((g) => g.smuflName == SmuflGlyph.wiggleTrill).toList();
+      // The wavy line tiles several segments across the span.
+      expect(wiggles.length, greaterThanOrEqualTo(2));
+    });
+  });
+
   group('palm mute / let ring / vibrato on the notation staff', () {
     test('palm mute and let ring draw labelled brackets above the staff', () {
       final base = Score.simple(notes: 'c5:q d5 e5 f5');

@@ -277,6 +277,9 @@ abstract final class SmuflGlyph {
   /// Trill ornament.
   static const String ornamentTrill = 'ornamentTrill';
 
+  /// One trill-line wiggle segment, repeated to extend a trill.
+  static const String wiggleTrill = 'wiggleTrill';
+
   /// Turn ornament.
   static const String ornamentTurn = 'ornamentTurn';
 

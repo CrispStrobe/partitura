@@ -9,6 +9,11 @@
   slash through the grace digit; an appoggiatura omits it. Multiple graces stack
   in reading order. `tab_layout_test.dart` asserts the small digit, the arc, and
   the slash-vs-no-slash distinction; golden 107.
+- **Extended trills** (Phase 5.6): `TrillExtension(startId, endId)` draws a `tr`
+  glyph over the start note followed by a wavy line (tiled `wiggleTrill`
+  segments) running to the end of the trilled note's duration. Round-trips
+  through MusicXML `<wavy-line>` (a paired trill-mark on read is folded into the
+  span, not a redundant single-note trill). Golden 108.
 - **Shape-note noteheads** (Phase 5.1): `LayoutSettings.noteheadScheme` draws
   shape noteheads chosen per pitch by its movable-do scale degree in the current
   key — `NoteheadScheme.sacredHarp` (four-shape: fa = triangle, sol = round,
