@@ -23,12 +23,13 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-13)
 
-> 🚧 **Actively working on (Phase 3.1):** Cursor-synced instrument visualizers —
-> increment 1, the **piano-keyboard** view (`PianoKeyboardView`: highlights the
-> sounding MIDI pitches, optional per-pitch/hand colors) + a `pitchesForElements`
-> helper mapping cursor element ids → MIDI. Increment 2 will add the guitar
-> fretboard. Rides the existing no-audio timing map (`playbackTimeline`); app
-> drives, partitura renders. Worktree `partitura-public-lacunae`.
+> ✅ **Phase 3.1 done (this worktree, no active claim):** cursor-synced
+> instrument visualizers — `PianoKeyboardView` (golden 119) + `FretboardView`
+> (golden 120), driven from the cursor via core `pitchesForElements(score, ids)`.
+> **Next up for whoever takes `partitura-public-lacunae`:** 3.7 played-vs-expected
+> MIDI highlighting (quick win over `errorOverlay`), 3.9 accessibility
+> `Semantics`, 3.5 warped-time cursor, 3.6 live-transposition UI, or the 3.8
+> `toggle-part`/`set-visualizer` tail (the latter can reuse these visualizers).
 >
 > *(Done and on `main`: editor moat 3.3/3.4/3.8 + `ScoreEditorController`; the
 > full **Workshop contract set C1–C9**; the **v0.4.0 release** with CLI + Android
@@ -475,12 +476,13 @@ Raises the quality of everything already rendered. Slice order:
 
 ### Phase 3 — Interactivity  *(the moat — where partitura wins)*
 Rides the existing cursor + selection; no audio needed.
-- 🚧 **3.1 Cursor-synced instrument visualizers** — a piano keyboard (L/R
-      hand) and a guitar fretboard that light up as the playback cursor
-      advances. The single highest-differentiation feature; pairs directly
-      with the no-audio timing map. *In progress: increment 1 =
-      `PianoKeyboardView` + `pitchesForElements` id→MIDI helper; increment 2 =
-      fretboard.*
+- [x] **3.1 Cursor-synced instrument visualizers** — `PianoKeyboardView` (keys
+      light up; per-pitch/hand colors; golden 119) and `FretboardView` (guitar /
+      bass, `tuning` low→high; lights every fret position sounding a pitch, open
+      strings ringed, inlays; golden 120), driven from the cursor via core's
+      `pitchesForElements(score, ids)` → sounding MIDI. App drives, partitura
+      renders. `piano_keyboard_view_test.dart`, `fretboard_view_test.dart`,
+      `playback_test.dart`.
 - [x] **3.2 Note-name & rhythm-count overlays** — the note-name overlay
       (`showNoteNames`; pitch letter + accidental under each note, chords
       stacked; golden 73) and the rhythm-count overlay (`showBeatNumbers`; beat

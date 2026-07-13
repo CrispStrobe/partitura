@@ -2585,4 +2585,33 @@ void main() {
       matchesGoldenFile('goldens/119_piano_keyboard.png'),
     );
   });
+
+  testWidgets('120 fretboard visualizer (open E-major chord)', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Colors.white,
+          body: Center(
+            child: RepaintBoundary(
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(12),
+                child: const FretboardView(
+                  frets: 12,
+                  // An open E-major chord — its pitches light every fretboard
+                  // position that sounds them (open strings ringed).
+                  highlightedPitches: {40, 47, 52, 56, 59, 64},
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await expectLater(
+      find.byType(RepaintBoundary).last,
+      matchesGoldenFile('goldens/120_fretboard.png'),
+    );
+  });
 }

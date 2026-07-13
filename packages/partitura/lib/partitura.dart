@@ -16,6 +16,7 @@ export 'src/interaction/score_editor_controller.dart';
 export 'src/interaction/staff_target.dart';
 export 'src/rendering/bravura.dart';
 export 'src/rendering/font_licenses.dart' show registerBundledFontLicenses;
+export 'src/rendering/fretboard_view.dart';
 export 'src/rendering/grand_staff_view.dart';
 export 'src/rendering/interactive_grand_staff_view.dart';
 export 'src/rendering/multi_system_view.dart';
