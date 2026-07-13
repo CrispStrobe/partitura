@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
@@ -42,6 +43,11 @@ class MultiSystemView extends LeafRenderObjectWidget {
   /// Ids of elements to paint in [PartituraTheme.highlightColor].
   final Set<String> highlightedIds;
 
+  /// Per-element ink colors (id → color) — e.g. green/red for correct/wrong
+  /// notes. A highlight in [highlightedIds] still wins over these and
+  /// [PartituraTheme.elementColors].
+  final Map<String, Color> elementColors;
+
   /// Called with the element id when the user taps an element on any
   /// system.
   final void Function(String elementId)? onElementTap;
@@ -55,6 +61,7 @@ class MultiSystemView extends LeafRenderObjectWidget {
     this.systemGap = 4.0,
     this.justify = true,
     this.highlightedIds = const {},
+    this.elementColors = const {},
     this.onElementTap,
   });
 
@@ -67,6 +74,7 @@ class MultiSystemView extends LeafRenderObjectWidget {
         systemGap: systemGap,
         justify: justify,
         highlightedIds: highlightedIds,
+        elementColors: elementColors,
       )..onElementTap = onElementTap;
 
   @override
@@ -81,6 +89,7 @@ class MultiSystemView extends LeafRenderObjectWidget {
       ..systemGap = systemGap
       ..justify = justify
       ..highlightedIds = highlightedIds
+      ..elementColors = elementColors
       ..onElementTap = onElementTap;
   }
 }
@@ -95,12 +104,14 @@ class RenderMultiSystemView extends RenderBox {
     required double systemGap,
     required bool justify,
     required Set<String> highlightedIds,
+    Map<String, Color> elementColors = const {},
   })  : _score = score,
         _theme = theme,
         _staffSpace = staffSpace,
         _systemGap = systemGap,
         _justify = justify,
-        _highlightedIds = highlightedIds {
+        _highlightedIds = highlightedIds,
+        _elementColors = elementColors {
     _tap = TapGestureRecognizer(debugOwner: this)..onTapUp = _handleTapUp;
   }
 
@@ -111,6 +122,7 @@ class RenderMultiSystemView extends RenderBox {
     theme: _theme,
     scale: _staffSpace,
     highlightedIds: _highlightedIds,
+    elementColors: _elementColors,
   );
 
   /// Called with the element id when the user taps an element.
@@ -186,6 +198,17 @@ class RenderMultiSystemView extends RenderBox {
     }
     _highlightedIds = value;
     _painter.highlightedIds = value;
+    markNeedsPaint();
+  }
+
+  Map<String, Color> _elementColors;
+
+  /// Per-element ink colors. Repaint only — no relayout.
+  Map<String, Color> get elementColors => _elementColors;
+  set elementColors(Map<String, Color> value) {
+    if (mapEquals(value, _elementColors)) return;
+    _elementColors = value;
+    _painter.elementColors = value;
     markNeedsPaint();
   }
 
