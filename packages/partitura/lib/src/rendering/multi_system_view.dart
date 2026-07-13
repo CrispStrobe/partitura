@@ -496,6 +496,49 @@ class RenderMultiSystemView extends RenderBox
     );
   }
 
+  /// Read-only hit regions of every element with an id, in **local pixel**
+  /// coordinates, each tagged with the global `measureIndex` it sits in —
+  /// for app-side marquee / shift-click range selection and custom overlays.
+  List<({String id, Rect bounds, int measureIndex})> get elementRegions {
+    final layout = _layout;
+    if (layout == null) return const [];
+    final out = <({String id, Rect bounds, int measureIndex})>[];
+    for (var i = 0; i < layout.systems.length; i++) {
+      final origin = originOfSystem(i);
+      final system = layout.systems[i];
+      for (final region in system.layout.regions) {
+        final b = region.bounds;
+        final centerX = b.left + b.width / 2;
+        var localMeasure = 0;
+        for (final m in system.layout.measureRegions) {
+          if (m.startX <= centerX) {
+            localMeasure = m.index;
+          } else {
+            break;
+          }
+        }
+        out.add((
+          id: region.elementId,
+          bounds: Rect.fromLTWH(
+            origin.dx + b.left * _staffSpace,
+            origin.dy + b.top * _staffSpace,
+            b.width * _staffSpace,
+            b.height * _staffSpace,
+          ),
+          measureIndex: system.firstMeasure + localMeasure,
+        ));
+      }
+    }
+    return out;
+  }
+
+  /// The ids of every element whose hit region intersects [localRect] (local
+  /// pixel coordinates) — a marquee selection.
+  List<String> elementIdsIn(Rect localRect) => [
+        for (final region in elementRegions)
+          if (region.bounds.overlaps(localRect)) region.id,
+      ];
+
   // ------------------------------------------------------------------ input
 
   @override

@@ -116,4 +116,20 @@ void main() {
     expect(low.staffPosition, 4);
     expect(low.measureIndex, systems.systems[last].firstMeasure);
   });
+
+  testWidgets('elementRegions cover both staves with local geometry',
+      (tester) async {
+    await tester.pumpWidget(
+      wrap(InteractiveGrandStaffView(
+          grandStaff: eightBarPiano(), staffSpace: 10)),
+    );
+    final render = renderOf(tester);
+    final regions = render.elementRegions;
+    expect(regions, isNotEmpty);
+    // Both staves contribute (their notes both start at id 'e0').
+    expect(regions.where((r) => r.id == 'e0').length, greaterThanOrEqualTo(2));
+    // A marquee over an element's own bounds selects it.
+    final any = regions.first;
+    expect(render.elementIdsIn(any.bounds), contains(any.id));
+  });
 }

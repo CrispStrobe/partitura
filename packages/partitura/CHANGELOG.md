@@ -2,6 +2,13 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Editor contract C4 — range hit-testing / region geometry** (Workshop APIs):
+  `RenderStaffView`, `RenderMultiSystemView` and `RenderInteractiveGrandStaffView`
+  expose read-only `elementRegions` (each `(id, Rect bounds, measureIndex)` in
+  local pixel coordinates, resolved across systems / both staves) and
+  `elementIdsIn(Rect)` — for app-side marquee / shift-click range selection and
+  custom overlays. `multi_system_view_test.dart`,
+  `interactive_grand_staff_view_test.dart`.
 - **Grand-staff PNG** (`renderGrandStaffLayoutToPng`): rasterizes a two-staff
   `GrandStaffLayout` to PNG — the raster twin of `grandStaffToSvg`, sharing the
   layout painter so the two staves stack `staffGap` apart. Wires up

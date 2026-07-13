@@ -348,6 +348,32 @@ void main() {
     expect(starts, isEmpty);
   });
 
+  testWidgets('elementRegions and elementIdsIn expose local geometry',
+      (tester) async {
+    await tester.pumpWidget(
+      wrap(MultiSystemView(score: eightMeasures(), staffSpace: 10)),
+    );
+    final render = renderOf(tester);
+    final regions = render.elementRegions;
+    expect(regions, isNotEmpty);
+
+    // The first note sits in measure 0, and its local bounds hit-test back to it.
+    final e0 = regions.firstWhere((r) => r.id == 'e0');
+    expect(e0.measureIndex, 0);
+    expect(render.elementIdAt(e0.bounds.center), 'e0');
+
+    // A marquee over its bounds selects it; a far-away rect selects nothing.
+    expect(render.elementIdsIn(e0.bounds), contains('e0'));
+    expect(render.elementIdsIn(const Rect.fromLTWH(-500, -500, 2, 2)), isEmpty);
+
+    // The first element of the last system carries the right global measure.
+    final layout = render.multiSystemLayout!;
+    final last = layout.systems.length - 1;
+    final firstOfLast = 'e${layout.systems[last].firstMeasure * 4}';
+    final rl = regions.firstWhere((r) => r.id == firstOfLast);
+    expect(rl.measureIndex, layout.systems[last].firstMeasure);
+  });
+
   testWidgets('highlight changes never relayout', (tester) async {
     Widget build(Set<String> highlights) => wrap(MultiSystemView(
           score: eightMeasures(),

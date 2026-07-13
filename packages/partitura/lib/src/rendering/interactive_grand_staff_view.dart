@@ -347,6 +347,54 @@ class RenderInteractiveGrandStaffView extends RenderBox {
     return null;
   }
 
+  /// Read-only hit regions of every element with an id, on either staff of any
+  /// system, in **local pixel** coordinates, tagged with the global
+  /// `measureIndex` — for app-side marquee / range selection.
+  List<({String id, Rect bounds, int measureIndex})> get elementRegions {
+    final systems = _systems;
+    if (systems == null) return const [];
+    final out = <({String id, Rect bounds, int measureIndex})>[];
+    for (var i = 0; i < systems.systems.length; i++) {
+      final system = systems.systems[i];
+      for (final entry in [
+        (system.layout.upper, upperOrigin(i)),
+        (system.layout.lower, lowerOrigin(i)),
+      ]) {
+        final staff = entry.$1;
+        final origin = entry.$2;
+        for (final region in staff.regions) {
+          final b = region.bounds;
+          final centerX = b.left + b.width / 2;
+          var localMeasure = 0;
+          for (final m in staff.measureRegions) {
+            if (m.startX <= centerX) {
+              localMeasure = m.index;
+            } else {
+              break;
+            }
+          }
+          out.add((
+            id: region.elementId,
+            bounds: Rect.fromLTWH(
+              origin.dx + b.left * _staffSpace,
+              origin.dy + b.top * _staffSpace,
+              b.width * _staffSpace,
+              b.height * _staffSpace,
+            ),
+            measureIndex: system.firstMeasure + localMeasure,
+          ));
+        }
+      }
+    }
+    return out;
+  }
+
+  /// The ids of every element whose hit region intersects [localRect].
+  List<String> elementIdsIn(Rect localRect) => [
+        for (final region in elementRegions)
+          if (region.bounds.overlaps(localRect)) region.id,
+      ];
+
   /// The empty-staff location under [local]: the nearest system, then the
   /// nearer of its two staves, quantized to the nearest line/space.
   StaffTarget? resolveStaffTarget(Offset local) {

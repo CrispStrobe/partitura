@@ -376,6 +376,36 @@ class RenderStaffView extends RenderBox {
     return bestId;
   }
 
+  /// Read-only hit regions of every element with an id, in **local pixel**
+  /// coordinates, each tagged with the `measureIndex` it sits in — for
+  /// app-side marquee / range selection and custom overlays.
+  List<({String id, Rect bounds, int measureIndex})> get elementRegions {
+    final layout = _layout;
+    if (layout == null) return const [];
+    return [
+      for (final region in layout.regions)
+        (
+          id: region.elementId,
+          bounds: () {
+            final b = region.bounds;
+            final topLeft = staffToLocal(math.Point(b.left, b.top));
+            return Rect.fromLTWH(
+                topLeft.dx, topLeft.dy, b.width * _scale, b.height * _scale);
+          }(),
+          measureIndex: quantizeStaffPosition(staffToLocal(
+                  math.Point(region.bounds.left + region.bounds.width / 2, 2)))
+              .$2,
+        ),
+    ];
+  }
+
+  /// The ids of every element whose hit region intersects [localRect] (local
+  /// pixel coordinates) — a marquee selection.
+  List<String> elementIdsIn(Rect localRect) => [
+        for (final region in elementRegions)
+          if (region.bounds.overlaps(localRect)) region.id,
+      ];
+
   /// Quantizes [local] to the nearest staff position (line or space,
   /// including the ledger range) and the measure index under the tap.
   (int staffPosition, int measureIndex) quantizeStaffPosition(Offset local) {
