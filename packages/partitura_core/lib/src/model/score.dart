@@ -1039,6 +1039,14 @@ class Tempo {
   const Tempo(this.bpm, {this.beatUnit = DurationBase.quarter, this.dots = 0})
       : assert(dots >= 0 && dots <= 2, 'dots must be 0..2');
 
+  /// This mark expressed in **quarter notes per minute** (normalizing the
+  /// [beatUnit] and [dots]) — the convention `secondsFor` / `TempoMap` use. So
+  /// a quarter at 120 → 120, a dotted-quarter at 80 → 120, a half at 60 → 120.
+  double get quarterBpm {
+    final beat = NoteDuration(beatUnit, dots: dots).toFraction();
+    return bpm * beat.numerator / beat.denominator * 4;
+  }
+
   @override
   bool operator ==(Object other) =>
       other is Tempo &&

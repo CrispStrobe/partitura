@@ -48,6 +48,7 @@ export 'src/omr/lilynotes.dart';
 export 'src/omr/omr.dart';
 export 'src/omr/semantic.dart';
 export 'src/playback/playback_timeline.dart';
+export 'src/playback/tempo_map.dart';
 export 'src/smufl/glyph_names.dart';
 export 'src/smufl/smufl_codepoints.dart';
 export 'src/smufl/smufl_metadata.dart';

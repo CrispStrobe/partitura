@@ -29,16 +29,13 @@ ships* at the end for the mechanics.
 > remapping the brackets to the visible subset. Self-contained; core + view +
 > golden. Worktree `partitura-tab`, branch `feat/hide-empty-staves`.
 
-> 🚧 **Actively working on (Phase 3.5 — warped-time cursor):** a core `TempoMap`
-> (piecewise-constant tempo → seconds↔musical-time, extending `secondsFor`) and
-> `SyncPoints` (app-supplied `(musical time, wall seconds)` anchors, linearly
-> interpolated — follow a live / slowed performance), plus a `Tempo.quarterBpm`
-> normalization. Pure core, unit-tested. Worktree `partitura-public-lacunae`.
->
-> *(Done from this worktree and on `main`: Phase 3.1 visualizers, 3.7 drills, 3.8
-> complete; editor moat 3.3/3.4 + `ScoreEditorController`; Workshop C1–C9; the
-> v0.4.0 release. Still open after 3.5: 3.6 live-transposition UI, 3.9
-> accessibility `Semantics`, and Phase 4/5/6 tails.)*
+> **HANDOFF — `partitura-public-lacunae` has no active claim; safe to pick up.**
+> Just landed: **3.5** warped-time cursor (`TempoMap` + `SyncPoints` +
+> `Tempo.quarterBpm`). This worktree has now done 3.1, 3.3, 3.4, 3.5, 3.7, 3.8
+> (+ editor moat, Workshop C1–C9, the v0.4.0 release). **Only Phase 3 items left:
+> 3.6** live-transposition UI (a wrapper over `Score.transposedBy`) and **3.9**
+> accessibility `Semantics` over the score tree — then Phase 4/5/6 tails. Claim
+> with 🚧, push origin/main at every checkpoint.
 
 
 
@@ -508,9 +505,12 @@ Rides the existing cursor + selection; no audio needed.
       message) per note id via `errorOverlay`; the note draws in the mark color
       with a wedge above its staff, so assessment / ear-training apps supply
       their own analysis and ask partitura to show it (both views).
-- [ ] **3.5 Warped-time cursor + external sync points** — extend the cursor
-      from a fixed clock to a variable tempo map and app-supplied sync points
-      (follow a slowed-down or live-performance timeline).
+- [x] **3.5 Warped-time cursor + external sync points** — `TempoMap`
+      (piecewise-constant `TempoSpan`s; `secondsAt`/`timeAt`/`constant`) extends
+      the fixed-clock `secondsFor` to variable tempo; `SyncPoints` maps
+      app-supplied `(musical time, seconds)` anchors (linear interp +
+      extrapolation) to follow a live / slowed performance; `Tempo.quarterBpm`
+      normalizes any beat unit. Pure core. `tempo_map_test.dart`.
 - [ ] **3.6 Live transposition / concert-pitch UI** — an interaction wrapper
       over the existing `Score.transposedBy`.
 - [x] **3.7 Played-vs-expected MIDI-input highlighting** — `evaluateDrill(score,

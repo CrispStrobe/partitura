@@ -2,6 +2,15 @@
 
 ## 0.4.1-dev.1 (in progress)
 
+- **Warped-time cursor** (Phase 3.5): `TempoMap` converts musical time
+  (whole-note `Fraction`s) ↔ wall-clock seconds under piecewise-constant tempo
+  (`TempoSpan`s), extending the fixed-clock `secondsFor` to scores with tempo
+  changes (`secondsAt` / `timeAt`, `TempoMap.constant`). `SyncPoints` maps
+  app-supplied `(musical time, seconds)` anchors with linear interpolation and
+  end-extrapolation, so the cursor can follow a live or slowed-down performance.
+  `Tempo.quarterBpm` normalizes any metronome mark (beat unit + dots) to
+  quarter-notes-per-minute.
+
 - **Hide empty staves** (Phase 2.3): `layoutStaffSystem(..., hideEmptyStaves:)`
   drops staves that contain only rests across the whole system (keeping at least
   one) and remaps the bracket groups to the surviving staves — a bracket that
