@@ -12,6 +12,7 @@ library;
 
 export 'src/abc/abc_reader.dart';
 export 'src/abc/abc_writer.dart';
+export 'src/analysis/local_key.dart';
 export 'src/gp/gp_binary_reader.dart';
 export 'src/gp/gpif.dart';
 export 'src/humdrum/kern_reader.dart';

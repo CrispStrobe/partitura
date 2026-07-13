@@ -349,7 +349,9 @@ No peer renderer does any of this; all build on the existing pitch / interval
       key for modulation). **Done:** Krumhansl–Schmuckler `estimateKey` /
       `rankKeys` / `estimateKeyFromPitches` (Pearson correlation against the 24
       Krumhansl–Kessler profiles; returns a `Key` + correlation, or the full
-      ranking). **Left:** windowed *local* key tracking for modulation.
+      ranking). Windowed *local* key tracking — `pitchClassHistogram`
+      (duration-weighted), `localKeys` (per-window) and `keyRegions` (same-key
+      spans merged; consecutive spans = modulations). Complete.
 - [~] **4.4 Chord identification from a pitch set** — **Done:**
       `identifyChord` / `chordSymbolFor` — root, quality (triads, sevenths,
       sixths, sus) and inversion (as a slash chord) from a pitch set, spelled

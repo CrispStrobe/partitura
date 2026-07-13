@@ -2,6 +2,12 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Local (windowed) key tracking** (Phase 4.3): a new analysis layer over the
+  key finder — `pitchClassHistogram` (duration-weighted, so a long tonic counts
+  more than a passing tone), `localKeys` (the estimated key of each sliding
+  window of measures) and `keyRegions` (adjacent same-key measures merged into
+  spans, so consecutive spans mark modulations). Detects e.g. a C-major → G-major
+  modulation as two regions.
 - **Key finding** (Phase 4.3): `estimateKey` / `rankKeys` /
   `estimateKeyFromPitches` implement the Krumhansl–Schmuckler algorithm — a
   Pearson correlation of a passage's pitch-class distribution against the 24
