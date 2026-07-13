@@ -539,6 +539,35 @@ void main() {
       expect(markX(scoop, SmuflGlyph.brassScoop), lessThan(noteX(scoop)));
       expect(markX(doit, SmuflGlyph.brassDoitMedium), greaterThan(noteX(doit)));
     });
+
+    test('lift, flip, smear and bend draw their brass glyphs', () {
+      final base = Score.simple(notes: 'g4:q b4 d5 g5');
+      final layout = layoutOf(Score(
+        clef: base.clef,
+        measures: base.measures,
+        jazzMarks: const [
+          JazzMark('e0', JazzArticulation.lift),
+          JazzMark('e1', JazzArticulation.flip),
+          JazzMark('e2', JazzArticulation.smear),
+          JazzMark('e3', JazzArticulation.bend),
+        ],
+      ));
+      final glyphs = layout.primitives
+          .whereType<GlyphPrimitive>()
+          .map((g) => g.smuflName)
+          .toSet();
+      expect(
+          glyphs,
+          containsAll(<String>[
+            SmuflGlyph.brassLiftShort,
+            SmuflGlyph.brassFlip,
+            SmuflGlyph.brassSmear,
+            SmuflGlyph.brassBend,
+          ]));
+      // Smear slides into the note (before); the others come off the end.
+      expect(JazzArticulation.smear.isBefore, isTrue);
+      expect(JazzArticulation.lift.isBefore, isFalse);
+    });
   });
 
   group('notehead shapes', () {

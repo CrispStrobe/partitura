@@ -1279,11 +1279,32 @@ enum JazzArticulation {
   fall,
 
   /// Plop — drops into the note from above (drawn before the notehead).
-  plop;
+  plop,
+
+  /// Lift — a longer upward gesture off the note's end (drawn after).
+  lift,
+
+  /// Flip — an upper-neighbour flip off the note's end (drawn after).
+  flip,
+
+  /// Smear — a smeared slide up into the note (drawn before the notehead).
+  smear,
+
+  /// Bend — the note bends up and back at its end (drawn after).
+  bend;
 
   /// Whether the mark is drawn before (left of) the notehead rather than
   /// after it.
-  bool get isBefore => this == scoop || this == plop;
+  bool get isBefore => this == scoop || this == plop || this == smear;
+
+  /// Whether the mark is anchored to the top notehead (a rising gesture)
+  /// rather than the bottom.
+  bool get rises =>
+      this == doit ||
+      this == plop ||
+      this == lift ||
+      this == flip ||
+      this == bend;
 }
 
 /// Marks a note element with a [JazzArticulation], referenced by its id.

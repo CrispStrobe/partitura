@@ -90,6 +90,18 @@ abstract final class SmuflGlyph {
   /// Jazz plop — drops into the note from above ([JazzArticulation.plop]).
   static const String brassPlop = 'brassPlop';
 
+  /// Jazz lift — a longer upward gesture off the note ([JazzArticulation.lift]).
+  static const String brassLiftShort = 'brassLiftShort';
+
+  /// Jazz flip — an upper-neighbour flip off the note ([JazzArticulation.flip]).
+  static const String brassFlip = 'brassFlip';
+
+  /// Jazz smear — a smeared slide into the note ([JazzArticulation.smear]).
+  static const String brassSmear = 'brassSmear';
+
+  /// Jazz bend — the note bends up and back ([JazzArticulation.bend]).
+  static const String brassBend = 'brassBend';
+
   /// Figured-bass digit glyph (0–9) for the given [digit] (0–9).
   static String figbassDigit(int digit) => 'figbass$digit';
 

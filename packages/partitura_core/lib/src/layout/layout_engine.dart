@@ -2371,10 +2371,12 @@ class _LayoutBuilder {
         JazzArticulation.doit => SmuflGlyph.brassDoitMedium,
         JazzArticulation.fall => SmuflGlyph.brassFallLipShort,
         JazzArticulation.plop => SmuflGlyph.brassPlop,
+        JazzArticulation.lift => SmuflGlyph.brassLiftShort,
+        JazzArticulation.flip => SmuflGlyph.brassFlip,
+        JazzArticulation.smear => SmuflGlyph.brassSmear,
+        JazzArticulation.bend => SmuflGlyph.brassBend,
       };
-      final rises = mark.type == JazzArticulation.doit ||
-          mark.type == JazzArticulation.plop;
-      final y = rises ? topY - 0.4 : bottomY + 0.4;
+      final y = mark.type.rises ? topY - 0.4 : bottomY + 0.4;
       final w = _glyphWidth(glyph);
       final x = mark.type.isBefore ? info.left - 0.3 - w : info.right + 0.3;
       _addGlyph(glyph, x, y, elementId: mark.noteId);

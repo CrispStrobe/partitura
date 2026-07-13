@@ -527,12 +527,12 @@ No peer renderer does any of this; all build on the existing pitch / interval
       mid-score key changes emit cancellation naturals for custom keys too.
       Round-trips through MusicXML `<key-step>`/`<key-alter>`; left as written
       under transposition. Golden 92; `non_standard_key_test.dart`.
-- [~] **5.9 Jazz articulations** — **Done:** scoop, doit, fall (falloff), plop
-      (`JazzMark`/`JazzArticulation`, brass glyphs before/after the notehead,
-      MusicXML `<articulations>` round-trip, golden 69). **Left:** lift, flip,
-      smear, bend (render-only; not standard MusicXML articulations).
-      *[🚧 in progress: parallel agent — lift/flip/smear/bend brass glyphs
-      (JazzArticulation + layout_engine jazz pass); render-only]*
+- [x] **5.9 Jazz articulations** — scoop, doit, fall (falloff), plop, lift,
+      flip, smear, bend (`JazzMark`/`JazzArticulation`, brass glyphs before/after
+      the notehead). scoop/doit/fall/plop round-trip through MusicXML
+      `<articulations>` (golden 69); lift/flip/smear/bend are render-only (not
+      standard MusicXML articulations) and draw brass glyphs U+E5D1/E5E1/E5E2/E5E3
+      (golden 98). `JazzArticulation.rises` picks above/below placement.
 - [x] **5.10 Microtonal accidentals + remappable alteration glyphs** —
       `Pitch.microtone` (optional `MicrotonalAccidental`: half/three-quarter
       sharp/flat, ±50/±150 cents) draws the Stein-Zimmermann quarter-tone glyphs

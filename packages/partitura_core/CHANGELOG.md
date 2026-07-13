@@ -2,6 +2,11 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Jazz articulations completed** (Phase 5.9): `JazzArticulation` gains `lift`,
+  `flip`, `smear`, and `bend`, drawing the SMuFL brass glyphs U+E5D1/E5E1/E5E2/
+  E5E3. `JazzArticulation.rises` picks above/below placement per mark. These four
+  are render-only (not standard MusicXML `<articulations>`); scoop/doit/fall/plop
+  still round-trip. Golden 98.
 - **Tab ornaments, articulations & rasgueado** (Phase 6.4): the tab engine now
   draws ornaments (trill/mordent/turn) and articulations (staccato/accent/
   marcato/tenuto/fermata) above the fret by **reusing** `NoteElement.ornament`

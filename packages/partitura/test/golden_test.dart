@@ -1750,6 +1750,29 @@ void main() {
     );
   });
 
+  testWidgets('98 jazz articulations: lift, flip, smear, bend', (tester) async {
+    final base = Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'g4:q b4 d5 g5',
+    );
+    await golden(
+      tester,
+      '98_jazz_lift_flip_smear_bend',
+      Score(
+        clef: base.clef,
+        timeSignature: base.timeSignature,
+        measures: base.measures,
+        jazzMarks: const [
+          JazzMark('e0', JazzArticulation.lift), // after, rises off
+          JazzMark('e1', JazzArticulation.flip), // after, flips over
+          JazzMark('e2', JazzArticulation.smear), // before, smears in
+          JazzMark('e3', JazzArticulation.bend), // after, bends
+        ],
+      ),
+      staffSpace: 12,
+    );
+  });
+
   testWidgets('68 multi-verse lyrics stack below the staff', (tester) async {
     final base = Score.simple(
       timeSignature: TimeSignature.fourFour,
