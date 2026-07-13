@@ -6,11 +6,13 @@
 /// Covered subset: a single voice/spine — clef (with mid-score changes),
 /// key/time signatures (incl. common/cut and additive), measures,
 /// notes/chords, rests, durations (breve…64th with dots), ties, articulations
-/// and ornaments. Two voices, slurs, tuplets and lyrics are out of scope. Pure
+/// and ornaments, and tuplets (as reciprocal durations). Two voices, slurs and
+/// lyrics are out of scope. Pure
 /// Dart.
 library;
 
 import '../model/element.dart';
+import '../model/measure.dart';
 import '../model/score.dart';
 import '../theory/clef.dart';
 import '../theory/duration.dart';
@@ -107,8 +109,9 @@ String scoreToKern(Score score) {
         lines.addAll(_meterLines(measure.timeChange!));
       }
     }
-    for (final element in measure.elements) {
-      lines.add(_token(element, prevTie));
+    for (var i = 0; i < measure.elements.length; i++) {
+      final element = measure.elements[i];
+      lines.add(_token(element, prevTie, _tupletRatioAt(measure, i)));
       prevTie = element is NoteElement && element.tieToNext;
     }
   }
@@ -126,9 +129,36 @@ List<String> _meterLines(TimeSignature time) {
   return lines;
 }
 
-String _token(MusicElement element, bool tiedFromPrev) {
-  final durStr =
-      '${_durRecip[element.duration.base]}${'.' * element.duration.dots}';
+/// The tuplet ratio covering element [i] of [measure], or null.
+({int actual, int normal})? _tupletRatioAt(Measure measure, int i) {
+  for (final t in measure.tuplets) {
+    if (i >= t.startIndex && i <= t.endIndex) {
+      return (actual: t.actual, normal: t.normal);
+    }
+  }
+  return null;
+}
+
+/// The kern reciprocal for [dur], scaled to the tuplet [ratio] when present: a
+/// written value with reciprocal `w` in an `actual:normal` tuplet sounds
+/// `normal/actual` of `w`, so it is notated with reciprocal `w·actual/normal`
+/// (e.g. a quarter, `4`, in a 3:2 triplet → `6`). Falls back to the plain
+/// reciprocal when the scaled value is not an integer.
+String _durString(NoteDuration dur, ({int actual, int normal})? ratio) {
+  final baseRecip = _durRecip[dur.base];
+  final dots = '.' * dur.dots;
+  if (ratio != null && baseRecip != null) {
+    final w = int.tryParse(baseRecip);
+    if (w != null && w > 0 && (w * ratio.actual) % ratio.normal == 0) {
+      return '${w * ratio.actual ~/ ratio.normal}$dots';
+    }
+  }
+  return '$baseRecip$dots';
+}
+
+String _token(
+    MusicElement element, bool tiedFromPrev, ({int actual, int normal})? ratio) {
+  final durStr = _durString(element.duration, ratio);
   if (element is RestElement) return '${durStr}r';
 
   final note = element as NoteElement;

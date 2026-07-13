@@ -1,9 +1,9 @@
 /// Humdrum `**kern` import (subset): a `**kern` document → [Score]. Reads the
 /// subset the writer emits — per spine: clef (with mid-score changes),
 /// key/time signatures (incl. common/cut and additive), measures,
-/// notes/chords, rests, durations (breve…64th with dots), ties, articulations
-/// and ornaments. Unsupported records are ignored. Pickup is detected from a
-/// short first measure.
+/// notes/chords, rests, durations (breve…64th with dots), ties, articulations,
+/// ornaments and tuplets (reciprocal durations → `TupletSpan`s). Unsupported
+/// records are ignored. Pickup is detected from a short first measure.
 ///
 /// A single spine parses to a [Score]; two spines to a [GrandStaff]
 /// ([grandStaffFromKern]); any number to a [StaffSystem] ([staffSystemFromKern]).
@@ -134,6 +134,8 @@ class _KernReader {
 
   final _measures = <Measure>[];
   var _current = <MusicElement>[];
+  // Per-element tuplet ratio (null = not a tuplet), aligned with [_current].
+  var _currentRatios = <({int actual, int normal})?>[];
   Clef? _pendingClef;
   KeySignature? _pendingKey;
   TimeSignature? _pendingTime;
@@ -159,6 +161,7 @@ class _KernReader {
       } else if (token != '.') {
         _started = true;
         _current.add(_element(token));
+        _currentRatios.add(_tupletRatioOf(token.split(' ').first));
       }
     }
     if (_current.isNotEmpty) _finishMeasure();
@@ -215,11 +218,64 @@ class _KernReader {
       clefChange: _pendingClef,
       keyChange: _pendingKey,
       timeChange: _pendingTime,
+      tuplets: _tupletSpansOf(_currentRatios),
     ));
     _current = <MusicElement>[];
+    _currentRatios = <({int actual, int normal})?>[];
     _pendingClef = null;
     _pendingKey = null;
     _pendingTime = null;
+  }
+
+  /// The tuplet ratio of a kern reciprocal (e.g. `6` → 3:2, `12` → 3:2), or null
+  /// for a power-of-two (non-tuplet) value. The written note value is the
+  /// largest power-of-two reciprocal ≤ N (see [_durationOf]); the ratio scales
+  /// it — a note of reciprocal N sounds `p/N` of that written value.
+  static ({int actual, int normal})? _tupletRatioOf(String subtoken) {
+    final m = RegExp(r'(\d+)').firstMatch(subtoken);
+    if (m == null) return null;
+    final n = int.tryParse(m[1]!);
+    if (n == null || n <= 0 || _recipBases.containsKey('$n')) return null;
+    var p = 1;
+    while (p * 2 <= n && p < 64) {
+      p *= 2;
+    }
+    final g = _gcd(n, p);
+    final actual = n ~/ g;
+    final normal = p ~/ g;
+    return actual >= 2 ? (actual: actual, normal: normal) : null;
+  }
+
+  static int _gcd(int a, int b) => b == 0 ? a : _gcd(b, a % b);
+
+  /// Groups the per-element tuplet ratios into [TupletSpan]s: each maximal run
+  /// of same-ratio elements is chunked into groups of `actual` elements. Uniform
+  /// tuplets (the common case) round-trip exactly; a trailing partial group
+  /// keeps the ratio.
+  static List<TupletSpan> _tupletSpansOf(
+      List<({int actual, int normal})?> ratios) {
+    final spans = <TupletSpan>[];
+    var i = 0;
+    while (i < ratios.length) {
+      final r = ratios[i];
+      if (r == null) {
+        i++;
+        continue;
+      }
+      var j = i;
+      while (j < ratios.length && ratios[j] == r) {
+        j++;
+      }
+      for (var start = i; start < j; start += r.actual) {
+        final end = (start + r.actual - 1) < j ? start + r.actual - 1 : j - 1;
+        if (end > start) {
+          spans.add(
+              TupletSpan(start, end, actual: r.actual, normal: r.normal));
+        }
+      }
+      i = j;
+    }
+    return spans;
   }
 
   void _interpretation(String token) {
@@ -341,10 +397,10 @@ class _KernReader {
     final dots = match[2]!.length.clamp(0, 2);
     final base = _recipBases[recip];
     if (base != null) return NoteDuration(base, dots: dots);
-    // Tuplet reciprocal (not a power of two, e.g. 6 = eighth-note triplet).
-    // The model has no tuplet ratio, so approximate with the written note
-    // value — the largest power-of-two reciprocal ≤ N — and drop the ratio.
-    // Better than rejecting the whole document; OMR output is approximate.
+    // Tuplet reciprocal (not a power of two, e.g. 6 = quarter-note triplet).
+    // The written note value is the largest power-of-two reciprocal ≤ N; the
+    // tuplet ratio is captured separately by [_tupletRatioOf] and attached to
+    // the measure as a [TupletSpan], so the sounding rhythm is preserved.
     final n = int.tryParse(recip);
     if (n != null && n > 0) {
       var p = 1;

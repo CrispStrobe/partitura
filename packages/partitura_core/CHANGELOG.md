@@ -60,6 +60,12 @@
   `grandStaffToSvg` renders a two-staff `GrandStaffLayout` (sharing `scoreToSvg`'s
   emitter, so `scoreToSvg` is unchanged), and `partitura omr` can write `.svg`
   directly.
+- **Humdrum tuplets** (interchange enrichment): the `**kern` reader now reads
+  tuplet reciprocals (`6`/`12`/… — non-power-of-two) as real `TupletSpan`s over
+  the written note value, and the writer emits them back (a quarter in a 3:2
+  triplet → `6`), so tuplets round-trip through kern instead of being
+  approximated away. Uniform tuplets (the common case, incl. optical-recognition
+  output) round-trip exactly. Powers of two are unchanged.
 - **Roman-numeral analysis** (Phase 4.1, bidirectional): `romanNumeralOf(pitches,
   key)` reads a chord as a `RomanNumeral` — scale degree (with a chromatic
   `b`/`#` prefix for borrowed/Neapolitan chords), quality-driven case plus

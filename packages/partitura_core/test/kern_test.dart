@@ -115,4 +115,55 @@ void main() {
   test('rejects a non-kern document', () {
     expect(() => scoreFromKern('<score-partwise/>'), throwsFormatException);
   });
+
+  group('tuplets', () {
+    test('reads a triplet reciprocal as a TupletSpan of written notes', () {
+      final score = scoreFromKern('**kern\n*clefG2\n6cc\n6dd\n6ee\n*-');
+      final measure = score.measures.single;
+      expect(measure.tuplets, [const TupletSpan(0, 2, actual: 3, normal: 2)]);
+      // Written value is a quarter (recip 4); the ratio scales the sounding time.
+      for (final e in measure.elements) {
+        expect((e as NoteElement).duration.base, DurationBase.quarter);
+      }
+    });
+
+    test('eighth-triplet reciprocal 12 also reads as 3:2', () {
+      final m = scoreFromKern('**kern\n*clefG2\n12cc\n12dd\n12ee\n*-')
+          .measures
+          .single;
+      expect(m.tuplets, [const TupletSpan(0, 2, actual: 3, normal: 2)]);
+      expect((m.elements.first as NoteElement).duration.base,
+          DurationBase.eighth);
+    });
+
+    test('round-trips a triplet through kern (recip 6 out and back)', () {
+      final source = Score(
+        clef: Clef.treble,
+        measures: [
+          Measure(
+            [
+              NoteElement(
+                  pitches: [const Pitch(Step.c, octave: 5)],
+                  duration: NoteDuration.quarter,
+                  id: 'a'),
+              NoteElement(
+                  pitches: [const Pitch(Step.d, octave: 5)],
+                  duration: NoteDuration.quarter,
+                  id: 'b'),
+              NoteElement(
+                  pitches: [const Pitch(Step.e, octave: 5)],
+                  duration: NoteDuration.quarter,
+                  id: 'c'),
+            ],
+            tuplets: const [TupletSpan(0, 2, actual: 3, normal: 2)],
+          ),
+        ],
+      );
+      final kern = scoreToKern(source);
+      expect(kern, contains('6cc'));
+      final measure = scoreFromKern(kern).measures.single;
+      expect(measure.tuplets, source.measures.single.tuplets);
+      expect(measure.elements.length, 3);
+    });
+  });
 }
