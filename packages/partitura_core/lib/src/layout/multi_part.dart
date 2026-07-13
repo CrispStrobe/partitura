@@ -75,6 +75,23 @@ class MultiPartScore {
     this.barlineGroups = const [],
   }) : assert(parts.length > 0, 'a document needs at least one part');
 
+  /// Promotes a single-system [StaffSystem] into a paginating document,
+  /// preserving its barline semantics: a system with connected barlines
+  /// becomes one group over all parts, and a disconnected one gives each part
+  /// its own barline. Its brackets carry over unchanged. This bridges the
+  /// `staffSystemFromAbc` / `staffSystemFromMusicXml` importers to the
+  /// multi-part layout so imported scores line-break and paginate.
+  factory MultiPartScore.fromStaffSystem(StaffSystem system) => MultiPartScore(
+        system.staves,
+        brackets: system.brackets,
+        barlineGroups: system.connectBarlines
+            ? const []
+            : [
+                for (var i = 0; i < system.staves.length; i++)
+                  BarlineGroup(i, i)
+              ],
+      );
+
   /// The measure count shared by every part (taken from the first part).
   int get measureCount => parts.first.measures.length;
 

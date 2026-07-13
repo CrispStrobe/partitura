@@ -120,6 +120,57 @@ void main() {
     test('toString names the part count', () {
       expect(quartet().toString(), contains('4 parts'));
     });
+
+    test('fromStaffSystem: connected barlines -> one group over all parts', () {
+      final system = StaffSystem([
+        Score.simple(clef: Clef.treble, notes: 'c5:q d5 e5 f5'),
+        Score.simple(clef: Clef.bass, notes: 'c3:q d3 e3 f3'),
+      ], brackets: const [
+        StaffBracket(0, 1, kind: StaffBracketKind.brace)
+      ]);
+      final doc = MultiPartScore.fromStaffSystem(system);
+      expect(doc.parts, system.staves);
+      expect(doc.brackets, system.brackets);
+      // connectBarlines defaults to true -> empty groups -> one over all.
+      expect(doc.barlineGroups, isEmpty);
+      expect(doc.effectiveBarlineGroups, const [BarlineGroup(0, 1)]);
+    });
+
+    test('fromStaffSystem: disconnected -> each part its own barline', () {
+      final system = StaffSystem([
+        Score.simple(clef: Clef.treble, notes: 'c5:q d5 e5 f5'),
+        Score.simple(clef: Clef.treble, notes: 'e4:q f4 g4 a4'),
+        Score.simple(clef: Clef.bass, notes: 'c3:q d3 e3 f3'),
+      ], connectBarlines: false);
+      final doc = MultiPartScore.fromStaffSystem(system);
+      expect(doc.effectiveBarlineGroups,
+          const [BarlineGroup(0, 0), BarlineGroup(1, 1), BarlineGroup(2, 2)]);
+    });
+
+    test('fromStaffSystem bridges an ABC import into a paginating document',
+        () {
+      final system = staffSystemFromAbc('X:1\nM:4/4\nL:1/4\n'
+          'V:1 clef=treble\n'
+          'V:2 clef=bass\n'
+          'K:G\n'
+          'V:1\n'
+          'G A B c | d2 e2 | e d c B | A4 |\n'
+          'V:2\n'
+          'G,2 B,2 | C2 D2 | E2 C2 | D,4 |\n');
+      final doc = MultiPartScore.fromStaffSystem(system);
+      expect(doc.parts, hasLength(2));
+      // It line-breaks and lays out with aligned barlines like any document.
+      final multi = layoutMultiPartSystems(doc, settings, maxWidth: 45);
+      expect(multi.systems.length, greaterThan(1));
+      for (final s in multi.systems) {
+        final ref = s.parts.first.measureRegions;
+        for (final p in s.parts) {
+          for (var i = 0; i < ref.length; i++) {
+            expect(p.measureRegions[i].endX, closeTo(ref[i].endX, 1e-6));
+          }
+        }
+      }
+    });
   });
 
   group('layoutMultiPartSystem', () {

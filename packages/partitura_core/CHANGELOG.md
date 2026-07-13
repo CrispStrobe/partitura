@@ -32,6 +32,12 @@
   scales the shared measure widths uniformly, so all parts stretch identically
   and barlines stay aligned. The single- and multi-part line breakers now share
   the measure-slicing / running-state helper (`system_break.dart`).
+- **`MultiPartScore.fromStaffSystem`** (Phase 2.8 / C6): promotes a
+  single-system `StaffSystem` into a paginating document, preserving its
+  barline semantics (connected → one group over all parts; disconnected → each
+  part its own barline) and carrying its brackets over. This bridges the
+  `staffSystemFromAbc` / `staffSystemFromMusicXml` importers to the multi-part
+  layout, so an imported multi-voice/multi-part score line-breaks and paginates.
 - **Extended dynamics vocabulary** (Score-model lacuna): `DynamicLevel` gains
   `ppp/pppp/fff/ffff` and the sforzando family (`sf/sfz/sffz/fz/fp/rf`) on top
   of `pp…ff` — each mapped to a real SMuFL glyph (`dynamicPPP`, `dynamicSforzato`,

@@ -281,8 +281,10 @@ Raises the quality of everything already rendered. Slice order:
       page with brackets and per-group barlines. Delivers the 5.6 custom-span
       barlines: a systemic barline runs through a group and breaks between
       groups; `connectBarlines: true` is one group over all parts (golden 120).
-      Shipped as four additive increments. **Left:** hide-empty / ossia staves
-      is 2.3; cross-staff notes/beams is 2.2.
+      `MultiPartScore.fromStaffSystem` bridges the ABC / MusicXML system
+      importers into the paginating document. Shipped as additive increments.
+      **Left:** hide-empty / ossia staves is 2.3; cross-staff notes/beams is
+      2.2.
 
 ### Phase 3 — Interactivity  *(the moat — where partitura wins)*
 Rides the existing cursor + selection; no audio needed.
