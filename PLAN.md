@@ -29,6 +29,12 @@ ships* at the end for the mechanics.
 > accidental layout.* Worktree `partitura-public-lacunae`, branch
 > `feat/model-lacunae`.
 
+> **Actively working on (kern tuplets):** teach the Humdrum kern reader/writer
+> the existing `TupletSpan` — recognize tuplet reciprocals (3/6/12…) as real
+> tuplets and round-trip them, replacing the OMR approximation. Touches
+> `humdrum/kern_reader.dart` + `kern_writer.dart` only. Worktree `partitura-tup`,
+> branch `feat/kern-tuplets`.
+
 - **Shipped: v0.1 → v0.7.2** — the full common-notation set plus the
   piano/technical layer. All green.
 - **In progress (partial):**
