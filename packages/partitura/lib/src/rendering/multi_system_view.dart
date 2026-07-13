@@ -8,6 +8,7 @@ import 'package:flutter/widgets.dart';
 import 'package:partitura_core/partitura_core.dart';
 
 import '../interaction/editor_caret.dart';
+import '../interaction/editor_mark.dart';
 import '../interaction/staff_target.dart';
 import 'layout_painter.dart';
 import 'music_font.dart';
@@ -88,6 +89,15 @@ class MultiSystemView extends LeafRenderObjectWidget {
   /// Called when the drag ends, with the element id and the drop target.
   final void Function(String elementId, StaffTarget target)? onElementDragEnd;
 
+  /// Per-element overlay flags (assessment / ear-training): each id is drawn in
+  /// its [EditorMark] color with a small wedge above it. Wins over
+  /// [elementColors]; a highlight in [highlightedIds] still wins over both.
+  final Map<String, EditorMark> errorOverlay;
+
+  /// A contiguous element range (`(startId, endId)`) painted as a translucent
+  /// loop/selection band spanning the two ids across systems, or null for none.
+  final (String startId, String endId)? loopRange;
+
   /// Creates a multi-system view.
   const MultiSystemView({
     super.key,
@@ -107,6 +117,8 @@ class MultiSystemView extends LeafRenderObjectWidget {
     this.onElementDragStart,
     this.onElementDragUpdate,
     this.onElementDragEnd,
+    this.errorOverlay = const {},
+    this.loopRange,
   });
 
   @override
@@ -128,7 +140,9 @@ class MultiSystemView extends LeafRenderObjectWidget {
         ..ghostDuration = ghostDuration
         ..onElementDragStart = onElementDragStart
         ..onElementDragUpdate = onElementDragUpdate
-        ..onElementDragEnd = onElementDragEnd;
+        ..onElementDragEnd = onElementDragEnd
+        ..errorOverlay = errorOverlay
+        ..loopRange = loopRange;
 
   @override
   void updateRenderObject(
@@ -151,7 +165,9 @@ class MultiSystemView extends LeafRenderObjectWidget {
       ..ghostDuration = ghostDuration
       ..onElementDragStart = onElementDragStart
       ..onElementDragUpdate = onElementDragUpdate
-      ..onElementDragEnd = onElementDragEnd;
+      ..onElementDragEnd = onElementDragEnd
+      ..errorOverlay = errorOverlay
+      ..loopRange = loopRange;
   }
 }
 
@@ -330,8 +346,41 @@ class RenderMultiSystemView extends RenderBox
   set elementColors(Map<String, Color> value) {
     if (mapEquals(value, _elementColors)) return;
     _elementColors = value;
-    _painter.elementColors = value;
+    _syncPainterColors();
     markNeedsPaint();
+  }
+
+  Map<String, EditorMark> _errorOverlay = const {};
+
+  /// Per-element overlay flags. Repaint only.
+  Map<String, EditorMark> get errorOverlay => _errorOverlay;
+  set errorOverlay(Map<String, EditorMark> value) {
+    if (mapEquals(value, _errorOverlay)) return;
+    _errorOverlay = value;
+    _syncPainterColors();
+    markNeedsPaint();
+  }
+
+  (String, String)? _loopRange;
+
+  /// The loop/selection band range. Repaint only.
+  (String, String)? get loopRange => _loopRange;
+  set loopRange((String, String)? value) {
+    if (value == _loopRange) return;
+    _loopRange = value;
+    markNeedsPaint();
+  }
+
+  /// Feeds the painter the widget's element colors with the overlay colors
+  /// merged on top (overlay wins), so flagged notes draw in their mark color.
+  void _syncPainterColors() {
+    _painter.elementColors = _errorOverlay.isEmpty
+        ? _elementColors
+        : {
+            ..._elementColors,
+            for (final entry in _errorOverlay.entries)
+              entry.key: entry.value.color,
+          };
   }
 
   // -------------------------------------------------------------- geometry
@@ -627,6 +676,7 @@ class RenderMultiSystemView extends RenderBox
   void paint(PaintingContext context, Offset offset) {
     final layout = _layout;
     if (layout == null) return;
+    _paintLoopBand(context.canvas, offset); // behind the notes
     for (var i = 0; i < layout.systems.length; i++) {
       _painter.paintLayout(
         context.canvas,
@@ -634,8 +684,88 @@ class RenderMultiSystemView extends RenderBox
         layout.systems[i].layout,
       );
     }
+    _paintErrorMarks(context.canvas, offset);
     _paintGhost(context.canvas, offset);
     _paintCaret(context.canvas, offset);
+  }
+
+  /// The (system index, staff-space bounds) of element [id], or null.
+  (int, math.Rectangle<double>)? _locate(String id) {
+    final layout = _layout;
+    if (layout == null) return null;
+    for (var i = 0; i < layout.systems.length; i++) {
+      for (final region in layout.systems[i].layout.regions) {
+        if (region.elementId == id) return (i, region.bounds);
+      }
+    }
+    return null;
+  }
+
+  /// The local **pixel** rectangle of element [id], or null — for scroll-to-note
+  /// (the app scrolls its own viewport to bring this rect into view).
+  Rect? rectOfElement(String id) {
+    final located = _locate(id);
+    if (located == null) return null;
+    final origin = originOfSystem(located.$1);
+    final b = located.$2;
+    return Rect.fromLTWH(
+      origin.dx + b.left * _staffSpace,
+      origin.dy + b.top * _staffSpace,
+      b.width * _staffSpace,
+      b.height * _staffSpace,
+    );
+  }
+
+  void _paintLoopBand(Canvas canvas, Offset offset) {
+    final range = _loopRange;
+    final layout = _layout;
+    if (range == null || layout == null) return;
+    var start = _locate(range.$1);
+    var end = _locate(range.$2);
+    if (start == null || end == null) return;
+    // Order start before end (by system, then x).
+    if (start.$1 > end.$1 ||
+        (start.$1 == end.$1 && start.$2.left > end.$2.left)) {
+      final swap = start;
+      start = end;
+      end = swap;
+    }
+    final paint = Paint()
+      ..color = _theme.highlightColor.withValues(alpha: 0.18);
+    for (var i = start.$1; i <= end.$1; i++) {
+      final origin = offset + originOfSystem(i);
+      final left = i == start.$1 ? start.$2.left : 0.0;
+      final right = i == end.$1 ? end.$2.right : layout.systems[i].layout.width;
+      canvas.drawRect(
+        Rect.fromLTRB(
+          origin.dx + left * _staffSpace,
+          origin.dy + -1 * _staffSpace,
+          origin.dx + right * _staffSpace,
+          origin.dy + 5 * _staffSpace,
+        ),
+        paint,
+      );
+    }
+  }
+
+  void _paintErrorMarks(Canvas canvas, Offset offset) {
+    if (_errorOverlay.isEmpty) return;
+    for (final entry in _errorOverlay.entries) {
+      final located = _locate(entry.key);
+      if (located == null) continue;
+      final origin = offset + originOfSystem(located.$1);
+      final b = located.$2;
+      final cx = origin.dx + (b.left + b.width / 2) * _staffSpace;
+      final topY = origin.dy + -1.6 * _staffSpace;
+      final w = 0.55 * _staffSpace;
+      // A small downward wedge above the staff, in the mark's color.
+      final path = Path()
+        ..moveTo(cx - w / 2, topY)
+        ..lineTo(cx + w / 2, topY)
+        ..lineTo(cx, topY + w)
+        ..close();
+      canvas.drawPath(path, Paint()..color = entry.value.color);
+    }
   }
 
   /// The (system index, start x in staff spaces) of [measureIndex], or null if

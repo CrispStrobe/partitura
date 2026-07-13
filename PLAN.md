@@ -23,11 +23,12 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-11)
 
-> **Actively working on:** editor moat (Phase 3.3/3.4/3.8) — `errorOverlay`
-> (per-note `EditorMark`: color + message + flag marker), `loopRange` (section
-> band across systems), and `rectOfElement(id)` (scroll-to-note geometry) on
-> `MultiSystemView` (then the grand staff). Builds on the C1–C5 editor hooks for
-> the KlangUniversum Workshop. Worktree `partitura-public-lacunae`. *(Cross-staff
+> **Actively working on:** editor moat (Phase 3.3/3.4/3.8). ✅ `MultiSystemView`:
+> `errorOverlay` (per-note `EditorMark`: color + message + wedge marker),
+> `loopRange` (section band across systems), `rectOfElement(id)` (scroll-to-note
+> geometry) — golden `107`. **Next:** carry the same three onto
+> `InteractiveGrandStaffView`. Builds on the C1–C5 editor hooks for the
+> KlangUniversum Workshop. Worktree `partitura-public-lacunae`. *(Cross-staff
 > gridding §2.9 complete; editor contracts C1–C5 done on `main`.)*
 
 

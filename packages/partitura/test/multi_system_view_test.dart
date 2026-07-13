@@ -374,6 +374,61 @@ void main() {
     expect(rl.measureIndex, layout.systems[last].firstMeasure);
   });
 
+  testWidgets('rectOfElement returns the element pixel rect (scroll-to-note)',
+      (tester) async {
+    await tester.pumpWidget(
+      wrap(MultiSystemView(score: eightMeasures(), staffSpace: 10)),
+    );
+    final render = renderOf(tester);
+    final rect = render.rectOfElement('e0')!;
+    // Its centre hit-tests back to the same element.
+    expect(render.elementIdAt(rect.center), 'e0');
+    // An element on a later system has a rect further down the widget.
+    final layout = render.multiSystemLayout!;
+    final last = layout.systems.length - 1;
+    final lastId = 'e${layout.systems[last].firstMeasure * 4}';
+    expect(render.rectOfElement(lastId)!.top, greaterThan(rect.top));
+    expect(render.rectOfElement('no-such-id'), isNull);
+  });
+
+  testWidgets('errorOverlay and loopRange paint without error, repaint-only',
+      (tester) async {
+    Widget build({
+      Map<String, EditorMark> overlay = const {},
+      (String, String)? loop,
+    }) =>
+        wrap(MultiSystemView(
+          score: eightMeasures(),
+          staffSpace: 10,
+          errorOverlay: overlay,
+          loopRange: loop,
+        ));
+    await tester.pumpWidget(build());
+    final render = renderOf(tester);
+    final before = render.multiSystemLayout;
+
+    await tester.pumpWidget(build(
+      overlay: const {
+        'e5': EditorMark(Color(0xFFD32F2F), message: 'wrong pitch'),
+        'e9': EditorMark(Color(0xFF388E3C)),
+      },
+      // A loop that spans from the first system into a later one.
+      loop: ('e2', 'e20'),
+    ));
+    expect(tester.takeException(), isNull);
+    // Overlays are repaint-only — never relayout.
+    expect(identical(render.multiSystemLayout, before), isTrue);
+  });
+
+  test('EditorMark value semantics', () {
+    expect(const EditorMark(Color(0xFFFF0000)),
+        const EditorMark(Color(0xFFFF0000)));
+    expect(const EditorMark(Color(0xFFFF0000), message: 'a'),
+        isNot(const EditorMark(Color(0xFFFF0000))));
+    expect(const EditorMark(Color(0xFFFF0000)).hashCode,
+        const EditorMark(Color(0xFFFF0000)).hashCode);
+  });
+
   testWidgets('highlight changes never relayout', (tester) async {
     Widget build(Set<String> highlights) => wrap(MultiSystemView(
           score: eightMeasures(),

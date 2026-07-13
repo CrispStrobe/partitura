@@ -767,6 +767,47 @@ void main() {
     );
   });
 
+  testWidgets('109 editor overlay: error marks + loop band', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Colors.white,
+          body: Center(
+            child: RepaintBoundary(
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(12),
+                child: SizedBox(
+                  width: 300,
+                  child: MultiSystemView(
+                    score: Score.simple(
+                      timeSignature: TimeSignature.fourFour,
+                      notes: 'c4:q d4 e4 f4 | g4:q a4 b4 c5 | '
+                          'c5:q b4 a4 g4 | f4:q e4 d4 c4',
+                    ),
+                    staffSpace: 9,
+                    // A wrong note (red) and a correct one (green), each marked.
+                    errorOverlay: const {
+                      'e2': EditorMark(Color(0xFFD32F2F), message: 'out of key'),
+                      'e9': EditorMark(Color(0xFF388E3C)),
+                    },
+                    // A loop band over the second measure (ids e4..e7).
+                    loopRange: ('e4', 'e7'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await expectLater(
+      find.byType(RepaintBoundary).last,
+      matchesGoldenFile('goldens/109_editor_overlay.png'),
+    );
+  });
+
   testWidgets('37 lyrics with hyphens and extender', (tester) async {
     await golden(
       tester,

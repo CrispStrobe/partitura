@@ -4,7 +4,16 @@
 
 - **Grace notes on the tab staff** (Phase 6.4): `TabStaffView` renders a note's
   grace notes as small fret digits before the principal, with a legato arc and
-  an acciaccatura slash (appoggiatura omits it). Golden 107.
+  an acciaccatura slash (appoggiatura omits it). Golden `107_tab_grace_notes`.
+- **Editor overlays + control geometry** (Phase 3.3/3.4/3.8): `MultiSystemView`
+  gains `errorOverlay` (a `Map<String, EditorMark>` — per-note color + message,
+  drawn in the mark's color with a small wedge above it, for assessment /
+  ear-training / proofreading apps), `loopRange` (`(startId, endId)` painted as
+  a translucent selection/loop band that spans across systems), and
+  `rectOfElement(id)` on the render object (the local pixel rect of any element,
+  for the app to scroll-to-note). Overlays are repaint-only. New exported
+  `EditorMark`; golden `109_editor_overlay`.
+
 - **Cross-staff gridding — accidental-aware columns** (§2.9): the shared column
   is now the **notehead** x, so heads align across staves even when only some
   carry an accidental at that beat (the accidental extends left of the column
