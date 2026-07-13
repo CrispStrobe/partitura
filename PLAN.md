@@ -29,6 +29,11 @@ ships* at the end for the mechanics.
 > accidental layout.* Worktree `partitura-public-lacunae`, branch
 > `feat/model-lacunae`.
 
+> **Actively working on (OMR render):** `grandStaffToSvg`/`staffSystemToSvg` SVG
+> export (compose the per-staff `ScoreLayout`s) + wire the `partitura omr`
+> command to render straight to `.svg`. Touches `svg/svg_export.dart` +
+> `partitura_cli` only. Worktree `partitura-svg`, branch `feat/omr-svg`.
+
 - **Shipped: v0.1 → v0.7.2** — the full common-notation set plus the
   piano/technical layer. All green.
 - **In progress (partial):**
