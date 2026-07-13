@@ -1,5 +1,5 @@
 name: partitura_cli
-description: Command-line tool for the partitura music notation libraries — import, convert (MusicXML/MIDI), inspect, and render to SVG.
+description: Command-line tool for the partitura music notation libraries — inspect, convert between MusicXML/MEI/kern/MIDI/MuseScore/GP/ABC (+ LilyPond export), render to SVG/PNG, and OMR.
 version: 0.4.0
 repository: https://github.com/CrispStrobe/partitura
 publish_to: none
@@ -13,7 +13,7 @@ executables:
   partitura:
 
 dependencies:
-  partitura_core: any
+  partitura_core: ^0.4.0
   # Optical music recognition: FFI bridge to CrispEmbed's Sheet Music
   # Transformer engine (`omr` command). `ffi`/`image` are pure Dart at compile
   # time; only running `omr` needs the native libcrispembed at runtime.
