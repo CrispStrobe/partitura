@@ -31,6 +31,11 @@ ships* at the end for the mechanics.
 > voices 3–4, non-standard meters/keys, cross-staff beams — are done; microtones
 > landed via the parallel agent.)*
 
+> **Actively working on (docs reconcile):** bringing the OMR docs in line with
+> what shipped — the v0.8 tuplet note (now round-tripped, not approximated) and
+> the enrichment-backlog tuplet entry (now kern too, not MusicXML-only). PLAN +
+> README only, no code. Worktree `partitura-docs2`, branch `docs/omr-reconcile`.
+
 ### Workshop editor contracts (C1–C6)
 
 External consumer (KlangUniversum "Composition Workshop",
