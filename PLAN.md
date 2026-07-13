@@ -309,9 +309,14 @@ Rides the existing cursor + selection; no audio needed.
 ### Phase 4 — Music theory & analysis  *(the moat — extends the theory core)*
 No peer renderer does any of this; all build on the existing pitch / interval
 / scale / triad / harmonic-function core.
-- [ ] **4.1 Roman-numeral analysis (bidirectional)** — infer the numeral +
-      inversion + secondary dominants from a chord in a key, and render the
-      numeral + figured-bass symbols. Highest pedagogy payoff.
+- [x] **4.1 Roman-numeral analysis (bidirectional)** — `romanNumeralOf(pitches,
+      key)` reads a chord as a `RomanNumeral` (scale degree with chromatic
+      prefix, quality case + °/ø/+ marks, figured-bass inversion figures 6…4/2,
+      major-seventh `M`, and secondary dominants/leading-tone chords like
+      `V7/V`, `vii°7/V` with the target rendered in its own case). Minor keys
+      accept the raised 6/7 as diatonic (V, vii°). `pitchClassesOf(numeral, key)`
+      realizes the numeral back to its pitch classes (the reverse direction).
+      `RomanNumeral.symbol` renders it. Highest pedagogy payoff.
 - [ ] **4.2 Part-writing / voice-leading checker** — flag parallel
       fifths/octaves, hidden intervals, voice crossing/overlap, spacing. The
       defining teaching-library feature.

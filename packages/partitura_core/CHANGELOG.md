@@ -2,6 +2,15 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Roman-numeral analysis** (Phase 4.1, bidirectional): `romanNumeralOf(pitches,
+  key)` reads a chord as a `RomanNumeral` — scale degree (with a chromatic
+  `b`/`#` prefix for borrowed/Neapolitan chords), quality-driven case plus
+  `°`/`ø`/`+` marks, figured-bass inversion figures (`6`, `6/4`, `6/5`, `4/3`,
+  `4/2`), the major-seventh `M` (`IM7`), and secondary dominants / leading-tone
+  chords (`V7/V`, `vii°7/V`) with the tonicized target rendered in its own
+  diatonic case. Minor keys accept the raised 6/7 as diatonic (so `V` and
+  `vii°`). `pitchClassesOf(numeral, key)` realizes a numeral back to its pitch
+  classes; `RomanNumeral.symbol` renders it.
 - **Voices 3–4 per staff — representability** (Score-model lacuna, increment 1):
   `Measure` gains `voice3`/`voice4` (four voices per staff, the notation
   maximum) plus a `voices` getter. They round-trip through MusicXML (multi-voice
@@ -9,7 +18,6 @@
   playback and transposition. Fully additive — a single- or two-voice measure
   is unchanged. *The layout engine still engraves voices 1–2; generalizing it to
   draw 3–4 (with new goldens) is the deep follow-up increment.*
-
 - **Metrical-accent hierarchy** (Phase 4.7): `TimeSignature.beatStrength(pos)`
   gives the accent strength of a metric position, normalized so the downbeat is
   `1.0` and each level down the meter's hierarchy of subdivisions halves it —
