@@ -79,4 +79,41 @@ void main() {
           '${dir.path}/smt-grandstaff-q8_0.gguf');
     });
   });
+
+  group('segmentStaffSystems', () {
+    img.Image twoBands() {
+      final image = img.Image(width: 120, height: 120);
+      img.fill(image, color: img.ColorRgb8(255, 255, 255));
+      // Two dark bands separated by a wide white gap.
+      img.fillRect(image, x1: 0, y1: 12, x2: 119, y2: 40,
+          color: img.ColorRgb8(0, 0, 0));
+      img.fillRect(image, x1: 0, y1: 75, x2: 119, y2: 105,
+          color: img.ColorRgb8(0, 0, 0));
+      return image;
+    }
+
+    test('splits a two-system page into two crops', () {
+      final crops = segmentStaffSystems(twoBands());
+      expect(crops.length, 2);
+      // Each crop is a horizontal slice (full width, part height).
+      expect(crops.every((c) => c.width == 120), isTrue);
+      expect(crops.every((c) => c.height < 120), isTrue);
+    });
+
+    test('a single-band image is returned whole (one element)', () {
+      final image = img.Image(width: 120, height: 120);
+      img.fill(image, color: img.ColorRgb8(255, 255, 255));
+      img.fillRect(image, x1: 0, y1: 40, x2: 119, y2: 80,
+          color: img.ColorRgb8(0, 0, 0));
+      final crops = segmentStaffSystems(image);
+      expect(crops.length, 1);
+      expect(crops.single.height, 120);
+    });
+
+    test('a blank image yields no split', () {
+      final image = img.Image(width: 60, height: 60);
+      img.fill(image, color: img.ColorRgb8(255, 255, 255));
+      expect(segmentStaffSystems(image).length, 1);
+    });
+  });
 }

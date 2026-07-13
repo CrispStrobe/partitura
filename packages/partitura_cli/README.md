@@ -72,6 +72,7 @@ Flutter SDK (it rasterizes via `flutter test`), like `render`.
 | `--model <gguf\|name>` | OMR GGUF path, or a name that auto-downloads from Hugging Face to a cache — `smt-grandstaff` / `tromr` / `flova` (or set `PARTITURA_OMR_MODEL`) |
 | `--lib <path>` | `libcrispembed` shared library (or set `CRISPEMBED_LIB`) |
 | `--single` | Import only the first spine (single staff, not a grand staff) |
+| `--page` | Full-page scan: split it into staff systems (horizontal-projection band detection) and recognize each, concatenating the results into one score |
 | `--threads <n>` | Inference threads (default: auto) |
 
 Needs the native `libcrispembed` at runtime (built from CrispEmbed); the rest of

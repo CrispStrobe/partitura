@@ -12,6 +12,11 @@
   `short` (spanning the middle staff lines), and `reverseFinal` (thick+thin, the
   mirror of a final barline). Round-trip through MusicXML `<bar-style>`
   (`tick`/`short`/`heavy-light`). Golden 102.
+- **OMR full-page / multi-system** (CLI): `partitura omr --page` splits a
+  full-page scan into staff systems (`segmentStaffSystems`, a pure-Dart
+  horizontal-projection band splitter) and recognizes each, concatenating them
+  into one score — so a scan with several lines of music transcribes end to end,
+  not just one crop.
 - **Lyric elision (synalepha)** (Phase 5.4): `Lyric.elidesToNext` marks two
   syllables sung on one note; the layout draws an undertie (‿) bridging them and
   MusicXML round-trips them as one `<lyric>` with `<elision>`-separated `<text>`

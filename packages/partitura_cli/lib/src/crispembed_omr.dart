@@ -127,17 +127,91 @@ class CrispEmbedOmrEngine implements OmrEngine {
 /// Decodes a PNG/JPEG/BMP image file into an [OmrImage] (RGBA) for recognition.
 ///
 /// Throws [OmrEngineException] if the file cannot be decoded.
-OmrImage decodeOmrImage(String path) {
-  final bytes = File(path).readAsBytesSync();
-  final decoded = img.decodeImage(bytes);
+OmrImage decodeOmrImage(String path) => omrImageOf(decodeImageFile(path));
+
+/// Decodes a PNG/JPEG/BMP image file to an `img.Image`. Throws
+/// [OmrEngineException] if it cannot be decoded.
+img.Image decodeImageFile(String path) {
+  final decoded = img.decodeImage(File(path).readAsBytesSync());
   if (decoded == null) throw OmrEngineException('cannot decode image: $path');
-  final rgba = decoded.convert(numChannels: 4);
+  return decoded;
+}
+
+/// Converts a decoded [image] to an RGBA [OmrImage] for recognition.
+OmrImage omrImageOf(img.Image image) {
+  final rgba = image.convert(numChannels: 4);
   return OmrImage(
     Uint8List.fromList(rgba.getBytes(order: img.ChannelOrder.rgba)),
-    width: decoded.width,
-    height: decoded.height,
+    width: image.width,
+    height: image.height,
     channels: 4,
   );
+}
+
+/// Splits a full-page staff [image] into individual staff-system crops by
+/// horizontal-projection band detection: a row is "ink" if at least
+/// [inkFraction] of its pixels are dark; maximal ink bands separated by
+/// ≥ [minGapRows] blank rows become separate systems (bands shorter than
+/// [minBandRows] are dropped as noise), each padded by [padRows]. Returns the
+/// whole image (a single element) when it can't find a clean multi-system split
+/// — so single-system input is unchanged.
+List<img.Image> segmentStaffSystems(
+  img.Image image, {
+  double inkFraction = 0.04,
+  int minGapRows = 12,
+  int minBandRows = 16,
+  int padRows = 10,
+}) {
+  final gray = img.grayscale(image);
+  final w = gray.width;
+  final h = gray.height;
+  final threshold = (inkFraction * w).ceil();
+
+  // Which rows carry ink.
+  final ink = List<bool>.filled(h, false);
+  for (var y = 0; y < h; y++) {
+    var dark = 0;
+    for (var x = 0; x < w; x++) {
+      if (gray.getPixel(x, y).luminance < 128) dark++;
+    }
+    ink[y] = dark >= threshold;
+  }
+
+  // Group ink rows into bands, tolerating gaps < minGapRows (within a system).
+  final bands = <(int, int)>[]; // (start, end) inclusive
+  int? start;
+  var gap = 0;
+  for (var y = 0; y < h; y++) {
+    if (ink[y]) {
+      start ??= y;
+      gap = 0;
+    } else if (start != null) {
+      gap++;
+      if (gap >= minGapRows) {
+        bands.add((start, y - gap));
+        start = null;
+        gap = 0;
+      }
+    }
+  }
+  if (start != null) bands.add((start, h - 1));
+
+  final systems =
+      bands.where((b) => b.$2 - b.$1 + 1 >= minBandRows).toList();
+  if (systems.length <= 1) return [image];
+
+  return [
+    for (final (s, e) in systems)
+      img.copyCrop(
+        image,
+        x: 0,
+        y: (s - padRows).clamp(0, h - 1),
+        width: w,
+        height: ((e + padRows).clamp(0, h - 1)) -
+            ((s - padRows).clamp(0, h - 1)) +
+            1,
+      ),
+  ];
 }
 
 /// Raised when the OMR engine cannot load, initialise, or recognise.

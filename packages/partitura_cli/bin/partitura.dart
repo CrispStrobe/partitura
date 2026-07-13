@@ -51,6 +51,8 @@ omr options:
                                        CRISPEMBED_LIB)
   --threads <n>                        Inference threads (default: auto)
   --single                             Import the first spine only (single staff)
+  --page                               Full-page scan: split into staff systems
+                                       and recognize each, concatenated
 
 Common:
   --from <musicxml|mxl|mei|kern|midi|abc|asciitab|mscx|mscz|gp|gpx|gp5|gp4|gp3|gpif>
@@ -123,6 +125,7 @@ const _booleanFlags = {
   'no-expand',
   'infer-rhythm',
   'single',
+  'page',
 };
 
 int _info(List<String> args) {
@@ -182,15 +185,24 @@ Future<int> _omr(List<String> args) async {
   final outFormat = options['to'] ?? _formatOf(outPath);
   final threads = int.tryParse(options['threads'] ?? '') ?? 0;
 
-  final String tokens;
+  // Each recognized staff system's token string (one, unless `--page` splits a
+  // full-page scan into per-system crops).
+  final systems = <String>[];
   try {
     // A path is used as-is; a known name is fetched from Hugging Face + cached.
     final modelPath = await resolveOmrModel(model, onStatus: stderr.writeln);
-    final image = decodeOmrImage(imagePath);
     final engine = CrispEmbedOmrEngine.load(modelPath,
         libraryPath: options['lib'], threads: threads);
     try {
-      tokens = engine.recognizeSync(image);
+      if (options.containsKey('page')) {
+        final crops = segmentStaffSystems(decodeImageFile(imagePath));
+        stderr.writeln('omr: ${crops.length} staff system(s) detected');
+        for (final crop in crops) {
+          systems.add(engine.recognizeSync(omrImageOf(crop)));
+        }
+      } else {
+        systems.add(engine.recognizeSync(decodeOmrImage(imagePath)));
+      }
     } finally {
       engine.dispose();
     }
@@ -198,34 +210,35 @@ Future<int> _omr(List<String> args) async {
     throw _CliError(e.message);
   }
 
-  // The engine's output dialect is auto-detected: the Sheet Music Transformer
-  // emits `bekern` (a grand staff), Polyphonic-TrOMR emits semantic notation
-  // (a single polyphonic staff).
+  // The engine's output dialect is auto-detected (SMT → bekern grand staff,
+  // TrOMR → semantic, Flova → LilyPond notes); per-system results concatenate.
   Score? score;
   GrandStaff? grand;
   String kern;
   String summary;
-  final dialect = omrDialectOf(tokens);
+  final n = systems.length;
+  final sys = n == 1 ? '' : ', $n systems';
+  final dialect = omrDialectOf(systems.first);
   if (dialect == OmrDialect.lilyNotes) {
-    score = scoreFromLilyNotes(tokens);
+    score = _concatScores(systems.map(scoreFromLilyNotes));
     kern = scoreToKern(score);
     final notes = score.measures
         .expand((Measure m) => m.elements)
         .whereType<NoteElement>()
         .length;
-    summary = 'single staff (Flova/handwritten), $notes notes';
+    summary = 'Flova/handwritten$sys, $notes notes';
   } else if (dialect == OmrDialect.semantic) {
-    score = scoreFromSemantic(tokens);
+    score = _concatScores(systems.map(scoreFromSemantic));
     kern = scoreToKern(score);
-    summary = 'single staff (TrOMR), ${score.measures.length} measures';
+    summary = 'TrOMR$sys, ${score.measures.length} measures';
   } else if (options.containsKey('single')) {
-    score = bekernToScore(tokens);
-    kern = bekernToKern(tokens);
-    summary = 'single staff, ${score.measures.length} measures';
+    score = _concatScores(systems.map(bekernToScore));
+    kern = scoreToKern(score);
+    summary = 'single staff$sys, ${score.measures.length} measures';
   } else {
-    grand = bekernToGrandStaff(tokens);
-    kern = bekernToKern(tokens);
-    summary = 'grand staff, upper ${grand.upper.measures.length} / '
+    grand = _concatGrandStaffs(systems.map(bekernToGrandStaff));
+    kern = systems.map(bekernToKern).join('\n');
+    summary = 'grand staff$sys, upper ${grand.upper.measures.length} / '
         'lower ${grand.lower.measures.length} measures';
   }
   String musicXml() =>
@@ -253,6 +266,38 @@ Future<int> _omr(List<String> args) async {
   }
   stderr.writeln('omr: $summary -> $outPath');
   return 0;
+}
+
+/// Concatenates per-system OMR [scores] into one — the first system's clef,
+/// key and meter, then every system's measures in order. A single score is
+/// returned unchanged (keeping its slurs/tempo/etc.).
+Score _concatScores(Iterable<Score> scores) {
+  final list = scores.toList();
+  if (list.length == 1) return list.first;
+  final first = list.first;
+  return Score(
+    clef: first.clef,
+    keySignature: first.keySignature,
+    timeSignature: first.timeSignature,
+    measures: [for (final s in list) ...s.measures],
+  );
+}
+
+/// Concatenates per-system grand [staves] into one (upper/lower measures
+/// appended in order, keeping equal counts). A single grand staff is unchanged.
+GrandStaff _concatGrandStaffs(Iterable<GrandStaff> staves) {
+  final list = staves.toList();
+  if (list.length == 1) return list.first;
+  Score joined(Score first, List<Score> all) => Score(
+        clef: first.clef,
+        keySignature: first.keySignature,
+        timeSignature: first.timeSignature,
+        measures: [for (final s in all) ...s.measures],
+      );
+  return GrandStaff(
+    upper: joined(list.first.upper, [for (final g in list) g.upper]),
+    lower: joined(list.first.lower, [for (final g in list) g.lower]),
+  );
 }
 
 /// Lays out and renders an OMR result to SVG — a [Score] (TrOMR / `--single`)

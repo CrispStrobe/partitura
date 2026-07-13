@@ -29,11 +29,6 @@ ships* at the end for the mechanics.
 > 4 (justification-on-columns), accidental-aware columns. Editor contracts C1–C5
 > + grand-staff justification done; deep Score-model lacunae done; C6 deferred.
 
-> **Actively working on (OMR frontier):** model auto-download **done** on `main`;
-> now **multi-system page segmentation** — a pure-Dart staff-band splitter
-> (horizontal projection) so `partitura omr --page` recognizes every system on a
-> full-page scan and concatenates them into one score. `partitura_cli` only, no
-> views. Worktree `partitura-page`, branch `feat/omr-page`.
 
 
 ### Workshop editor contracts (C1–C6)
@@ -251,13 +246,20 @@ turn); multi-measure rests; octave clefs (8va/8vb) + ottava brackets.
   `$XDG_CACHE_HOME/partitura/omr` and reuses it — no manual model wrangling
   (`resolveOmrModel` in `crispembed_omr.dart`). A path still works as before.
   Verified live: `--model smt-grandstaff` downloaded and recognized end to end.
+- **Full-page / multi-system.** `partitura omr --page` splits a full-page scan
+  into staff systems by horizontal-projection band detection
+  (`segmentStaffSystems`, pure Dart) and recognizes each, concatenating them
+  into one score (per-system measures appended; grand staffs keep equal
+  upper/lower counts). Verified live: a stacked two-system page → 2 systems →
+  one 10+10-measure grand staff. *Heuristic (clean bands); element ids may
+  repeat across systems.*
 - **Remaining OMR gaps:** OMR is **CLI-only** (`dart:ffi`) — no Flutter widget or
   WASM/web path (the engine is native; `dart:ffi` is unavailable on web, and
   CrispEmbed's WASM build doesn't expose the OMR engines — an upstream task).
   Still needs `libcrispembed` at runtime (via `--lib`, no bundled binary; the
-  dylib is rebuilt by hand when a new engine lands). Single staff-system crops
-  only — no full-page / multi-system segmentation *(next)*. No confidence
-  signals, batch mode or PDF input.
+  dylib is rebuilt by hand when a new engine lands). No confidence signals,
+  batch mode or PDF input; page segmentation is projection-only (no staff-line
+  detection / deskew).
 
 ---
 
