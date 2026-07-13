@@ -267,8 +267,10 @@ Raises the quality of everything already rendered. Slice order:
       per-depth leftward offsets so an outer bracket clears an inner brace
       (golden 78). **Left:** the hard-coded 5-line-staff generalization (tab
       already has its own N-line engine).
-- [ ] **2.2 Cross-staff notes / stems / beams** — a chord or beam spanning
+- 🚧 **2.2 Cross-staff notes / stems / beams** — a chord or beam spanning
       both staves of a keyboard system.
+      [in progress: cross-staff notes + beams in the grand staff — model +
+      layout + MusicXML `<staff>` + golden]
 - [ ] **2.3 Hide-empty / ossia / divisi / cutaway staves** — dynamic staff
       count: drop empty staves per system, add temporary alternative (ossia)
       staves, split a part into subsections, remove empty bars.
