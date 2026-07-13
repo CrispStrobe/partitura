@@ -32,13 +32,16 @@ ships* at the end for the mechanics.
 > into the wrapped doc. Worktree `partitura-tab`, branch `feat/c6-multipart`.
 > *(Phase 2.3 hide-empty-staves already landed on `main` — 7e817fb.)*
 
-> **HANDOFF — `partitura-public-lacunae` has no active claim; safe to pick up.**
-> Just landed: **3.5** warped-time cursor (`TempoMap` + `SyncPoints` +
-> `Tempo.quarterBpm`). This worktree has now done 3.1, 3.3, 3.4, 3.5, 3.7, 3.8
-> (+ editor moat, Workshop C1–C9, the v0.4.0 release). **Only Phase 3 items left:
-> 3.6** live-transposition UI (a wrapper over `Score.transposedBy`) and **3.9**
-> accessibility `Semantics` over the score tree — then Phase 4/5/6 tails. Claim
-> with 🚧, push origin/main at every checkpoint.
+> 🚧 **Actively working on (Phase 3.6 + 3.9 — the last Phase 3 items):**
+> 3.6 `TranspositionController` (a `ChangeNotifier` wrapping `Score.transposedBy`
+> / `atConcertPitch` — live transpose + concert-pitch toggle, app rebuilds the
+> view). 3.9 accessibility: a core `semanticLabel(element)` (spoken pitch +
+> duration) and per-element `Semantics` nodes on `RenderStaffView` so a screen
+> reader can focus and hear each note. Worktree `partitura-public-lacunae`.
+>
+> *(Done from this worktree: Phase 3.1/3.3/3.4/3.5/3.7/3.8, editor moat +
+> `ScoreEditorController`, Workshop C1–C9, the v0.4.0 release. After this, Phase 3
+> is complete; remaining work is Phase 4/5/6 tails.)*
 
 
 
