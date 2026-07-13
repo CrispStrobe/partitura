@@ -2425,4 +2425,47 @@ void main() {
       Tuning.standardGuitar,
     );
   });
+
+  testWidgets('115 tab: bend curves, whammy, slide in/out, pick-stroke, arpeggio',
+      (tester) async {
+    NoteElement n(String pitch, String id) => NoteElement.note(
+          Pitch.parse(pitch),
+          const NoteDuration(DurationBase.quarter),
+          id: id,
+        );
+    await tabGolden(
+      tester,
+      '115_tab_technique_tail',
+      Score(
+        clef: Clef.treble,
+        timeSignature: TimeSignature.fourFour,
+        measures: [
+          Measure([
+            n('g4', 'e0'), // bend-release contour
+            n('a4', 'e1'), // whammy dive-and-return
+            n('b4', 'e2'), // slide out (upward) + pick-stroke
+            NoteElement(
+              pitches: const [
+                Pitch(Step.c, octave: 4),
+                Pitch(Step.e, octave: 4),
+                Pitch(Step.g, octave: 4),
+              ],
+              duration: const NoteDuration(DurationBase.quarter),
+              id: 'e3',
+              arpeggio: Arpeggio.up, // rolled chord
+            ),
+          ]),
+        ],
+        bends: const [
+          Bend.curve('e0', [BendPoint(0.5, 1.0), BendPoint(1.0, 0.0)]),
+        ],
+        tremoloBars: const [
+          TremoloBar.curve('e1', [BendPoint(0.5, -1.0), BendPoint(1.0, 0.0)]),
+        ],
+        slideInOuts: const [TabSlide('e2', SlideInOut.outUpward)],
+        pickStrokes: const [PickStroke('e2', up: true)],
+      ),
+      Tuning.standardGuitar,
+    );
+  });
 }

@@ -33,14 +33,6 @@ ships* at the end for the mechanics.
 > contracts C1–C5 done on `main`. Next: 3.7 played-vs-expected highlighting, a
 > thin layer over `errorOverlay`.)*
 
-> **Actively working on (Phase 6.4 tail):** the remaining tab technique
-> checklist — multi-point **bend curves** (bend-release / prebend, via a
-> `BendPoint` grid on `Bend`), **whammy** dip/dive/return curves (`TremoloBar`
-> point grid), **slide in/out** (`TabSlide` + `SlideInOut` direction), and
-> **brush / arpeggio / pick-stroke** (render `NoteElement.arpeggio` on tab +
-> `PickStroke`). Additive, each with tests + a golden. Worktree `partitura-tab`,
-> branch `feat/tab-techniques-tail`.
-
 
 
 
@@ -682,7 +674,7 @@ pitch → (string, fret) assignment. Also requires lifting the current
       (`Score.tabVoicings` — `TabVoicing(noteId, strings)`); capo + tuning
       labels (golden 60).
 - [ ] **6.3 Tab paired with a notation staff** (rides on Phase 2.1).
-- [~] **6.4 Techniques** — the full set below. **Done:** rhythm stems/flags/
+- [x] **6.4 Techniques** — the full set below. **Done:** rhythm stems/flags/
       beams below the staff; slides (reuse `glissandos`) and hammer-on/pull-off
       arcs (reuse `slurs`) — goldens 53, 54; string bends (`Bend`) — golden 55;
       vibrato (`Vibrato`, normal + wide) — golden 56; palm mute / let ring
@@ -703,10 +695,18 @@ pitch → (string, fret) assignment. Also requires lifting the current
       rasgueado (`Rasgueado` — downward strum arrow) — golden 97; grace notes
       (`NoteElement.graceNotes` — small fret digits before the principal on the
       same string, a legato arc to it, and an acciaccatura slash;
-      `GraceStyle.appoggiatura` omits the slash) — golden 107. **Left:** the
-      rest of the checklist (multi-point bend curves, whammy dip/dive/return
-      curves, slide in/out direction, brush/arpeggio/pick-stroke, and other
-      Tier-2/3 items).
+      `GraceStyle.appoggiatura` omits the slash) — golden 107; **multi-point
+      bend curves** (`Bend.curve` + `BendPoint` grid — bend-release / prebend /
+      bend-release-bend drawn as a pitch-vs-time polyline with an arrow + label
+      at each rise target), **whammy dip/dive/return curves** (`TremoloBar.curve`
+      — a *separate* point-grid system, down-arrow + label at each dive trough),
+      **slide in/out** (`TabSlide` + `SlideInOut` — a short diagonal into/out of
+      the fret, in-from-below/above and out-up/down), and **brush / arpeggio /
+      pick-stroke** (`NoteElement.arpeggio` rendered on tab as a wavy vertical
+      arrow through the strings; `PickStroke` — ⊓ down / ∨ up above the fret) —
+      golden 115. **6.4 complete.** **Left (optional Tier-3 tail):** tapped /
+      semi / feedback harmonics, named rasgueado strum patterns, golpe, wah
+      open/close, fade-in/out, and instrument-specific chord-diagram presets.
 - [x] **6.5 Tunings & other fretted instruments** — preset `Tuning`s for
       DADGAD, open-G, 7- and 8-string guitar, 5-string bass, 5-string banjo
       (reentrant high-G drone), ukulele (reentrant high-G) and mandolin, on top

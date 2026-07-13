@@ -2,6 +2,10 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Tab technique tail** (Phase 6.4, completes 6.4): `TabStaffView` now renders
+  multi-point bend contours (`Bend.curve`), whammy dip/dive/return curves
+  (`TremoloBar.curve`), slide in/out (`TabSlide`), pick-stroke direction
+  (`PickStroke`), and arpeggiated chords (`NoteElement.arpeggio`). Golden 115.
 - **Grace notes on the tab staff** (Phase 6.4): `TabStaffView` renders a note's
   grace notes as small fret digits before the principal, with a legato arc and
   an acciaccatura slash (appoggiatura omits it). Golden `107_tab_grace_notes`.

@@ -300,25 +300,69 @@ class Slur {
 /// amount in whole steps: 1.0 = full (a whole tone), 0.5 = half, 1.5 = one
 /// and a half, 0.25 = quarter. Rendered as an upward bend arrow with the
 /// amount label; ignored by standard-notation rendering.
+/// One point in a [Bend] or [TremoloBar] curve: at [offset] (0 = the note's
+/// attack, 1 = its release) the pitch has changed by [steps] whole tones
+/// (positive = up, negative = down). A sequence of points describes an
+/// arbitrary bend/whammy contour — bend-release, prebend, dip, dive-and-return
+/// — on the standard quarter-tone point grid used by tab interchange formats.
+class BendPoint {
+  /// Position along the note's duration, 0 (attack) .. 1 (release).
+  final double offset;
+
+  /// Pitch change at [offset], in whole tones (positive up, negative down).
+  final double steps;
+
+  /// Creates a bend/whammy point at [offset] reaching [steps] whole tones.
+  const BendPoint(this.offset, this.steps);
+
+  @override
+  bool operator ==(Object other) =>
+      other is BendPoint && other.offset == offset && other.steps == steps;
+
+  @override
+  int get hashCode => Object.hash(offset, steps);
+
+  @override
+  String toString() => 'BendPoint($offset, ${steps}st)';
+}
+
+/// A string bend on a tab note, referenced by its id. A plain bend rises to
+/// [steps] whole tones (½ / full / 1½ …). Pass [points] for a multi-segment
+/// contour — bend-release (up then back), prebend (starts already bent, i.e. a
+/// point at offset 0 with steps > 0), prebend-release, bend-release-bend — as a
+/// quarter-tone point grid; when [points] is non-empty the tab engine draws the
+/// contour and ignores [steps]. Rendered by the tab engine only.
 class Bend {
   /// Id of the bent note.
   final String noteId;
 
-  /// Bend amount in whole steps (1.0 = full).
+  /// Bend amount in whole steps (1.0 = full). Used only when [points] is empty.
   final double steps;
 
-  /// Creates a bend on [noteId] (default a full-step bend).
-  const Bend(this.noteId, {this.steps = 1.0});
+  /// An explicit bend contour; empty (default) = a plain rise to [steps].
+  final List<BendPoint> points;
+
+  /// Creates a plain bend on [noteId] (default a full-step bend).
+  const Bend(this.noteId, {this.steps = 1.0}) : points = const [];
+
+  /// Creates a multi-point bend contour on [noteId] from [points] (each a
+  /// [BendPoint] on the 0..1 offset grid). Use for bend-release, prebend, etc.
+  const Bend.curve(this.noteId, this.points) : steps = 1.0;
 
   @override
   bool operator ==(Object other) =>
-      other is Bend && other.noteId == noteId && other.steps == steps;
+      other is Bend &&
+      other.noteId == noteId &&
+      other.steps == steps &&
+      listEquals(other.points, points);
 
   @override
-  int get hashCode => Object.hash(noteId, steps);
+  int get hashCode => Object.hash(noteId, steps, Object.hashAll(points));
 
   @override
-  String toString() => 'Bend($noteId, ${steps}st)';
+  String toString() => points.isEmpty
+      ? 'Bend($noteId, ${steps}st)'
+      : 'Bend.curve($noteId, $points)';
 }
 
 /// A vibrato on a note, referenced by its id: a horizontal wavy line drawn
@@ -613,30 +657,45 @@ class Tap {
   String toString() => 'Tap($noteId)';
 }
 
-/// A tremolo-bar (whammy) dip/dive on a tab note, referenced by its id. This
-/// is a *separate* system from string [Bend]s. [steps] is the pitch change in
-/// whole tones at the low point (negative = dive down, positive = up); the bar
-/// returns to pitch. Drawn as a V above the fret with the amount label.
-/// Rendered by the tab engine only; ignored by standard-notation rendering.
+/// A tremolo-bar (whammy) gesture on a tab note, referenced by its id. This is
+/// a *separate* system from string [Bend]s. A plain bar dips to [steps] whole
+/// tones (negative = dive down) and returns to pitch — drawn as a V above the
+/// fret. Pass [points] for an explicit contour — dip, dive, dive-and-return,
+/// return-and-dip — as a [BendPoint] grid (offset 0..1, steps in whole tones);
+/// when [points] is non-empty the tab engine draws the contour and ignores
+/// [steps]. Rendered by the tab engine only; ignored by standard notation.
 class TremoloBar {
   /// Id of the note the bar acts on.
   final String noteId;
 
-  /// Pitch change in whole tones at the low point (negative = dive down).
+  /// Pitch change in whole tones at the low point (negative = dive down). Used
+  /// only when [points] is empty.
   final double steps;
 
+  /// An explicit whammy contour; empty (default) = a plain dip to [steps].
+  final List<BendPoint> points;
+
   /// Creates a tremolo-bar dip on [noteId] (default a whole-step dive).
-  const TremoloBar(this.noteId, {this.steps = -1.0});
+  const TremoloBar(this.noteId, {this.steps = -1.0}) : points = const [];
+
+  /// Creates a tremolo-bar contour on [noteId] from [points] (each a
+  /// [BendPoint]). Use for dip / dive / dive-and-return gestures.
+  const TremoloBar.curve(this.noteId, this.points) : steps = -1.0;
 
   @override
   bool operator ==(Object other) =>
-      other is TremoloBar && other.noteId == noteId && other.steps == steps;
+      other is TremoloBar &&
+      other.noteId == noteId &&
+      other.steps == steps &&
+      listEquals(other.points, points);
 
   @override
-  int get hashCode => Object.hash(noteId, steps);
+  int get hashCode => Object.hash(noteId, steps, Object.hashAll(points));
 
   @override
-  String toString() => 'TremoloBar($noteId, ${steps}st)';
+  String toString() => points.isEmpty
+      ? 'TremoloBar($noteId, ${steps}st)'
+      : 'TremoloBar.curve($noteId, $points)';
 }
 
 /// A right-hand (plucking) finger for classical-guitar tab: p (thumb / pulgar),
@@ -753,6 +812,79 @@ class Rasgueado {
 
   @override
   String toString() => 'Rasgueado($noteId)';
+}
+
+/// Direction of a [TabSlide] into or out of a single note. "In" slides start
+/// off the fretboard and land on the note; "out" slides leave it toward nowhere
+/// (a fade). (A shift/legato slide *between two notes* uses [Glissando].)
+enum SlideInOut {
+  /// Slide up into the note from a lower, unspecified fret.
+  inFromBelow,
+
+  /// Slide down into the note from a higher, unspecified fret.
+  inFromAbove,
+
+  /// Slide off the note upward to nowhere.
+  outUpward,
+
+  /// Slide off the note downward to nowhere.
+  outDownward,
+}
+
+/// A slide into or out of a single tab note (a scoop / fall / doit), referenced
+/// by its id — as opposed to a [Glissando], which connects two notes. Drawn as
+/// a short diagonal line entering or leaving the fret digit in the [direction].
+/// Rendered by the tab engine only.
+class TabSlide {
+  /// Id of the note the slide attaches to.
+  final String noteId;
+
+  /// Whether the slide enters from below/above or leaves upward/downward.
+  final SlideInOut direction;
+
+  /// Creates a slide in/out on [noteId] in [direction].
+  const TabSlide(this.noteId, this.direction);
+
+  /// True for the two "in" directions (the diagonal approaches the note).
+  bool get isIn =>
+      direction == SlideInOut.inFromBelow ||
+      direction == SlideInOut.inFromAbove;
+
+  @override
+  bool operator ==(Object other) =>
+      other is TabSlide &&
+      other.noteId == noteId &&
+      other.direction == direction;
+
+  @override
+  int get hashCode => Object.hash(noteId, direction);
+
+  @override
+  String toString() => 'TabSlide($noteId, ${direction.name})';
+}
+
+/// A pick-stroke direction mark on a tab note, referenced by its id: a
+/// downstroke (⊓) or an upstroke (∨) drawn above the fret. Rendered by the tab
+/// engine only.
+class PickStroke {
+  /// Id of the picked note.
+  final String noteId;
+
+  /// True for an upstroke (∨), false for a downstroke (⊓).
+  final bool up;
+
+  /// Marks [noteId] as a downstroke (default) or upstroke.
+  const PickStroke(this.noteId, {this.up = false});
+
+  @override
+  bool operator ==(Object other) =>
+      other is PickStroke && other.noteId == noteId && other.up == up;
+
+  @override
+  int get hashCode => Object.hash(noteId, up);
+
+  @override
+  String toString() => 'PickStroke($noteId, ${up ? 'up' : 'down'})';
 }
 
 /// A glissando/slide: a straight line drawn from one note to a later one,

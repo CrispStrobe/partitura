@@ -703,4 +703,170 @@ E|---|
       expect(small.last.position.x, lessThan(principal.position.x));
     });
   });
+
+  group('technique tail (Phase 6.4)', () {
+    // One note 'g4' (id 'e0') to hang each technique on.
+    Score onG4(Score Function(Score base) build) =>
+        build(Score.simple(notes: 'g4:q'));
+
+    int diagonals(ScoreLayout l) => l.primitives
+        .whereType<LinePrimitive>()
+        .where((x) => x.from.x != x.to.x && x.from.y != x.to.y)
+        .length;
+
+    List<String> texts(ScoreLayout l) =>
+        l.primitives.whereType<TextPrimitive>().map((t) => t.text).toList();
+
+    test('a bend-release contour labels the peak and draws no simple arrow', () {
+      final plainCurves = tabOf(Score.simple(notes: 'g4:q'))
+          .primitives
+          .whereType<CurvePrimitive>()
+          .length;
+      final layout = tabOf(onG4((b) => Score(
+            clef: b.clef,
+            measures: b.measures,
+            bends: const [
+              Bend.curve('e0', [BendPoint(0.5, 1.0), BendPoint(1.0, 0.0)]),
+            ],
+          )));
+      // The rise target is labelled 'full'.
+      expect(texts(layout).where((t) => t == 'full'), hasLength(1));
+      // The contour is a polyline of lines (two rise/fall segments + a
+      // two-legged up-arrow), *not* the single-arrow CurvePrimitive.
+      expect(diagonals(layout), 4);
+      expect(layout.primitives.whereType<CurvePrimitive>().length, plainCurves);
+    });
+
+    test('a prebend starts already bent and still labels the target', () {
+      final layout = tabOf(onG4((b) => Score(
+            clef: b.clef,
+            measures: b.measures,
+            bends: const [
+              Bend.curve('e0', [BendPoint(0.0, 1.0), BendPoint(1.0, 0.0)]),
+            ],
+          )));
+      expect(texts(layout), contains('full'));
+    });
+
+    test('a whammy dive-and-return draws a down-arrow with its amount', () {
+      final layout = tabOf(onG4((b) => Score(
+            clef: b.clef,
+            measures: b.measures,
+            tremoloBars: const [
+              TremoloBar.curve('e0', [BendPoint(0.5, -1.0), BendPoint(1.0, 0.0)]),
+            ],
+          )));
+      // A down dive to -1 whole tone is labelled '-1'.
+      expect(texts(layout), contains('-1'));
+      // Two dive/return segments + the down-arrow's two legs.
+      expect(diagonals(layout), 4);
+    });
+
+    test('each slide direction adds one diagonal at the fret', () {
+      final plain = diagonals(tabOf(Score.simple(notes: 'g4:q')));
+      for (final dir in SlideInOut.values) {
+        final layout = tabOf(onG4((b) => Score(
+              clef: b.clef,
+              measures: b.measures,
+              slideInOuts: [TabSlide('e0', dir)],
+            )));
+        expect(diagonals(layout), plain + 1, reason: '$dir');
+      }
+    });
+
+    test('a downstroke draws a bracket and an upstroke draws a vee', () {
+      LinePrimitive vees(ScoreLayout l) => l.primitives
+          .whereType<LinePrimitive>()
+          .firstWhere((x) => x.from.x != x.to.x && x.from.y != x.to.y);
+      final down = tabOf(onG4((b) => Score(
+            clef: b.clef,
+            measures: b.measures,
+            pickStrokes: const [PickStroke('e0')],
+          )));
+      final up = tabOf(onG4((b) => Score(
+            clef: b.clef,
+            measures: b.measures,
+            pickStrokes: const [PickStroke('e0', up: true)],
+          )));
+      // The downstroke ⊓ has a horizontal top bar; the upstroke ∨ does not.
+      final downBars = down.primitives
+          .whereType<LinePrimitive>()
+          .where((x) => x.from.y == x.to.y && x.from.x != x.to.x)
+          .where((x) => x.from.y < 0); // above the top string line
+      expect(downBars, isNotEmpty);
+      // The upstroke is made of two diagonals (the vee), no horizontal bar.
+      expect(vees(up), isNotNull);
+      final upBars = up.primitives
+          .whereType<LinePrimitive>()
+          .where((x) => x.from.y == x.to.y && x.from.x != x.to.x)
+          .where((x) => x.from.y < 0);
+      expect(upBars, isEmpty);
+    });
+
+    test('an arpeggiated chord draws a wavy vertical line with an arrowhead',
+        () {
+      final plainCurves = tabOf(Score.simple(notes: 'e2+b2+e4:h'))
+          .primitives
+          .whereType<CurvePrimitive>()
+          .length;
+      final score = Score(
+        clef: Clef.treble,
+        measures: [
+          Measure([
+            NoteElement(
+              pitches: const [
+                Pitch(Step.e, octave: 2),
+                Pitch(Step.b, octave: 2),
+                Pitch(Step.e, octave: 4),
+              ],
+              duration: const NoteDuration(DurationBase.half),
+              id: 'e0',
+              arpeggio: Arpeggio.up,
+            ),
+          ]),
+        ],
+      );
+      final layout = tabOf(score);
+      // The wavy line adds several curve segments over the plain baseline.
+      expect(layout.primitives.whereType<CurvePrimitive>().length,
+          greaterThan(plainCurves + 1));
+      // Arrow at the top (up-roll) means diagonal legs exist.
+      expect(diagonals(layout), greaterThanOrEqualTo(2));
+    });
+
+    test('model equality distinguishes the new marks', () {
+      expect(const Bend('e0'), isNot(const Bend.curve('e0', [BendPoint(1, 1)])));
+      expect(const Bend.curve('e0', [BendPoint(0.5, 1)]),
+          const Bend.curve('e0', [BendPoint(0.5, 1)]));
+      expect(const TabSlide('e0', SlideInOut.inFromBelow),
+          isNot(const TabSlide('e0', SlideInOut.outUpward)));
+      expect(const PickStroke('e0'), isNot(const PickStroke('e0', up: true)));
+    });
+
+    test('transposedBy carries the new tab marks through', () {
+      final score = Score(
+        clef: Clef.treble,
+        measures: [
+          Measure([
+            NoteElement.note(const Pitch(Step.g, octave: 4),
+                const NoteDuration(DurationBase.quarter),
+                id: 'e0'),
+          ]),
+        ],
+        bends: const [
+          Bend.curve('e0', [BendPoint(0.5, 1.0), BendPoint(1.0, 0.0)]),
+        ],
+        tremoloBars: const [
+          TremoloBar.curve('e0', [BendPoint(0.5, -1.0), BendPoint(1.0, 0.0)]),
+        ],
+        slideInOuts: const [TabSlide('e0', SlideInOut.inFromBelow)],
+        pickStrokes: const [PickStroke('e0', up: true)],
+      );
+      final up = score.transposedBy(const Interval(IntervalQuality.major, 2));
+      expect(up.bends, score.bends);
+      expect(up.tremoloBars, score.tremoloBars);
+      expect(up.slideInOuts, score.slideInOuts);
+      expect(up.pickStrokes, score.pickStrokes);
+    });
+  });
 }

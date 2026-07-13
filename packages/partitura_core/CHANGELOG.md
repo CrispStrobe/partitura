@@ -11,6 +11,17 @@
 - **Portamento** (Phase 5.6): `Portamento(startId, endId)` draws a smooth curved
   slide line between two notes — the curved counterpart to a `Glissando`'s
   straight line. Render-only. Golden 113.
+- **Tab technique tail — bend curves, whammy, slide in/out, strum** (Phase 6.4,
+  completes 6.4): `Bend.curve(id, [BendPoint(offset, steps), …])` draws a
+  multi-segment bend contour (bend-release, prebend, bend-release-bend) as a
+  pitch-vs-time polyline with an arrow + amount label at each rise target;
+  `TremoloBar.curve` is the analogous *separate* whammy system for
+  dip/dive/return gestures (down-arrow + label at each trough). `TabSlide`
+  (`SlideInOut.inFromBelow/inFromAbove/outUpward/outDownward`) draws a short
+  diagonal sliding into or out of a single fret; `PickStroke` draws a downstroke
+  (⊓) or upstroke (∨) above the fret; and `NoteElement.arpeggio` now renders on
+  tab as a wavy vertical arrow rolling the chord. All additive and preserved
+  through `transposedBy`; `tab_layout_test.dart` covers each; golden 115.
 - **Cue / small notes** (Phase 5.1, completing it): `Score.cueNoteIds` marks
   note elements drawn small — notehead, stem, flag and augmentation dots at
   0.72× — for cue / ossia passages. Additive (existing scores are byte-identical

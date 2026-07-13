@@ -237,10 +237,15 @@ class TabLayoutEngine {
       ));
     }
 
-    // String bends: an upward arrow from the fret with the amount label.
+    // String bends: an upward arrow from the fret with the amount label, or a
+    // multi-segment contour (bend-release / prebend) when points are given.
     for (final bend in score.bends) {
       final at = anchor[bend.noteId];
       if (at == null) continue;
+      if (bend.points.isNotEmpty) {
+        _layoutContour(primitives, at.$1, at.$2, bend.points);
+        continue;
+      }
       final (bx, by) = at;
       final rise = 1.4 + bend.steps.clamp(0.25, 3.0) * 0.7;
       final tipX = bx + 1.3;
@@ -282,10 +287,15 @@ class TabLayoutEngine {
       primitives.add(TextPrimitive('T', Point(at.$1, at.$2 - 1.0), size: 1.1));
     }
 
-    // Tremolo bar (whammy): a V above the fret with the dip amount.
+    // Tremolo bar (whammy): a V above the fret with the dip amount, or a
+    // dip/dive/return contour when points are given.
     for (final tb in score.tremoloBars) {
       final at = anchor[tb.noteId];
       if (at == null) continue;
+      if (tb.points.isNotEmpty) {
+        _layoutContour(primitives, at.$1, at.$2, tb.points);
+        continue;
+      }
       _layoutTremoloBar(primitives, at.$1, at.$2, tb.steps);
     }
 
@@ -367,6 +377,76 @@ class TabLayoutEngine {
       primitives.add(LinePrimitive(
           Point(ax, bottomY + 0.4), Point(ax + 0.25, bottomY - 0.05),
           thickness: s.stemThickness));
+    }
+
+    // Slide into / out of a single note: a short diagonal at the fret digit.
+    // "In" slides approach from the left; "out" slides leave to the right.
+    for (final sl in score.slideInOuts) {
+      final at = anchor[sl.noteId];
+      if (at == null) continue;
+      final (nx, ny) = at;
+      final cy = ny + 0.15; // roughly the digit centre
+      final (Point<double> from, Point<double> to) = switch (sl.direction) {
+        SlideInOut.inFromBelow => (
+            Point(nx - 0.95, cy + 0.55),
+            Point(nx - 0.35, cy - 0.35)
+          ),
+        SlideInOut.inFromAbove => (
+            Point(nx - 0.95, cy - 0.85),
+            Point(nx - 0.35, cy - 0.05)
+          ),
+        SlideInOut.outUpward => (
+            Point(nx + 0.35, cy - 0.05),
+            Point(nx + 0.95, cy - 0.85)
+          ),
+        SlideInOut.outDownward => (
+            Point(nx + 0.35, cy - 0.35),
+            Point(nx + 0.95, cy + 0.55)
+          ),
+      };
+      primitives.add(LinePrimitive(from, to, thickness: 0.14));
+    }
+
+    // Pick-stroke direction: a downstroke (⊓) or upstroke (∨) above the fret.
+    for (final ps in score.pickStrokes) {
+      final at = anchor[ps.noteId];
+      if (at == null) continue;
+      final (nx, ny) = at;
+      final topY = ny - 1.15;
+      if (ps.up) {
+        // ∨ — open-bottom vee.
+        primitives.add(LinePrimitive(
+            Point(nx - 0.28, topY), Point(nx, topY + 0.55),
+            thickness: 0.13));
+        primitives.add(LinePrimitive(
+            Point(nx, topY + 0.55), Point(nx + 0.28, topY),
+            thickness: 0.13));
+      } else {
+        // ⊓ — two legs joined by a top bar.
+        primitives.add(LinePrimitive(
+            Point(nx - 0.28, topY + 0.55), Point(nx - 0.28, topY),
+            thickness: 0.13));
+        primitives.add(LinePrimitive(
+            Point(nx - 0.28, topY), Point(nx + 0.28, topY),
+            thickness: 0.13));
+        primitives.add(LinePrimitive(
+            Point(nx + 0.28, topY), Point(nx + 0.28, topY + 0.55),
+            thickness: 0.13));
+      }
+    }
+
+    // Arpeggio / brush: a wavy vertical line through the strings at the chord,
+    // with an arrowhead giving the roll direction (up = low→high).
+    for (final measure in score.measures) {
+      for (final el in measure.elements) {
+        if (el is! NoteElement || el.arpeggio == null || el.id == null) {
+          continue;
+        }
+        final at = anchor[el.id];
+        if (at == null) continue;
+        _layoutArpeggio(
+            primitives, at.$1 - 0.6, -0.2, bottomY + 0.2, el.arpeggio!);
+      }
     }
 
     // Chord diagrams placed above the staff over their note.
@@ -527,6 +607,40 @@ class TabLayoutEngine {
     return (leftEdge!, lastX, lastY!);
   }
 
+  /// Draws a vertical wavy arpeggio line at [ax] spanning [topY]..[botY], with
+  /// an arrowhead giving the roll [direction] (up = arrow at the top).
+  void _layoutArpeggio(List<LayoutPrimitive> primitives, double ax, double topY,
+      double botY, Arpeggio direction) {
+    const half = 0.42; // vertical length of each half-wave
+    const amp = 0.22;
+    var py = topY;
+    var k = 0;
+    while (py < botY - 1e-9) {
+      final dir = k.isEven ? 1.0 : -1.0;
+      final nextY = min(py + half, botY);
+      primitives.add(CurvePrimitive(
+        Point(ax, py),
+        Point(ax + dir * amp, py + half * 0.4),
+        Point(ax + dir * amp, py + half * 0.6),
+        Point(ax, nextY),
+        thickness: 0.13,
+      ));
+      py = nextY;
+      k++;
+    }
+    if (direction == Arpeggio.up) {
+      primitives.add(LinePrimitive(
+          Point(ax, topY), Point(ax - 0.22, topY + 0.45), thickness: 0.13));
+      primitives.add(LinePrimitive(
+          Point(ax, topY), Point(ax + 0.22, topY + 0.45), thickness: 0.13));
+    } else {
+      primitives.add(LinePrimitive(
+          Point(ax, botY), Point(ax - 0.22, botY - 0.45), thickness: 0.13));
+      primitives.add(LinePrimitive(
+          Point(ax, botY), Point(ax + 0.22, botY - 0.45), thickness: 0.13));
+    }
+  }
+
   /// Draws a horizontal wavy vibrato line above the fret at ([bx], [by]).
   void _layoutVibrato(
       List<LayoutPrimitive> primitives, double bx, double by, bool wide) {
@@ -585,6 +699,58 @@ class TabLayoutEngine {
       _ => mag == mag.roundToDouble() ? '${mag.toInt()}' : '$mag',
     };
     return '${steps < 0 ? '-' : ''}$magLabel';
+  }
+
+  /// Draws a bend/whammy contour above the fret at ([bx], [by]) as a
+  /// pitch-vs-time line graph through [points] (each `(offset 0..1, steps)`),
+  /// with an arrowhead + amount label at every turning point: an up-arrow at a
+  /// rise target, a down-arrow at a dive trough. A prebend (first point at
+  /// offset 0 with a non-zero pitch) shows as a vertical rise from the fret.
+  void _layoutContour(List<LayoutPrimitive> primitives, double bx, double by,
+      List<BendPoint> points) {
+    if (points.isEmpty) return;
+    const span = 2.6; // horizontal length of the whole contour
+    const unit = 0.7; // staff spaces per whole tone
+    final x0 = bx + 0.45;
+    final baseY = by - 0.5;
+    double px(double o) => x0 + o.clamp(0.0, 1.0) * span;
+    double py(double stp) => baseY - stp * unit;
+    // Vertices: prepend a pitch-0 anchor at the fret unless the contour already
+    // starts there, so a rise (or prebend) has something to climb from.
+    final first = points.first;
+    final verts = <Point<double>>[
+      if (first.offset > 0 || first.steps != 0) Point(x0, baseY),
+      for (final p in points) Point(px(p.offset), py(p.steps)),
+    ];
+    for (var i = 0; i + 1 < verts.length; i++) {
+      primitives.add(
+          LinePrimitive(verts[i], verts[i + 1], thickness: 0.13));
+    }
+    // Arrowheads + labels at turning points.
+    final base = verts.length - points.length; // 0 or 1 (the prepended anchor)
+    for (var i = 0; i < points.length; i++) {
+      final stp = points[i].steps;
+      final prev = i == 0 ? 0.0 : points[i - 1].steps;
+      final next = i + 1 < points.length ? points[i + 1].steps : stp;
+      final v = verts[base + i];
+      if (stp > prev + 1e-9 && stp >= next - 1e-9 && stp > 0) {
+        // Rise target: up-arrow.
+        primitives.add(LinePrimitive(
+            v, Point(v.x - 0.24, v.y + 0.42), thickness: 0.13));
+        primitives.add(LinePrimitive(
+            v, Point(v.x + 0.24, v.y + 0.42), thickness: 0.13));
+        primitives.add(TextPrimitive(
+            _bendLabel(stp), Point(v.x, v.y - 0.25), size: 1.0));
+      } else if (stp < prev - 1e-9 && stp <= next + 1e-9 && stp < 0) {
+        // Dive trough: down-arrow.
+        primitives.add(LinePrimitive(
+            v, Point(v.x - 0.24, v.y - 0.42), thickness: 0.13));
+        primitives.add(LinePrimitive(
+            v, Point(v.x + 0.24, v.y - 0.42), thickness: 0.13));
+        primitives.add(TextPrimitive(_tremoloBarLabel(stp),
+            Point(v.x, v.y + 0.9), size: 1.0));
+      }
+    }
   }
 
   /// Draws a [label] followed by a dashed bracket line above the staff, from

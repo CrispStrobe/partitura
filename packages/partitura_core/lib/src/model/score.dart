@@ -117,6 +117,12 @@ class Score {
   /// Rasgueado (strum) marks on tab notes (tab engine only).
   final List<Rasgueado> rasgueados;
 
+  /// Slide-into / slide-out-of marks on single tab notes (tab engine only).
+  final List<TabSlide> slideInOuts;
+
+  /// Pick-stroke (down/up) direction marks on tab notes (tab engine only).
+  final List<PickStroke> pickStrokes;
+
   /// Chord/fretboard diagrams placed above note elements (drawn on both the
   /// notation and tab staves).
   final List<PlacedChordDiagram> chordDiagrams;
@@ -181,6 +187,8 @@ class Score {
     this.slapPops = const [],
     this.tremoloPickings = const [],
     this.rasgueados = const [],
+    this.slideInOuts = const [],
+    this.pickStrokes = const [],
     this.chordDiagrams = const [],
     this.jazzMarks = const [],
     this.figuredBass = const [],
@@ -738,6 +746,8 @@ class Score {
       slapPops: slapPops,
       tremoloPickings: tremoloPickings,
       rasgueados: rasgueados,
+      slideInOuts: slideInOuts,
+      pickStrokes: pickStrokes,
       chordDiagrams: chordDiagrams,
       jazzMarks: jazzMarks,
       figuredBass: figuredBass,
@@ -847,6 +857,8 @@ class Score {
       listEquals(other.slapPops, slapPops) &&
       listEquals(other.tremoloPickings, tremoloPickings) &&
       listEquals(other.rasgueados, rasgueados) &&
+      listEquals(other.slideInOuts, slideInOuts) &&
+      listEquals(other.pickStrokes, pickStrokes) &&
       listEquals(other.chordDiagrams, chordDiagrams) &&
       listEquals(other.jazzMarks, jazzMarks) &&
       listEquals(other.figuredBass, figuredBass) &&
@@ -889,6 +901,9 @@ class Score {
           Object.hashAll(slapPops),
           Object.hashAll(tremoloPickings),
           Object.hashAll(rasgueados),
+          // Grouped to stay within Object.hash's 20-argument ceiling.
+          Object.hash(Object.hashAll(slideInOuts),
+              Object.hashAll(pickStrokes), Object.hashAll(portamentos)),
           Object.hashAll(chordDiagrams),
           Object.hashAll(jazzMarks),
           Object.hashAll(figuredBass),
@@ -896,7 +911,6 @@ class Score {
           Object.hashAll(laissezVibrer),
           Object.hashAll(trillExtensions),
           Object.hashAll(cueNoteIds),
-          Object.hashAll(portamentos),
           transposition,
           metadata,
           tempo,
