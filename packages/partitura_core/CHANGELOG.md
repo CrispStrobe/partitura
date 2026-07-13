@@ -2,6 +2,11 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **More tab techniques** (Phase 6.4): right-hand p-i-m-a fingering
+  (`TabFingering` + `RightHandFinger`, drawn as the letter below the fret),
+  slap/pop (`SlapPop` — "S"/"P" above), and tremolo picking (`TremoloPicking` —
+  stacked slashes). Each is a `Score` list keyed by note id, rendered by the tab
+  engine (ignored by standard notation). Golden 96.
 - **Figured-bass realization** (Phase 4.6): `figuredChordPitchClasses(bass,
   figure, key)` reads a figure (`6`, `6/4`, `7`, `#`… — stacked single digits,
   per-degree accidentals, a lone accidental → the third) into the chord's pitch

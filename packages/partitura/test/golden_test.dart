@@ -579,9 +579,8 @@ void main() {
   });
 
   testWidgets('94 cross-staff beam', (tester) async {
-    NoteElement n(Step step, int oct, String id) => NoteElement.note(
-        Pitch(step, octave: oct), NoteDuration.eighth,
-        id: id);
+    NoteElement n(Step step, int oct, String id) =>
+        NoteElement.note(Pitch(step, octave: oct), NoteDuration.eighth, id: id);
     // A broken-chord figure that climbs from the bass staff into the treble
     // under one beam: two eighths on each staff, at four successive slots.
     final grand = GrandStaff(
@@ -1930,6 +1929,26 @@ void main() {
           TabNoteMark('e4', TabNoteStyle.pinchHarmonic),
           TabNoteMark('e6', TabNoteStyle.artificialHarmonic),
         ],
+      ),
+      Tuning.standardGuitar,
+    );
+  });
+
+  testWidgets('96 tab: fingering, slap/pop, tremolo picking', (tester) async {
+    final base = Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'g4:q a4 b4 c5',
+    );
+    await tabGolden(
+      tester,
+      '96_tab_fingering_slap_tremolo',
+      Score(
+        clef: base.clef,
+        timeSignature: base.timeSignature,
+        measures: base.measures,
+        tabFingerings: const [TabFingering('e0', RightHandFinger.thumb)],
+        slapPops: const [SlapPop('e1'), SlapPop('e2', pop: true)],
+        tremoloPickings: const [TremoloPicking('e3')],
       ),
       Tuning.standardGuitar,
     );

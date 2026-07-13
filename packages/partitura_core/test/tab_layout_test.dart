@@ -533,4 +533,68 @@ E|---|
         .join('\n');
     expect(render(), render());
   });
+
+  group('tab techniques (Phase 6.4)', () {
+    Score withTab(Score Function(Score base) build) {
+      final base = Score.simple(notes: 'g4:q');
+      return build(base);
+    }
+
+    List<String> texts(ScoreLayout l) =>
+        l.primitives.whereType<TextPrimitive>().map((t) => t.text).toList();
+
+    test('right-hand fingering draws the p-i-m-a letter below the fret', () {
+      final score = withTab((b) => Score(
+            clef: b.clef,
+            measures: b.measures,
+            tabFingerings: const [TabFingering('e0', RightHandFinger.thumb)],
+          ));
+      final layout = tabOf(score);
+      expect(texts(layout), contains('p'));
+      // The letter sits below the fret digit ('3').
+      final digit = layout.primitives
+          .whereType<TextPrimitive>()
+          .firstWhere((t) => t.text == '3');
+      final letter = layout.primitives
+          .whereType<TextPrimitive>()
+          .firstWhere((t) => t.text == 'p');
+      expect(letter.position.y, greaterThan(digit.position.y));
+    });
+
+    test('slap and pop draw S and P above the fret', () {
+      final slap = tabOf(withTab((b) => Score(
+          clef: b.clef,
+          measures: b.measures,
+          slapPops: const [SlapPop('e0')])));
+      expect(texts(slap), contains('S'));
+      final pop = tabOf(withTab((b) => Score(
+          clef: b.clef,
+          measures: b.measures,
+          slapPops: const [SlapPop('e0', pop: true)])));
+      expect(texts(pop), contains('P'));
+    });
+
+    test('tremolo picking draws one slash per stroke', () {
+      final score = withTab((b) => Score(
+            clef: b.clef,
+            measures: b.measures,
+            tremoloPickings: const [TremoloPicking('e0', strokes: 3)],
+          ));
+      // Diagonal lines (neither horizontal nor vertical) are the slashes.
+      final slashes = tabOf(score)
+          .primitives
+          .whereType<LinePrimitive>()
+          .where((l) => l.from.x != l.to.x && l.from.y != l.to.y);
+      expect(slashes, hasLength(3));
+    });
+
+    test('techniques on an unknown note id are ignored', () {
+      final score = withTab((b) => Score(
+            clef: b.clef,
+            measures: b.measures,
+            slapPops: const [SlapPop('nope')],
+          ));
+      expect(texts(tabOf(score)), isNot(contains('S')));
+    });
+  });
 }

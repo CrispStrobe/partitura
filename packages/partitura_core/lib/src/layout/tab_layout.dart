@@ -267,6 +267,38 @@ class TabLayoutEngine {
       _layoutTremoloBar(primitives, at.$1, at.$2, tb.steps);
     }
 
+    // Right-hand fingering (p-i-m-a): the letter below the fret.
+    for (final f in score.tabFingerings) {
+      final at = anchor[f.noteId];
+      if (at == null) continue;
+      primitives.add(
+          TextPrimitive(f.finger.label, Point(at.$1, at.$2 + 1.2), size: 1.0));
+    }
+
+    // Slap / pop (bass): "S" (slap) or "P" (pop) above the fret.
+    for (final sp in score.slapPops) {
+      final at = anchor[sp.noteId];
+      if (at == null) continue;
+      primitives.add(TextPrimitive(
+          sp.pop ? 'P' : 'S', Point(at.$1, at.$2 - 1.0),
+          size: 1.1));
+    }
+
+    // Tremolo picking: short slashes stacked above the fret.
+    for (final tp in score.tremoloPickings) {
+      final at = anchor[tp.noteId];
+      if (at == null) continue;
+      var slashY = at.$2 - 0.9;
+      for (var i = 0; i < tp.strokes; i++) {
+        primitives.add(LinePrimitive(
+          Point(at.$1 - 0.35, slashY + 0.3),
+          Point(at.$1 + 0.35, slashY - 0.3),
+          thickness: s.beamThickness,
+        ));
+        slashY -= 0.55;
+      }
+    }
+
     // Chord diagrams placed above the staff over their note.
     for (final placed in score.chordDiagrams) {
       final at = anchor[placed.elementId];

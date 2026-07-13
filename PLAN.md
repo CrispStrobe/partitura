@@ -548,11 +548,11 @@ pitch → (string, fret) assignment. Also requires lifting the current
       notation or tab staff over a note — golden 62); tapping (`Tap` — "T") and
       tremolo-bar (`TremoloBar` — whammy V) — golden 61; artificial + pinch
       harmonics (`TabNoteStyle.artificialHarmonic`/`.pinchHarmonic` — bracketed
-      fret + "A.H."/"P.H." label) — golden 63. **Left:** tremolo picking, grace
-      notes, trill, staccato/accent, slap/pop, fingering, rasgueado, and the
-      rest of the checklist.
-      *[🚧 in progress: parallel agent — right-hand fingering, slap/pop, tremolo
-      picking (model + tab_layout); tab-only]*
+      fret + "A.H."/"P.H." label) — golden 63; right-hand p-i-m-a fingering
+      (`TabFingering`/`RightHandFinger` — letter below the fret), slap/pop
+      (`SlapPop` — "S"/"P"), tremolo picking (`TremoloPicking` — stacked
+      slashes) — golden 96. **Left:** grace notes, trill, staccato/accent,
+      rasgueado, and the rest of the checklist.
 - [x] **6.5 Tunings & other fretted instruments** — preset `Tuning`s for
       DADGAD, open-G, 7- and 8-string guitar, 5-string bass, 5-string banjo
       (reentrant high-G drone), ukulele (reentrant high-G) and mandolin, on top

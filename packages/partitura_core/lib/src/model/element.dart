@@ -619,6 +619,101 @@ class TremoloBar {
   String toString() => 'TremoloBar($noteId, ${steps}st)';
 }
 
+/// A right-hand (plucking) finger for classical-guitar tab: p (thumb / pulgar),
+/// i (index / índice), m (middle / medio), a (ring / anular). Drawn below the
+/// fret. Rendered by the tab engine only.
+enum RightHandFinger {
+  /// Thumb (p).
+  thumb('p'),
+
+  /// Index (i).
+  indexFinger('i'),
+
+  /// Middle (m).
+  middle('m'),
+
+  /// Ring (a).
+  ring('a');
+
+  const RightHandFinger(this.label);
+
+  /// The single-letter p-i-m-a label.
+  final String label;
+}
+
+/// A right-hand fingering on a tab note, referenced by its id. Rendered as the
+/// [finger]'s p/i/m/a letter below the fret; ignored by standard notation.
+class TabFingering {
+  /// Id of the fingered note.
+  final String noteId;
+
+  /// Which plucking finger.
+  final RightHandFinger finger;
+
+  /// Assigns [finger] to [noteId].
+  const TabFingering(this.noteId, this.finger);
+
+  @override
+  bool operator ==(Object other) =>
+      other is TabFingering && other.noteId == noteId && other.finger == finger;
+
+  @override
+  int get hashCode => Object.hash(noteId, finger);
+
+  @override
+  String toString() => 'TabFingering($noteId, ${finger.label})';
+}
+
+/// A slap (thumb) or pop (snapped-string) attack on a tab note — the bass
+/// technique — referenced by its id. Drawn as "S" (slap) or "P" (pop) above the
+/// fret. Rendered by the tab engine only.
+class SlapPop {
+  /// Id of the struck note.
+  final String noteId;
+
+  /// True for a pop (snap), false for a slap (thumb).
+  final bool pop;
+
+  /// Marks [noteId] as a slap (default) or pop.
+  const SlapPop(this.noteId, {this.pop = false});
+
+  @override
+  bool operator ==(Object other) =>
+      other is SlapPop && other.noteId == noteId && other.pop == pop;
+
+  @override
+  int get hashCode => Object.hash(noteId, pop);
+
+  @override
+  String toString() => 'SlapPop($noteId, ${pop ? 'pop' : 'slap'})';
+}
+
+/// Rapid repeated (tremolo) picking of a tab note, referenced by its id. Drawn
+/// as [strokes] short slashes below the fret. Rendered by the tab engine only.
+class TremoloPicking {
+  /// Id of the tremolo-picked note.
+  final String noteId;
+
+  /// Number of slashes (the picking density); at least 1.
+  final int strokes;
+
+  /// Marks [noteId] as tremolo-picked (default three slashes).
+  const TremoloPicking(this.noteId, {this.strokes = 3})
+      : assert(strokes >= 1, 'strokes must be >= 1');
+
+  @override
+  bool operator ==(Object other) =>
+      other is TremoloPicking &&
+      other.noteId == noteId &&
+      other.strokes == strokes;
+
+  @override
+  int get hashCode => Object.hash(noteId, strokes);
+
+  @override
+  String toString() => 'TremoloPicking($noteId, $strokes)';
+}
+
 /// A glissando/slide: a straight line drawn from one note to a later one,
 /// referenced by their ids (like [Slur]). The start must precede the end in
 /// reading order and both ids must exist, or layout throws an
