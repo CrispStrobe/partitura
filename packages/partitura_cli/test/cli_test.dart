@@ -160,6 +160,38 @@ void main() {
     expect(svg, contains('@font-face')); // font embedded by default
   });
 
+  test('render lays out a multi-part MusicXML with every part', () async {
+    // A two-part score-partwise document (treble + bass).
+    final multiPath = '${tmp.path}/duet.musicxml';
+    File(multiPath).writeAsStringSync('''
+<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list><score-part id="P1"/><score-part id="P2"/></part-list>
+  <part id="P1"><measure number="1">
+    <attributes><divisions>2</divisions><key><fifths>0</fifths></key>
+      <time><beats>4</beats><beat-type>4</beat-type></time>
+      <clef><sign>G</sign><line>2</line></clef></attributes>
+    <note><pitch><step>C</step><octave>5</octave></pitch><duration>8</duration><type>whole</type></note>
+  </measure></part>
+  <part id="P2"><measure number="1">
+    <attributes><divisions>2</divisions><key><fifths>0</fifths></key>
+      <time><beats>4</beats><beat-type>4</beat-type></time>
+      <clef><sign>F</sign><line>4</line></clef></attributes>
+    <note><pitch><step>C</step><octave>3</octave></pitch><duration>8</duration><type>whole</type></note>
+  </measure></part>
+</score-partwise>''');
+    final out = '${tmp.path}/duet.svg';
+    final r = await run(['render', multiPath, out, '--metadata', metadataPath]);
+    expect(r.exitCode, 0);
+    expect(r.stdout, contains('2 parts'));
+    final svg = File(out).readAsStringSync();
+    // Both clefs are present — proof it rendered both staves, not just the top.
+    expect(svg, contains(smuflCodepoints['gClef']!));
+    expect(svg, contains(smuflCodepoints['fClef']!));
+    // Two staff groups stacked into one system.
+    expect('<g transform'.allMatches(svg).length, greaterThanOrEqualTo(2));
+  });
+
   test('render --tab writes a tab SVG', () async {
     final out = '${tmp.path}/tab.svg';
     final r = await run(

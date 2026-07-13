@@ -10,6 +10,7 @@ library;
 
 import '../layout/grand_staff.dart';
 import '../layout/score_layout.dart';
+import '../layout/staff_system.dart';
 import '../smufl/smufl_codepoints.dart';
 
 /// Serializes [layout] to an SVG document string.
@@ -167,6 +168,75 @@ String grandStaffToSvg(
       textFontFamily, elementColors);
   _emitStaff(b, layout.lower, staffSpace, lowerOffset, color, glyphFontFamily,
       textFontFamily, elementColors);
+
+  b.writeln('</svg>');
+  return b.toString();
+}
+
+/// Serializes a laid-out [StaffSystemLayout] (N staves) to a standalone SVG
+/// document — the same emitter as [scoreToSvg], with the staves stacked
+/// [StaffSystemLayout.staffGap] spaces apart and the systemic barlines connected
+/// through each [BarlineGroup] (breaking between groups). Parameters match
+/// [scoreToSvg]; [elementColors] applies across every staff. Bracket/brace
+/// left-edge signs are not drawn (like [grandStaffToSvg]).
+String staffSystemToSvg(
+  StaffSystemLayout layout, {
+  double staffSpace = 12,
+  String glyphFontFamily = 'Bravura',
+  String textFontFamily = 'sans-serif',
+  String color = '#000000',
+  String background = '#ffffff',
+  String? fontFaceDataUri,
+  Map<String, String> elementColors = const {},
+}) {
+  final widthPx = layout.width * staffSpace;
+  final heightPx = layout.height * staffSpace;
+  final b = StringBuffer();
+  b.writeln('<?xml version="1.0" encoding="UTF-8"?>');
+  b.write('<svg xmlns="http://www.w3.org/2000/svg" ');
+  b.write('width="${_n(widthPx)}" height="${_n(heightPx)}" ');
+  b.writeln('viewBox="0 0 ${_n(widthPx)} ${_n(heightPx)}">');
+
+  if (fontFaceDataUri != null) {
+    b.writeln('<defs><style>@font-face{font-family:"$glyphFontFamily";'
+        'src:url($fontFaceDataUri);}</style></defs>');
+  }
+  if (background != 'none') {
+    b.writeln('<rect x="0" y="0" width="${_n(widthPx)}" '
+        'height="${_n(heightPx)}" fill="$background"/>');
+  }
+
+  // Shift the whole system so its top-most ink sits at y = 0; each staff's own
+  // y = 0 (top line) maps to (staffTop(i) - layout.top) px below that.
+  for (var i = 0; i < layout.staves.length; i++) {
+    final offsetY = (layout.staffTop(i) - layout.top) * staffSpace;
+    _emitStaff(b, layout.staves[i], staffSpace, offsetY, color, glyphFontFamily,
+        textFontFamily, elementColors);
+  }
+
+  // Systemic barlines: at every shared barline x, one line per group span.
+  if (layout.staves.length >= 2) {
+    final ref = layout.staves.first.primitives.whereType<LinePrimitive>();
+    final startThickness = ref.isEmpty ? 0.13 : ref.first.thickness;
+    final bars = <({double x, double thickness})>[
+      (x: 0.0, thickness: startThickness),
+      for (final line in ref)
+        if (line.from.x == line.to.x &&
+            ((line.from.y == 0 && line.to.y == 4) ||
+                (line.from.y == 4 && line.to.y == 0)))
+          (x: line.from.x, thickness: line.thickness),
+    ];
+    for (final span in layout.barlineSpans) {
+      final y1 = (span.top - layout.top) * staffSpace;
+      final y2 = (span.bottom - layout.top) * staffSpace;
+      for (final bar in bars) {
+        final x = bar.x * staffSpace;
+        b.writeln('<line x1="${_n(x)}" y1="${_n(y1)}" x2="${_n(x)}" '
+            'y2="${_n(y2)}" stroke="$color" '
+            'stroke-width="${_n(bar.thickness * staffSpace)}"/>');
+      }
+    }
+  }
 
   b.writeln('</svg>');
   return b.toString();

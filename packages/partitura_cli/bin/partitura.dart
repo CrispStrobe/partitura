@@ -386,19 +386,10 @@ int _render(List<String> args) {
   if (_formatOf(outPath) == 'png') {
     return _renderPng(positional[0], outPath, options);
   }
-  final score = _loadScore(positional[0], options);
   final staffSpace = double.tryParse(options['staff-space'] ?? '12') ?? 12;
 
   final (metadata, metadataFile) = _resolveMetadata(options);
   final settings = LayoutSettings(metadata: metadata);
-
-  final ScoreLayout layout;
-  if (options.containsKey('tab')) {
-    layout = const TabLayoutEngine()
-        .layout(score, _tuningOf(options['tuning']), settings);
-  } else {
-    layout = const LayoutEngine().layout(score, settings);
-  }
 
   String? fontUri;
   if (metadataFile != null && !options.containsKey('no-embed-font')) {
@@ -408,12 +399,62 @@ int _render(List<String> args) {
     }
   }
 
+  // Multi-part: if the input carries several parts (and this is not a tab
+  // render), lay them out as one aligned system and render every part stacked,
+  // rather than collapsing to the first `Score`.
+  if (!options.containsKey('tab')) {
+    final system = _loadStaffSystem(positional[0], options);
+    if (system != null && system.staves.length >= 2) {
+      final systemLayout = layoutStaffSystem(system, settings);
+      final svg = staffSystemToSvg(systemLayout,
+          staffSpace: staffSpace, fontFaceDataUri: fontUri);
+      File(outPath).writeAsStringSync(svg);
+      stdout.writeln('wrote $outPath (${svg.length} bytes, '
+          '${system.staves.length} parts'
+          '${fontUri == null ? '' : ', font embedded'})');
+      return 0;
+    }
+  }
+
+  final score = _loadScore(positional[0], options);
+  final ScoreLayout layout;
+  if (options.containsKey('tab')) {
+    layout = const TabLayoutEngine()
+        .layout(score, _tuningOf(options['tuning']), settings);
+  } else {
+    layout = const LayoutEngine().layout(score, settings);
+  }
+
   final svg =
       scoreToSvg(layout, staffSpace: staffSpace, fontFaceDataUri: fontUri);
   File(outPath).writeAsStringSync(svg);
   stdout.writeln('wrote $outPath (${svg.length} bytes'
       '${fontUri == null ? '' : ', font embedded'})');
   return 0;
+}
+
+/// Loads a multi-part [StaffSystem] from [path] for the formats that support
+/// several parts (MusicXML/MXL, MEI, kern, ABC), or null for single-part-only
+/// formats (MIDI, MuseScore, Guitar Pro, ASCII tab). A one-part input still
+/// returns a one-staff system; the caller only takes the multi-part path when
+/// there are two or more staves.
+StaffSystem? _loadStaffSystem(String path, Map<String, String> options) {
+  final file = File(path);
+  if (!file.existsSync()) throw _CliError('no such file: $path');
+  switch (options['from'] ?? _formatOf(path)) {
+    case 'musicxml':
+      return staffSystemFromMusicXml(file.readAsStringSync());
+    case 'mxl':
+      return staffSystemFromMusicXml(readMusicXmlFromMxl(file.readAsBytesSync()));
+    case 'mei':
+      return staffSystemFromMei(file.readAsStringSync());
+    case 'kern':
+      return staffSystemFromKern(file.readAsStringSync());
+    case 'abc':
+      return staffSystemFromAbc(file.readAsStringSync());
+    default:
+      return null;
+  }
 }
 
 /// Loads a [Score] from [path], detecting the format from the extension or

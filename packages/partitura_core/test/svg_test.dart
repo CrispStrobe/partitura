@@ -143,4 +143,38 @@ void main() {
       expect(grandStaffToSvg(layout), grandStaffToSvg(layout));
     });
   });
+
+  group('staffSystemToSvg', () {
+    StaffSystemLayout trioLayout() => layoutStaffSystem(
+          StaffSystem([
+            Score.simple(clef: Clef.treble, notes: 'c5:q d5 e5 f5'),
+            Score.simple(clef: Clef.alto, notes: 'e4:q f4 g4 a4'),
+            Score.simple(clef: Clef.bass, notes: 'c3:q d3 e3 f3'),
+          ], barlineGroups: const [
+            BarlineGroup(0, 1),
+            BarlineGroup(2, 2),
+          ]),
+          settings,
+        );
+
+    test('stacks every staff into one system', () {
+      final svg = staffSystemToSvg(trioLayout(), staffSpace: 10);
+      expect(svg, startsWith('<?xml'));
+      expect(svg.trimRight(), endsWith('</svg>'));
+      // Three staff groups, one per part.
+      expect('<g transform='.allMatches(svg).length, 3);
+    });
+
+    test('draws the systemic barline connectors', () {
+      final svg = staffSystemToSvg(trioLayout(), staffSpace: 10);
+      // Beyond each staff's own lines, the group (0,1) connector spans two
+      // staves — there are vertical <line> connectors in the output.
+      expect(svg, contains('<line'));
+    });
+
+    test('deterministic', () {
+      final layout = trioLayout();
+      expect(staffSystemToSvg(layout), staffSystemToSvg(layout));
+    });
+  });
 }
