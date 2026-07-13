@@ -83,12 +83,15 @@ ornaments, right-hand fingering, slap/pop, rasgueado, tremolo picking).
 **Interaction.** Every notehead is tappable, draggable and highlightable — on a
 single staff, a width-wrapped `MultiSystemView`, or an `InteractiveGrandStaffView`
 (taps report the system + staff). A hover caret and a translucent ghost-note
-preview drive note entry; drag hooks move existing notes; `elementRegions` /
-`elementIdsIn` back marquee selection. For player/editor apps there is an editor
-overlay layer — per-note `EditorMark`s (colour + message, e.g. wrong/flagged),
-a translucent loop/selection band, and `rectOfElement(id)` scroll-to-note
-geometry — orchestrated by a `ScoreEditorController` (`setLoop`, `mark`,
-`highlight`, `scrollToNote`) that drives an app-owned `ScrollController`.
+preview drive note entry; drag hooks move existing notes; an
+`ElementRegionController` exposes per-element hit rectangles (`elementRegions` /
+`elementIdsIn`) for marquee selection and drag-to-reorder. For player/editor
+apps there is an editor overlay layer — per-note `EditorMark`s (colour +
+message, e.g. wrong/flagged), a translucent loop/selection band, and
+`rectOfElement(id)` scroll-to-note geometry — orchestrated by a
+`ScoreEditorController` (`setLoop`, `mark`, `highlight`, `scrollToNote`) that
+drives an app-owned `ScrollController`. One-call `exportScoreToPng` /
+`exportScoreToSvg` (with the engraving font embedded) back print / page export.
 
 **Interchange.** MusicXML (plain and compressed `.mxl`), MEI, Humdrum `**kern`,
 MIDI, MuseScore (`.mscx`/`.mscz`), the `.gp3`–`.gp5`/`.gpx`/`.gp` tablature

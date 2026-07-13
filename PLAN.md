@@ -21,17 +21,33 @@ ships* at the end for the mechanics.
 
 ---
 
-## Status (2026-07-11)
+## Status (2026-07-13)
 
-> **Actively working on:** Workshop editor contracts **C7 + C8 + C9** — ✅ all
-> landed. C7 `ElementRegionController` (alias `MultiSystemViewController`) exposes
-> `elementRegions` / `elementIdsIn(Rect)` on the public widgets (marquee /
-> drag-reorder); C8 `exportScoreToPng` / `exportScoreToSvg` (+ grand-staff
-> overloads) one-call `Score`→PNG/SVG with the font embedded; C9
-> `Score.barNumberAt(index)` (pickup-uncounted bar numbers, one source of truth).
-> Reply appended to `mus-workshop/docs/WORKSHOP_PARTITURA_CONTRACTS.md`. Worktree
-> `partitura-public-lacunae`. *(Editor moat 3.3/3.4/3.8 + `ScoreEditorController`
-> done; v0.4.0 released with CLI/APK/WASM artifacts. All of C1–C9 now done.)*
+> **No active claim on this worktree — safe to pick up.** The editor-moat thread
+> is complete and on public `main`: Phase 3.3/3.4 overlays (`errorOverlay`,
+> `loopRange`) + 3.8 `ScoreEditorController` (`rectOfElement`/scroll-to-note),
+> the full **Workshop contract set C1–C9** (C7 `ElementRegionController`, C8
+> `exportScoreTo{Png,Svg}` + grand-staff overloads, C9 `Score.barNumberAt`), and
+> the **v0.4.0 release** (CLI + Android APK + WASM artifacts via `release.yml`;
+> `ci.yml` gates publish-dry-run / wasm / iOS). Reply logged in
+> `mus-workshop/docs/WORKSHOP_PARTITURA_CONTRACTS.md`.
+>
+> **Next up — recommended for the next agent (pick one, claim it here with 🚧,
+> push origin/main at every checkpoint):**
+> 1. **3.1 Cursor-synced instrument visualizers** *(highest differentiation)* — a
+>    piano keyboard (L/R hand) and guitar fretboard that light up with the
+>    playback cursor. Rides the existing no-audio timing map; also delivers
+>    3.8's remaining `set-visualizer`. Largest of the three (new widgets).
+> 2. **3.7 Played-vs-expected MIDI highlighting** *(quick win, extends this
+>    session)* — a thin `markDiff(expected, played)` convenience over
+>    `errorOverlay` / `ScoreEditorController.mark`; the app owns MIDI input.
+> 3. **3.9 Accessible & sonified navigable score** — Flutter `Semantics` over the
+>    score tree; a genuine gap across interactive players (accessibility moat).
+>
+> Also open and unblocked: 3.5 warped-time cursor, 3.6 live-transposition UI, the
+> 3.8 `toggle-part` tail. Worktree `partitura-public-lacunae`. Publishing to
+> pub.dev (both libs 0-warning) is the maintainer's call — see the root README
+> Install section.
 
 > **Actively working on (Phase 6.3):** tab paired with a notation staff — a
 > notation staff over a tab staff of the same `Score`, barlines aligned via

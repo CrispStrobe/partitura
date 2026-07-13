@@ -84,7 +84,11 @@ value-based, invalid constructor arguments fail asserts in debug builds.
   by `playbackTimeline`). `effectiveDurationAt(i)` and
   `totalDuration` sum exactly with tuplet scaling — a triplet eighth
   sounds 1/12 (games compare against `TimeSignature.measureCapacity`; the
-  layout engine does **not** enforce it).
+  layout engine does **not** enforce it). A short opening bar under a known
+  meter is auto-detected as a `Measure.pickup` (anacrusis).
+  `Score.barNumberAt(index)` (C9) gives the displayed bar number with the pickup
+  uncounted — 1-based over non-pickup measures, `null` for a pickup itself; the
+  measure-number overlay and the MEI writer both use it.
 - `MusicElement` (sealed) = `NoteElement` (1 pitch = note, n pitches =
   chord; `showAccidental`: `null` auto / `true` force / `false` hide;
   `tieToNext` ties to the next note element — identical pitches only,
