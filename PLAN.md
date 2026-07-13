@@ -121,6 +121,22 @@ y-down coords. Priority: **C1+C2 → C3 → C5 → C4**.
   so multi-part MusicXML round-trips to wrapped pages; (4) **editor
   integration** — the C1–C5 hit-testing / overlays across the multi-part view
   (cross-part `elementRegions`, `rectOfElement`).
+- [ ] **Complete the multi-part importers** *(from the real-input hardening pass,
+  `docs/HARDENING.md`)* — the readers should feed the C6 wrapped document, not
+  just a single `Score`:
+  - **MEI**: add `staffSystemFromMei` (only ABC / kern / MusicXML have a
+    multi-part importer today, so real MEI — Brandenburg, concertos — collapses
+    to one part).
+  - **CLI `render`**: detect a multi-part input and render via
+    `layoutMultiPartPages` / `MultiPartView` (today it always uses the single
+    `Score` path, so `partitura render quartet.musicxml` shows only one part —
+    even though `staffSystemFromMusicXml` imports all four).
+  - **Percussion**: `<unpitched>` notes now import on their display line (no
+    crash — hardening G7), but a proper percussion clef / staff and a MuseScore
+    drumset mapping are still missing.
+  - Verified working after G6/G7: the 23-staff orchestral **ActorPrelude** and
+    the Mozart string quartet (4 staves) import fully via
+    `staffSystemFromMusicXml`.
 - [x] **C7 — region controller.** The private render objects' `elementRegions`
   / `elementIdsIn(Rect)` (from C4) are now reachable from app code via a public
   `ElementRegionController` (alias `MultiSystemViewController`), attached with
