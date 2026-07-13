@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:partitura/partitura.dart';
@@ -131,5 +132,97 @@ void main() {
     // A marquee over an element's own bounds selects it.
     final any = regions.first;
     expect(render.elementIdsIn(any.bounds), contains(any.id));
+  });
+
+  testWidgets('onHover reports the staff target and null on exit',
+      (tester) async {
+    final hovered = <StaffTarget?>[];
+    await tester.pumpWidget(
+      wrap(InteractiveGrandStaffView(
+        grandStaff: eightBarPiano(),
+        staffSpace: 10,
+        onHover: hovered.add,
+      )),
+    );
+    final render = renderOf(tester);
+    final topLeft =
+        tester.getTopLeft(find.bySubtype<InteractiveGrandStaffView>());
+    final lm =
+        render.grandStaffSystems!.systems[0].layout.lower.measureRegions.first;
+    final overLower = topLeft +
+        render.lowerOrigin(0) +
+        Offset((lm.startX + 2) * render.scale, 2 * render.scale);
+
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: Offset.zero);
+    addTearDown(() => mouse.removePointer());
+    await mouse.moveTo(overLower);
+    await tester.pump();
+    expect(hovered.last, isA<StaffTarget>());
+    expect(hovered.last!.staffIndex, 1); // lower staff
+
+    await mouse.moveTo(topLeft - const Offset(300, 300));
+    await tester.pump();
+    expect(hovered.last, isNull);
+  });
+
+  testWidgets('dragging an element on either staff reports start/end',
+      (tester) async {
+    final log = <String>[];
+    StaffTarget? endTarget;
+    await tester.pumpWidget(
+      wrap(InteractiveGrandStaffView(
+        grandStaff: eightBarPiano(),
+        staffSpace: 10,
+        onElementDragStart: (id) => log.add('start:$id'),
+        onElementDragEnd: (id, t) {
+          log.add('end:$id');
+          endTarget = t;
+        },
+      )),
+    );
+    final render = renderOf(tester);
+    final topLeft =
+        tester.getTopLeft(find.bySubtype<InteractiveGrandStaffView>());
+    final bounds = render.grandStaffSystems!.systems[0].layout.upper.regions
+        .firstWhere((r) => r.elementId == 'e0')
+        .bounds;
+    final center = (bounds.topLeft + bounds.bottomRight) * 0.5;
+    final start = topLeft +
+        render.upperOrigin(0) +
+        Offset(center.x * render.scale, center.y * render.scale);
+
+    final g = await tester.startGesture(start);
+    await g.moveTo(start + const Offset(0, -20));
+    await tester.pump();
+    await g.up();
+    await tester.pump();
+
+    expect(log.first, 'start:e0');
+    expect(log.last, 'end:e0');
+    expect(endTarget, isNotNull);
+    expect(endTarget!.staffIndex, 0);
+  });
+
+  testWidgets('caret and ghost paint without error, repaint-only',
+      (tester) async {
+    Widget build({EditorCaret? caret, StaffTarget? ghost}) => wrap(
+          InteractiveGrandStaffView(
+            grandStaff: eightBarPiano(),
+            staffSpace: 10,
+            caret: caret,
+            ghostTarget: ghost,
+          ),
+        );
+    await tester.pumpWidget(build());
+    final render = renderOf(tester);
+    final before = render.grandStaffSystems;
+    await tester.pumpWidget(build(
+      caret: const EditorCaret(measureIndex: 2),
+      ghost:
+          const StaffTarget(staffPosition: 4, measureIndex: 2, staffIndex: 1),
+    ));
+    expect(tester.takeException(), isNull);
+    expect(identical(render.grandStaffSystems, before), isTrue);
   });
 }

@@ -3,9 +3,11 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:partitura_core/partitura_core.dart';
 
+import '../interaction/editor_caret.dart';
 import '../interaction/staff_target.dart';
 import 'layout_painter.dart';
 import 'music_font.dart';
@@ -50,6 +52,29 @@ class InteractiveGrandStaffView extends LeafRenderObjectWidget {
   /// `staffIndex`) when the user taps empty staff.
   final void Function(StaffTarget target)? onStaffTap;
 
+  /// Called on mouse hover with the staff location, or null on exit.
+  final void Function(StaffTarget? target)? onHover;
+
+  /// An insertion caret to draw (spans the system at the resolved x), or null.
+  final EditorCaret? caret;
+
+  /// A translucent preview notehead to draw at this staff location (its
+  /// `staffIndex` picks the staff), or null.
+  final StaffTarget? ghostTarget;
+
+  /// Duration whose notehead the [ghostTarget] preview uses.
+  final NoteDuration ghostDuration;
+
+  /// Called when a drag begins on an existing element, with its id.
+  final void Function(String elementId)? onElementDragStart;
+
+  /// Called as a dragged element moves, with the live target.
+  final void Function(String elementId, StaffTarget target)?
+      onElementDragUpdate;
+
+  /// Called when the drag ends, with the drop target.
+  final void Function(String elementId, StaffTarget target)? onElementDragEnd;
+
   /// Creates a wrapped, interactive grand staff.
   const InteractiveGrandStaffView({
     super.key,
@@ -62,6 +87,13 @@ class InteractiveGrandStaffView extends LeafRenderObjectWidget {
     this.elementColors = const {},
     this.onElementTap,
     this.onStaffTap,
+    this.onHover,
+    this.caret,
+    this.ghostTarget,
+    this.ghostDuration = NoteDuration.quarter,
+    this.onElementDragStart,
+    this.onElementDragUpdate,
+    this.onElementDragEnd,
   });
 
   @override
@@ -76,7 +108,14 @@ class InteractiveGrandStaffView extends LeafRenderObjectWidget {
         elementColors: elementColors,
       )
         ..onElementTap = onElementTap
-        ..onStaffTap = onStaffTap;
+        ..onStaffTap = onStaffTap
+        ..onHover = onHover
+        ..caret = caret
+        ..ghostTarget = ghostTarget
+        ..ghostDuration = ghostDuration
+        ..onElementDragStart = onElementDragStart
+        ..onElementDragUpdate = onElementDragUpdate
+        ..onElementDragEnd = onElementDragEnd;
 
   @override
   void updateRenderObject(
@@ -92,12 +131,20 @@ class InteractiveGrandStaffView extends LeafRenderObjectWidget {
       ..highlightedIds = highlightedIds
       ..elementColors = elementColors
       ..onElementTap = onElementTap
-      ..onStaffTap = onStaffTap;
+      ..onStaffTap = onStaffTap
+      ..onHover = onHover
+      ..caret = caret
+      ..ghostTarget = ghostTarget
+      ..ghostDuration = ghostDuration
+      ..onElementDragStart = onElementDragStart
+      ..onElementDragUpdate = onElementDragUpdate
+      ..onElementDragEnd = onElementDragEnd;
   }
 }
 
 /// Render object behind [InteractiveGrandStaffView].
-class RenderInteractiveGrandStaffView extends RenderBox {
+class RenderInteractiveGrandStaffView extends RenderBox
+    implements MouseTrackerAnnotation {
   /// Creates the render object.
   RenderInteractiveGrandStaffView({
     required GrandStaff grandStaff,
@@ -115,12 +162,20 @@ class RenderInteractiveGrandStaffView extends RenderBox {
         _highlightedIds = highlightedIds,
         _elementColors = elementColors {
     _tap = TapGestureRecognizer(debugOwner: this)..onTapUp = _handleTapUp;
+    _pan = PanGestureRecognizer(debugOwner: this)
+      ..onStart = _handleDragStart
+      ..onUpdate = _handleDragUpdate
+      ..onEnd = _handleDragEnd
+      ..onCancel = _handleDragCancel;
   }
 
   /// Left inset (staff spaces) reserved for the brace.
   static const double braceInset = 1.4;
 
   late final TapGestureRecognizer _tap;
+  late final PanGestureRecognizer _pan;
+  String? _draggingId;
+  Offset? _lastDragLocal;
   GrandStaffSystems? _systems;
   late final LayoutPainter _painter = LayoutPainter(
     theme: _theme,
@@ -134,6 +189,53 @@ class RenderInteractiveGrandStaffView extends RenderBox {
 
   /// Called with a quantized [StaffTarget] when the user taps empty staff.
   void Function(StaffTarget target)? onStaffTap;
+
+  /// Called on mouse hover with the staff location, or null on exit.
+  void Function(StaffTarget? target)? onHover;
+
+  /// Called when a drag begins on an existing element.
+  void Function(String elementId)? onElementDragStart;
+
+  /// Called as a dragged element moves, with the live target.
+  void Function(String elementId, StaffTarget target)? onElementDragUpdate;
+
+  /// Called when the drag ends, with the drop target.
+  void Function(String elementId, StaffTarget target)? onElementDragEnd;
+
+  bool get _wantsElementDrag =>
+      onElementDragStart != null ||
+      onElementDragUpdate != null ||
+      onElementDragEnd != null;
+
+  EditorCaret? _caret;
+
+  /// The insertion caret to draw, or null. Repaint only.
+  EditorCaret? get caret => _caret;
+  set caret(EditorCaret? value) {
+    if (value == _caret) return;
+    _caret = value;
+    markNeedsPaint();
+  }
+
+  StaffTarget? _ghostTarget;
+
+  /// The preview-notehead location, or null. Repaint only.
+  StaffTarget? get ghostTarget => _ghostTarget;
+  set ghostTarget(StaffTarget? value) {
+    if (value == _ghostTarget) return;
+    _ghostTarget = value;
+    markNeedsPaint();
+  }
+
+  NoteDuration _ghostDuration = NoteDuration.quarter;
+
+  /// The ghost preview's duration. Repaint only.
+  NoteDuration get ghostDuration => _ghostDuration;
+  set ghostDuration(NoteDuration value) {
+    if (value == _ghostDuration) return;
+    _ghostDuration = value;
+    if (_ghostTarget != null) markNeedsPaint();
+  }
 
   GrandStaff _grandStaff;
 
@@ -453,15 +555,38 @@ class RenderInteractiveGrandStaffView extends RenderBox {
 
   @override
   bool hitTestSelf(Offset position) =>
-      onElementTap != null || onStaffTap != null;
+      onElementTap != null ||
+      onStaffTap != null ||
+      onHover != null ||
+      _wantsElementDrag;
 
   @override
   void handleEvent(PointerEvent event, covariant BoxHitTestEntry entry) {
-    if (event is PointerDownEvent &&
-        (onElementTap != null || onStaffTap != null)) {
-      _tap.addPointer(event);
+    if (event is PointerDownEvent) {
+      if (onElementTap != null || onStaffTap != null) _tap.addPointer(event);
+      if (_wantsElementDrag) _pan.addPointer(event);
+    } else if (event is PointerHoverEvent && onHover != null) {
+      onHover!.call(resolveStaffTarget(event.localPosition));
     }
   }
+
+  // MouseTrackerAnnotation — reports null when the pointer leaves the widget.
+  /// No enter callback (hover moves drive [onHover] via [handleEvent]).
+  @override
+  PointerEnterEventListener? get onEnter => null;
+
+  /// Fires [onHover] with null when the pointer leaves the widget.
+  @override
+  PointerExitEventListener? get onExit =>
+      onHover == null ? null : (_) => onHover?.call(null);
+
+  /// The default cursor.
+  @override
+  MouseCursor get cursor => MouseCursor.defer;
+
+  /// Whether this render object participates in mouse tracking.
+  @override
+  bool get validForMouseTracker => onHover != null;
 
   void _handleTapUp(TapUpDetails details) {
     final id = elementIdAt(details.localPosition);
@@ -473,9 +598,36 @@ class RenderInteractiveGrandStaffView extends RenderBox {
     }
   }
 
+  void _handleDragStart(DragStartDetails details) {
+    _lastDragLocal = details.localPosition;
+    _draggingId = elementIdAt(details.localPosition);
+    if (_draggingId != null) onElementDragStart?.call(_draggingId!);
+  }
+
+  void _handleDragUpdate(DragUpdateDetails details) {
+    _lastDragLocal = details.localPosition;
+    final id = _draggingId;
+    if (id == null) return;
+    final target = resolveStaffTarget(details.localPosition);
+    if (target != null) onElementDragUpdate?.call(id, target);
+  }
+
+  void _handleDragEnd(DragEndDetails details) {
+    final id = _draggingId;
+    final local = _lastDragLocal;
+    if (id != null && local != null) {
+      final target = resolveStaffTarget(local);
+      if (target != null) onElementDragEnd?.call(id, target);
+    }
+    _draggingId = null;
+  }
+
+  void _handleDragCancel() => _draggingId = null;
+
   @override
   void dispose() {
     _tap.dispose();
+    _pan.dispose();
     _painter.dispose();
     super.dispose();
   }
@@ -529,5 +681,114 @@ class RenderInteractiveGrandStaffView extends RenderBox {
         );
       }
     }
+
+    _paintGhost(canvas, offset);
+    _paintCaret(canvas, offset);
+  }
+
+  /// The (system index, staff layout, staff origin, measure start x) of
+  /// [measureIndex] on [staffIndex] (0 upper, 1 lower), or null.
+  (int, ScoreLayout, Offset, double)? _place(int measureIndex, int staffIndex) {
+    final systems = _systems;
+    if (systems == null) return null;
+    for (var i = 0; i < systems.systems.length; i++) {
+      final system = systems.systems[i];
+      if (measureIndex < system.firstMeasure ||
+          measureIndex > system.lastMeasure) {
+        continue;
+      }
+      final staff = staffIndex == 0 ? system.layout.upper : system.layout.lower;
+      final origin = staffIndex == 0 ? upperOrigin(i) : lowerOrigin(i);
+      final localIndex = measureIndex - system.firstMeasure;
+      for (final region in staff.measureRegions) {
+        if (region.index == localIndex) {
+          return (i, staff, origin, region.startX);
+        }
+      }
+    }
+    return null;
+  }
+
+  void _paintGhost(Canvas canvas, Offset offset) {
+    final ghost = _ghostTarget;
+    if (ghost == null) return;
+    final placement = _place(ghost.measureIndex, ghost.staffIndex);
+    if (placement == null) return;
+    final (_, _, origin, startX) = placement;
+    final xSpaces = startX + 1.0;
+    final glyph = switch (_ghostDuration.base) {
+      DurationBase.whole => SmuflGlyph.noteheadWhole,
+      DurationBase.half => SmuflGlyph.noteheadHalf,
+      _ => SmuflGlyph.noteheadBlack,
+    };
+    final color = _theme.highlightColor.withValues(alpha: 0.45);
+    final y = (8 - ghost.staffPosition) / 2;
+    final metadata = MusicFonts.metadataOrNull(_theme.musicFont);
+    final width = metadata?.bBoxOf(glyph).width ?? 1.18;
+    final o = offset + origin;
+    _painter.paintGlyph(
+        canvas, o, glyph, math.Point(xSpaces - width / 2, y), color);
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 0.16 * _staffSpace;
+    void ledger(int position) {
+      final ly = (8 - position) / 2;
+      canvas.drawLine(
+        o + Offset((xSpaces - width / 2 - 0.4) * _staffSpace, ly * _staffSpace),
+        o + Offset((xSpaces + width / 2 + 0.4) * _staffSpace, ly * _staffSpace),
+        paint,
+      );
+    }
+
+    for (var p = -2; p >= ghost.staffPosition; p -= 2) {
+      ledger(p);
+    }
+    for (var p = 10; p <= ghost.staffPosition; p += 2) {
+      ledger(p);
+    }
+  }
+
+  void _paintCaret(Canvas canvas, Offset offset) {
+    final caret = _caret;
+    final systems = _systems;
+    if (caret == null || systems == null) return;
+
+    int? systemIndex;
+    double? xSpaces;
+    final beforeId = caret.beforeElementId;
+    if (beforeId != null) {
+      outer:
+      for (var i = 0; i < systems.systems.length; i++) {
+        final layout = systems.systems[i].layout;
+        for (final staff in [layout.upper, layout.lower]) {
+          for (final region in staff.regions) {
+            if (region.elementId == beforeId) {
+              systemIndex = i;
+              xSpaces = region.bounds.left - 0.3;
+              break outer;
+            }
+          }
+        }
+      }
+    } else if (caret.measureIndex != null) {
+      final placement = _place(caret.measureIndex!, 0);
+      if (placement != null) {
+        systemIndex = placement.$1;
+        xSpaces = placement.$4;
+      }
+    }
+    if (systemIndex == null || xSpaces == null) return;
+
+    // A full-height insertion bar spanning both staves at the resolved x.
+    final upper = offset + upperOrigin(systemIndex);
+    final lower = offset + lowerOrigin(systemIndex);
+    final paint = Paint()
+      ..color = _theme.highlightColor
+      ..strokeWidth = 0.14 * _staffSpace;
+    canvas.drawLine(
+      upper + Offset(xSpaces * _staffSpace, -1 * _staffSpace),
+      lower + Offset(xSpaces * _staffSpace, 5 * _staffSpace),
+      paint,
+    );
   }
 }

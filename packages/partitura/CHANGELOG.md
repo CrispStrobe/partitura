@@ -2,6 +2,14 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Interactive grand staff — hover / caret / ghost / drag** (C2/C3 on the
+  keyboard system): `InteractiveGrandStaffView` gains `onHover(StaffTarget?)`
+  (via `MouseTrackerAnnotation`, null on exit), a `caret` (`EditorCaret`, drawn
+  as a full-height insertion bar spanning both staves at the resolved x), a
+  `ghostTarget` + `ghostDuration` preview notehead (its `staffIndex` picks the
+  staff), and element drag hooks `onElementDragStart/Update/End` (via a
+  `PanGestureRecognizer`). Completes the editor-hook parity with
+  `MultiSystemView` for the grand staff. `interactive_grand_staff_view_test.dart`.
 - **Editor contract C4 — range hit-testing / region geometry** (Workshop APIs):
   `RenderStaffView`, `RenderMultiSystemView` and `RenderInteractiveGrandStaffView`
   expose read-only `elementRegions` (each `(id, Rect bounds, measureIndex)` in
