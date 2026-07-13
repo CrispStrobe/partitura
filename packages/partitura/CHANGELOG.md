@@ -2,6 +2,15 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Cross-staff gridding — accidental-aware columns** (§2.9): the shared column
+  is now the **notehead** x, so heads align across staves even when only some
+  carry an accidental at that beat (the accidental extends left of the column
+  instead of pushing the head right). `alignedColumns` splits each element's ink
+  into left (accidental) and right (notehead/stem/dots) and spaces columns so
+  one column's right ink never collides with the next column's left ink; the
+  engine's single-voice path anchors each head with `noteXOverride`. Completes
+  §2.9. Goldens 75/76/95/96 re-rendered (subtle spacing shift; SATB accidentals
+  on a beat now line up).
 - **Cross-staff gridding — justification composes** (§2.9, increment 4): the
   wrapped grand staff now fills the line *and* keeps simultaneous notes aligned
   — `alignedColumns` takes the `spacingStretch`, so the justification search

@@ -91,6 +91,30 @@ void main() {
       expect(left(layout.upper, 'e3'), closeTo(left(layout.lower, 'e2'), 0.01));
     });
 
+    test('accidental-aware columns align noteheads across staves (§2.9)', () {
+      // Upper beat 1 carries a sharp (accidental), lower beat 1 does not. The
+      // two noteheads must still line up — the accidental extends left of the
+      // shared column rather than pushing the head right.
+      final layout = layoutGrandStaff(
+        demo(upper: 'c#5:q d5 e5 f5', lower: 'c3:q e3 g3 c3'),
+        settings,
+      );
+      double noteX(ScoreLayout staff, String id) => staff.primitives
+          .whereType<GlyphPrimitive>()
+          .firstWhere(
+              (g) => g.elementId == id && g.smuflName.startsWith('notehead'))
+          .position
+          .x;
+      // Confirm the sharp is actually drawn on the upper beat-1 note.
+      expect(
+        layout.upper.primitives.whereType<GlyphPrimitive>().any(
+            (g) => g.elementId == 'e0' && g.smuflName == SmuflGlyph.accidentalSharp),
+        isTrue,
+      );
+      // Beat 1 noteheads align despite the upper accidental.
+      expect(noteX(layout.upper, 'e0'), closeTo(noteX(layout.lower, 'e0'), 0.01));
+    });
+
     test('multi-voice staves join the cross-staff grid (§2.9 increment 3)', () {
       // Upper staff has two voices (four quarters + two halves); lower is a
       // half then two quarters. Beat 3 (onset 1/2) exists in both upper voices

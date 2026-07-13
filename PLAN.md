@@ -23,12 +23,11 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-11)
 
-> **Actively working on:** cross-staff gridding §2.9 — the last piece,
-> **accidental-aware columns**: place each note's *notehead* on the shared
-> column (via `noteXOverride`) so heads align even when staves carry different
-> accidentals at the same onset, and account for left (accidental) vs right
-> (stem/dots) ink in the column gaps. Worktree `partitura-public-lacunae`.
-> *(Increments 1–4, editor contracts C1–C5, justification done on `main`.)*
+> **Between features (model-lacunae worktree).** Cross-staff onset-column
+> gridding §2.9 **fully complete** on `main` (grand staff, N-staff systems,
+> multi-voice, justification-composes, accidental-aware columns). Editor
+> contracts C1–C5 + grand-staff justification done; the three deep Score-model
+> lacunae done; C6 deferred. Ready for the next request.
 
 > **Actively working on (OMR test hardening):** more unit tests across the OMR
 > parsers (semantic clefs/keys/meters/mid-score changes, LilyPond double
@@ -119,8 +118,13 @@ own goldens):**
    onsets stay aligned — `grand_staff_systems_test.dart`). *(A one-shot
    column-scaling optimization to avoid re-searching layouts is a possible future
    refinement.)*
-- 🚧 **Accidental-aware columns** — align noteheads (not the pre-accidental x)
-  when staves carry different accidentals at the same onset.
+- [x] **Accidental-aware columns** — the shared column is the notehead x;
+  `alignedColumns` splits ink into left (accidental) / right (stem/dots) and the
+  single-voice engine path anchors heads with `noteXOverride`, so heads align
+  even when only some staves have an accidental at that beat. Goldens 75/76/95/96
+  re-rendered; `grand_staff_test.dart` asserts it. **§2.9 complete.** (Multi-voice
+  staves stay notehead-aligned for diatonic music and degrade gracefully with
+  accidentals — a further refinement if ever needed.)
 
 - **Shipped: v0.1 → v0.7.2** — the full common-notation set plus the
   piano/technical layer. All green.

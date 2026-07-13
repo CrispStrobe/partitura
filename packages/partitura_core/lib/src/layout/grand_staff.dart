@@ -10,11 +10,13 @@ import 'layout_settings.dart';
 import 'score_layout.dart';
 
 /// Cross-staff onset gridding (§2.9): shared per-measure column positions
-/// (onset → x from the measure's content start) that align simultaneous notes
-/// across [staves], which must share measures. Single-voice; feed the result
-/// to `LayoutEngine.layout`'s `forcedColumns` for every staff so their notes
-/// land on the same columns. Column gaps are the optical time-spacing floored
-/// by the widest ink at that column across staves + `minNoteGap`.
+/// (onset → the **notehead** x from the measure's content start) that align
+/// simultaneous notes across [staves], which must share measures (all voices
+/// participate). Feed the result to `LayoutEngine.layout`'s `forcedColumns` for
+/// every staff so their noteheads land on the same columns and accidentals
+/// extend left. Column gaps are the optical time-spacing, floored so one
+/// column's right ink (notehead/stem/dots) never collides with the next
+/// column's left ink (accidental).
 List<Map<Fraction, double>> alignedColumns(
   List<Score> staves,
   LayoutSettings settings, {
@@ -22,22 +24,21 @@ List<Map<Fraction, double>> alignedColumns(
 }) {
   if (staves.isEmpty) return const [];
   const engine = LayoutEngine();
-  // Natural per-staff layouts give each element's ink width (its region).
-  final widthById = [
-    for (final score in staves)
-      {
-        for (final region in engine.layout(score, settings).regions)
-          region.elementId: region.bounds.width,
-      },
+  // Natural per-staff layouts give each element's ink split into the part left
+  // of its notehead (accidental) and right of it (notehead/stem/dots), so the
+  // column x can be the notehead position (accidental-aware).
+  final ink = [
+    for (final score in staves) _inkMetrics(engine.layout(score, settings))
   ];
 
   final measureCount = staves.first.measures.length;
   final result = <Map<Fraction, double>>[];
   for (var m = 0; m < measureCount; m++) {
-    // The widest element ink at each onset, across all staves and all their
-    // voices (voice 0 carries any tuplet adjustment; other voices use raw
-    // durations, matching the engine's multi-voice onset arithmetic).
-    final inkAt = <Fraction, double>{};
+    // The widest left/right ink at each onset, across all staves and voices
+    // (voice 0 carries any tuplet adjustment; other voices use raw durations,
+    // matching the engine's multi-voice onset arithmetic).
+    final leftAt = <Fraction, double>{};
+    final rightAt = <Fraction, double>{};
     var measureEnd = Fraction.zero;
     for (var si = 0; si < staves.length; si++) {
       final measure = staves[si].measures[m];
@@ -46,8 +47,9 @@ List<Map<Fraction, double>> alignedColumns(
         var onset = Fraction.zero;
         for (var i = 0; i < voices[v].length; i++) {
           final id = voices[v][i].id;
-          final width = (id == null ? null : widthById[si][id]) ?? 1.0;
-          inkAt[onset] = max(inkAt[onset] ?? 0.0, width);
+          final (l, r) = (id == null ? null : ink[si][id]) ?? (0.0, 1.0);
+          leftAt[onset] = max(leftAt[onset] ?? 0.0, l);
+          rightAt[onset] = max(rightAt[onset] ?? 0.0, r);
           onset += v == 0
               ? measure.effectiveDurationAt(i)
               : voices[v][i].duration.toFraction();
@@ -56,21 +58,49 @@ List<Map<Fraction, double>> alignedColumns(
       }
     }
 
-    final onsets = inkAt.keys.toList()..sort((a, b) => a.compareTo(b));
+    final onsets = leftAt.keys.toList()..sort((a, b) => a.compareTo(b));
     final columns = <Fraction, double>{};
-    var x = 0.0;
+    // The first column leaves room for its own left ink (accidental) after the
+    // measure's content start.
+    var x = onsets.isEmpty ? 0.0 : (leftAt[onsets.first] ?? 0.0);
     for (var k = 0; k < onsets.length; k++) {
       columns[onsets[k]] = x;
       final next = k + 1 < onsets.length ? onsets[k + 1] : measureEnd;
       final ideal =
           _idealAdvanceFor(next - onsets[k], settings, spacingStretch);
-      final floor = (inkAt[onsets[k]] ?? 0.0) + settings.minNoteGap;
-      x += max(ideal, floor);
+      // Never let this column's right ink collide with the next column's left
+      // ink (its accidental).
+      final nextLeft =
+          k + 1 < onsets.length ? (leftAt[onsets[k + 1]] ?? 0.0) : 0.0;
+      final collision =
+          (rightAt[onsets[k]] ?? 0.0) + nextLeft + settings.minNoteGap;
+      x += max(ideal, collision);
     }
     columns[measureEnd] = x; // the closing-barline column
     result.add(columns);
   }
   return result;
+}
+
+/// Per-element ink split `(left, right)` about its notehead x, from a natural
+/// [layout]: left = accidental (notehead x − ink left), right = notehead/stem/
+/// dots (ink right − notehead x). Rests (no notehead) anchor at their ink left.
+Map<String, (double, double)> _inkMetrics(ScoreLayout layout) {
+  final headX = <String, double>{};
+  for (final primitive in layout.primitives) {
+    if (primitive is GlyphPrimitive &&
+        primitive.elementId != null &&
+        primitive.smuflName.startsWith('notehead')) {
+      headX.putIfAbsent(primitive.elementId!, () => primitive.position.x);
+    }
+  }
+  final out = <String, (double, double)>{};
+  for (final region in layout.regions) {
+    final b = region.bounds;
+    final anchor = headX[region.elementId] ?? b.left;
+    out[region.elementId] = (anchor - b.left, b.right - anchor);
+  }
+  return out;
 }
 
 /// The optical time-based spacing for an onset gap of [delta] (mirrors the

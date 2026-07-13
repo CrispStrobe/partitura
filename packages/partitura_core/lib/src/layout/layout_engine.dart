@@ -708,10 +708,13 @@ class _LayoutBuilder {
       final element = measure.elements[i];
       final log2Adjust = _tupletLog2Adjust(measure, i);
       tieIndexOf[i] = _tieInfos.length;
-      if (columns != null) {
-        final columnX = columns[onset];
-        if (columnX != null) _x = measureContentStart + columnX;
-      }
+      // The grid column x is the notehead position (accidental-aware): the
+      // note anchors its head there via noteXOverride and its accidental
+      // extends left; a rest anchors its ink there via _x.
+      final columnX = columns == null ? null : columns[onset];
+      if (columnX != null) _x = measureContentStart + columnX;
+      final columnNoteX =
+          columnX == null ? null : measureContentStart + columnX;
       onset += measure.effectiveDurationAt(i);
       switch (element) {
         case NoteElement():
@@ -726,6 +729,7 @@ class _LayoutBuilder {
                 : (group?.stemsDown ??
                     (cm != null ? _crossBeamStemsDown[cm] : null)),
             deferStem: crossStaff || cm != null || group != null,
+            noteXOverride: columnNoteX,
           );
           if (crossStaff) {
             _recordCrossStaffStub(element.id, result.beamed);
