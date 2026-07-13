@@ -2,7 +2,7 @@
 
 Music notation rendering for Dart & Flutter, with first-class interactivity.
 
-**Status: 0.4.0-dev, pre-publication.** Well past the original five-milestone
+**Status: v0.4.0 released; 0.4.1-dev in progress.** Well past the original five-milestone
 contract ([HANDOVER.md](HANDOVER.md), amended by
 [HANDOVER_PARTITURA.md](HANDOVER_PARTITURA.md)); active development now follows
 [PLAN.md](PLAN.md). API guarantees consumers may rely on are in
@@ -97,7 +97,7 @@ drives an app-owned `ScrollController`. One-call `exportScoreToPng` /
 MIDI, MuseScore (`.mscx`/`.mscz`), the `.gp3`–`.gp5`/`.gpx`/`.gp` tablature
 family (with GPIF), and ABC — all importing and (where applicable) exporting
 through the one `Score` model, so any pair round-trips for shared data; plus
-LilyPond `.ly` export.
+LilyPond `.ly` and braille-music (`.brl`) export.
 
 **Optical music recognition.** A staff-notation image imports to a score via
 [CrispEmbed](https://github.com/CrispStrobe/CrispEmbed), auto-routing three

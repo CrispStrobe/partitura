@@ -303,7 +303,9 @@ multi-voice staves, `_layoutMultiVoiceMeasure` honours the shared columns).
 ensemble system; it is accidental-aware and composes with justification (the
 `spacingStretch` scales the shared columns rather than fighting them).
 
-**Guitar/bass tablature** (v0.8, in progress): `TabLayoutEngine.layout(score,
+**Guitar/bass tablature** (v0.8, complete — Phase 6, all technique tiers plus a
+notation-paired staff via `layoutNotationTab` / `NotationTabView`):
+`TabLayoutEngine.layout(score,
 tuning, settings)` renders a `Score`'s pitches as fret numbers on an N-line
 string staff, using a `Tuning` (open-string pitches; `Tuning.standardGuitar`
 / `dropDGuitar` / `standardBass`, or custom). `Tuning.fretFor(pitch)` assigns
@@ -502,6 +504,17 @@ notes/chords, rests, durations breve…64th with dots, two voices, ties and
 pickup (`\partial`). Uses Dutch note names; 4/4 and 2/2 engrave as the C /
 cut-C symbols by LilyPond default (numeric meters force numerals). Slurs,
 tuplets, articulations, lyrics and repeat structure are out of scope.
+
+### Braille music (`.brl`) export
+
+`scoreToBraille(score)` emits Unicode braille-music notation (U+2800…) for a
+single-staff score — **export only** — an accessibility differentiator. Covers
+note signs (name + value), rests, accidentals (shown only when not implied by
+the key), octave marks (by the standard interval rule), dotted-note
+augmentation cells, chords (top note + downward interval signs), a leading
+signature header (standard key signature + numeric time signature), and
+blank-cell measure separation. In-accord voices, mid-score signature changes,
+dynamics, slurs and formatting rules are follow-ups.
 
 ### Plain-text (ASCII) tablature import
 

@@ -23,38 +23,37 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-13)
 
-> **My lane landed on `main`:** 2.4 `Measure.actualDuration` (irregular bars),
-> 2.7 every-N measure numbering, 7.3 ABC `!invertedturn!`, 7.5 braille
-> signatures + chords, and the C6 handover doc (`docs/C6_HANDOVER.md`). No active
-> claim on this worktree line. *(2.1/2.2/2.3-view/2.6 stay owned/forked by the
-> model agent; C6 is now reconciled — see below.)*
-
-> ✅ **C6 fork reconciled** (`docs/C6_HANDOVER.md`): the private `MultiPartScore`
-> + `BarlineGroup` document model and `MultiPartView` widget are now on public,
-> layered *over* `layoutStaffSystemSystems` (A stays the layout primitive) with
-> pagination reusing the existing page packer — B's duplicate
-> `layoutMultiPartSystem`/`system_break.dart` engine was *not* ported.
-> `StaffSystem` gained per-group barline spans (delivers the Phase-5 custom-span
-> barlines). Goldens 124/125. Branch `feat/c6-reconcile` (worktree
-> `partitura-c6`); merge to `main` when ready. *(Touched `staff_system.dart`,
-> `multi_system.dart`, new `multi_part*.dart` — not the 2.x/4.x lanes.)*
-
-> **HANDOFF — `partitura-public-lacunae` has no active claim; safe to pick up.**
-> **Phase 4 (Music theory & analysis) is finished:** the tails just landed — 4.4
-> `chordReadings` (enharmonic re-reads), 4.5 `forteNumber` (Forte set-class
-> numbers), 4.7 metric-aware secondary beaming (golden 122). The only unaddressed
-> 4.x item is 4.8's *analysis text I/O format*, intentionally **deferred** (no
-> established interchange format to target; a bespoke one is a maintainer call).
-> **Phases 3, 4, 6 are now complete from this worktree.** Remaining across the
-> plan: the Phase 5 tails (5.6 cross-staff span barlines, 5.7 polymeter — both
-> gated on the C6 multi-staff engine the other worktree is building) and any
-> Phase 7+ items. Claim with 🚧, push origin/main at every checkpoint.
-
+> **No active claims — safe to pick up. Claim with 🚧, push origin/main at
+> every checkpoint** (see [[coordination]] / gitignored `CLAUDE.md`).
+>
+> **Complete:** Phase **1** (engraving; 1.1/1.2 done, 1.3/1.4 have only optional
+> tails), Phase **3** (interactivity — cursor visualizers, editor moat, drills,
+> accessibility, live transpose), Phase **4** (theory/analysis; only 4.8's
+> analysis text-I/O format deferred — no standard to target), Phase **6** (guitar
+> tab, all tiers + notation-paired staff), the full Workshop editor contract set
+> **C1–C10**, and cross-staff onset gridding **§2.9**.
+>
+> **C6 multi-part document — reconciled & landed.** The fork is resolved per
+> `docs/C6_HANDOVER.md`: the private `MultiPartScore` + `BarlineGroup` model and
+> paginated `MultiPartView` are now on `main`, layered *over* the layout
+> primitive `layoutStaffSystemSystems` (B's duplicate line-break engine was not
+> ported). `StaffSystem` gained per-group barline spans — which also **delivers
+> the Phase-5 custom-span barlines (5.6)**. Goldens 124/125.
+>
+> **Open:** Phase **2** tails — 2.4 ✓ (`Measure.actualDuration`), 2.7
+> ✓ (every-N numbering); still open: 2.1 N-line-staff generalization, 2.2
+> cross-staff-beam tail, 2.3 ossia/divisi, 2.5 page/section-break objects, 2.6
+> part extraction, and the 2.7 numbering tail (per-system, measure-repeat signs).
+> Phase **5**: 5.6 cross-staff span barlines now landed via C6's per-group
+> barlines; **5.7 polymeter** is unblocked. Phase **7** tails — 7.3 ✓
+> (`!invertedturn!`), 7.5 ✓ (braille signatures + chords); still open: braille
+> in-accord/dynamics, ABC symbol lines, `.ptb` import (blocked on a test corpus).
 
 
 
 
-### Workshop editor contracts (C1–C9)
+
+### Workshop editor contracts (C1–C10)
 
 External consumer (KlangUniversum "Composition Workshop",
 `mus-workshop/docs/WORKSHOP_PARTITURA_CONTRACTS.md`) needs these interactive-
@@ -138,6 +137,12 @@ y-down coords. Priority: **C1+C2 → C3 → C5 → C4**.
   bar number with any pickup uncounted (1-based over non-pickup measures; null
   for a pickup). The measure-number overlay and the MEI writer now both route
   through it (one source of truth). `pickup_test.dart`.
+- [x] **C10 — live-drag preview.** For app-owned drag-to-move without ghost
+  artifacts: **C10a** `suppressElementIds` on the views cleanly hides the
+  element(s) being dragged from the layout (no stale ink under the drag);
+  **C10b** a view-owned live drag preview via `dragPreviewOpacity` renders the
+  moving element at reduced opacity where the pointer is. (Landed from the
+  `c10-live-drag` worktree.)
 
 ### 2.9 Cross-staff onset-column gridding (professional multi-staff spacing)
 
