@@ -60,6 +60,7 @@ export 'src/theory/key_finding.dart';
 export 'src/theory/key_signature.dart';
 export 'src/theory/pitch.dart';
 export 'src/theory/scale.dart';
+export 'src/theory/scale_derivation.dart';
 export 'src/theory/set_theory.dart';
 export 'src/theory/time_signature.dart';
 export 'src/theory/tone_row.dart';

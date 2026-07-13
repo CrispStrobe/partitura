@@ -8,6 +8,12 @@
   rotated Krumhansl–Kessler profiles — returning a `Key` (+ correlation), or the
   full 24-key ranking for modulation/candidate analysis. Verified on major and
   harmonic-minor scales in several keys.
+- **Scale derivation** (Phase 4.8): `matchingScales` / `deriveScale` rank every
+  supported scale (each `ScaleType` on all twelve tonics) by how well its
+  collection contains a queried pitch-class set — fewest missing notes first —
+  so a melody's notes suggest the scales/modes it fits (`exactOnly` keeps only
+  perfect fits; e.g. the diatonic collection returns both C major and A natural
+  minor). `Scale.pitchClasses` exposes a scale's mod-12 degrees (never throws).
 - **Neo-Riemannian triad transforms** (Phase 4.8): `Triad.parallel()` (**P**),
   `leadingToneExchange()` (**L**) and `relative()` (**R**) — the three
   parsimonious voice-leading moves on a consonant triad, each an involution

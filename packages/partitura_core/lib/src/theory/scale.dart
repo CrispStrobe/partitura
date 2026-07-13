@@ -64,6 +64,14 @@ class Scale {
     });
   }
 
+  /// The scale's pitch classes (0–11): its seven distinct degrees taken mod 12
+  /// (spelling and octave discarded). Unlike [pitches] this never throws, so it
+  /// is safe for any tonic.
+  Set<int> get pitchClasses {
+    final base = tonic.midiNumber % 12;
+    return {for (final offset in _semitoneOffsets[type]!) (base + offset) % 12};
+  }
+
   @override
   bool operator ==(Object other) =>
       other is Scale && other.tonic == tonic && other.type == type;
