@@ -116,6 +116,10 @@ class _StaffReader {
   Tempo? _tempo;
 
   final _measures = <Measure>[];
+  // Slur endpoints in document order: a `<Spanner type="Slur">` with `<next>`
+  // marks a start, `<prev>` an end. Paired positionally (non-nested slurs).
+  final _slurStartIds = <String>[];
+  final _slurEndIds = <String>[];
 
   String _newId() => 'e${_nextId++}';
 
@@ -128,9 +132,25 @@ class _StaffReader {
       keySignature: _key ?? const KeySignature(0),
       timeSignature: _time,
       measures: _measures,
+      slurs: [
+        for (var i = 0;
+            i < _slurStartIds.length && i < _slurEndIds.length;
+            i++)
+          Slur(_slurStartIds[i], _slurEndIds[i]),
+      ],
       tempo: _tempo,
       metadata: metadata,
     );
+  }
+
+  /// Records a chord's slur endpoints from its `<Spanner type="Slur">` children.
+  void _trackChordSlur(XmlNode chord, String? id) {
+    if (id == null) return;
+    for (final s in chord.childrenNamed('Spanner')) {
+      if (s.attributes['type'] != 'Slur') continue;
+      if (s.child('next') != null) _slurStartIds.add(id);
+      if (s.child('prev') != null) _slurEndIds.add(id);
+    }
   }
 
   void _readMeasure(XmlNode measureNode) {
@@ -178,7 +198,9 @@ class _StaffReader {
               timeChange = time;
             }
           case 'Chord':
-            elements.add(_chordOf(node));
+            final chord = _chordOf(node);
+            elements.add(chord);
+            if (v == 0) _trackChordSlur(node, chord.id);
           case 'Rest':
             elements.add(RestElement(_durationOf(node), id: _newId()));
           case 'Tempo':

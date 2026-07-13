@@ -32,10 +32,6 @@ ships* at the end for the mechanics.
 > alignment across staves stays out of scope (deeper spacing feature). Worktree
 > `partitura-public-lacunae`. *(Editor contracts C1–C5 done; C6 deferred.)*
 
-> **Actively working on (MuseScore slurs):** the deferred codec follow-up —
-> round-trip `Slur` through MuseScore's location-based `<Spanner type="Slur">`
-> (`<next>`/`<prev>`), completing slur interchange. `musescore/` only, no
-> views/model. Worktree `partitura-msslur`, branch `feat/musescore-slur`.
 
 ### Workshop editor contracts (C1–C6)
 

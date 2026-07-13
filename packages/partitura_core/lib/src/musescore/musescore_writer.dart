@@ -5,10 +5,10 @@
 /// time signatures (numeric; `.common`/`.cut` degrade to numeric 4/4 · 2/2),
 /// measures, notes/chords, rests, durations (breve…64th with dots), up to
 /// four voices, ties, pickup measures, articulations and ornaments (both as
-/// `<Articulation>` SMuFL subtypes) and tuplets (`<Tuplet>`/`<endTuplet>`).
-/// Slurs, lyrics, dynamics, grace notes and repeat/navigation structure are out
-/// of scope (dropped on this hop). Pure Dart (web-safe); the `.mscz` ZIP
-/// container is handled in `partitura_cli`.
+/// `<Articulation>` SMuFL subtypes), tuplets (`<Tuplet>`/`<endTuplet>`) and
+/// slurs (`<Spanner type="Slur">`). Lyrics, dynamics, grace notes and
+/// repeat/navigation structure are out of scope (dropped on this hop). Pure
+/// Dart (web-safe); the `.mscz` ZIP container is handled in `partitura_cli`.
 library;
 
 import '../model/element.dart';
@@ -133,7 +133,31 @@ int tpcOf(Pitch pitch) {
 class _MscxWriter {
   final Score score;
   final StringBuffer out;
-  _MscxWriter(this.score, this.out);
+  // Slur spanner offsets by note id: the start note carries a `<next>` to the
+  // end, the end note a `<prev>` back. The offset is the whole-note distance
+  // between their onsets.
+  final Map<String, String> _slurNext = {};
+  final Map<String, String> _slurPrev = {};
+
+  _MscxWriter(this.score, this.out) {
+    if (score.slurs.isEmpty) return;
+    final onset = <String, Fraction>{};
+    var acc = Fraction.zero;
+    for (final m in score.measures) {
+      for (final e in m.elements) {
+        if (e.id != null) onset[e.id!] = acc;
+        acc = acc + e.duration.toFraction();
+      }
+    }
+    for (final s in score.slurs) {
+      final a = onset[s.startId];
+      final b = onset[s.endId];
+      if (a == null || b == null) continue;
+      final delta = _fraction(b - a);
+      _slurNext[s.startId] = delta;
+      _slurPrev[s.endId] = '-$delta';
+    }
+  }
 
   void write() {
     for (var m = 0; m < score.measures.length; m++) {
@@ -205,6 +229,17 @@ class _MscxWriter {
         out.write('          <Chord>${_durationXml(element.duration)}'
             '${_articXml(element.articulations)}'
             '${_ornamentXml(element.ornament)}');
+        final id = element.id;
+        if (id != null && _slurNext.containsKey(id)) {
+          out.write('<Spanner type="Slur"><Slur/><next><location>'
+              '<fractions>${_slurNext[id]}</fractions></location></next>'
+              '</Spanner>');
+        }
+        if (id != null && _slurPrev.containsKey(id)) {
+          out.write('<Spanner type="Slur"><prev><location>'
+              '<fractions>${_slurPrev[id]}</fractions></location></prev>'
+              '</Spanner>');
+        }
         for (final pitch in element.pitches) {
           out.write('<Note>');
           if (element.tieToNext) {

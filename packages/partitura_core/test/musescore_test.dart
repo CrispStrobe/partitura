@@ -162,4 +162,34 @@ void main() {
     expect(scoreFromMscx(mscx).measures.single.tuplets,
         const [TupletSpan(0, 2, actual: 3, normal: 2)]);
   });
+
+  test('round-trips a slur (<Spanner type="Slur">)', () {
+    final source = Score(
+      clef: Clef.treble,
+      measures: [
+        Measure([
+          NoteElement(
+              pitches: [const Pitch(Step.c, octave: 5)],
+              duration: NoteDuration.quarter,
+              id: 'a'),
+          NoteElement(
+              pitches: [const Pitch(Step.d, octave: 5)],
+              duration: NoteDuration.quarter,
+              id: 'b'),
+          NoteElement(
+              pitches: [const Pitch(Step.e, octave: 5)],
+              duration: NoteDuration.quarter,
+              id: 'c'),
+        ]),
+      ],
+      slurs: const [Slur('a', 'c')],
+    );
+    final mscx = scoreToMscx(source);
+    expect(mscx, contains('<Spanner type="Slur">'));
+    final back = scoreFromMscx(mscx);
+    expect(back.slurs.length, 1);
+    final ids = back.measures.single.elements.map((e) => e.id).toList();
+    expect(back.slurs.single.startId, ids.first);
+    expect(back.slurs.single.endId, ids.last);
+  });
 }

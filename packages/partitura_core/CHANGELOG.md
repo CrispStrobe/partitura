@@ -7,6 +7,11 @@
   marcato/tenuto/fermata) above the fret by **reusing** `NoteElement.ornament`
   and `.articulations` (no new model — the same data the notation engine uses),
   plus a new `Rasgueado` mark (a downward strum arrow). Golden 97.
+- **MuseScore slurs** (interchange enrichment): `Slur` now round-trips through
+  MuseScore's location-based `<Spanner type="Slur">` (`<next>` on the start
+  chord, `<prev>` on the end), paired positionally on read. This closes the last
+  codec gap — `Slur` and `TupletSpan` now round-trip through every codec that
+  carries the notes (MusicXML, kern, MEI, MuseScore) plus LilyPond/ABC export.
 - **More tab techniques** (Phase 6.4): right-hand p-i-m-a fingering
   (`TabFingering` + `RightHandFinger`, drawn as the letter below the fret),
   slap/pop (`SlapPop` — "S"/"P" above), and tremolo picking (`TremoloPicking` —
