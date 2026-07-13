@@ -20,6 +20,8 @@ unrecognized or malformed element should be skipped (ideally logged), not throw.
 | **Round 4** — 10 more each: MusicXML (Gounod 7-staff, Haydn, Mozart songs), MEI (Brandenburg II/III/IV, Chopin, chorales), `**kern` (10 Bach chorales → 4-part SATB) | 30 | all parse + render ✅; multi-part probe 19/20 (1 `.mxl` = probe artifact) |
 | **Round 4** — MIDI + ABC round-trips of the real XMLs | 10 + 10 | MIDI all ✅; **3 ABC (vocal) rendered a crash → G8** |
 | **Round 5** — end-to-end **CLI `render` sweep** of the whole corpus (XML + MEI + kern) through the newly-wired multi-part path | 19 | 17 render ✅ (incl. MEI now multi-part: Altenburg → 8, **Brandenburg → 9**), **1 tab MusicXML crash → G9**, 1 corpus artifact (`chor150.krn` = a 0-byte "404: Not Found" failed download; rejecting it is correct) |
+| **Round 6** — fresh OSMD batch (Gounod, Haydn, Joplin, Telemann, Schumann, …) swept via CLI render | 14 | 13 render ✅, **1 UTF-16 crash → G10** |
+| **Round 7** — **oracle differential vs music21** over MEI (14) + new music-encoding MEI (7: Musikalisches Opfer, Beethoven quartet Op18, Hymn to Joy, …) | 21 | found + fixed **G14** (beamed notes dropped) & **G15** (only first section read); MEI oracle 0/14 → **10/14 exact**, new batch captures 100% of music21's notes (Beethoven quartet 4151, Musikalisches Opfer 850) |
 
 ## Round-trip fidelity (import ↔ export)
 
