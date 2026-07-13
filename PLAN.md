@@ -33,6 +33,13 @@ ships* at the end for the mechanics.
 > `partitura-public-lacunae`. *(Editor moat 3.3/3.4/3.8 + `ScoreEditorController`
 > done; v0.4.0 released with CLI/APK/WASM artifacts. All of C1–C9 now done.)*
 
+> **Actively working on (Phase 6.4 Tier-3 tail):** the optional completeness
+> items — tapped / semi / feedback harmonics (`TabNoteStyle` + labels), named
+> rasgueado strum patterns (`Rasgueado.pattern`), golpe (`Golpe`), wah open/close
+> (`Wah`), fade-in/out (`Fade` span), and instrument-specific chord-diagram
+> presets (`ChordPresets` for ukulele/banjo/mandolin). Additive, with tests + a
+> golden. Worktree `partitura-tab`, branch `feat/tab-tier3`.
+
 
 
 
