@@ -397,7 +397,8 @@ No peer renderer does any of this; all build on the existing pitch / interval
       (`JazzMark`/`JazzArticulation`, brass glyphs before/after the notehead,
       MusicXML `<articulations>` round-trip, golden 69). **Left:** lift, flip,
       smear, bend (render-only; not standard MusicXML articulations).
-- [ ] **5.10 Microtonal accidentals + remappable alteration glyphs**
+- 🚧 **5.10 Microtonal accidentals + remappable alteration glyphs**
+      [in progress: quarter-tone `Pitch` alteration — model, layout, MusicXML]
       (quarter tones; non-Western systems). *Requires lifting the current
       "microtonal out" clause — a conscious contract change.*
 
