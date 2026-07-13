@@ -23,12 +23,12 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-11)
 
-> **Between features (model-lacunae worktree).** Cross-staff gridding §2.9
-> **increments 1 & 2 done** on `main` — grand staff *and* N-staff systems
-> (`StaffSystemView`) align simultaneous notes across staves. Left: increment 3
-> (multi-voice staves), increment 4 (justification-on-columns), accidental-aware
-> columns. Editor contracts C1–C5 + grand-staff justification done; the three
-> deep Score-model lacunae done; C6 deferred.
+> **Actively working on:** cross-staff gridding §2.9 **increment 3** — let
+> multi-voice staves join the grid: `alignedColumns` gathers onsets from all
+> voices, and `_layoutMultiVoiceMeasure` honours the shared `forcedColumns`, so
+> a two-voice hand aligns across staves too (drops the single-voice guard).
+> Worktree `partitura-public-lacunae`. *(Increments 1–2, editor contracts C1–C5,
+> grand-staff justification done on `main`; deep lacunae done; C6 deferred.)*
 
 > **Actively working on (OMR frontier):** model auto-download **done** on `main`;
 > now **multi-system page segmentation** — a pure-Dart staff-band splitter
@@ -107,7 +107,7 @@ own goldens):**
 2. [x] **N-staff systems** — `layoutStaffSystem`/`StaffSystemView` grid-align all
    staves via the same `alignedColumns` (`gridAlign` flag). Goldens 75/76
    re-rendered aligned; `staff_system_test.dart` asserts N-staff onset alignment.
-3. [ ] **Multi-voice** staves participate in the grid (voices 2–4 onsets).
+3. 🚧 **Multi-voice** staves participate in the grid (voices 2–4 onsets).
 4. [ ] **Justification on columns** — stretch the shared columns to fill width
    (fold the grand-staff `spacingStretch` search into the column model).
 
