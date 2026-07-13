@@ -154,6 +154,12 @@ y-down coords. Priority: **C1+C2 → C3 → C5 → C4**.
   - Verified working after G6/G7: the 23-staff orchestral **ActorPrelude** and
     the Mozart string quartet (4 staves) import fully via
     `staffSystemFromMusicXml`.
+  - [ ] **Multi-voice per staff (hardening G12).** The external oracle
+    (`tool/oracle_diff.dart` vs music21) shows partitura keeps only ~3 internal
+    voices per staff and **drops** notes in staves with 4+ MusicXML `<voice>`s
+    (Voice_Alignment loses voices 5/6/7; Dichterliebe ~32%). It's the dominant
+    cause of the 14/47 oracle divergences. Needs a model + reader change to carry
+    an arbitrary number of voices per staff. See `docs/HARDENING.md` §G12.
 - [x] **C7 — region controller.** The private render objects' `elementRegions`
   / `elementIdsIn(Rect)` (from C4) are now reachable from app code via a public
   `ElementRegionController` (alias `MultiSystemViewController`), attached with
