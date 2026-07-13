@@ -2,6 +2,9 @@
 
 ## 0.4.1-dev.1 (in progress)
 
+- **ABC `!invertedturn!`** (Phase 7.3): the ABC reader maps the `!invertedturn!`
+  decoration to `Ornament.invertedTurn` (rounding out the ornament set).
+
 - **Metric-aware secondary beaming** (Phase 4.7 tail): secondary (16th+) beams
   now break at the meter's pulse rather than always the quarter — in compound
   (6/8, 9/8, 12/8) and additive (3+2/8) meters they break at the base unit, so a

@@ -881,9 +881,11 @@ enum encodings so files round-trip cleanly), tiered by importance:
       slurs, grace notes, staccato, `"C"` chord symbols → annotations, bar
       lines (repeats, double/final), `w:` lyrics, and multi-voice (first voice);
       round-trips through the score model, wired into the CLI (`.abc`),
-      validated against the abcjs example tune-book. **Left:** the ABC subset's
-      tail (decorations beyond staccato, multi-voice → grand staff, symbol
-      lines); `.ptb` (PowerTab, no freely-licensed test corpus).
+      validated against the abcjs example tune-book. The decoration set is now
+      comprehensive (articulations, ornaments incl. `!invertedturn!`, navigation,
+      dynamics + shorthand) and multi-voice tunes import as a `StaffSystem`
+      (golden 76). **Left:** ABC symbol lines (`s:`) and other niche fields;
+      `.ptb` (PowerTab, no freely-licensed test corpus).
 - [x] **7.4 Repeat unfolding** — `playbackTimeline` linearizes repeats /
       voltas / D.C. / D.S. / To Coda / al Fine / al Coda into performance
       order, executing the navigation jumps. Repeat barlines expand with a
