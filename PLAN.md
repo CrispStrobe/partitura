@@ -23,6 +23,12 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-13)
 
+> 🚧 **Actively working on (Phase 2.3 — hide empty staves):** a
+> `hideEmptyStaves` option on `layoutStaffSystem` / `StaffSystemView` that omits
+> staves whose measures are entirely rests in this system (keeping ≥1),
+> remapping the brackets to the visible subset. Self-contained; core + view +
+> golden. Worktree `partitura-tab`, branch `feat/hide-empty-staves`.
+
 > 🚧 **Actively working on (Phase 3.7 + 3.8 tail):** play-the-right-note drills
 > and the last imperative-control pieces. 3.7 `evaluateDrill(score, expectedIds,
 > played)` → `DrillResult` (per-element green/red `EditorMark`s + extra/missing
