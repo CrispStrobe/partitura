@@ -23,12 +23,13 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-11)
 
-> **Between features (model-lacunae worktree).** Workshop editor contracts C1–C5
-> done on `main`, plus the grand-staff follow-ups: C2/C3 hooks and **proper
-> cross-staff justification** (`justify` flag; shared two-staff note-spacing
-> stretch, barlines aligned). Left (deeper): cross-staff onset-column gridding;
-> C6 (multi-part document). The three deep Score-model lacunae are done;
-> microtones landed via the parallel agent.
+> **Actively working on:** cross-staff onset-column gridding (§2.9) — the shared
+> column model so simultaneous notes align vertically across staves.
+> **Increment 1**: `alignedColumns` + engine `forcedColumns` (single-voice) →
+> `layoutGrandStaff`, with a golden of rhythmically-different hands aligning.
+> Additive/opt-in (existing goldens untouched). Worktree
+> `partitura-public-lacunae`. *(Editor contracts C1–C5 + grand-staff
+> justification done on `main`; C6 deferred.)*
 
 > **Actively working on (OMR / Flova):** integrating CrispEmbed's third OMR
 > engine — **Flova/omr_transformer** (handwritten music → LilyPond "simple
@@ -79,6 +80,33 @@ y-down coords. Priority: **C1+C2 → C3 → C5 → C4**.
 - [ ] **C6 — (later) multi-part document model.** First-class multi-part
   document (shared barlines across parts) + multi-part page layout. Deferred;
   C1–C5 unblock the near-term editor.
+
+### 2.9 Cross-staff onset-column gridding (professional multi-staff spacing)
+
+Notes that sound at the same time on different staves must line up vertically —
+the rule every serious engraver enforces (LilyPond `SpacingSpanner`, MuseScore
+`Segment`s, Dorico/Finale/Sibelius). Today partitura spaces each staff
+independently (only barlines align via shared `measureWidths`), so
+rhythmically-independent hands drift out of vertical alignment.
+
+**Model — a shared column table.** For a set of staves sharing measures, gather
+every distinct onset (per measure) across all staves; each becomes a *column*
+with one shared x. Column gaps are spaced by the optical rule
+(`_idealAdvance(Δonset)` — the same time-based spacing the multi-voice path uses)
+floored by the widest ink at that column across staves + `minNoteGap`. Each
+staff then places its notes at their onset's column x (not by self-advancing).
+Barlines align for free (identical columns → identical measure widths); it
+composes with justification (scale the columns / reuse `spacingStretch`).
+
+**Increments (each: additive, opt-in via a new `forcedColumns` engine arg, its
+own goldens):**
+1. 🚧 **Grid model + grand staff (single voice).** `alignedColumns(staves)` in
+   core + `LayoutEngine.layout(..., forcedColumns:)` for the single-voice path;
+   wire into `layoutGrandStaff`. Golden: rhythmically-different hands aligning.
+2. [ ] **N-staff systems** — apply to `StaffSystemView`/`layoutStaffSystem`.
+3. [ ] **Multi-voice** staves participate in the grid (voices 2–4 onsets).
+4. [ ] **Justification on columns** — stretch the shared columns to fill width
+   (fold the grand-staff `spacingStretch` search into the column model).
 
 - **Shipped: v0.1 → v0.7.2** — the full common-notation set plus the
   piano/technical layer. All green.
