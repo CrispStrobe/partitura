@@ -264,9 +264,13 @@ Raises the quality of everything already rendered. Slice order:
       64), secondary-beam subdivision at the quarter-note metric point (a
       group longer than a quarter — e.g. a half-note beat in cut time — keeps
       one continuous primary beam but breaks the secondary beams at the beat's
-      sub-pulse; staff + tab). **Left:** finer per-level subdivision (32nds at
-      the half-beat), cross-measure beaming.
-      *[🚧 in progress: parallel agent — cross-measure beaming in layout_engine]*
+      sub-pulse; staff + tab), and **cross-measure beaming** —
+      `CrossMeasureBeam(startId, endId)` beams a run of notes across a barline
+      (excluded from per-measure beaming, deferred stems, drawn in a post-pass
+      once both measures' x-positions are fixed; single-system only, since a
+      beam cannot cross a line break). **Left:** finer per-level subdivision
+      (32nds at the half-beat) — deferred, as it would contradict the tested
+      "continuous within a beat" rule.
 
 ### Phase 2 — Score structure (multi-staff)
 - [~] **2.1 N-staff systems** — **Done:** `StaffSystem` (N `Score` staves +

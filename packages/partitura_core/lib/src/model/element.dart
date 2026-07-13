@@ -723,6 +723,35 @@ class BeamSlant {
   String toString() => 'BeamSlant($startId -> $endId, slant $slant)';
 }
 
+/// Beams a run of notes across one or more barlines, referenced by the first
+/// and last note's ids: the notes from [startId] through [endId] (which lie in
+/// different measures) are drawn under a single beam that continues over the
+/// barline, instead of each measure beaming on its own. Same id/order rules as
+/// [Slur]. Model-only. Used for syncopation notation; the run must stay within
+/// one system (a beam cannot cross a line break).
+class CrossMeasureBeam {
+  /// Id of the first note under the beam.
+  final String startId;
+
+  /// Id of the last note under the beam (in a later measure).
+  final String endId;
+
+  /// Creates a cross-measure beam from [startId] to [endId].
+  const CrossMeasureBeam(this.startId, this.endId);
+
+  @override
+  bool operator ==(Object other) =>
+      other is CrossMeasureBeam &&
+      other.startId == startId &&
+      other.endId == endId;
+
+  @override
+  int get hashCode => Object.hash(startId, endId);
+
+  @override
+  String toString() => 'CrossMeasureBeam($startId -> $endId)';
+}
+
 /// A sustain-pedal span: "Ped." under the start note and a release star
 /// under the end note, referenced by their ids. Same id/order rules as
 /// [Slur]/[Glissando]. Model-only (no DSL shorthand).

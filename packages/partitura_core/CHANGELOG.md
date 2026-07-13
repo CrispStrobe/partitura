@@ -2,6 +2,13 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Cross-measure beaming** (Phase 1.4): `CrossMeasureBeam(startId, endId)` on
+  `Score` beams a run of notes across a barline. The spanned notes are excluded
+  from per-measure beaming and their stems deferred; the beam is drawn in a
+  post-pass once both measures' x-positions are fixed, so it continues over the
+  barline instead of each measure flagging/beaming on its own. Single-system
+  only (a beam cannot cross a line break). Fully additive — scores without one
+  are unchanged.
 - **Fretted-instrument tunings** (Phase 6.5): preset `Tuning`s for DADGAD,
   open-G, 7- and 8-string guitar, 5-string bass, 5-string banjo (reentrant
   high-G drone), ukulele (reentrant high-G) and mandolin, alongside the existing

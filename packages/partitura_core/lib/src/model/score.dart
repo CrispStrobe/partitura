@@ -66,6 +66,9 @@ class Score {
   /// Forced beam slants over note runs (model-only).
   final List<BeamSlant> beamSlants;
 
+  /// Beams that continue across barlines (model-only).
+  final List<CrossMeasureBeam> crossMeasureBeams;
+
   /// String bends on tab notes (rendered by the tab engine only).
   final List<Bend> bends;
 
@@ -137,6 +140,7 @@ class Score {
     this.pedals = const [],
     this.featheredBeams = const [],
     this.beamSlants = const [],
+    this.crossMeasureBeams = const [],
     this.bends = const [],
     this.vibratos = const [],
     this.palmMutes = const [],
@@ -685,6 +689,7 @@ class Score {
       pedals: pedals,
       featheredBeams: featheredBeams,
       beamSlants: beamSlants,
+      crossMeasureBeams: crossMeasureBeams,
       bends: bends,
       vibratos: vibratos,
       palmMutes: palmMutes,
@@ -785,6 +790,7 @@ class Score {
       listEquals(other.pedals, pedals) &&
       listEquals(other.featheredBeams, featheredBeams) &&
       listEquals(other.beamSlants, beamSlants) &&
+      listEquals(other.crossMeasureBeams, crossMeasureBeams) &&
       listEquals(other.bends, bends) &&
       listEquals(other.vibratos, vibratos) &&
       listEquals(other.palmMutes, palmMutes) &&
@@ -818,6 +824,7 @@ class Score {
         Object.hashAll(pedals),
         Object.hashAll(featheredBeams),
         Object.hashAll(beamSlants),
+        Object.hashAll(crossMeasureBeams),
         Object.hashAll(bends),
         Object.hashAll(vibratos),
         Object.hashAll(palmMutes),

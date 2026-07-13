@@ -181,6 +181,14 @@ class _LayoutBuilder {
   final List<_TieInfo> _tieInfos = [];
   final _Bounds _ink = _Bounds();
 
+  // Cross-measure beaming: the note ids each cross-measure beam claims (excluded
+  // from per-measure beaming), the beam each belongs to and its stem direction,
+  // and the deferred stem data gathered across measures for a post-pass.
+  final Set<String> _crossMeasureIds = {};
+  final Map<String, CrossMeasureBeam> _crossBeamOf = {};
+  final Map<CrossMeasureBeam, bool> _crossBeamStemsDown = {};
+  final Map<CrossMeasureBeam, List<_BeamedNote>> _crossBeamNotes = {};
+
   /// Per-glyph ink rectangles `(left, top, right, bottom)`, fed by [_expand],
   /// for per-column skyline queries (so above/below marks clear only the ink
   /// in their own horizontal span, not the whole system's extremes).
@@ -306,6 +314,7 @@ class _LayoutBuilder {
   ];
 
   ScoreLayout build() {
+    _prepareCrossMeasureBeams();
     _x = s.leadingPadding;
     _layoutClef();
     _layoutKeySignature();
@@ -334,6 +343,7 @@ class _LayoutBuilder {
         _addBarline(measure.barline);
       }
     }
+    _layoutCrossMeasureBeams();
     _layoutTies();
     _layoutSlurs();
     _layoutGlissandos();
@@ -649,14 +659,18 @@ class _LayoutBuilder {
       switch (element) {
         case NoteElement():
           final group = beamedIndex[i];
+          final cm = _crossBeamOf[element.id];
           final result = _layoutNote(
             element,
             written,
-            stemsDownOverride: group?.stemsDown,
-            deferStem: group != null,
+            stemsDownOverride: group?.stemsDown ??
+                (cm != null ? _crossBeamStemsDown[cm] : null),
+            deferStem: group != null || cm != null,
           );
           if (group != null && result.beamed != null) {
             deferred.putIfAbsent(group, () => []).add(result.beamed!);
+          } else if (cm != null && result.beamed != null) {
+            _crossBeamNotes.putIfAbsent(cm, () => []).add(result.beamed!);
           }
           _advance(result.noteX, result.inkRight, element.duration, log2Adjust);
         case RestElement():
@@ -828,16 +842,20 @@ class _LayoutBuilder {
         switch (element) {
           case NoteElement():
             final group = beamedIndexPerVoice[v][i];
+            final cm = _crossBeamOf[element.id];
             final result = _layoutNote(
               element,
               written,
-              stemsDownOverride: group?.stemsDown ?? v.isOdd,
-              deferStem: group != null,
+              stemsDownOverride: group?.stemsDown ??
+                  (cm != null ? _crossBeamStemsDown[cm] : v.isOdd),
+              deferStem: group != null || cm != null,
               voice: v,
               noteXOverride: columnNoteX,
             );
             if (group != null && result.beamed != null) {
               deferred.putIfAbsent(group, () => []).add(result.beamed!);
+            } else if (cm != null && result.beamed != null) {
+              _crossBeamNotes.putIfAbsent(cm, () => []).add(result.beamed!);
             }
             placedPositions.addAll([
               for (final pitch in element.pitches)
@@ -2565,6 +2583,60 @@ class _LayoutBuilder {
   /// even x/4 meters, adjacent all-eighth beat groups within the same half
   /// measure merge (so 8 eighths in 4/4 yield 2 beams). No beaming across
   /// rests or beat boundaries.
+  /// Resolves each [CrossMeasureBeam] to the note ids it spans (from its start
+  /// through its end, across barlines) and the group's stem direction, so those
+  /// notes are excluded from per-measure beaming and beamed together later.
+  /// A run of fewer than two notes is ignored.
+  void _prepareCrossMeasureBeams() {
+    for (final cb in score.crossMeasureBeams) {
+      final ids = <String>[];
+      final pitches = <Pitch>[];
+      var collecting = false;
+      var done = false;
+      for (final measure in score.measures) {
+        for (final el in measure.elements) {
+          if (el.id == cb.startId) collecting = true;
+          if (collecting && el is NoteElement && el.id != null) {
+            ids.add(el.id!);
+            pitches.addAll(el.pitches);
+          }
+          if (el.id == cb.endId) {
+            done = true;
+            break;
+          }
+        }
+        if (done) break;
+      }
+      if (ids.length < 2) continue;
+      var maxAbove = -100, maxBelow = -100;
+      for (final p in pitches) {
+        final pos = p.staffPosition(_clef);
+        if (pos - 4 > maxAbove) maxAbove = pos - 4;
+        if (4 - pos > maxBelow) maxBelow = 4 - pos;
+      }
+      _crossBeamStemsDown[cb] = maxAbove >= maxBelow;
+      for (final id in ids) {
+        _crossMeasureIds.add(id);
+        _crossBeamOf[id] = cb;
+      }
+    }
+  }
+
+  /// Draws each cross-measure beam over the stem data gathered across measures —
+  /// a post-pass, so both measures' final x-positions are already fixed. The
+  /// beam is continuous across the barline (no metric subdivision).
+  void _layoutCrossMeasureBeams() {
+    for (final entry in _crossBeamNotes.entries) {
+      final notes = entry.value;
+      if (notes.length < 2) continue;
+      _layoutBeamGroup(
+        notes,
+        stemsDown: _crossBeamStemsDown[entry.key] ?? false,
+        onsets: [for (final _ in notes) Fraction.zero],
+      );
+    }
+  }
+
   List<_BeamGroup> _computeBeamGroups(
     List<MusicElement> elements, {
     required Fraction Function(int index) effectiveAt,
@@ -2624,7 +2696,8 @@ class _LayoutBuilder {
       onsets.add(onset);
       final beamable = element is NoteElement &&
           _beamCountOf(element.duration.base) >= 1 &&
-          !claimed.contains(i);
+          !claimed.contains(i) &&
+          !_crossMeasureIds.contains(element.id);
       if (beamable) {
         final window = _windowIndex(onset, span);
         // Beam runs never cross a tuplet boundary in either direction.
