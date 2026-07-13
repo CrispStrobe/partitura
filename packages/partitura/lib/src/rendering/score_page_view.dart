@@ -1,5 +1,7 @@
 // Flutter also defines a PageMetrics (scroll metrics); we mean the engraving
 // one from partitura_core.
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart' hide PageMetrics;
 import 'package:partitura_core/partitura_core.dart';
 
@@ -40,6 +42,11 @@ class ScorePageView extends LeafRenderObjectWidget {
   /// Whether to stroke a thin frame around the page edge.
   final bool drawPageBorder;
 
+  /// Whether to draw a system divider (a pair of slashes in the left margin)
+  /// in the gap above each system after the first — the engraver's cue that a
+  /// new system begins, for busy multi-system pages.
+  final bool showSystemDividers;
+
   /// Creates a page view.
   const ScorePageView({
     super.key,
@@ -51,6 +58,7 @@ class ScorePageView extends LeafRenderObjectWidget {
     this.justifyVertically = true,
     this.pageIndex = 0,
     this.drawPageBorder = false,
+    this.showSystemDividers = false,
   });
 
   @override
@@ -64,6 +72,7 @@ class ScorePageView extends LeafRenderObjectWidget {
         justifyVertically: justifyVertically,
         pageIndex: pageIndex,
         drawPageBorder: drawPageBorder,
+        showSystemDividers: showSystemDividers,
       );
 
   @override
@@ -77,7 +86,8 @@ class ScorePageView extends LeafRenderObjectWidget {
       ..systemGap = systemGap
       ..justifyVertically = justifyVertically
       ..pageIndex = pageIndex
-      ..drawPageBorder = drawPageBorder;
+      ..drawPageBorder = drawPageBorder
+      ..showSystemDividers = showSystemDividers;
   }
 }
 
@@ -93,6 +103,7 @@ class RenderScorePageView extends RenderBox {
     required bool justifyVertically,
     required int pageIndex,
     required bool drawPageBorder,
+    bool showSystemDividers = false,
   })  : _score = score,
         _metrics = metrics,
         _theme = theme,
@@ -100,7 +111,8 @@ class RenderScorePageView extends RenderBox {
         _systemGap = systemGap,
         _justifyVertically = justifyVertically,
         _pageIndex = pageIndex,
-        _drawPageBorder = drawPageBorder;
+        _drawPageBorder = drawPageBorder,
+        _showSystemDividers = showSystemDividers;
 
   PagedLayout? _layout;
   late final LayoutPainter _painter =
@@ -188,6 +200,16 @@ class RenderScorePageView extends RenderBox {
     markNeedsPaint();
   }
 
+  bool _showSystemDividers;
+
+  /// Whether to draw a system divider above each system after the first.
+  bool get showSystemDividers => _showSystemDividers;
+  set showSystemDividers(bool value) {
+    if (value == _showSystemDividers) return;
+    _showSystemDividers = value;
+    markNeedsPaint();
+  }
+
   /// The paginated layout, or null while the font metadata is loading.
   PagedLayout? get pagedLayout => _layout;
 
@@ -243,7 +265,8 @@ class RenderScorePageView extends RenderBox {
     if (layout == null) return;
     if (_pageIndex < 0 || _pageIndex >= layout.pages.length) return;
     final page = layout.pages[_pageIndex];
-    for (final placed in page.systems) {
+    for (var i = 0; i < page.systems.length; i++) {
+      final placed = page.systems[i];
       // Content-box top-left, then the system's position, less the layout's
       // own top offset (systems may reach above their staff's top line).
       final originX = _metrics.marginLeft * _staffSpace;
@@ -252,6 +275,21 @@ class RenderScorePageView extends RenderBox {
               _staffSpace;
       _painter.paintLayout(
           canvas, offset + Offset(originX, originY), placed.system.layout);
+      // A system divider in the gap above each system after the first, in the
+      // left margin — the page's staff-space (0,0) is the page-box top-left.
+      if (_showSystemDividers && i > 0) {
+        final prev = page.systems[i - 1];
+        final gapTop =
+            _metrics.marginTop + prev.top + prev.system.layout.height;
+        final gapMidY = (gapTop + _metrics.marginTop + placed.top) / 2;
+        _painter.paintGlyph(
+          canvas,
+          offset,
+          SmuflGlyph.systemDivider,
+          math.Point(_metrics.marginLeft - 3.0, gapMidY),
+          _theme.staffColor,
+        );
+      }
     }
   }
 }

@@ -306,6 +306,9 @@ abstract final class SmuflGlyph {
           ornamentTrill,
       };
 
+  /// System divider (a pair of slashes drawn between systems on a page).
+  static const String systemDivider = 'systemDivider';
+
   /// Segno sign (𝄋) — the target of a *dal segno* jump.
   static const String segno = 'segno';
 

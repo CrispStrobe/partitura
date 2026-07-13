@@ -2,6 +2,11 @@
 
 ## 0.4.1-dev.1 (in progress)
 
+- **System dividers** (Phase 5.6): `ScorePageView.showSystemDividers` draws a
+  `//` (the SMuFL `systemDivider` glyph) in the left margin above each system
+  after the first on a multi-system page — the engraver's cue that a new system
+  begins. Off by default. Golden 116.
+
 ## 0.4.0 (2026-07-13)
 
 First tagged release. Everything below shipped during the 0.4.0 cycle.

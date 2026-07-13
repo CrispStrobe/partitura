@@ -619,7 +619,11 @@ No peer renderer does any of this; all build on the existing pitch / interval
       (`trillSharp`/`trillFlat`/`trillNatural`, a small standard accidental drawn
       above the `tr`); round-trip through MusicXML `<inverted-turn>` /
       `<accidental-mark>` (lossy fallbacks in ABC/kern/MEI/LilyPond); golden 114.
-      **Left:** custom-span barlines across staves; system dividers.
+      **System dividers** — `ScorePageView.showSystemDividers` draws a `//`
+      (`systemDivider` glyph) in the left margin above each system after the
+      first, on a multi-system page (golden 116).
+      **Left:** custom-span barlines across staves (needs the C6 multi-part
+      document model).
 - [~] **5.7 Time-signature breadth** — **Done:** common/cut symbols
       (`TimeSymbol`, `TimeSignature.commonTime`/`cutTime` → the C / ¢ glyphs;
       golden 82) and **additive/composite meters** (`TimeSignature.additive`
