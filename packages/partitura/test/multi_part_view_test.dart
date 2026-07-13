@@ -125,7 +125,7 @@ void main() {
     expect(systems.any((s) => s.layout.staves.length == 2), isTrue);
   });
 
-  testWidgets('122 orchestral system: bracket + two barline groups',
+  testWidgets('124 orchestral system: bracket + two barline groups',
       (tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -153,11 +153,11 @@ void main() {
     );
     await expectLater(
       find.byType(RepaintBoundary).last,
-      matchesGoldenFile('goldens/122_multi_part_document.png'),
+      matchesGoldenFile('goldens/124_multi_part_document.png'),
     );
   });
 
-  testWidgets('123 hide-empty: middle staff drops out mid-piece',
+  testWidgets('125 hide-empty: middle staff drops out mid-piece',
       (tester) async {
     Score voice(String notes, Clef clef) => Score.simple(
         clef: clef,
@@ -201,7 +201,7 @@ void main() {
     );
     await expectLater(
       find.byType(RepaintBoundary).last,
-      matchesGoldenFile('goldens/123_multi_part_hide_empty.png'),
+      matchesGoldenFile('goldens/125_multi_part_hide_empty.png'),
     );
   });
 }

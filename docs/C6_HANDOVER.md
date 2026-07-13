@@ -8,7 +8,7 @@ barlines landed on the primitive. B's duplicate wrapping engine
 reconciliation summary in `PLAN.md` contract **C6**. Files:
 `multi_part.dart` + `multi_part_view.dart` (new), `staff_system.dart` /
 `multi_system.dart` (extended); tests `multi_part_test.dart` /
-`multi_part_view_test.dart`; goldens 122/123. Remaining: increments (3)
+`multi_part_view_test.dart`; goldens 124/125. Remaining: increments (3)
 interchange and (4) editor integration — additive, unblocked.
 
 The original fork analysis and plan are kept below for reference.

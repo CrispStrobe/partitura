@@ -42,7 +42,7 @@ ships* at the end for the mechanics.
 > pagination reusing the existing page packer — B's duplicate
 > `layoutMultiPartSystem`/`system_break.dart` engine was *not* ported.
 > `StaffSystem` gained per-group barline spans (delivers the Phase-5 custom-span
-> barlines). Goldens 122/123. Branch `feat/c6-reconcile` (worktree
+> barlines). Goldens 124/125. Branch `feat/c6-reconcile` (worktree
 > `partitura-c6`); merge to `main` when ready. *(Touched `staff_system.dart`,
 > `multi_system.dart`, new `multi_part*.dart` — not the 2.x/4.x lanes.)*
 
@@ -118,7 +118,7 @@ y-down coords. Priority: **C1+C2 → C3 → C5 → C4**.
     every part, and an all-silent system keeps them all.
   - `MultiPartView` (`multi_part_view.dart`) — the paginated page widget drawing
     each system's staves + per-group barline connectors + brackets, with
-    `hideEmptyStaves`. Goldens **122** (bracket + two barline groups) and **123**
+    `hideEmptyStaves`. Goldens **124** (bracket + two barline groups) and **125**
     (silent middle staff dropped mid-piece).
   - Tests: `multi_part_test.dart` (core) + `multi_part_view_test.dart` (widget).
   **Remaining additive follow-ups (unblocked, not required by the reconcile):**
@@ -720,7 +720,7 @@ No peer renderer does any of this; all build on the existing pitch / interval
       `StaffSystem.barlineGroups` / `BarlineGroup` draw a systemic barline that
       connects within a group and breaks between groups (e.g. strings connected,
       winds connected, barline broken between the sections). Rendered by
-      `StaffSystemView` and `MultiPartView` (goldens 122/123).
+      `StaffSystemView` and `MultiPartView` (goldens 124/125).
 - [~] **5.7 Time-signature breadth** — **Done:** common/cut symbols
       (`TimeSymbol`, `TimeSignature.commonTime`/`cutTime` → the C / ¢ glyphs;
       golden 82) and **additive/composite meters** (`TimeSignature.additive`
