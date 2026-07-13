@@ -255,7 +255,7 @@ void main() {
       ]);
     });
 
-    test('harmony becomes an annotation on the next note', () {
+    test('harmony becomes a structured chord symbol on the next note', () {
       final score = scoreFromMusicXml(doc('''
 <measure number="1">
   $attrs44
@@ -265,10 +265,11 @@ void main() {
   ${note('A', 4, 'half', duration: 4)}
 </measure>
 '''));
-      expect(score.annotations, const [
-        Annotation('e0', 'C'),
-        Annotation('e1', 'Am'),
+      expect(score.chordSymbols, const [
+        ChordSymbol('e0', Pitch(Step.c), ChordSymbolKind.major),
+        ChordSymbol('e1', Pitch(Step.a), ChordSymbolKind.minor),
       ]);
+      expect(score.chordSymbols.map((c) => c.text), ['C', 'Am']);
     });
   });
 

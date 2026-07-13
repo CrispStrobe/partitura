@@ -951,6 +951,113 @@ class Annotation {
   String toString() => 'Annotation($elementId: "$text")';
 }
 
+/// The quality of a [ChordSymbol]. [musicXmlKind] is the MusicXML `<kind>`
+/// value; [suffix] is what follows the root in the printed symbol
+/// (`Cmaj7` = root `C` + suffix `maj7`).
+enum ChordSymbolKind {
+  /// Major triad (no suffix).
+  major('major', ''),
+
+  /// Minor triad (`m`).
+  minor('minor', 'm'),
+
+  /// Diminished triad (`dim`).
+  diminished('diminished', 'dim'),
+
+  /// Augmented triad (`aug`).
+  augmented('augmented', 'aug'),
+
+  /// Dominant seventh (`7`).
+  dominantSeventh('dominant', '7'),
+
+  /// Major seventh (`maj7`).
+  majorSeventh('major-seventh', 'maj7'),
+
+  /// Minor seventh (`m7`).
+  minorSeventh('minor-seventh', 'm7'),
+
+  /// Half-diminished seventh (`m7♭5`).
+  halfDiminishedSeventh('half-diminished', 'm7b5'),
+
+  /// Diminished seventh (`dim7`).
+  diminishedSeventh('diminished-seventh', 'dim7'),
+
+  /// Minor/major seventh (`mMaj7`).
+  minorMajorSeventh('major-minor', 'mMaj7'),
+
+  /// Major sixth (`6`).
+  sixth('major-sixth', '6'),
+
+  /// Minor sixth (`m6`).
+  minorSixth('minor-sixth', 'm6'),
+
+  /// Dominant ninth (`9`).
+  dominantNinth('dominant-ninth', '9'),
+
+  /// Suspended fourth (`sus4`).
+  suspendedFourth('suspended-fourth', 'sus4'),
+
+  /// Suspended second (`sus2`).
+  suspendedSecond('suspended-second', 'sus2');
+
+  const ChordSymbolKind(this.musicXmlKind, this.suffix);
+
+  /// The MusicXML `<kind>` value.
+  final String musicXmlKind;
+
+  /// The printed suffix after the root note name.
+  final String suffix;
+}
+
+/// A structured chord symbol (lead-sheet harmony) anchored above a note
+/// element by [elementId]: a [root] note, a [quality], and an optional slash
+/// [bass]. Unlike a free-text [Annotation], the root/bass are real [Pitch]es,
+/// so the symbol transposes correctly. The **octave** of [root]/[bass] is
+/// ignored — a chord symbol is a pitch class — so equality compares only the
+/// step and alteration.
+class ChordSymbol {
+  /// Id of the note element the symbol sits above.
+  final String elementId;
+
+  /// The chord root (octave ignored).
+  final Pitch root;
+
+  /// The chord quality.
+  final ChordSymbolKind quality;
+
+  /// The slash-chord bass (octave ignored), or null.
+  final Pitch? bass;
+
+  /// Creates a chord symbol on [elementId].
+  const ChordSymbol(this.elementId, this.root, this.quality, {this.bass});
+
+  /// The printed symbol, e.g. `Cmaj7`, `G7/B`, `F#m7b5`.
+  String get text => '${_name(root)}${quality.suffix}'
+      '${bass == null ? '' : '/${_name(bass!)}'}';
+
+  static String _name(Pitch pitch) {
+    const acc = {2: '##', 1: '#', 0: '', -1: 'b', -2: 'bb'};
+    return '${pitch.step.name.toUpperCase()}${acc[pitch.alter]}';
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is ChordSymbol &&
+      other.elementId == elementId &&
+      other.root.step == root.step &&
+      other.root.alter == root.alter &&
+      other.quality == quality &&
+      other.bass?.step == bass?.step &&
+      other.bass?.alter == bass?.alter;
+
+  @override
+  int get hashCode => Object.hash(
+      elementId, root.step, root.alter, quality, bass?.step, bass?.alter);
+
+  @override
+  String toString() => 'ChordSymbol($elementId: "$text")';
+}
+
 /// A breath / pause symbol drawn after a note, above the top of the staff.
 enum BreathSymbol {
   /// A comma (breath mark).

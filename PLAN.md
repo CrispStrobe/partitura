@@ -615,8 +615,11 @@ Marked `[cheap]` (an additive field/enum, low blast radius) or `[deep]`
   `ppp/pppp/fff/ffff` + `sf/sfz/sffz/fz/fp/rf`, each SMuFL-glyph-mapped and
   MusicXML/ABC-round-tripped (`dynamics_vocabulary_test.dart`). *Left:*
   arbitrary text dynamics (`poco f`, etc.).
-- **Structured chord symbols** — `annotations` are free text; no root/kind/bass
-  (MusicXML `<harmony>`, MEI `<harm>`). `[deep]`
+- **Structured chord symbols** — **✓ Done:** `ChordSymbol` (root pitch +
+  `ChordSymbolKind` + slash bass) on `Score`, rendered on the annotation row,
+  **transposable roots**, MusicXML `<harmony>` round-trip; text annotations
+  moved to `<words>` (`chord_symbol_test.dart`). *Left:* MEI `<harm>` and ABC
+  structured-chord round-trip (they still carry chords as text today).
 - **Voices 3–4 per staff** — model has `voice2` only (already Phase 5). `[deep]`
 - **Appoggiatura (grace style)** — **✓ Done:** `NoteElement.graceStyle`
   (acciaccatura/appoggiatura), gated in the grace-note renderer and

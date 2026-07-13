@@ -255,6 +255,7 @@ class _PartReader {
   final _hairpins = <Hairpin>[];
   final _lyrics = <Lyric>[];
   final _annotations = <Annotation>[];
+  final _chordSymbols = <ChordSymbol>[];
   final _jazzMarks = <JazzMark>[];
   final _figuredBass = <FiguredBass>[];
   final _breathMarks = <BreathMark>[];
@@ -284,6 +285,7 @@ class _PartReader {
       hairpins: _hairpins,
       lyrics: _lyrics,
       annotations: _annotations,
+      chordSymbols: _chordSymbols,
       ottavas: _ottavas,
       glissandos: _glissandos,
       pedals: _pedals,
@@ -367,7 +369,8 @@ class _PartReader {
     var pendingGraces = <Pitch>[];
     var pendingGraceStyle = GraceStyle.acciaccatura;
     String? pendingDynamic;
-    String? pendingHarmony;
+    ({Pitch root, ChordSymbolKind quality, Pitch? bass})? pendingChord;
+    String? pendingAnnotation;
     List<String>? pendingFigures;
     int? openTupletStart;
     (int, int)? openTupletRatio;
@@ -473,8 +476,16 @@ class _PartReader {
           final metronome = node.child('direction-type')?.child('metronome');
           if (metronome != null) _tempo ??= _tempoOf(metronome);
           navigation ??= _navigationOf(node);
+          // A plain <words> that is not a navigation label is a text annotation.
+          final words = node.child('direction-type')?.childText('words');
+          if (words != null &&
+              words.isNotEmpty &&
+              _navigationOf(node) == null &&
+              dynamicsNode == null) {
+            pendingAnnotation ??= words;
+          }
         case 'harmony':
-          pendingHarmony = _harmonyText(node);
+          pendingChord = _chordSymbolOf(node);
         case 'figured-bass':
           pendingFigures = [
             for (final fig in node.childrenNamed('figure')) _figureText(fig),
@@ -550,9 +561,15 @@ class _PartReader {
               if (level != null) _dynamics.add(DynamicMarking(id, level));
               pendingDynamic = null;
             }
-            if (pendingHarmony != null) {
-              _annotations.add(Annotation(id, pendingHarmony));
-              pendingHarmony = null;
+            if (pendingChord != null) {
+              _chordSymbols.add(ChordSymbol(
+                  id, pendingChord.root, pendingChord.quality,
+                  bass: pendingChord.bass));
+              pendingChord = null;
+            }
+            if (pendingAnnotation != null) {
+              _annotations.add(Annotation(id, pendingAnnotation));
+              pendingAnnotation = null;
             }
             if (pendingFigures != null) {
               if (pendingFigures.isNotEmpty) {
@@ -945,28 +962,32 @@ class _PartReader {
     }
   }
 
-  static String? _harmonyText(XmlNode harmony) {
-    final root = harmony.child('root');
+  /// Parses a `<harmony>` into a structured chord (root/quality/bass); null if
+  /// it has no readable root.
+  static ({Pitch root, ChordSymbolKind quality, Pitch? bass})? _chordSymbolOf(
+      XmlNode harmony) {
+    final root =
+        _harmonyPitch(harmony.child('root'), 'root-step', 'root-alter');
     if (root == null) return null;
-    final step = root.childText('root-step') ?? '';
-    final alter = int.tryParse(root.childText('root-alter') ?? '0') ?? 0;
-    final accidental = switch (alter) {
-      1 => '♯',
-      -1 => '♭',
-      _ => '',
-    };
-    final kind = harmony.child('kind');
-    final kindText = kind?.attributes['text'] ??
-        switch (kind?.text) {
-          'minor' => 'm',
-          'diminished' => 'dim',
-          'augmented' => 'aug',
-          'dominant' => '7',
-          'major-seventh' => 'maj7',
-          'minor-seventh' => 'm7',
-          _ => '',
-        };
-    return '$step$accidental$kindText';
+    final kind = harmony.child('kind')?.text;
+    final quality = ChordSymbolKind.values.firstWhere(
+        (q) => q.musicXmlKind == kind,
+        orElse: () => ChordSymbolKind.major);
+    final bass =
+        _harmonyPitch(harmony.child('bass'), 'bass-step', 'bass-alter');
+    return (root: root, quality: quality, bass: bass);
+  }
+
+  /// A `<root>`/`<bass>` step+alter into a [Pitch] (octave is nominal — chord
+  /// roots are pitch classes).
+  static Pitch? _harmonyPitch(XmlNode? node, String stepTag, String alterTag) {
+    if (node == null) return null;
+    final step =
+        Step.values.asNameMap()[node.childText(stepTag)?.toLowerCase()];
+    if (step == null) return null;
+    final alter =
+        (int.tryParse(node.childText(alterTag) ?? '0') ?? 0).clamp(-2, 2);
+    return Pitch(step, alter: alter);
   }
 }
 

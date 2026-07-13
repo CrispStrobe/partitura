@@ -156,6 +156,9 @@ class _PartWriter {
     for (final annotation in score.annotations)
       annotation.elementId: annotation,
   };
+  late final Map<String, ChordSymbol> _chordSymbolsById = {
+    for (final chord in score.chordSymbols) chord.elementId: chord,
+  };
   late final Map<String, DynamicLevel> _dynamicsById = {
     for (final marking in score.dynamics) marking.elementId: marking.level,
   };
@@ -395,12 +398,29 @@ class _PartWriter {
                 '<pedal type="start" line="no"/></direction-type></direction>');
           }
         }
+        final chord = _chordSymbolsById[id];
+        if (chord != null) {
+          out.write('      <harmony><root>'
+              '<root-step>${chord.root.step.name.toUpperCase()}</root-step>');
+          if (chord.root.alter != 0) {
+            out.write('<root-alter>${chord.root.alter}</root-alter>');
+          }
+          out.write('</root><kind>${chord.quality.musicXmlKind}</kind>');
+          final bass = chord.bass;
+          if (bass != null) {
+            out.write('<bass><bass-step>${bass.step.name.toUpperCase()}'
+                '</bass-step>');
+            if (bass.alter != 0) {
+              out.write('<bass-alter>${bass.alter}</bass-alter>');
+            }
+            out.write('</bass>');
+          }
+          out.writeln('</harmony>');
+        }
         final annotation = _annotationsById[id];
         if (annotation != null) {
-          out.writeln('      <harmony><root><root-step>'
-              '${_escape(annotation.text[0])}</root-step></root>'
-              '<kind text="${_escape(annotation.text.substring(1))}">'
-              'other</kind></harmony>');
+          out.writeln('      <direction><direction-type><words>'
+              '${_escape(annotation.text)}</words></direction-type></direction>');
         }
         final figuredBass = _figuredBassById[id];
         if (figuredBass != null) {

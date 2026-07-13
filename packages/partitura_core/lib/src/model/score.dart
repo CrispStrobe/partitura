@@ -41,9 +41,14 @@ class Score {
   /// `lyrics` parameter for the string shorthand).
   final List<Lyric> lyrics;
 
-  /// Text annotations above the staff — chord symbols, rehearsal marks,
-  /// tempo text (see `Score.simple`'s `annotations` parameter).
+  /// Free-text annotations above the staff — rehearsal marks, tempo/expression
+  /// text (see `Score.simple`'s `annotations` parameter). Structured chord
+  /// symbols live in [chordSymbols].
   final List<Annotation> annotations;
+
+  /// Structured chord symbols (lead-sheet harmony) above note elements. Unlike
+  /// text [annotations], their roots are real pitches, so they transpose.
+  final List<ChordSymbol> chordSymbols;
 
   /// Ottava brackets (model-only; the DSL has no shorthand). Spanned
   /// notes draw an octave off their sounding pitch.
@@ -126,6 +131,7 @@ class Score {
     this.hairpins = const [],
     this.lyrics = const [],
     this.annotations = const [],
+    this.chordSymbols = const [],
     this.ottavas = const [],
     this.glissandos = const [],
     this.pedals = const [],
@@ -607,8 +613,9 @@ class Score {
   /// [descending]): every pitch — chords, both voices, grace notes —
   /// plus the key signature and any mid-score key changes move
   /// together. Out-of-range keys wrap enharmonically (e.g. G♯ major
-  /// becomes A♭ major). Ids, rhythm, spans and lyrics are unchanged;
-  /// chord-symbol annotation **text** is not rewritten.
+  /// becomes A♭ major). Ids, rhythm, spans and lyrics are unchanged.
+  /// Structured [chordSymbols] move with the music (their roots/basses are
+  /// transposed); free-text [annotations] are left as written.
   Score transposedBy(Interval interval,
       {bool descending = false, bool keepTransposition = true}) {
     Pitch move(Pitch pitch) =>
@@ -662,6 +669,11 @@ class Score {
       hairpins: hairpins,
       lyrics: lyrics,
       annotations: annotations,
+      chordSymbols: [
+        for (final c in chordSymbols)
+          ChordSymbol(c.elementId, move(c.root), c.quality,
+              bass: c.bass == null ? null : move(c.bass!)),
+      ],
       ottavas: ottavas,
       glissandos: glissandos,
       pedals: pedals,
@@ -758,6 +770,7 @@ class Score {
       listEquals(other.hairpins, hairpins) &&
       listEquals(other.lyrics, lyrics) &&
       listEquals(other.annotations, annotations) &&
+      listEquals(other.chordSymbols, chordSymbols) &&
       listEquals(other.ottavas, ottavas) &&
       listEquals(other.glissandos, glissandos) &&
       listEquals(other.pedals, pedals) &&
@@ -790,6 +803,7 @@ class Score {
         Object.hashAll(hairpins),
         Object.hashAll(lyrics),
         Object.hashAll(annotations),
+        Object.hashAll(chordSymbols),
         Object.hashAll(ottavas),
         Object.hashAll(glissandos),
         Object.hashAll(pedals),

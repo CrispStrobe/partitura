@@ -1955,32 +1955,38 @@ class _LayoutBuilder {
   /// the horizontal span the annotations occupy (a per-column skyline), so a
   /// high note elsewhere on the line no longer lifts the whole chord-symbol row.
   void _layoutAnnotations() {
-    if (score.annotations.isEmpty) return;
+    if (score.annotations.isEmpty && score.chordSymbols.isEmpty) return;
     final size = s.annotationSize;
 
     final infoOf = <String, _TieInfo>{
       for (final info in _tieInfos)
         if (info.id != null) info.id!: info,
     };
-    // Gather each annotation's note-centered anchor and estimated half-width,
-    // then order left-to-right and spread so wide chord symbols on close notes
-    // never overlap.
-    final placed = <(Annotation, double, double)>[]; // annotation, center, half
-    for (final annotation in score.annotations) {
-      final info = infoOf[annotation.elementId];
+    // Text annotations and structured chord symbols share this above-staff row.
+    final items = <(String, String)>[
+      for (final a in score.annotations) (a.elementId, a.text),
+      for (final c in score.chordSymbols) (c.elementId, c.text),
+    ];
+    // Gather each item's note-centered anchor and estimated half-width, then
+    // order left-to-right and spread so wide symbols on close notes never
+    // overlap.
+    final placed = <(String, String, double, double)>[]; // id, text, ctr, half
+    for (final (id, text) in items) {
+      final info = infoOf[id];
       if (info == null || info.note == null) {
         throw ArgumentError(
-            '$annotation references an unknown note element id');
+            'annotation/chord symbol references an unknown note id: $id');
       }
       placed.add((
-        annotation,
+        id,
+        text,
         (info.left + info.right) / 2,
-        _estTextHalfWidth(annotation.text, size),
+        _estTextHalfWidth(text, size),
       ));
     }
-    placed.sort((a, b) => a.$2.compareTo(b.$2));
-    final centers = [for (final p in placed) p.$2];
-    final halves = [for (final p in placed) p.$3];
+    placed.sort((a, b) => a.$3.compareTo(b.$3));
+    final centers = [for (final p in placed) p.$3];
+    final halves = [for (final p in placed) p.$4];
     _spreadRight(centers, halves, 0.4 * size);
 
     // Text bottom (baseline + descender) clears the highest ink under the
@@ -1994,16 +2000,16 @@ class _LayoutBuilder {
     final baselineY = min(-1.0, localTop - s.annotationGap - 0.25 * size);
 
     for (var i = 0; i < placed.length; i++) {
-      final (annotation, _, halfWidth) = placed[i];
+      final (id, text, _, halfWidth) = placed[i];
       final centerX = centers[i];
       _primitives.add(TextPrimitive(
-        annotation.text,
+        text,
         Point(centerX, baselineY),
         size: size,
-        elementId: annotation.elementId,
+        elementId: id,
       ));
       _expand(
-        annotation.elementId,
+        id,
         centerX - halfWidth,
         baselineY - 0.72 * size,
         centerX + halfWidth,

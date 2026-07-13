@@ -16,6 +16,14 @@
   sub-pulse, instead of drawing a single over-long secondary beam. Simple x/4
   meters beam per beat (≤ a quarter), so they are unchanged. Applies to both
   the notation and tablature engines.
+- **Structured chord symbols** (Score-model lacuna): a `ChordSymbol` (root
+  pitch + `ChordSymbolKind` quality + optional slash bass) on `Score`, replacing
+  opaque text for lead-sheet harmony. Because roots are real pitches, chord
+  symbols now **transpose** (`Cmaj7` → `Gmaj7` up a fifth) — the old free-text
+  annotations never did. Round-trips through MusicXML `<harmony>` (structured
+  root/kind/bass); text `annotations` now round-trip via `<direction><words>`,
+  cleanly separating chords from rehearsal/expression text. Rendered on the
+  shared above-staff row alongside annotations.
 - **Appoggiatura grace notes** (Score-model lacuna): `NoteElement.graceStyle`
   distinguishes an **acciaccatura** (slashed stem — the default) from an
   **appoggiatura** (unslashed). The layout engine draws the grace-stem slash
