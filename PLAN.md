@@ -23,10 +23,11 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-11)
 
-> **Actively working on:** microtones (quarter-tone `Pitch` alteration through
-> the pitch model, layout accidentals and interchange codecs) — first of three
-> remaining deep lacunae (microtones → non-standard meters/keys → cross-staff
-> notes/beaming). Worktree `partitura-public-lacunae`, branch `feat/model-lacunae`.
+> **Actively working on:** non-standard meters/keys — senza-misura / open meter
+> and custom (modal/atonal) key signatures (5.7 tail + 5.8). *Microtones (5.10)
+> is owned by the parallel agent — do not touch `Pitch`/accidental layout.*
+> Next: cross-staff notes/beaming. Worktree `partitura-public-lacunae`, branch
+> `feat/model-lacunae`.
 
 - **Shipped: v0.1 → v0.7.2** — the full common-notation set plus the
   piano/technical layer. All green.
@@ -405,13 +406,13 @@ No peer renderer does any of this; all build on the existing pitch / interval
       `[3,2]` → 3+2/8 drawn with the `timeSigPlus` glyph; golden 85). Both
       round-trip through MusicXML `<time>` and ABC `M:`. **Left:** local
       per-staff meters, and additive-aware beam grouping.
-- [ ] **5.8 Custom / atonal key signatures + cancelling-naturals policy.**
+- 🚧 **5.8 Custom / atonal key signatures + cancelling-naturals policy.**
+      [in progress: non-standard key sigs — model + layout + MusicXML]
 - [~] **5.9 Jazz articulations** — **Done:** scoop, doit, fall (falloff), plop
       (`JazzMark`/`JazzArticulation`, brass glyphs before/after the notehead,
       MusicXML `<articulations>` round-trip, golden 69). **Left:** lift, flip,
       smear, bend (render-only; not standard MusicXML articulations).
-- 🚧 **5.10 Microtonal accidentals + remappable alteration glyphs**
-      [in progress: quarter-tone `Pitch` alteration — model, layout, MusicXML]
+- [ ] **5.10 Microtonal accidentals + remappable alteration glyphs**
       (quarter tones; non-Western systems). *Requires lifting the current
       "microtonal out" clause — a conscious contract change.*
 
