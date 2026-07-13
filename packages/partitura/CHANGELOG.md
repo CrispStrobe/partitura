@@ -2,6 +2,9 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Grace notes on the tab staff** (Phase 6.4): `TabStaffView` renders a note's
+  grace notes as small fret digits before the principal, with a legato arc and
+  an acciaccatura slash (appoggiatura omits it). Golden 107.
 - **Cross-staff gridding — accidental-aware columns** (§2.9): the shared column
   is now the **notehead** x, so heads align across staves even when only some
   carry an accidental at that beat (the accidental extends left of the column

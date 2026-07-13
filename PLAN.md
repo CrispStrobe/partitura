@@ -30,11 +30,6 @@ ships* at the end for the mechanics.
 > the KlangUniversum Workshop. Worktree `partitura-public-lacunae`. *(Cross-staff
 > gridding §2.9 complete; editor contracts C1–C5 done on `main`.)*
 
-> **Actively working on (Phase 6.4 tail):** grace notes on the **tab** staff —
-> small fret digits before the principal note (`NoteElement.graceNotes`, already
-> rendered on the notation staff), with a legato arc to the principal and an
-> acciaccatura slash. Then the 6.4 checklist tail as time allows. Worktree
-> `partitura-tab`, branch `feat/tab-grace-notes`.
 
 
 
@@ -675,8 +670,13 @@ pitch → (string, fret) assignment. Also requires lifting the current
       slashes) — golden 96; tab ornaments (trill/mordent/turn, reusing
       `NoteElement.ornament`) and articulations (staccato/accent/marcato/tenuto/
       fermata, reusing `NoteElement.articulations`) drawn above the fret, plus
-      rasgueado (`Rasgueado` — downward strum arrow) — golden 97. **Left:**
-      grace notes (small fret digits), and the rest of the checklist.
+      rasgueado (`Rasgueado` — downward strum arrow) — golden 97; grace notes
+      (`NoteElement.graceNotes` — small fret digits before the principal on the
+      same string, a legato arc to it, and an acciaccatura slash;
+      `GraceStyle.appoggiatura` omits the slash) — golden 107. **Left:** the
+      rest of the checklist (multi-point bend curves, whammy dip/dive/return
+      curves, slide in/out direction, brush/arpeggio/pick-stroke, and other
+      Tier-2/3 items).
 - [x] **6.5 Tunings & other fretted instruments** — preset `Tuning`s for
       DADGAD, open-G, 7- and 8-string guitar, 5-string bass, 5-string banjo
       (reentrant high-G drone), ukulele (reentrant high-G) and mandolin, on top

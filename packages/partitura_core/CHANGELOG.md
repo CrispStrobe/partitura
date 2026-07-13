@@ -2,6 +2,13 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Grace notes on the tab staff** (Phase 6.4): `NoteElement.graceNotes` now
+  render on tablature as small fret digits crammed into the gap just left of the
+  principal note — each on its tuning string, connected to the principal by a
+  legato arc. An acciaccatura (`GraceStyle.acciaccatura`, the default) draws a
+  slash through the grace digit; an appoggiatura omits it. Multiple graces stack
+  in reading order. `tab_layout_test.dart` asserts the small digit, the arc, and
+  the slash-vs-no-slash distinction; golden 107.
 - **Shape-note noteheads** (Phase 5.1): `LayoutSettings.noteheadScheme` draws
   shape noteheads chosen per pitch by its movable-do scale degree in the current
   key — `NoteheadScheme.sacredHarp` (four-shape: fa = triangle, sol = round,

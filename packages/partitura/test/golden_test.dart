@@ -2201,4 +2201,38 @@ void main() {
       Tuning.standardGuitar,
     );
   });
+
+  testWidgets('107 tab: grace notes (acciaccatura + appoggiatura)',
+      (tester) async {
+    NoteElement n(String pitch, String id,
+            {List<String> grace = const [],
+            GraceStyle style = GraceStyle.acciaccatura}) =>
+        NoteElement.note(
+          Pitch.parse(pitch),
+          const NoteDuration(DurationBase.quarter),
+          id: id,
+          graceNotes: [for (final g in grace) Pitch.parse(g)],
+          graceStyle: style,
+        );
+    await tabGolden(
+      tester,
+      '107_tab_grace_notes',
+      Score(
+        clef: Clef.treble,
+        timeSignature: TimeSignature.fourFour,
+        measures: [
+          Measure([
+            // Lead with a plain note so the graced notes have room; each grace
+            // sits on the same string just below its principal.
+            n('e4', 'e0'), // plain, for contrast
+            n('d4', 'e1', grace: ['c4']), // acciaccatura, B string (1→3)
+            n('g4', 'e2', grace: ['f4']), // acciaccatura, high E (1→3)
+            n('b4', 'e3',
+                grace: ['a4'], style: GraceStyle.appoggiatura), // no slash
+          ]),
+        ],
+      ),
+      Tuning.standardGuitar,
+    );
+  });
 }

@@ -125,10 +125,18 @@ class TabLayoutEngine {
         cols.add(_Col(x, element.duration, onset, false));
         var left = double.infinity;
         var right = -double.infinity;
+        // Grace notes: small fret digits crammed into the gap just left of the
+        // principal note, each connected to it by a legato arc (a slash marks
+        // an acciaccatura). Drawn before the principal so its arc can reach the
+        // principal's string once placed.
+        final grace = _layoutGrace(
+            primitives, breaks, element, effTuning, x, yOfString, s);
+        if (grace != null) left = min(left, grace.$1);
         // Assign every chord tone to a distinct string (a pinned voicing wins;
         // otherwise auto-assign so two notes never collide on one line).
         final placement =
             _placeChord(element.pitches, effTuning, voicing[element.id]);
+        double? mainY;
         for (var pi = 0; pi < element.pitches.length; pi++) {
           final place = placement[pi];
           if (place == null) continue;
@@ -144,6 +152,7 @@ class TabLayoutEngine {
           };
           final halfW = 0.28 * fretSize * text.length;
           final y = yOfString(stringIndex);
+          mainY ??= y;
           primitives.add(TextPrimitive(
             text,
             Point(x, y + 0.32 * fretSize),
@@ -156,6 +165,18 @@ class TabLayoutEngine {
           if (element.id != null) {
             anchor.putIfAbsent(element.id!, () => (x, y));
           }
+        }
+        // A legato arc from the nearest grace up to the principal note.
+        if (grace != null && mainY != null) {
+          final (gx, gy) = (grace.$2, grace.$3);
+          final topY = min(gy, mainY) - 1.0;
+          primitives.add(CurvePrimitive(
+            Point(gx + 0.15, gy - 0.5),
+            Point(gx + 0.15, topY),
+            Point(x - 0.3, topY),
+            Point(x - 0.3, mainY - 0.5),
+            thickness: 0.1,
+          ));
         }
         // Artificial / pinch harmonics keep the angle-bracketed fret but add a
         // small "A.H." / "P.H." label above the staff over the column.
@@ -452,6 +473,58 @@ class TabLayoutEngine {
       regions: List.unmodifiable(regions),
       measureRegions: List.unmodifiable(measureRegions),
     );
+  }
+
+  /// Places [element]'s grace notes as small fret digits in the gap just left
+  /// of the principal note at [principalX], each on its tuning string, with an
+  /// acciaccatura slash through the digit. Returns `(leftEdge, lastX, lastY)`
+  /// — the leftmost ink and the nearest grace's centre, for the legato arc —
+  /// or `null` if there are no placeable grace notes.
+  (double, double, double)? _layoutGrace(
+    List<LayoutPrimitive> primitives,
+    List<List<(double, double)>> breaks,
+    NoteElement element,
+    Tuning tuning,
+    double principalX,
+    double Function(int) yOfString,
+    LayoutSettings s,
+  ) {
+    if (element.graceNotes.isEmpty) return null;
+    const graceScale = 0.62;
+    final graceSize = fretSize * graceScale;
+    const step = 0.62;
+    // The nearest grace sits a little left of the principal; earlier graces
+    // stack further left in reading order.
+    final k = element.graceNotes.length;
+    double? lastX, lastY, leftEdge;
+    for (var i = 0; i < k; i++) {
+      final place = tuning.fretFor(element.graceNotes[i]);
+      if (place == null) continue;
+      final (stringIndex, fret) = place;
+      final gx = principalX - 0.9 - (k - 1 - i) * step;
+      final gy = yOfString(stringIndex);
+      final halfW = 0.28 * graceSize * '$fret'.length;
+      primitives.add(TextPrimitive(
+        '$fret',
+        Point(gx, gy + 0.32 * graceSize),
+        size: graceSize,
+        elementId: element.id,
+      ));
+      breaks[stringIndex].add((gx - halfW - 0.05, gx + halfW + 0.05));
+      if (element.graceStyle == GraceStyle.acciaccatura) {
+        // A slash through the digit marks the crushed (acciaccatura) grace.
+        primitives.add(LinePrimitive(
+          Point(gx - 0.3, gy + 0.45),
+          Point(gx + 0.3, gy - 0.45),
+          thickness: s.stemThickness,
+        ));
+      }
+      leftEdge = min(leftEdge ?? gx, gx - halfW);
+      lastX = gx;
+      lastY = gy;
+    }
+    if (lastX == null) return null;
+    return (leftEdge!, lastX, lastY!);
   }
 
   /// Draws a horizontal wavy vibrato line above the fret at ([bx], [by]).

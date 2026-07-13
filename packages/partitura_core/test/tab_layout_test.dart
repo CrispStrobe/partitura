@@ -634,4 +634,73 @@ E|---|
       expect(arrowhead, hasLength(2));
     });
   });
+
+  group('grace notes (Phase 6.4)', () {
+    test('a grace note adds a smaller fret digit and a legato arc', () {
+      final plain = tabOf(Score.simple(notes: 'a4:q'));
+      final layout = tabOf(Score.simple(notes: '{g4}a4:q'));
+      final digits = layout.primitives.whereType<TextPrimitive>().toList();
+      // Two digits: the grace and the principal.
+      expect(digits, hasLength(2));
+      // Exactly one is drawn small (the grace).
+      final small =
+          digits.where((d) => d.size < TabLayoutEngine.fretSize).toList();
+      expect(small, hasLength(1));
+      // The grace sits to the left of the principal.
+      final principal =
+          digits.firstWhere((d) => d.size == TabLayoutEngine.fretSize);
+      expect(small.single.position.x, lessThan(principal.position.x));
+      // One legato arc that the plain (grace-less) score lacks.
+      expect(layout.primitives.whereType<CurvePrimitive>().length,
+          plain.primitives.whereType<CurvePrimitive>().length + 1);
+    });
+
+    Score graceScore(GraceStyle style) => Score(
+          clef: Clef.treble,
+          measures: [
+            Measure([
+              NoteElement.note(
+                const Pitch(Step.a, octave: 4),
+                NoteDuration.quarter,
+                graceNotes: const [Pitch(Step.g, octave: 4)],
+                graceStyle: style,
+                id: 'e0',
+              ),
+            ]),
+          ],
+        );
+
+    test('an acciaccatura slashes the grace digit; an appoggiatura does not',
+        () {
+      bool diagonal(LinePrimitive l) =>
+          l.from.x != l.to.x && l.from.y != l.to.y;
+      final acc = tabOf(graceScore(GraceStyle.acciaccatura))
+          .primitives
+          .whereType<LinePrimitive>()
+          .where(diagonal)
+          .length;
+      final app = tabOf(graceScore(GraceStyle.appoggiatura))
+          .primitives
+          .whereType<LinePrimitive>()
+          .where(diagonal)
+          .length;
+      expect(acc, 1); // the slash through the grace digit
+      expect(app, 0); // no slash
+    });
+
+    test('each of several grace notes gets its own small digit', () {
+      final layout = tabOf(Score.simple(notes: '{e4,g4}a4:q'));
+      final small = layout.primitives
+          .whereType<TextPrimitive>()
+          .where((d) => d.size < TabLayoutEngine.fretSize)
+          .toList();
+      expect(small, hasLength(2));
+      // They stack left of each other in reading order.
+      small.sort((a, b) => a.position.x.compareTo(b.position.x));
+      final principal = layout.primitives
+          .whereType<TextPrimitive>()
+          .firstWhere((d) => d.size == TabLayoutEngine.fretSize);
+      expect(small.last.position.x, lessThan(principal.position.x));
+    });
+  });
 }
