@@ -30,6 +30,13 @@ ships* at the end for the mechanics.
 > C6 (multi-part document). The three deep Score-model lacunae are done;
 > microtones landed via the parallel agent.
 
+> **Actively working on (OMR / Flova):** integrating CrispEmbed's third OMR
+> engine — **Flova/omr_transformer** (handwritten music → LilyPond "simple
+> notes" like `c'2 a''8 r4`). Adds a LilyPond-notes → `Score` parser
+> (`src/omr/lilynotes.dart`), a third `omrDialectOf` branch, and CLI routing.
+> `partitura_core/src/omr/` + `partitura_cli` only. Worktree `partitura-flova`,
+> branch `feat/omr-flova`.
+
 
 ### Workshop editor contracts (C1–C6)
 
@@ -191,6 +198,19 @@ turn); multi-measure rests; octave clefs (8va/8vb) + ottava brackets.
   `renderGrandStaffLayoutToPng` (`rendering/png_export.dart`, the raster twin of
   `grandStaffToSvg`) rasterizes both staves. Verified live: a scan → a two-staff
   PNG.
+- 🚧 **Third engine — Flova/omr_transformer (handwritten OMR)** *[in progress]*.
+  CrispEmbed's newest OMR engine (Apache-2.0, the only permissive handwritten-
+  music model; Donut encoder + mBART decoder) turns a handwritten/whiteboard
+  staff image into a LilyPond "simple notes" string (`c'2 a''8 r4 …`). Same
+  `crispembed_ocr_model_*` FFI dispatcher, so `CrispEmbedOmrEngine` drives it
+  unchanged; the new piece is a LilyPond-notes → `Score` parser
+  (`src/omr/lilynotes.dart`) and a third `omrDialectOf` branch.
+- **Not yet integrated / gaps:** OMR is **CLI-only** (`dart:ffi`) — no Flutter
+  widget or WASM/web path (the engine is native). It needs `libcrispembed` + a
+  GGUF at runtime (via `--lib`/`--model`; no bundled binary or model
+  auto-download, and the dylib is rebuilt by hand when a new engine lands).
+  Single staff-system crops only — no full-page / multi-system segmentation. No
+  confidence signals, batch mode or PDF input.
 
 ---
 
