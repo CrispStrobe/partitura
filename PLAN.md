@@ -239,12 +239,14 @@ Raises the quality of everything already rendered. Slice order:
       already has its own N-line engine).
 - [ ] **2.2 Cross-staff notes / stems / beams** — a chord or beam spanning
       both staves of a keyboard system.
-- [~] **2.3 Hide-empty / ossia / divisi / cutaway staves** 🚧 [in progress:
-      hide-empty, core] — dynamic staff count: drop empty staves per system,
-      add temporary alternative (ossia) staves, split a part into subsections,
-      remove empty bars. **In progress:** hide-empty (all-rest) parts dropped
-      per system in the C6 multi-part layout. **Left:** ossia / divisi /
-      cutaway.
+- [~] **2.3 Hide-empty / ossia / divisi / cutaway staves** — dynamic staff
+      count: drop empty staves per system, add temporary alternative (ossia)
+      staves, split a part into subsections, remove empty bars. **Done:**
+      hide-empty — `layoutMultiPartSystems`/`Pages` + `MultiPartView` gain
+      `hideEmptyStaves` (a part all-rests over a system's range is dropped; the
+      first system always shows every part; brackets + barlines clip to the
+      staves that remain — golden 121). `MultiPartSystemLayout.visibleParts` /
+      `visibleRange` do the remap. **Left:** ossia / divisi / cutaway.
 - [~] **2.4 Pickup / anacrusis + actual-vs-nominal measure duration +
       irregular measures** — foundational; a large fraction of real pieces
       need a partial first bar or a metric length differing from the notated

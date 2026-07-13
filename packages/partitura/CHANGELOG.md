@@ -2,6 +2,12 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **`MultiPartView.hideEmptyStaves`** (Phase 2.3): drops a part that is entirely
+  rests over a system's range (the first system always shows every part) — the
+  orchestral space-saver. The bracket and the systemic barline clip to the
+  staves that remain (golden 121: a middle staff drops out on the second
+  system). Threads through to the core `layoutMultiPartSystems` /
+  `layoutMultiPartPages`.
 - **`MultiPartView`** (Phase 2.8 / C6): renders one page of a paginated
   `MultiPartScore` — a whole multi-part piece (N parts line-broken together into
   multi-staff systems and paginated) at a fixed `PageMetrics` box. Generalizes

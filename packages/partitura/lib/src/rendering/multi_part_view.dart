@@ -40,6 +40,10 @@ class MultiPartView extends LeafRenderObjectWidget {
   /// Whether to vertically justify all but the last page.
   final bool justifyVertically;
 
+  /// Whether to drop parts that are entirely rests over a system's range (the
+  /// first system always shows every part). See `layoutMultiPartSystems`.
+  final bool hideEmptyStaves;
+
   /// Which page to paint (0-based; out-of-range paints an empty page).
   final int pageIndex;
 
@@ -56,6 +60,7 @@ class MultiPartView extends LeafRenderObjectWidget {
     this.staffGap = 4,
     this.systemGap = 10,
     this.justifyVertically = true,
+    this.hideEmptyStaves = false,
     this.pageIndex = 0,
     this.drawPageBorder = false,
   });
@@ -70,6 +75,7 @@ class MultiPartView extends LeafRenderObjectWidget {
         staffGap: staffGap,
         systemGap: systemGap,
         justifyVertically: justifyVertically,
+        hideEmptyStaves: hideEmptyStaves,
         pageIndex: pageIndex,
         drawPageBorder: drawPageBorder,
       );
@@ -85,6 +91,7 @@ class MultiPartView extends LeafRenderObjectWidget {
       ..staffGap = staffGap
       ..systemGap = systemGap
       ..justifyVertically = justifyVertically
+      ..hideEmptyStaves = hideEmptyStaves
       ..pageIndex = pageIndex
       ..drawPageBorder = drawPageBorder;
   }
@@ -101,6 +108,7 @@ class RenderMultiPartView extends RenderBox {
     required double staffGap,
     required double systemGap,
     required bool justifyVertically,
+    required bool hideEmptyStaves,
     required int pageIndex,
     required bool drawPageBorder,
   })  : _document = document,
@@ -110,6 +118,7 @@ class RenderMultiPartView extends RenderBox {
         _staffGap = staffGap,
         _systemGap = systemGap,
         _justifyVertically = justifyVertically,
+        _hideEmptyStaves = hideEmptyStaves,
         _pageIndex = pageIndex,
         _drawPageBorder = drawPageBorder;
 
@@ -193,6 +202,16 @@ class RenderMultiPartView extends RenderBox {
     markNeedsLayout();
   }
 
+  bool _hideEmptyStaves;
+
+  /// Whether to drop all-rest parts per system.
+  bool get hideEmptyStaves => _hideEmptyStaves;
+  set hideEmptyStaves(bool value) {
+    if (value == _hideEmptyStaves) return;
+    _hideEmptyStaves = value;
+    markNeedsLayout();
+  }
+
   int _pageIndex;
 
   /// Which page to paint.
@@ -231,6 +250,7 @@ class RenderMultiPartView extends RenderBox {
         staffGap: _staffGap,
         systemGap: _systemGap,
         justifyVertically: _justifyVertically,
+        hideEmptyStaves: _hideEmptyStaves,
       );
     }
     return constraints.constrain(
@@ -285,20 +305,21 @@ class RenderMultiPartView extends RenderBox {
         _painter.paintLayout(
             canvas, Offset(originX, partOriginY(i)), system.parts[i]);
       }
-      _paintBarlineGroups(canvas, system, originX, partOriginY);
-      _paintBrackets(canvas, system, originX, partOriginY);
+      _paintBarlineGroups(canvas, system, originX, systemTopY);
+      _paintBrackets(canvas, system, originX, systemTopY);
     }
   }
 
-  /// Draws the systemic barlines for each [BarlineGroup]: a vertical line at
-  /// every barline x, running from the group's first part's top line to its
-  /// last part's bottom line — so it connects within a group and breaks in the
-  /// gap between groups. Single-part or no-group documents connect through all.
+  /// Draws the systemic barlines for each [BarlineSpan]: a vertical line at
+  /// every barline x, running from the span's top to its bottom — so it
+  /// connects within a group and breaks in the gap between groups. The spans
+  /// are already clipped to the parts visible on this system (hide-empty), so
+  /// hidden staves neither carry nor bridge a barline.
   void _paintBarlineGroups(
     Canvas canvas,
     MultiPartSystemLayout system,
     double originX,
-    double Function(int) partOriginY,
+    double systemTopY,
   ) {
     if (system.parts.length < 2) return;
     final barPaint = Paint()..color = _theme.staffColor;
@@ -317,8 +338,8 @@ class RenderMultiPartView extends RenderBox {
     ];
 
     for (final span in system.barlineSpans) {
-      final topY = partOriginY(span.group.first); // first part's y = 0
-      final bottomY = partOriginY(span.group.last) + 4 * _staffSpace;
+      final topY = systemTopY + span.top * _staffSpace;
+      final bottomY = systemTopY + span.bottom * _staffSpace;
       for (final bar in bars) {
         final x = originX + bar.x * _staffSpace;
         canvas.drawLine(Offset(x, topY), Offset(x, bottomY),
@@ -341,7 +362,7 @@ class RenderMultiPartView extends RenderBox {
     Canvas canvas,
     MultiPartSystemLayout system,
     double originX,
-    double Function(int) partOriginY,
+    double systemTopY,
   ) {
     final brackets = system.source.brackets;
     if (brackets.isEmpty) return;
@@ -349,19 +370,24 @@ class RenderMultiPartView extends RenderBox {
     final maxDepth = brackets
         .map((b) => _depthOf(system, b))
         .fold(0, (m, d) => d > m ? d : m);
+    double partOriginY(int visibleIndex) =>
+        systemTopY + system.staffTop(visibleIndex) * _staffSpace;
     for (final group in brackets) {
+      // Clip the bracket to the parts actually shown on this system.
+      final range = system.visibleRange(group.first, group.last);
+      if (range == null) continue;
       final shift = (maxDepth - _depthOf(system, group)) * step * _staffSpace;
-      final top = partOriginY(group.first);
-      final bottom = partOriginY(group.last) + 4 * _staffSpace;
+      final top = partOriginY(range.first);
+      final bottom = partOriginY(range.last) + 4 * _staffSpace;
       if (group.kind == StaffBracketKind.brace) {
         final box =
             MusicFonts.metadataOrNull(_theme.musicFont)?.bBoxOf('brace');
         if (box != null) {
           final span =
-              system.staffTop(group.last) + 4 - system.staffTop(group.first);
+              system.staffTop(range.last) + 4 - system.staffTop(range.first);
           _painter.paintGlyph(
             canvas,
-            Offset(originX - shift, partOriginY(group.last)),
+            Offset(originX - shift, partOriginY(range.last)),
             'brace',
             math.Point(-leftInset + 0.35, 4.0),
             _theme.staffColor,

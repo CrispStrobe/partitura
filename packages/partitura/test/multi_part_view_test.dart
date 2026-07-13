@@ -90,6 +90,89 @@ void main() {
     expect(render.pageCount, pages); // no relayout
   });
 
+  testWidgets('hideEmptyStaves drops a silent part on a later system',
+      (tester) async {
+    // Three parts; the middle rests in the second half. With hide-empty the
+    // first system shows all three, a later system shows only the outer two.
+    Score voice(String notes, Clef clef) => Score.simple(
+        clef: clef, timeSignature: TimeSignature.fourFour, notes: notes);
+    final doc = MultiPartScore([
+      voice(List.filled(4, 'c5:q d5 e5 f5').join(' | '), Clef.treble),
+      voice(['g4:q g4 g4 g4', 'a4:q a4 a4 a4', 'r:w', 'r:w'].join(' | '),
+          Clef.treble),
+      voice(List.filled(4, 'c3:q d3 e3 f3').join(' | '), Clef.bass),
+    ], brackets: const [
+      StaffBracket(0, 2)
+    ]);
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: MultiPartView(
+          document: doc,
+          metrics: const PageMetrics(width: 42, height: 90),
+          staffSpace: 6,
+          staffGap: 4,
+          hideEmptyStaves: true,
+        ),
+      ),
+    ));
+    final render =
+        tester.renderObject<RenderMultiPartView>(find.byType(MultiPartView));
+    final systems = [
+      for (final page in render.pagedLayout!.pages)
+        for (final s in page.systems) s.system,
+    ];
+    expect(systems.first.visibleParts, [0, 1, 2]); // first system: all
+    expect(systems.any((s) => s.visibleParts.length == 2), isTrue); // dropped
+  });
+
+  testWidgets('121 hide-empty: middle staff drops out mid-piece',
+      (tester) async {
+    Score voice(String notes, Clef clef) => Score.simple(
+        clef: clef,
+        keySignature: const KeySignature(-1),
+        notes: notes,
+        timeSignature: TimeSignature.fourFour);
+    // Flute, (tacet) clarinet, bassoon: the clarinet rests after bar 2.
+    final doc = MultiPartScore([
+      voice('c5:q d5 e5 f5 | g5:q f5 e5 d5 | e5:h g5:h | f5:q e5 d5 c5',
+          Clef.treble),
+      voice('e4:q f4 g4 a4 | b4:q a4 g4 f4 | r:w | r:w', Clef.treble),
+      voice('c3:q c3 g3 g3 | c3:q c3 g3 g3 | c3:h e3:h | f3:q g3 c3 c3',
+          Clef.bass),
+    ], brackets: const [
+      StaffBracket(0, 2)
+    ]);
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Colors.white,
+          body: Center(
+            child: RepaintBoundary(
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(8),
+                child: MultiPartView(
+                  document: doc,
+                  metrics: const PageMetrics(width: 56, height: 66),
+                  staffSpace: 8,
+                  staffGap: 4,
+                  systemGap: 9,
+                  hideEmptyStaves: true,
+                  drawPageBorder: true,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await expectLater(
+      find.byType(RepaintBoundary).last,
+      matchesGoldenFile('goldens/121_hide_empty_staves.png'),
+    );
+  });
+
   testWidgets('120 orchestral system: bracket + two barline groups',
       (tester) async {
     await tester.pumpWidget(
