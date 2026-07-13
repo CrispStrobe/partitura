@@ -23,11 +23,12 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-11)
 
-> **Between features (model-lacunae worktree).** Cross-staff gridding §2.9
-> **increments 1–3 done** on `main` — grand staff, N-staff systems, and now
-> multi-voice staves all align simultaneous notes across staves. Left: increment
-> 4 (justification-on-columns), accidental-aware columns. Editor contracts C1–C5
-> + grand-staff justification done; deep Score-model lacunae done; C6 deferred.
+> **Actively working on:** cross-staff gridding §2.9 — the last piece,
+> **accidental-aware columns**: place each note's *notehead* on the shared
+> column (via `noteXOverride`) so heads align even when staves carry different
+> accidentals at the same onset, and account for left (accidental) vs right
+> (stem/dots) ink in the column gaps. Worktree `partitura-public-lacunae`.
+> *(Increments 1–4, editor contracts C1–C5, justification done on `main`.)*
 
 
 
@@ -111,7 +112,7 @@ own goldens):**
    onsets stay aligned — `grand_staff_systems_test.dart`). *(A one-shot
    column-scaling optimization to avoid re-searching layouts is a possible future
    refinement.)*
-- [ ] **Accidental-aware columns** — align noteheads (not the pre-accidental x)
+- 🚧 **Accidental-aware columns** — align noteheads (not the pre-accidental x)
   when staves carry different accidentals at the same onset.
 
 - **Shipped: v0.1 → v0.7.2** — the full common-notation set plus the
