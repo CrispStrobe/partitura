@@ -12,6 +12,16 @@
   Full value semantics, `atConcertPitch()` (each transposing part to sounding),
   `measureCount` and `effectiveBarlineGroups` (an empty group list means fully
   connected). Layout + view arrive in the following increments.
+- **Multi-part system layout** (Phase 2.8 / C6, increment 2):
+  `layoutMultiPartSystem` lays out one system of a `MultiPartScore` — each part
+  laid out against shared leading + column-wise-max measure widths so barlines
+  align across every part (generalizing `layoutStaffSystem`). The result
+  `MultiPartSystemLayout` carries the document's brackets/groups, the
+  `firstMeasure..lastMeasure` range, stacking geometry (`staffTop`/`top`/
+  `height`), the shared barline x positions (`barlineXs`) and — the new bit —
+  `barlineSpans`: one `BarlineSpan` (top..bottom y) per barline group, so a
+  systemic barline runs continuously within a group and breaks in the gap
+  between groups.
 - **Extended dynamics vocabulary** (Score-model lacuna): `DynamicLevel` gains
   `ppp/pppp/fff/ffff` and the sforzando family (`sf/sfz/sffz/fz/fp/rf`) on top
   of `pp…ff` — each mapped to a real SMuFL glyph (`dynamicPPP`, `dynamicSforzato`,

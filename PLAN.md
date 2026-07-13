@@ -271,7 +271,7 @@ Raises the quality of everything already rendered. Slice order:
       overlay numbering every measure (anacrusis-aware; delivered with 2.4).
       **Left:** per-system-only / every-N numbering, per-measure overrides,
       section reset, and measure-repeat signs (1/2/4-bar).
-- [ ] **2.8 Multi-part document model (C6)** 🚧 [in progress: C6 increment 1] —
+- [ ] **2.8 Multi-part document model (C6)** 🚧 [in progress: C6 increment 3] —
       a first-class whole-piece model: N parts that line-break together into
       multi-staff systems and paginate, with barlines spanning chosen groups of
       parts (`BarlineGroup`) rather than the all-or-nothing `connectBarlines`.
