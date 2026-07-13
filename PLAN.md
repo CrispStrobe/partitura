@@ -34,7 +34,17 @@ ships* at the end for the mechanics.
 > **C6 multi-part document — core wrapping landed on `main`**
 > (`layoutStaffSystemSystems` / `StaffSystemSystems`; contract C6 now `[~]`, see
 > its handover below for increments 2–4). Phase 2.3 hide-empty-staves also on
-> `main` (7e817fb). No active claim on this worktree line.
+> `main` (7e817fb).
+>
+> 🚧 **Actively reconciling the C6 fork (`docs/C6_HANDOVER.md`):** porting the
+> private `MultiPartScore` + `BarlineGroup` document model and `MultiPartView`
+> widget onto public, layered *over* `layoutStaffSystemSystems` (A stays the
+> layout primitive) + the existing `PagedLayout` pagination — deleting B's
+> duplicate `layoutMultiPartSystem`/`system_break.dart` engine. Also extending
+> `StaffSystem`/`layoutStaffSystem` with per-group barline spans (the Phase-5
+> "custom-span barlines across staves" capability). Worktree `partitura-c6`,
+> branch `feat/c6-reconcile`. *(Touching `staff_system.dart` +
+> `multi_part*.dart` only — not the 2.x/4.x lanes.)*
 
 > 🚧 **Actively working on (finish Phase 4 — the analysis tails):** 4.4
 > enharmonic re-reads of a pitch-class set (`chordReadings`), 4.5 the Forte
