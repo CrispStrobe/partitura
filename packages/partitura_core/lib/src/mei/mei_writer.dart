@@ -135,7 +135,7 @@ String _meterAttrs(TimeSignature time, {required bool dotted}) {
 void _writeMeasure(StringBuffer out, Score score, int index) {
   final measure = score.measures[index];
   final metcon = measure.pickup ? ' metcon="false"' : '';
-  final number = measure.pickup ? 0 : _measureNumber(score, index);
+  final number = score.barNumberAt(index) ?? 0;
   out.writeln('      <measure n="$number"$metcon>');
   out.writeln('        <staff n="1">');
 
@@ -207,10 +207,6 @@ String _ornamentEvent(Ornament ornament, String id) => switch (ornament) {
       Ornament.trillNatural =>
         '<trill startid="#$id"/>',
     };
-
-/// Measures number sequentially from 1, skipping pickups.
-int _measureNumber(Score score, int index) =>
-    score.measures.take(index).where((m) => !m.pickup).length + 1;
 
 void _writeLayer(
     StringBuffer out, int n, List<MusicElement> elements, String prefix,

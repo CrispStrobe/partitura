@@ -23,14 +23,15 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-11)
 
-> **Actively working on:** Workshop editor contracts **C7 + C8** — ✅ landed.
-> C7 `ElementRegionController` (alias `MultiSystemViewController`) exposes
+> **Actively working on:** Workshop editor contracts **C7 + C8 + C9** — ✅ all
+> landed. C7 `ElementRegionController` (alias `MultiSystemViewController`) exposes
 > `elementRegions` / `elementIdsIn(Rect)` on the public widgets (marquee /
 > drag-reorder); C8 `exportScoreToPng` / `exportScoreToSvg` (+ grand-staff
-> overloads) one-call `Score`→PNG/SVG with the font embedded. Reply to append to
-> `mus-workshop/docs/WORKSHOP_PARTITURA_CONTRACTS.md`. Worktree
+> overloads) one-call `Score`→PNG/SVG with the font embedded; C9
+> `Score.barNumberAt(index)` (pickup-uncounted bar numbers, one source of truth).
+> Reply appended to `mus-workshop/docs/WORKSHOP_PARTITURA_CONTRACTS.md`. Worktree
 > `partitura-public-lacunae`. *(Editor moat 3.3/3.4/3.8 + `ScoreEditorController`
-> done; v0.4.0 released with CLI/APK/WASM artifacts.)*
+> done; v0.4.0 released with CLI/APK/WASM artifacts. All of C1–C9 now done.)*
 
 
 
@@ -89,8 +90,10 @@ y-down coords. Priority: **C1+C2 → C3 → C5 → C4**.
   the layout pass + SMuFL metadata + font data-URI (no re-deriving
   `LayoutSettings`, no viewport capture). `MusicFont.fontAsset` added for the
   SVG embed. `score_export_test.dart`.
-- [ ] **C9 — (nice-to-have) pickup bar-numbering hint.** Expose a helper to
-  number bars with the pickup uncounted, if one exists; otherwise no action.
+- [x] **C9 — pickup bar-numbering hint.** `Score.barNumberAt(index)` returns the
+  bar number with any pickup uncounted (1-based over non-pickup measures; null
+  for a pickup). The measure-number overlay and the MEI writer now both route
+  through it (one source of truth). `pickup_test.dart`.
 
 ### 2.9 Cross-staff onset-column gridding (professional multi-staff spacing)
 

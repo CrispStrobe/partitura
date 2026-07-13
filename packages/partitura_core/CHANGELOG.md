@@ -2,6 +2,11 @@
 
 ## 0.4.1-dev.1 (in progress)
 
+- **`Score.barNumberAt(index)`** (Workshop contract C9): the displayed bar
+  number of a measure with any pickup (anacrusis) uncounted — 1-based over
+  non-pickup measures, `null` for a pickup itself. Exposes the numbering the
+  measure-number overlay and the MEI writer already computed (both now route
+  through it — one source of truth) for app-side bar labels / navigation.
 - **System dividers** (Phase 5.6): `ScorePageView.showSystemDividers` draws a
   `//` (the SMuFL `systemDivider` glyph) in the left margin above each system
   after the first on a multi-system page — the engraver's cue that a new system

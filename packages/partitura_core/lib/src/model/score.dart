@@ -658,6 +658,16 @@ class Score {
     );
   }
 
+  /// The displayed bar number of the measure at [index], with any pickup
+  /// (anacrusis) **uncounted** — 1-based, counting only non-pickup measures, so
+  /// the first full bar reads 1. Returns null for a pickup measure itself, which
+  /// is conventionally unnumbered. This is the number the measure-number overlay
+  /// and the MEI writer use; exposed for app-side bar labels / navigation.
+  int? barNumberAt(int index) {
+    if (measures[index].pickup) return null;
+    return measures.take(index).where((m) => !m.pickup).length + 1;
+  }
+
   /// This score transposed by [interval] (ascending unless
   /// [descending]): every pitch — chords, both voices, grace notes —
   /// plus the key signature and any mid-score key changes move
@@ -902,8 +912,8 @@ class Score {
           Object.hashAll(tremoloPickings),
           Object.hashAll(rasgueados),
           // Grouped to stay within Object.hash's 20-argument ceiling.
-          Object.hash(Object.hashAll(slideInOuts),
-              Object.hashAll(pickStrokes), Object.hashAll(portamentos)),
+          Object.hash(Object.hashAll(slideInOuts), Object.hashAll(pickStrokes),
+              Object.hashAll(portamentos)),
           Object.hashAll(chordDiagrams),
           Object.hashAll(jazzMarks),
           Object.hashAll(figuredBass),

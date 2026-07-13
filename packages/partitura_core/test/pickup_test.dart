@@ -119,4 +119,41 @@ void main() {
       expect(numbers(score), ['1', '2']);
     });
   });
+
+  group('Score.barNumberAt (C9)', () {
+    test('numbers full bars from 1', () {
+      final score = Score.simple(
+          timeSignature: TimeSignature.fourFour,
+          notes: 'c5:q d5 e5 f5 | g5:w | a5:w');
+      expect([for (var i = 0; i < 3; i++) score.barNumberAt(i)], [1, 2, 3]);
+    });
+
+    test('a pickup is null; the first full bar reads 1', () {
+      final score = Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'g4:q | c5:q d5 e5 f5 | g5:w',
+      );
+      expect(score.barNumberAt(0), isNull); // pickup
+      expect(score.barNumberAt(1), 1);
+      expect(score.barNumberAt(2), 2);
+    });
+
+    test('agrees with the overlay and the MEI writer', () {
+      final score = Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'g4:q | c5:q d5 e5 f5 | g5:w | a5:w',
+      );
+      // Non-null bar numbers, in order, match the overlay labels.
+      final fromHelper = [
+        for (var i = 0; i < score.measures.length; i++)
+          if (score.barNumberAt(i) case final n?) '$n',
+      ];
+      expect(fromHelper, ['1', '2', '3']);
+      // The MEI writer stamps the same numbers (pickup as n="0").
+      final mei = scoreToMei(score);
+      expect(mei, contains('<measure n="0"')); // the pickup
+      expect(mei, contains('<measure n="1"'));
+      expect(mei, contains('<measure n="3"'));
+    });
+  });
 }

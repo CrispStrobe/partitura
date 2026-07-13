@@ -2695,10 +2695,10 @@ class _LayoutBuilder {
       for (final info in _tieInfos)
         if (info.id != null) info.id!: info,
     };
-    var barNo = 0;
-    for (final measure in score.measures) {
-      if (measure.pickup) continue; // anacrusis: uncounted, unnumbered
-      barNo++;
+    for (var mi = 0; mi < score.measures.length; mi++) {
+      final measure = score.measures[mi];
+      final barNo = score.barNumberAt(mi);
+      if (barNo == null) continue; // anacrusis: uncounted, unnumbered
       // Anchor at the leftmost laid-out element of the measure.
       _TieInfo? anchor;
       for (final element in measure.elements) {
