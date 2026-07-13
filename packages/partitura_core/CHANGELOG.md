@@ -2,6 +2,12 @@
 
 ## 0.4.0-dev.1 (in progress)
 
+- **Theory extras** (Phase 4.8): neo-Riemannian `parallel`/`relative`/
+  `leittonwechsel` (P/L/R) transforms on major/minor `Triad`s; twelve-tone row
+  forms (`transposeRow`/`retrograde`/`invertRow`/`retrogradeInversion`) and the
+  12×12 `twelveToneMatrix`; and `matchingScales(pcs)` — the scales whose content
+  fits a pitch-class set, ranked (rooted-in-the-set first, then major, then
+  tonic). Pure theory.
 - **Post-tonal set theory** (Phase 4.5): `normalForm`, Forte `primeForm`,
   `intervalClassVector` and `zRelated` for a pitch-class set (0–11), plus
   `transposeSet`/`invertSet`/`pitchClassSet` helpers — the analysis toolkit for
