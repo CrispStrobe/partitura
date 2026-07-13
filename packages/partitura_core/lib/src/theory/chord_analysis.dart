@@ -53,7 +53,61 @@ enum ChordType {
   majorSixth('6', {0, 4, 7, 9}),
 
   /// Minor sixth.
-  minorSixth('m6', {0, 3, 7, 9});
+  minorSixth('m6', {0, 3, 7, 9}),
+
+  // --- Added ninths / sixth-ninth (no seventh) ---------------------------
+
+  /// Added ninth (major triad + 9, no seventh).
+  addNinth('add9', {0, 4, 7, 2}),
+
+  /// Minor added ninth.
+  minorAddNinth('m(add9)', {0, 3, 7, 2}),
+
+  /// Six-nine (major triad + 6 + 9).
+  sixNine('6/9', {0, 4, 7, 9, 2}),
+
+  // --- Ninth chords ------------------------------------------------------
+
+  /// Dominant ninth.
+  dominantNinth('9', {0, 4, 7, 10, 2}),
+
+  /// Major ninth.
+  majorNinth('maj9', {0, 4, 7, 11, 2}),
+
+  /// Minor ninth.
+  minorNinth('m9', {0, 3, 7, 10, 2}),
+
+  // --- Eleventh chords (dominant omits the clashing 3rd) -----------------
+
+  /// Dominant eleventh (3rd omitted, the standard voicing).
+  dominantEleventh('11', {0, 7, 10, 2, 5}),
+
+  /// Minor eleventh.
+  minorEleventh('m11', {0, 3, 7, 10, 2, 5}),
+
+  // --- Thirteenth chords (5th and 11th omitted, the standard voicing) ----
+
+  /// Dominant thirteenth.
+  dominantThirteenth('13', {0, 4, 10, 2, 9}),
+
+  /// Major thirteenth.
+  majorThirteenth('maj13', {0, 4, 11, 2, 9}),
+
+  /// Minor thirteenth.
+  minorThirteenth('m13', {0, 3, 10, 2, 9}),
+
+  // --- Augmented sixths (recognized by spelling; see [identifyChord]) -----
+  // Intervals are relative to the flat-6 (the lower note of the aug-6th).
+
+  /// Italian augmented sixth (♭6 – 1 – ♯4).
+  italianSixth('It+6', {0, 4, 10}),
+
+  /// French augmented sixth (♭6 – 1 – 2 – ♯4).
+  frenchSixth('Fr+6', {0, 4, 6, 10}),
+
+  /// German augmented sixth (♭6 – 1 – ♭3 – ♯4); enharmonic to a dominant 7th,
+  /// so distinguished only by the spelled augmented-sixth interval.
+  germanSixth('Ger+6', {0, 4, 7, 10});
 
   const ChordType(this.suffix, this.intervals);
 
@@ -62,6 +116,11 @@ enum ChordType {
 
   /// Semitone intervals above the root, in stacked-thirds order.
   final Set<int> intervals;
+
+  /// Whether this is an augmented-sixth sonority (It / Fr / Ger), which
+  /// [identifyChord] recognizes by spelling rather than by pitch-class set.
+  bool get isAugmentedSixth =>
+      this == italianSixth || this == frenchSixth || this == germanSixth;
 }
 
 /// A named chord: [root]/[type]/[inversion], spelled from the input, with the
@@ -83,8 +142,10 @@ class ChordAnalysis {
   const ChordAnalysis(this.root, this.type, this.inversion, this.bass);
 
   /// The chord symbol, e.g. `C`, `Am7`, `G7`, `F#dim`, or a slash chord for an
-  /// inversion, `C/E`.
+  /// inversion, `C/E`. Augmented sixths use their functional label (`Ger+6`),
+  /// which is key-relative and carries no root letter.
   String get symbol {
+    if (type.isAugmentedSixth) return type.suffix;
     final base = '${_name(root)}${type.suffix}';
     return inversion == 0 ? base : '$base/${_name(bass)}';
   }
@@ -116,9 +177,16 @@ ChordAnalysis? identifyChord(List<Pitch> pitches) {
   if (pcs.length < 3) return null;
   final bassPc = bass.midiNumber % 12;
 
+  // Augmented sixths are recognized by their spelled aug-6th interval, before
+  // pitch-class matching — a German 6th is enharmonic to a dominant 7th, so
+  // only the spelling tells them apart.
+  final aug6 = _augmentedSixth(pitches, pcs, bass);
+  if (aug6 != null) return aug6;
+
   ChordAnalysis? match(int rootPc) {
     final intervals = {for (final pc in pcs) (pc - rootPc + 12) % 12};
     for (final type in ChordType.values) {
+      if (type.isAugmentedSixth) continue; // spelling-only (handled above)
       if (_setEquals(intervals, type.intervals)) {
         final root = _spell(pitches, rootPc);
         final bassInterval = (bassPc - rootPc + 12) % 12;
@@ -144,6 +212,42 @@ ChordAnalysis? identifyChord(List<Pitch> pitches) {
 
 /// The chord symbol for [pitches] (shorthand for `identifyChord(...)?.symbol`).
 String? chordSymbolFor(List<Pitch> pitches) => identifyChord(pitches)?.symbol;
+
+/// Detects an Italian / French / German augmented sixth in [pitches] by its
+/// spelled augmented-sixth interval (a diatonic sixth spanning 10 semitones),
+/// between the lowered submediant (♭6, the lower note) and the raised
+/// subdominant (♯4). Returns null if no such interval + matching sonority is
+/// present. The [pcs] set and [bass] are supplied by [identifyChord].
+ChordAnalysis? _augmentedSixth(
+    List<Pitch> pitches, Set<int> pcs, Pitch bass) {
+  // One spelled representative per pitch class.
+  final byPc = <int, Pitch>{};
+  for (final p in pitches) {
+    byPc.putIfAbsent(p.midiNumber % 12, () => p);
+  }
+  const shapes = {
+    ChordType.italianSixth: {0, 4, 10},
+    ChordType.frenchSixth: {0, 4, 6, 10},
+    ChordType.germanSixth: {0, 4, 7, 10},
+  };
+  for (final flat6 in byPc.values) {
+    for (final sharp4 in byPc.values) {
+      if (identical(flat6, sharp4)) continue;
+      // Ascending letter-sixth (5 diatonic steps) spanning 10 semitones.
+      final generic = (sharp4.step.index - flat6.step.index + 7) % 7;
+      final chroma = (sharp4.midiNumber - flat6.midiNumber) % 12;
+      if (generic != 5 || chroma != 10) continue;
+      final flat6Pc = flat6.midiNumber % 12;
+      final rel = {for (final pc in pcs) (pc - flat6Pc + 12) % 12};
+      for (final entry in shapes.entries) {
+        if (_setEquals(rel, entry.value)) {
+          return ChordAnalysis(flat6, entry.key, 0, bass);
+        }
+      }
+    }
+  }
+  return null;
+}
 
 bool _setEquals(Set<int> a, Set<int> b) =>
     a.length == b.length && a.containsAll(b);

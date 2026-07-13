@@ -23,12 +23,6 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-13)
 
-> 🚧 **Actively working on (Phase 4.4 tail):** extended-chord identification
-> (9 / 11 / 13, add9, 6/9) plus **augmented-sixth** recognition (It / Fr / Ger,
-> spelling-aware so a German 6th isn't misread as a dominant 7th) in
-> `chord_analysis.dart`. Pure core, unit-tested. Worktree `partitura-tab`, branch
-> `feat/chord-id-extended`.
-
 > 🚧 **Actively working on (Phase 3.1):** Cursor-synced instrument visualizers —
 > increment 1, the **piano-keyboard** view (`PianoKeyboardView`: highlights the
 > sounding MIDI pitches, optional per-pitch/hand colors) + a `pitchesForElements`
@@ -545,8 +539,12 @@ No peer renderer does any of this; all build on the existing pitch / interval
 - [~] **4.4 Chord identification from a pitch set** — **Done:**
       `identifyChord` / `chordSymbolFor` — root, quality (triads, sevenths,
       sixths, sus) and inversion (as a slash chord) from a pitch set, spelled
-      from the input, bass disambiguating (C6 vs Am7). **Left:** extended
-      chords (9/11/13), augmented-sixth recognition, alternate spellings.
+      from the input, bass disambiguating (C6 vs Am7); **extended chords**
+      (add9 / m(add9) / 6-9 / 9 / maj9 / m9 / 11 / m11 / 13 / maj13 / m13) via
+      standard-voicing templates; and **augmented sixths** (Italian / French /
+      German) recognized by the *spelled* augmented-sixth interval, so a German
+      6th is not misread as its enharmonic dominant 7th (`It+6`/`Fr+6`/`Ger+6`).
+      **Left:** alternate spellings / enharmonic re-reads of the same pc-set.
 - [x] **4.5 Post-tonal set theory** — `normalForm`, Forte `primeForm`,
       `intervalClassVector` and `zRelated` for a pitch-class set, plus
       `transposeSet`/`invertSet`/`pitchClassSet` helpers

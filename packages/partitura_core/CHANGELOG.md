@@ -2,6 +2,13 @@
 
 ## 0.4.1-dev.1 (in progress)
 
+- **Extended-chord & augmented-sixth identification** (Phase 4.4):
+  `identifyChord` / `chordSymbolFor` now recognize extended chords via
+  standard-voicing templates — `add9`, `m(add9)`, `6/9`, `9`, `maj9`, `m9`,
+  `11`, `m11`, `13`, `maj13`, `m13` — and the three augmented sixths
+  (`It+6` / `Fr+6` / `Ger+6`), detected by the *spelled* augmented-sixth
+  interval between ♭6 and ♯4 so a German sixth is not misread as its enharmonic
+  dominant seventh (A♭–C–E♭–F♯ → `Ger+6`, while A♭–C–E♭–G♭ → `Ab7`).
 - **Tab paired with a notation staff** (Phase 6.3): `layoutNotationTab` returns
   a `NotationTabLayout` — a notation staff over a tab staff of the same `Score`,
   laid out once for natural widths then re-laid with the column-wise maxima so
