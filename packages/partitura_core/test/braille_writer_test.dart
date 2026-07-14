@@ -190,4 +190,40 @@ void main() {
       expect(parts[1], cells([[1, 2, 3, 4], [1, 2, 3, 4, 5]]));
     });
   });
+
+  group('edge cases', () {
+    String only(Pitch p, NoteDuration d) => scoreToBraille(Score(
+          clef: Clef.treble,
+          measures: [
+            Measure([NoteElement.note(p, d)])
+          ],
+        )); // no header (C major, unmetered)
+
+    test('double sharp / double flat print the sign twice', () {
+      expect(
+          only(const Pitch(Step.c, alter: 2, octave: 4), NoteDuration.quarter),
+          startsWith(cells([[1, 4, 6], [1, 4, 6]]))); // ♯♯
+      expect(
+          only(const Pitch(Step.b, alter: -2, octave: 3), NoteDuration.quarter),
+          startsWith(cells([[1, 2, 6], [1, 2, 6]]))); // ♭♭
+    });
+
+    test('octaves outside 1–7 clamp to the end marks', () {
+      // C0 clamps to the octave-1 mark; C8 to the octave-7 mark.
+      expect(only(const Pitch(Step.c, octave: 0), NoteDuration.quarter),
+          startsWith(cell([4]))); // octave 1
+      expect(only(const Pitch(Step.c, octave: 8), NoteDuration.quarter),
+          startsWith(cell([6]))); // octave 7
+    });
+
+    test('16th/32nd reuse the whole/half value cells', () {
+      // A 16th shares the whole-note pattern (dots 3+6); a 32nd shares the half.
+      expect(only(const Pitch(Step.c, octave: 4),
+              const NoteDuration(DurationBase.sixteenth)),
+          cells([[5], [1, 3, 4, 5, 6]])); // octave-4 + C "whole" cell
+      expect(only(const Pitch(Step.c, octave: 4),
+              const NoteDuration(DurationBase.thirtySecond)),
+          cells([[5], [1, 4, 5, 6]])); // octave-4 + C "half" cell
+    });
+  });
 }

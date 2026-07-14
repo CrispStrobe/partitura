@@ -102,6 +102,37 @@ void main() {
       expect(scoreFromSemantic('clef-C4+4c').clef, Clef.tenor);
     });
 
+    test('the rarer clef positions map by line number', () {
+      expect(scoreFromSemantic('clef-G1+4c').clef, Clef.frenchViolin);
+      expect(scoreFromSemantic('clef-F3+4C').clef, Clef.baritone);
+      expect(scoreFromSemantic('clef-F5+4C').clef, Clef.subbass);
+      expect(scoreFromSemantic('clef-C1+4c').clef, Clef.soprano);
+      expect(scoreFromSemantic('clef-C2+4c').clef, Clef.mezzoSoprano);
+    });
+
+    test('an unparseable clef code falls back to treble', () {
+      expect(scoreFromSemantic('clef-X9+4c').clef, Clef.treble);
+    });
+
+    test('a bad note duration throws a clear FormatException', () {
+      expect(() => scoreFromSemantic('clef-G2+note-C5_bogus'),
+          throwsA(isA<FormatException>()));
+    });
+
+    test('major/minor keys across the circle of fifths', () {
+      int fifths(String key) =>
+          scoreFromSemantic('clef-G2+keySignature-$key+4c').keySignature.fifths;
+      expect(fifths('CM'), 0);
+      expect(fifths('GM'), 1);
+      expect(fifths('EM'), 4);
+      expect(fifths('C#M'), 7);
+      expect(fifths('FM'), -1);
+      expect(fifths('DbM'), -5);
+      expect(fifths('Am'), 0);
+      expect(fifths('Em'), 1);
+      expect(fifths('Dm'), -1);
+    });
+
     test('sharp and flat key signatures', () {
       expect(scoreFromSemantic('clef-G2+keySignature-DM+4c').keySignature.fifths,
           2); // D major = 2 sharps
