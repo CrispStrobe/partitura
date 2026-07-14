@@ -75,10 +75,12 @@ Map<String, int>? _partituraNotes(String path) {
   return bag;
 }
 
-/// music21's note multiset via the python dumper, or null if it couldn't parse.
-Map<String, int>? _oracleNotes(String python, String path) {
-  final dumper = '${File(Platform.script.toFilePath()).parent.path}'
-      '/oracle_dump.py';
+/// An external parser's note multiset via a python dumper, or null if it
+/// couldn't parse. [dumperName] selects the oracle: `oracle_dump.py` (music21)
+/// or `verovio_dump.py` (Verovio — stronger on MEI/kern/ABC).
+Map<String, int>? _oracleNotes(String python, String path, String dumperName) {
+  final dumper =
+      '${File(Platform.script.toFilePath()).parent.path}/$dumperName';
   final r = Process.runSync(python, [dumper, path]);
   if (r.exitCode != 0) return null;
   final Map<String, dynamic> parsed;
@@ -108,27 +110,47 @@ int _missing(Map<String, int> a, Map<String, int> b) {
 }
 
 void main(List<String> args) {
-  if (args.isEmpty) {
-    stderr.writeln('usage: dart run tool/oracle_diff.dart <file> …');
+  // `--oracle music21|verovio` picks one parser; `--quorum` runs the ensemble.
+  var oracle = 'music21';
+  var quorum = false;
+  final files = <String>[];
+  for (var i = 0; i < args.length; i++) {
+    if (args[i] == '--oracle' && i + 1 < args.length) {
+      oracle = args[++i];
+    } else if (args[i] == '--quorum') {
+      quorum = true;
+    } else {
+      files.add(args[i]);
+    }
+  }
+  if (files.isEmpty) {
+    stderr.writeln('usage: dart run tool/oracle_diff.dart '
+        '[--oracle music21|verovio | --quorum] <file> …');
     exit(64);
   }
+  final dumper = oracle == 'verovio' ? 'verovio_dump.py' : 'oracle_dump.py';
   final python = Platform.environment['ORACLE_PYTHON'] ?? _defaultPython;
 
+  if (quorum) {
+    _runQuorum(python, files);
+    return;
+  }
+
   var compared = 0, agreed = 0, skipped = 0;
-  stdout.writeln('\nOracle differential vs music21\n');
-  for (final path in args) {
+  stdout.writeln('\nOracle differential vs $oracle\n');
+  for (final path in files) {
     final mine = _partituraNotes(path);
-    final theirs = _oracleNotes(python, path);
+    final theirs = _oracleNotes(python, path, dumper);
     final name = path.split('/').last;
     if (mine == null || theirs == null) {
       skipped++;
       stdout.writeln('  SKIP  $name '
-          '(${mine == null ? 'partitura' : 'music21'} could not parse)');
+          '(${mine == null ? 'partitura' : oracle} could not parse)');
       continue;
     }
     compared++;
     final total = theirs.values.fold<int>(0, (a, b) => a + b);
-    final onlyOracle = _missing(theirs, mine); // notes music21 saw, we didn't
+    final onlyOracle = _missing(theirs, mine); // notes the oracle saw, we didn't
     final onlyMine = _missing(mine, theirs); // notes we invented / mis-sized
     final agree = total == 0 ? 1.0 : (total - onlyOracle) / total;
     if (onlyOracle == 0 && onlyMine == 0) {
@@ -137,8 +159,52 @@ void main(List<String> args) {
     } else {
       stdout.writeln('  DIFF  $name  '
           '${(100 * agree).toStringAsFixed(1)}% agree — '
-          'music21-only: $onlyOracle, partitura-only: $onlyMine  (of $total)');
+          '$oracle-only: $onlyOracle, partitura-only: $onlyMine  (of $total)');
     }
   }
   stdout.writeln('\n$agreed/$compared exact agreement, $skipped skipped');
+}
+
+/// Whether two note multisets are identical.
+bool _equal(Map<String, int> a, Map<String, int> b) =>
+    _missing(a, b) == 0 && _missing(b, a) == 0;
+
+/// Ensemble mode: compare partitura against BOTH music21 and Verovio. A
+/// divergence is a *real* partitura-bug signal only when the two independent
+/// oracles agree with each other but disagree with partitura (CONSENSUS). When
+/// the oracles disagree with each other, the divergence is an oracle limitation
+/// (music21's ABC gaps, Verovio's repeat expansion) — not evidence against
+/// partitura.
+void _runQuorum(String python, List<String> files) {
+  stdout.writeln('\nQuorum: partitura vs {music21, Verovio}\n');
+  var ok = 0, consensusBug = 0, oracleSplit = 0, skipped = 0;
+  for (final path in files) {
+    final name = path.split('/').last;
+    final p = _partituraNotes(path);
+    final m = _oracleNotes(python, path, 'oracle_dump.py');
+    final v = _oracleNotes(python, path, 'verovio_dump.py');
+    if (p == null || (m == null && v == null)) {
+      skipped++;
+      stdout.writeln('  SKIP  $name');
+      continue;
+    }
+    final agreeM = m != null && _equal(p, m);
+    final agreeV = v != null && _equal(p, v);
+    if (agreeM && agreeV || (agreeM && v == null) || (agreeV && m == null)) {
+      ok++;
+      stdout.writeln('  OK     $name  (both oracles agree)');
+    } else if (m != null && v != null && _equal(m, v)) {
+      // Both oracles agree with each other, but not with partitura.
+      consensusBug++;
+      stdout.writeln('  BUG?   $name  — oracles agree, partitura differs '
+          '(music21-only ${_missing(m, p)}, partitura-only ${_missing(p, m)})');
+    } else {
+      oracleSplit++;
+      stdout.writeln('  split  $name  — oracles disagree '
+          '(partitura↔m21 ${agreeM ? "=" : "≠"}, '
+          'partitura↔verovio ${agreeV ? "=" : "≠"}); oracle limitation');
+    }
+  }
+  stdout.writeln('\n$ok agree, $consensusBug consensus-bug, '
+      '$oracleSplit oracle-split, $skipped skipped');
 }

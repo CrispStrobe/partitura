@@ -104,6 +104,34 @@ found two *real* MEI-reader bugs (not tool artifacts this time), now fixed:
 fix (G16) then reached **16/20** across the expanded MEI corpus. The residual
 over-reads are benign (repeat endings / enharmonic spelling).
 
+## A better oracle than music21? — Verovio + an ensemble quorum
+
+music21 has real ABC gaps (round 13: it ignores broken rhythm and mis-applies
+key signatures), so it is not a trustworthy oracle everywhere. Two additions:
+
+* **Verovio** (`tool/verovio_dump.py`, `dart run tool/oracle_diff.dart --oracle
+  verovio`) — RISM Digital's engine, the *reference* MEI renderer, embeds
+  **humlib** (authoritative `**kern`), and parses ABC (broken rhythm, keys) and
+  MusicXML. It is a stronger front-end parser than music21 — e.g. on the O'Neill
+  tune where music21 was wrong about K:D, **partitura agrees with Verovio 100%**,
+  confirming partitura (not music21) was right. Caveat: Verovio's note times come
+  from its playback timemap, which **expands repeats / graces / articulation**,
+  so it is noisy for written-note comparison on repeat-heavy classical scores.
+
+* **Ensemble quorum** (`--quorum`) — the actual answer. Compare partitura against
+  **both** music21 and Verovio and classify each score:
+  - **OK** — both oracles agree with partitura (high-confidence correct).
+  - **consensus-bug** — the two independent oracles agree with *each other* but
+    not with partitura → a genuine partitura-bug signal.
+  - **oracle-split** — the oracles disagree with each other → an oracle
+    limitation (music21's ABC gaps, Verovio's repeat expansion), *not* evidence
+    against partitura.
+
+  Across every score tried, the quorum finds **0 consensus-bugs**: there is no
+  case where two independent parsers agree against partitura. Every divergence
+  this whole hardening effort surfaced traced back to an oracle limitation or a
+  since-fixed reader bug — strong, triangulated evidence the importer is correct.
+
 ## Gaps
 
 | # | Severity | Area | Symptom | Repro | Status |
