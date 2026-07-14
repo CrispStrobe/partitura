@@ -284,7 +284,27 @@ class _MeiReader {
   Measure _readMeasure(XmlNode measureNode) {
     final pickup = measureNode.attributes['metcon'] == 'false';
     _ornaments = {};
+    // <tupletSpan startid endid num numbase> — a tuplet expressed as a control
+    // event (referencing its first/last note by id) rather than a wrapping
+    // <tuplet>. Professionally-encoded MEI uses these heavily; without them the
+    // tuplet notes keep their nominal (unscaled) duration.
+    final tupletSpans =
+        <({String startid, String endid, int num, int numbase})>[];
     for (final node in measureNode.children) {
+      if (node.name == 'tupletSpan') {
+        final sid = node.attributes['startid']?.replaceFirst('#', '');
+        final eid = node.attributes['endid']?.replaceFirst('#', '');
+        final num = int.tryParse(node.attributes['num'] ?? '');
+        final numbase = int.tryParse(node.attributes['numbase'] ?? '');
+        final st = node.attributes['staff'];
+        if (sid != null &&
+            eid != null &&
+            num != null &&
+            numbase != null &&
+            (st == null || st == '$staffN')) {
+          tupletSpans.add((startid: sid, endid: eid, num: num, numbase: numbase));
+        }
+      }
       final ornament = switch (node.name) {
         'trill' => Ornament.trill,
         'mordent' => node.attributes['form'] == 'upper'
@@ -406,6 +426,20 @@ class _MeiReader {
         }
       }
       byLayer.add(elements);
+    }
+
+    // Resolve <tupletSpan> control events (by note id) to voice-1 index ranges.
+    final voice1 = byLayer.isEmpty ? const <MusicElement>[] : byLayer[0];
+    for (final ts in tupletSpans) {
+      final startId = _xmlIdToId[ts.startid];
+      final endId = _xmlIdToId[ts.endid];
+      if (startId == null || endId == null || ts.num < 2) continue;
+      final si = voice1.indexWhere((e) => e.id == startId);
+      final ei = voice1.indexWhere((e) => e.id == endId);
+      if (si >= 0 && ei >= si) {
+        tuplets.add(
+            TupletSpan(si, ei, actual: ts.num, normal: ts.numbase));
+      }
     }
 
     return Measure(

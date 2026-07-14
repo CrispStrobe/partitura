@@ -261,12 +261,13 @@ void main() {
   });
 
   // A minimal MEI wrapper around one measure body (staff 1 / layer 1).
-  String meiWith(String layerBody, {String? extraSection}) => '''
+  String meiWith(String layerBody, {String? extraSection, String? extraChild}) =>
+      '''
 <mei xmlns="http://www.music-encoding.org/ns/mei">
  <music><body><mdiv><score>
   <scoreDef><staffGrp><staffDef n="1" clef.shape="G" clef.line="2"/></staffGrp></scoreDef>
   <section>
-   <measure n="1"><staff n="1"><layer n="1">$layerBody</layer></staff></measure>
+   <measure n="1"><staff n="1"><layer n="1">$layerBody</layer></staff>${extraChild ?? ''}</measure>
   </section>${extraSection ?? ''}
  </score></mdiv></body></music>
 </mei>''';
@@ -327,6 +328,27 @@ void main() {
     expect(notes[1].pitches.single.step.name, 'e');
     expect(notes[1].graceNotes.single.step.name, 'd');
     expect(notes[1].graceStyle, GraceStyle.appoggiatura);
+  });
+
+  test('applies a <tupletSpan> control event (by note id) as a tuplet', () {
+    // Professionally-encoded MEI expresses tuplets as a <tupletSpan> referencing
+    // its first/last note by id, not a wrapping <tuplet> — without this the
+    // notes keep their nominal, unscaled duration (hardening G17).
+    final xml = meiWith(
+      '<note xml:id="n1" pname="c" oct="5" dur="8"/>'
+      '<note xml:id="n2" pname="d" oct="5" dur="8"/>'
+      '<note xml:id="n3" pname="e" oct="5" dur="8"/>',
+      extraChild: '<tupletSpan staff="1" num="3" numbase="2" '
+          'startid="#n1" endid="#n3"/>',
+    );
+    final m = scoreFromMei(xml).measures.single;
+    expect(m.tuplets, hasLength(1));
+    expect(m.tuplets.single.startIndex, 0);
+    expect(m.tuplets.single.endIndex, 2);
+    expect(m.tuplets.single.actual, 3);
+    expect(m.tuplets.single.normal, 2);
+    // The tuplet scales the three eighths to 1/3 quarter each (effective dur).
+    expect(m.effectiveDurationAt(0).toDouble(), closeTo(1 / 12, 1e-9));
   });
 
   test('reads measures from every <section>, not just the first', () {
