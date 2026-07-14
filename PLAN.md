@@ -163,10 +163,15 @@ y-down coords. Priority: **C1+C2 → C3 → C5 → C4**.
     (round-trip 90%; loss == inner-voice note count). kern needs spine-split
     (`*^`/`*v`) output; ABC needs `V:`/`&` polyphony. The model's 4-voice/staff
     cap (Voice_Alignment's 5th voice) is a separate, low-value extension.
-  - [ ] **Tremolo as a mark, not expanded notes (hardening G13).** The MusicXML
-    reader expands `<tremolo type="single">` into repeated notes at import
-    (ActorPrelude: 244 phantom notes), losing the notation. Should be a mark on
-    the base note, expanded only for playback.
+  - **MEI reader hardening (G14/G15/G16) — done.** The music21 oracle found and
+    we fixed: beamed notes were dropped (`<beam>` now unwrapped recursively),
+    only the first `<section>` was read (now all sections/endings), and grace
+    notes were read as full notes (now folded into the principal note). MEI
+    oracle 0/14 → 16/20 exact; Brandenburg 758→9140 notes. `mei_test.dart`.
+  - **G13 was a mis-diagnosis (no action).** ActorPrelude's oracle divergence is
+    *not* tremolo expansion (partitura keeps the 14 tremolos as marks); it's the
+    deliberate G6 snapping of irregular un-typed `<duration>`s to the nearest
+    notatable value. By design — see `docs/HARDENING.md` §G13.
 - [x] **C7 — region controller.** The private render objects' `elementRegions`
   / `elementIdsIn(Rect)` (from C4) are now reachable from app code via a public
   `ElementRegionController` (alias `MultiSystemViewController`), attached with
