@@ -126,6 +126,35 @@ void main() {
       expect(chordYs.every((t) => t.position.y < 0), isTrue);
     });
 
+    test('below annotations clear the staff and local ink', () {
+      final layout = layoutOf(Score(
+        clef: Clef.treble,
+        measures: [
+          Measure([
+            NoteElement.note(
+              const Pitch(Step.c),
+              NoteDuration.quarter,
+              id: 'e0',
+            ),
+          ]),
+        ],
+        annotations: const [
+          Annotation(
+            'e0',
+            'legato',
+            placement: AnnotationPlacement.below,
+          ),
+        ],
+      ));
+      final text = textsOf(layout).single;
+
+      expect(text.position.y, greaterThan(6));
+      expect(
+        layout.regions.firstWhere((r) => r.elementId == 'e0').bounds.bottom,
+        greaterThan(6),
+      );
+    });
+
     test('annotations grow the element hit region upward', () {
       final without = layoutOf(Score.simple(notes: 'c4:q d4'));
       final with_ =

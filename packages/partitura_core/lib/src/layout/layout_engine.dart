@@ -951,7 +951,7 @@ class _LayoutBuilder {
           final collides = placedPositions
               .any((p1) => myPositions.any((p2) => (p1 - p2).abs() <= 1));
           if (collides) {
-            _x = columnX + _glyphWidth(SmuflGlyph.noteheadBlack) + 0.15;
+            _x = columnX + _glyphWidth(SmuflGlyph.noteheadWhole) + 0.55;
           }
         }
         switch (element) {
@@ -2046,7 +2046,9 @@ class _LayoutBuilder {
           above: above,
         );
         if (offset != 0) {
-          final endpointOffset = offset.sign * min(offset.abs() * 0.35, 0.8);
+          final endpointCap = above ? 1.4 : 0.8;
+          final endpointOffset =
+              offset.sign * min(offset.abs() * 0.35, endpointCap);
           start = Point(start.x, start.y + endpointOffset);
           control1 = Point(control1.x, control1.y + offset);
           control2 = Point(control2.x, control2.y + offset);
@@ -2545,65 +2547,86 @@ class _LayoutBuilder {
   void _layoutAnnotations() {
     if (score.annotations.isEmpty && score.chordSymbols.isEmpty) return;
     final size = s.annotationSize;
-
     final infoOf = <String, _TieInfo>{
       for (final info in _tieInfos)
         if (info.id != null) info.id!: info,
     };
-    // Text annotations and structured chord symbols share this above-staff row.
-    final items = <(String, String)>[
-      for (final a in score.annotations) (a.elementId, a.text),
+
+    final aboveItems = <(String, String)>[
+      for (final a in score.annotations)
+        if (a.placement == AnnotationPlacement.above) (a.elementId, a.text),
       for (final c in score.chordSymbols) (c.elementId, c.text),
     ];
-    // Gather each item's note-centered anchor and estimated half-width, then
-    // order left-to-right and spread so wide symbols on close notes never
-    // overlap.
-    final placed = <(String, String, double, double)>[]; // id, text, ctr, half
-    for (final (id, text) in items) {
-      final info = infoOf[id];
-      if (info == null || info.note == null) {
-        throw ArgumentError(
-            'annotation/chord symbol references an unknown note id: $id');
+    final belowItems = <(String, String)>[
+      for (final a in score.annotations)
+        if (a.placement == AnnotationPlacement.below) (a.elementId, a.text),
+    ];
+
+    void layoutRow(List<(String, String)> items, {required bool above}) {
+      if (items.isEmpty) return;
+      // Gather each item's note-centered anchor and estimated half-width, then
+      // order left-to-right and spread so wide symbols on close notes never
+      // overlap.
+      final placed =
+          <(String, String, double, double)>[]; // id, text, ctr, half
+      for (final (id, text) in items) {
+        final info = infoOf[id];
+        if (info == null || info.note == null) {
+          throw ArgumentError(
+              'annotation/chord symbol references an unknown note id: $id');
+        }
+        placed.add((
+          id,
+          text,
+          (info.left + info.right) / 2,
+          _estTextHalfWidth(text, size),
+        ));
       }
-      placed.add((
-        id,
-        text,
-        (info.left + info.right) / 2,
-        _estTextHalfWidth(text, size),
-      ));
-    }
-    placed.sort((a, b) => a.$3.compareTo(b.$3));
-    final centers = [for (final p in placed) p.$3];
-    final halves = [for (final p in placed) p.$4];
-    _spreadRight(centers, halves, 0.4 * size);
+      placed.sort((a, b) => a.$3.compareTo(b.$3));
+      final centers = [for (final p in placed) p.$3];
+      final halves = [for (final p in placed) p.$4];
+      _spreadRight(centers, halves, 0.4 * size);
 
-    // Text bottom (baseline + descender) clears the highest ink under the
-    // span the row actually covers, not the whole system.
-    var regionL = double.infinity, regionR = double.negativeInfinity;
-    for (var i = 0; i < centers.length; i++) {
-      regionL = min(regionL, centers[i] - halves[i]);
-      regionR = max(regionR, centers[i] + halves[i]);
-    }
-    final localTop = _skylineTop(regionL, regionR) ?? 0;
-    final baselineY = min(-1.0, localTop - s.annotationGap - 0.25 * size);
+      // The row clears the local skyline under the text span, not unrelated
+      // high/low ink elsewhere on the staff.
+      var regionL = double.infinity, regionR = double.negativeInfinity;
+      for (var i = 0; i < centers.length; i++) {
+        regionL = min(regionL, centers[i] - halves[i]);
+        regionR = max(regionR, centers[i] + halves[i]);
+      }
+      final baselineY = above
+          ? min(
+              -1.0,
+              (_skylineTop(regionL, regionR) ?? 0) -
+                  s.annotationGap -
+                  0.25 * size)
+          : max(
+              6.0,
+              (_skylineBottom(regionL, regionR) ?? 4) +
+                  s.annotationGap +
+                  0.72 * size);
 
-    for (var i = 0; i < placed.length; i++) {
-      final (id, text, _, halfWidth) = placed[i];
-      final centerX = centers[i];
-      _primitives.add(TextPrimitive(
-        text,
-        Point(centerX, baselineY),
-        size: size,
-        elementId: id,
-      ));
-      _expand(
-        id,
-        centerX - halfWidth,
-        baselineY - 0.72 * size,
-        centerX + halfWidth,
-        baselineY + 0.25 * size,
-      );
+      for (var i = 0; i < placed.length; i++) {
+        final (id, text, _, halfWidth) = placed[i];
+        final centerX = centers[i];
+        _primitives.add(TextPrimitive(
+          text,
+          Point(centerX, baselineY),
+          size: size,
+          elementId: id,
+        ));
+        _expand(
+          id,
+          centerX - halfWidth,
+          baselineY - 0.72 * size,
+          centerX + halfWidth,
+          baselineY + 0.25 * size,
+        );
+      }
     }
+
+    layoutRow(aboveItems, above: true);
+    layoutRow(belowItems, above: false);
   }
 
   /// Figured-bass figures stacked under each bass note, below all other ink

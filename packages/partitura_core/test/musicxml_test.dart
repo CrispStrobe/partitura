@@ -370,6 +370,22 @@ void main() {
       ]);
     });
 
+    test('words preserve below placement', () {
+      final score = scoreFromMusicXml(doc('''
+<measure number="1">
+  $attrs44
+  <direction placement="below">
+    <direction-type><words>legato</words></direction-type>
+  </direction>
+  ${note('C', 4, 'whole', duration: 8)}
+</measure>
+'''));
+
+      expect(score.annotations, const [
+        Annotation('e0', 'legato', placement: AnnotationPlacement.below),
+      ]);
+    });
+
     test('wedges become hairpins spanning start to stop', () {
       final score = scoreFromMusicXml(doc('''
 <measure number="1">

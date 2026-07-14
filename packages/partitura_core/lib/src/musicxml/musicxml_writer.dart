@@ -541,7 +541,11 @@ class _PartWriter {
         }
         final annotation = _annotationsById[id];
         if (annotation != null) {
-          out.writeln('      <direction><direction-type><words>'
+          final placement = annotation.placement == AnnotationPlacement.below
+              ? 'below'
+              : 'above';
+          out.writeln('      <direction placement="$placement">'
+              '<direction-type><words>'
               '${_escape(annotation.text)}</words></direction-type></direction>');
         }
         final figuredBass = _figuredBassById[id];

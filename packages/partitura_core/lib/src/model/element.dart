@@ -834,9 +834,7 @@ class Rasgueado {
 
   @override
   bool operator ==(Object other) =>
-      other is Rasgueado &&
-      other.noteId == noteId &&
-      other.pattern == pattern;
+      other is Rasgueado && other.noteId == noteId && other.pattern == pattern;
 
   @override
   int get hashCode => Object.hash(noteId, pattern);
@@ -1362,8 +1360,17 @@ class Lyric {
       '${elidesToNext ? ' ‿' : ''}${verse == 1 ? '' : ', v$verse'})';
 }
 
-/// A text annotation anchored above the staff at a note element: chord
-/// symbols, rehearsal marks, tempo text.
+/// Where staff text is placed relative to its anchor staff.
+enum AnnotationPlacement {
+  /// Text above the staff.
+  above,
+
+  /// Text below the staff.
+  below,
+}
+
+/// A text annotation anchored at a note element: chord symbols, rehearsal
+/// marks, tempo/expression text.
 class Annotation {
   /// Id of the note element the text sits above.
   final String elementId;
@@ -1371,18 +1378,29 @@ class Annotation {
   /// The text to display (e.g. `C`, `G7/B`, `Andante`).
   final String text;
 
+  /// Staff side for this text.
+  final AnnotationPlacement placement;
+
   /// Creates an annotation.
-  const Annotation(this.elementId, this.text);
+  const Annotation(
+    this.elementId,
+    this.text, {
+    this.placement = AnnotationPlacement.above,
+  });
 
   @override
   bool operator ==(Object other) =>
-      other is Annotation && other.elementId == elementId && other.text == text;
+      other is Annotation &&
+      other.elementId == elementId &&
+      other.text == text &&
+      other.placement == placement;
 
   @override
-  int get hashCode => Object.hash(elementId, text);
+  int get hashCode => Object.hash(elementId, text, placement);
 
   @override
-  String toString() => 'Annotation($elementId: "$text")';
+  String toString() => 'Annotation($elementId: "$text"'
+      '${placement == AnnotationPlacement.above ? '' : ', below'})';
 }
 
 /// The quality of a [ChordSymbol]. [musicXmlKind] is the MusicXML `<kind>`

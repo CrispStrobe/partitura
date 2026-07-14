@@ -36,6 +36,41 @@ void main() {
     settings = LayoutSettings(metadata: metadata);
   });
 
+  group('multi-voice collisions', () {
+    test('short-note voice clears a simultaneous whole note', () {
+      final layout = layoutOf(Score(
+        clef: Clef.treble,
+        measures: [
+          Measure(
+            [
+              NoteElement.note(
+                const Pitch(Step.a, octave: 5),
+                NoteDuration.whole,
+                id: 'whole',
+              ),
+            ],
+            voice2: [
+              NoteElement.note(
+                const Pitch(Step.g, octave: 5),
+                NoteDuration.sixteenth,
+                id: 'short0',
+              ),
+              NoteElement.note(
+                const Pitch(Step.a, octave: 5),
+                NoteDuration.sixteenth,
+                id: 'short1',
+              ),
+            ],
+          ),
+        ],
+      ));
+      final whole = layout.regions.firstWhere((r) => r.elementId == 'whole');
+      final short0 = layout.regions.firstWhere((r) => r.elementId == 'short0');
+
+      expect(short0.bounds.left, greaterThan(whole.bounds.right));
+    });
+  });
+
   group('stem quality', () {
     test('every beamed stem keeps at least the default length', () {
       final layouts = [

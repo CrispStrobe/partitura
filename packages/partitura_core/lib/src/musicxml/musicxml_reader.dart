@@ -547,6 +547,7 @@ class _PartReader {
     String? pendingDynamic;
     ({Pitch root, ChordSymbolKind quality, Pitch? bass})? pendingChord;
     String? pendingAnnotation;
+    var pendingAnnotationPlacement = AnnotationPlacement.above;
     List<String>? pendingFigures;
     final openTupletStart = List<int?>.filled(4, null);
     final openTupletRatio = List<(int, int)?>.filled(4, null);
@@ -684,6 +685,9 @@ class _PartReader {
               _navigationOf(node) == null &&
               dynamicsNode == null) {
             pendingAnnotation ??= words;
+            pendingAnnotationPlacement = node.attributes['placement'] == 'below'
+                ? AnnotationPlacement.below
+                : AnnotationPlacement.above;
           }
         case 'harmony':
           pendingChord = _chordSymbolOf(node);
@@ -774,8 +778,10 @@ class _PartReader {
               pendingChord = null;
             }
             if (pendingAnnotation != null) {
-              _annotations.add(Annotation(id, pendingAnnotation));
+              _annotations.add(Annotation(id, pendingAnnotation,
+                  placement: pendingAnnotationPlacement));
               pendingAnnotation = null;
+              pendingAnnotationPlacement = AnnotationPlacement.above;
             }
             if (pendingFigures != null) {
               if (pendingFigures.isNotEmpty) {
