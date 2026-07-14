@@ -38,11 +38,11 @@ ships* at the end for the mechanics.
 > not the model-agent 2.1/2.2 lane, the editor `MultiPartScore` linked-parts, or
 > the hardening files.)*
 >
-> 🚧 **Actively working (test-coverage hardening):** filling unit-test gaps in
-> the *pure, unclaimed* modules — OMR parsers (semantic clefs/keys/errors,
-> lilynotes, bekern), SVG export, and other under-covered value types. **Test
-> files only** — no source changes, so no overlap with the notation-breadth or
-> hardening lanes. Worktree `partitura-tab`, branch `test/coverage-gaps`.
+> **Test-coverage hardening landed:** filled unit-test gaps in the pure OMR /
+> braille modules — semantic parser (5 rarer clefs, bad-duration error,
+> circle-of-fifths keys), `omrDialectOf` dialect edges + `OmrImage` size assert,
+> and braille edge cases (double accidentals, octave clamping, 16th/32nd value
+> aliases). Test-only. No active claim on this line.
 >
 > **No active claims otherwise — safe to pick up. Claim with 🚧, push origin/main
 > at every checkpoint** (see [[coordination]] / gitignored `CLAUDE.md`).

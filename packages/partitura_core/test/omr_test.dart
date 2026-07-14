@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:partitura_core/partitura_core.dart';
 import 'package:test/test.dart';
 
@@ -147,6 +149,39 @@ void main() {
     test('omrDialectOf falls back to bekern for ambiguous input', () {
       expect(omrDialectOf('4c 4d 4e'), OmrDialect.bekern); // digit-first
       expect(omrDialectOf(''), OmrDialect.bekern); // empty
+    });
+
+    test('omrDialectOf recognizes semantic via any -prefixed sign', () {
+      expect(omrDialectOf('timeSignature-4/4'), OmrDialect.semantic);
+      expect(omrDialectOf('keySignature-GM'), OmrDialect.semantic);
+      expect(omrDialectOf('clef-G2'), OmrDialect.semantic);
+    });
+
+    test('omrDialectOf recognizes bekern via any structural marker', () {
+      expect(omrDialectOf('a <s> b'), OmrDialect.bekern); // chord separator
+      expect(omrDialectOf('a <b> b'), OmrDialect.bekern); // line break
+      expect(omrDialectOf('**ekern_1.0'), OmrDialect.bekern);
+    });
+
+    test('omrDialectOf recognizes Flova LilyPond notes and rests', () {
+      expect(omrDialectOf("c'4 d'4"), OmrDialect.lilyNotes);
+      expect(omrDialectOf('r4 g8'), OmrDialect.lilyNotes); // leading rest
+    });
+  });
+
+  group('OmrImage', () {
+    test('accepts a correctly-sized buffer and exposes its shape', () {
+      final img = OmrImage(Uint8List(8 * 5 * 4),
+          width: 8, height: 5, channels: 4);
+      expect(img.width, 8);
+      expect(img.height, 5);
+      expect(img.channels, 4);
+    });
+
+    test('rejects a buffer too small for width×height×channels', () {
+      expect(
+          () => OmrImage(Uint8List(10), width: 8, height: 5, channels: 4),
+          throwsA(isA<AssertionError>()));
     });
   });
 }
