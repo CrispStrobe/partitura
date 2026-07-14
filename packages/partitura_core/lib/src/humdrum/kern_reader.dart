@@ -141,6 +141,11 @@ class _KernReader {
 
   final _measures = <Measure>[];
   var _current = <MusicElement>[];
+  // Voice 2 — the second sub-spine after a `*^` split (intra-staff overlay).
+  var _current2 = <MusicElement>[];
+  // The tab columns this staff's voices currently occupy: `[c]` normally, and
+  // `[c, c+1]` while split by `*^` (merged back to `[c]` by `*v *v`).
+  late List<int> _cols = [spineColumn];
   // Per-element tuplet ratio (null = not a tuplet), aligned with [_current].
   var _currentRatios = <({int actual, int normal})?>[];
   final _slurs = <Slur>[];
@@ -159,10 +164,22 @@ class _KernReader {
         if (line.startsWith('!!!')) _reference(line);
         continue; // reference records handled; other comments skipped
       }
-      final token = line.split('\t')[_columnFor(line)];
+      final cols = line.split('\t');
+      String at(int c) => c < cols.length ? cols[c] : cols.last;
+      final token = at(_cols.first);
       if (token == '**kern') continue; // exclusive-interpretation header
       if (token.startsWith('**')) continue; // some other exclusive spine
       if (token == '*-') break; // spine terminator
+      // Spine manipulators: `*^` splits into two sub-spines (voice 1 / voice 2),
+      // `*v` merges them back. Intra-staff polyphony.
+      if (token == '*^') {
+        _cols = [_cols.first, _cols.first + 1];
+        continue;
+      }
+      if (token == '*v') {
+        _cols = [_cols.first];
+        continue;
+      }
       if (token.startsWith('=')) {
         _finishMeasure();
       } else if (token.startsWith('*')) {
@@ -174,8 +191,19 @@ class _KernReader {
         _currentRatios.add(_tupletRatioOf(token.split(' ').first));
         _trackSlur(token, el.id);
       }
+      // Second sub-spine → voice 2 (no tuplets/slurs tracked; the model carries
+      // those on voice 1 only). Data tokens only; skip nulls and control tokens.
+      if (_cols.length > 1) {
+        final t2 = at(_cols[1]);
+        if (t2 != '.' &&
+            !t2.startsWith('*') &&
+            !t2.startsWith('=') &&
+            !t2.startsWith('!')) {
+          _current2.add(_element(t2));
+        }
+      }
     }
-    if (_current.isNotEmpty) _finishMeasure();
+    if (_current.isNotEmpty || _current2.isNotEmpty) _finishMeasure();
     return Score(
       clef: _leadingClef,
       keySignature: _leadingKey,
@@ -219,10 +247,6 @@ class _KernReader {
   KeySignature _leadingKey = const KeySignature(0);
   TimeSignature? _leadingTime;
 
-  int _columnFor(String line) {
-    final cols = line.split('\t');
-    return spineColumn < cols.length ? spineColumn : cols.length - 1;
-  }
 
   /// Records kern slur markers: `(` opens a slur on [id], `)` closes the open
   /// one, ending at [id]. Single-level (nested `&(`/`&)` are read as plain).
@@ -238,12 +262,14 @@ class _KernReader {
   void _finishMeasure() {
     _measures.add(Measure(
       _current,
+      voice2: _current2,
       clefChange: _pendingClef,
       keyChange: _pendingKey,
       timeChange: _pendingTime,
       tuplets: _tupletSpansOf(_currentRatios),
     ));
     _current = <MusicElement>[];
+    _current2 = <MusicElement>[];
     _currentRatios = <({int actual, int normal})?>[];
     _pendingClef = null;
     _pendingKey = null;

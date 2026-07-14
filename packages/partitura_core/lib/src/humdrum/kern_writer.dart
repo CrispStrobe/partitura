@@ -16,6 +16,7 @@ import '../model/measure.dart';
 import '../model/score.dart';
 import '../theory/clef.dart';
 import '../theory/duration.dart';
+import '../theory/fraction.dart';
 import '../theory/key_signature.dart';
 import '../theory/pitch.dart';
 import '../theory/time_signature.dart';
@@ -95,6 +96,37 @@ String scoreToKern(Score score) {
     lines.add('*MM$s');
   }
 
+  // If any measure carries a second voice, emit two sub-spines (`*^` … `*v *v`)
+  // with the voices time-merged; otherwise the plain single-spine path.
+  final multiVoice = score.measures.any((m) => m.voice2.isNotEmpty);
+  if (multiVoice) {
+    lines.add('*^'); // split the spine into two sub-spines (voice 1 / voice 2)
+    for (var m = 0; m < score.measures.length; m++) {
+      final measure = score.measures[m];
+      if (m > 0) {
+        lines.add('=\t=');
+        if (measure.clefChange != null) {
+          final c = '*clef${_clefCodes[measure.clefChange!]}';
+          lines.add('$c\t$c');
+        }
+        if (measure.keyChange != null) {
+          final k = '*k[${kernKeyContent(measure.keyChange!)}]';
+          lines.add('$k\t$k');
+        }
+        if (measure.timeChange != null) {
+          for (final l in _meterLines(measure.timeChange!)) {
+            lines.add('$l\t$l');
+          }
+        }
+      }
+      lines.addAll(_multiVoiceRows(measure, slurStarts, slurEnds));
+    }
+    lines.add('==\t==');
+    lines.add('*v\t*v'); // merge the sub-spines back
+    lines.add('*-');
+    return '${lines.join('\n')}\n';
+  }
+
   // Element-level ties need to know the previous note's tie state.
   var prevTie = false;
   for (var m = 0; m < score.measures.length; m++) {
@@ -123,6 +155,65 @@ String scoreToKern(Score score) {
   lines.add('==');
   lines.add('*-');
   return '${lines.join('\n')}\n';
+}
+
+/// Data rows for a two-voice [measure] as `voice1<TAB>voice2` lines, time-merged
+/// so a token appears in a sub-spine only where a note/rest starts, and a null
+/// token (`.`) marks where that voice is sustaining across the other's event.
+/// A measure with no voice 2 fills the second sub-spine with rests aligned to
+/// voice 1 (valid for any meter). Voices 3–4, if present, are not yet emitted.
+List<String> _multiVoiceRows(
+    Measure measure, Set<String> slurStarts, Set<String> slurEnds) {
+  // (onset, token) pairs for a voice, using each element's effective duration.
+  List<({Fraction at, String tok})> events(
+      List<MusicElement> voice, List<Fraction> durs) {
+    var t = Fraction(0, 1);
+    final out = <({Fraction at, String tok})>[];
+    for (var i = 0; i < voice.length; i++) {
+      final e = voice[i];
+      out.add((
+        at: t,
+        tok: _token(e, false, null,
+            slurStart: e.id != null && slurStarts.contains(e.id),
+            slurEnd: e.id != null && slurEnds.contains(e.id))
+      ));
+      t = t + durs[i];
+    }
+    return out;
+  }
+
+  final v1durs = [
+    for (var i = 0; i < measure.elements.length; i++)
+      measure.effectiveDurationAt(i)
+  ];
+  final v1 = events(measure.elements, v1durs);
+
+  final List<({Fraction at, String tok})> v2;
+  if (measure.voice2.isEmpty) {
+    // Fill the second spine with rests aligned to voice 1's rhythm.
+    var t = Fraction(0, 1);
+    final filled = <({Fraction at, String tok})>[];
+    for (var i = 0; i < measure.elements.length; i++) {
+      filled.add((at: t, tok: '${_durString(measure.elements[i].duration, null)}r'));
+      t = t + v1durs[i];
+    }
+    v2 = filled;
+  } else {
+    v2 = events(measure.voice2,
+        [for (final e in measure.voice2) e.duration.toFraction()]);
+  }
+
+  // Merged, sorted set of onsets across both voices.
+  final onsets = <Fraction>{...v1.map((e) => e.at), ...v2.map((e) => e.at)}
+      .toList()
+    ..sort((a, b) => (a - b).numerator.sign);
+  final rows = <String>[];
+  for (final t in onsets) {
+    final a = v1.firstWhere((e) => e.at == t, orElse: () => (at: t, tok: '.'));
+    final b = v2.firstWhere((e) => e.at == t, orElse: () => (at: t, tok: '.'));
+    rows.add('${a.tok}\t${b.tok}');
+  }
+  return rows;
 }
 
 List<String> _meterLines(TimeSignature time) {

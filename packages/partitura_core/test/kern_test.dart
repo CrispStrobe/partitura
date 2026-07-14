@@ -197,5 +197,28 @@ void main() {
       expect(measure.tuplets, source.measures.single.tuplets);
       expect(measure.elements.length, 3);
     });
+
+    test('two voices round-trip through split sub-spines (*^ … *v)', () {
+      final source = Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'c5:q d5 e5 f5 ; c4:h g4:h | g5:q a5 b5 c6 ; e4:h d4:h',
+      );
+      final kern = scoreToKern(source);
+      expect(kern, contains('*^')); // spine split for the second voice
+      expect(kern, contains('*v\t*v')); // merged back at the end
+      final back = scoreFromKern(kern);
+      int notes(Score s) => s.measures
+          .expand((m) => [...m.elements, ...m.voice2])
+          .whereType<NoteElement>()
+          .length;
+      expect(notes(back), notes(source)); // 12 notes, none dropped
+      expect(back.measures.first.voice2.whereType<NoteElement>().length, 2);
+      expect(back.measures.last.voice2.whereType<NoteElement>().length, 2);
+    });
+
+    test('a single-voice score stays a single spine (no *^)', () {
+      final kern = scoreToKern(Score.simple(notes: 'c4:q d4 e4 f4'));
+      expect(kern, isNot(contains('*^')));
+    });
   });
 }
