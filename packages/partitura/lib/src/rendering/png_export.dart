@@ -151,16 +151,24 @@ Future<Uint8List> renderStaffSystemSystemsToPng(
   double leftMargin = 0,
   bool showInstrumentLabels = false,
   bool showSystemMeasureNumbers = false,
+  bool showTitle = false,
   PartituraTheme theme = PartituraTheme.standard,
   Set<String> highlightedIds = const {},
   Color background = const Color(0xFFFFFFFF),
 }) async {
+  final metadata = _firstMetadata(wrapped);
+  final titleTop = showTitle ? _titleBlockHeight(metadata) : 0.0;
   final width =
       ((wrapped.maxWidth + leftMargin) * staffSpace).ceil().clamp(1, 1 << 20);
-  final height =
-      (wrapped.heightWith(systemGap) * staffSpace).ceil().clamp(1, 1 << 20);
+  final height = ((titleTop + wrapped.heightWith(systemGap)) * staffSpace)
+      .ceil()
+      .clamp(1, 1 << 20);
   return _rasterize(width, height, background, (canvas, painter) {
-    var y = 0.0;
+    if (titleTop > 0) {
+      _paintTitleBlock(canvas, metadata, staffSpace, leftMargin,
+          wrapped.maxWidth, theme.staffColor, theme.textFontFamily);
+    }
+    var y = titleTop * staffSpace;
     for (var i = 0; i < wrapped.systems.length; i++) {
       final system = wrapped.systems[i];
       if (showInstrumentLabels && i == 0 && leftMargin > 0) {
@@ -181,9 +189,76 @@ Future<Uint8List> renderStaffSystemSystemsToPng(
   }, theme, staffSpace, highlightedIds);
 }
 
+ScoreMetadata _firstMetadata(StaffSystemSystems wrapped) {
+  if (wrapped.systems.isEmpty ||
+      wrapped.systems.first.layout.source.staves.isEmpty) {
+    return const ScoreMetadata();
+  }
+  return wrapped.systems.first.layout.source.staves.first.metadata;
+}
+
+double _titleBlockHeight(ScoreMetadata metadata) {
+  final hasTitle = metadata.title?.trim().isNotEmpty ?? false;
+  final hasComposer = metadata.composer?.trim().isNotEmpty ?? false;
+  if (!hasTitle && !hasComposer) return 0;
+  final titleLines = _metadataLines(metadata.title);
+  return 3.2 + titleLines.length * 1.25 + (hasComposer ? 1.3 : 0);
+}
+
+List<String> _metadataLines(String? text) => (text ?? '')
+    .split('\n')
+    .map((line) => line.trim())
+    .where((line) => line.isNotEmpty)
+    .toList();
+
+void _paintTitleBlock(
+  Canvas canvas,
+  ScoreMetadata metadata,
+  double staffSpace,
+  double leftMargin,
+  double maxWidth,
+  Color color,
+  String? fontFamily,
+) {
+  final titleLines = _metadataLines(metadata.title);
+  final composerLines = _metadataLines(metadata.composer);
+  final pageWidth = (leftMargin + maxWidth) * staffSpace;
+  final centerX = pageWidth / 2;
+  var y = 1.8 * staffSpace;
+  for (var i = 0; i < titleLines.length; i++) {
+    _paintText(
+      canvas,
+      titleLines[i],
+      Offset(centerX, y),
+      (i == 0 ? 1.55 : 1.05) * staffSpace,
+      color,
+      fontFamily,
+      align: TextAlign.center,
+      fontWeight: i == 0 ? FontWeight.w600 : FontWeight.w400,
+    );
+    y += (i == 0 ? 1.45 : 1.25) * staffSpace;
+  }
+  if (composerLines.isNotEmpty) {
+    y += 0.35 * staffSpace;
+    for (final line in composerLines) {
+      _paintText(
+        canvas,
+        line,
+        Offset(pageWidth, y),
+        0.9 * staffSpace,
+        color,
+        fontFamily,
+        align: TextAlign.right,
+      );
+      y += 1.05 * staffSpace;
+    }
+  }
+}
+
 void _paintText(Canvas canvas, String text, Offset position, double fontSize,
     Color color, String? fontFamily,
-    {TextAlign align = TextAlign.left}) {
+    {TextAlign align = TextAlign.left,
+    FontWeight fontWeight = FontWeight.w400}) {
   final painter = TextPainter(
     text: TextSpan(
       text: text,
@@ -191,6 +266,7 @@ void _paintText(Canvas canvas, String text, Offset position, double fontSize,
         color: color,
         fontSize: fontSize,
         fontFamily: fontFamily,
+        fontWeight: fontWeight,
       ),
     ),
     textAlign: align,

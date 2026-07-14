@@ -73,6 +73,38 @@ void main() {
   });
 
   group('basics', () {
+    test('uses page credit text as title and composer metadata fallback', () {
+      final score = scoreFromMusicXml('''
+<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <credit page="1">
+    <credit-words justify="center">Sonata No. 16</credit-words>
+  </credit>
+  <credit page="1">
+    <credit-words justify="center">1st Movement
+K. 545</credit-words>
+  </credit>
+  <credit page="1">
+    <credit-words justify="right">Wolfgang Amadeus Mozart
+(1756 - 1791)</credit-words>
+  </credit>
+  <part-list>
+    <score-part id="P1"><part-name>Piano</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      $attrs44
+      ${note('C', 4, 'whole', duration: 8)}
+    </measure>
+  </part>
+</score-partwise>
+''');
+
+      expect(score.metadata.title, 'Sonata No. 16\n1st Movement\nK. 545');
+      expect(score.metadata.composer, 'Wolfgang Amadeus Mozart\n(1756 - 1791)');
+      expect(score.metadata.instrument, 'Piano');
+    });
+
     test('notes, rests, chords, durations, signatures, clef', () {
       final score = scoreFromMusicXml(doc('''
 <measure number="1">

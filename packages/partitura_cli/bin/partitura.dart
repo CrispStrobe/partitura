@@ -81,6 +81,7 @@ render options:
                                        multi-part scores (default 120)
   --no-system-context                  Omit multi-staff instrument labels and
                                        line-start bar numbers
+  --no-title                           Omit imported title/composer page text
   --hide-empty                         Drop empty staves per system (multi-part)
   --single                             Force the single-part path (import the
                                        first part only)
@@ -137,6 +138,7 @@ const _booleanFlags = {
   'single',
   'page',
   'no-system-context',
+  'no-title',
 };
 
 int _info(List<String> args) {
@@ -430,12 +432,14 @@ int _render(List<String> args) {
           maxWidth: maxWidth,
           hideEmptyStaves: options.containsKey('hide-empty'));
       final systemContext = !options.containsKey('no-system-context');
+      final showTitle = !options.containsKey('no-title');
       final svg = staffSystemSystemsToSvg(wrapped,
           staffSpace: staffSpace,
           fontFaceDataUri: fontUri,
           leftMargin: systemContext ? 10 : 0,
           showInstrumentLabels: systemContext,
-          showSystemMeasureNumbers: systemContext);
+          showSystemMeasureNumbers: systemContext,
+          showTitle: showTitle);
       File(outPath).writeAsStringSync(svg);
       stdout.writeln('wrote $outPath (${svg.length} bytes, '
           '${system.staves.length} staves'
@@ -623,6 +627,7 @@ int _renderPng(String inPath, String outPath, Map<String, String> options,
       'PARTITURA_HIDE_EMPTY': '1',
     if (multiPart && !options.containsKey('no-system-context'))
       'PARTITURA_SYSTEM_CONTEXT': '1',
+    if (multiPart && !options.containsKey('no-title')) 'PARTITURA_TITLE': '1',
     if (options['tuning'] != null) 'PARTITURA_TUNING': options['tuning']!,
     if (options['staff-space'] != null)
       'PARTITURA_STAFF_SPACE': options['staff-space']!,

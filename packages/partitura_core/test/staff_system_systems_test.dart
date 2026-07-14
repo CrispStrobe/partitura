@@ -175,6 +175,46 @@ void main() {
     expect(wrapped.systems[1].firstMeasure, 1);
   });
 
+  test('wrapped SVG can reserve and render title metadata', () {
+    final piano = StaffSystem([
+      Score.simple(
+        clef: Clef.treble,
+        timeSignature: TimeSignature.fourFour,
+        metadata: const ScoreMetadata(
+          title: 'Sonata No. 16\n1st Movement',
+          composer: 'Wolfgang Amadeus Mozart',
+          instrument: 'Piano',
+        ),
+        notes: 'c5:q d5 e5 f5 | g5:q a5 b5 c6',
+      ),
+      Score.simple(
+        clef: Clef.bass,
+        timeSignature: TimeSignature.fourFour,
+        metadata: const ScoreMetadata(
+          title: 'Sonata No. 16\n1st Movement',
+          composer: 'Wolfgang Amadeus Mozart',
+          instrument: 'Piano',
+        ),
+        notes: 'c3:q e3 g3 c4 | c3:q e3 g3 c4',
+      ),
+    ], brackets: const [
+      StaffBracket(0, 1, kind: StaffBracketKind.brace),
+    ]);
+    final wrapped = layoutStaffSystemSystems(piano, settings, maxWidth: 60);
+
+    final withoutTitle = staffSystemSystemsToSvg(wrapped, staffSpace: 12);
+    final withTitle = staffSystemSystemsToSvg(
+      wrapped,
+      staffSpace: 12,
+      showTitle: true,
+    );
+
+    expect(withTitle, contains('>Sonata No. 16<'));
+    expect(withTitle, contains('>1st Movement<'));
+    expect(withTitle, contains('>Wolfgang Amadeus Mozart<'));
+    expect(withTitle.length, greaterThan(withoutTitle.length));
+  });
+
   test('staffSystemToSvg renders a single multi-part system', () {
     final one =
         layoutStaffSystemSystems(eightBarTrio(), settings, maxWidth: 400);

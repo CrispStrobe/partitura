@@ -12,6 +12,7 @@ import '../layout/grand_staff.dart';
 import '../layout/multi_system.dart';
 import '../layout/score_layout.dart';
 import '../layout/staff_system.dart';
+import '../model/score.dart';
 import '../smufl/smufl_codepoints.dart';
 
 const _defaultTextFontFamily =
@@ -251,6 +252,7 @@ String staffSystemSystemsToSvg(
   double leftMargin = 0,
   bool showInstrumentLabels = false,
   bool showSystemMeasureNumbers = false,
+  bool showTitle = false,
   String glyphFontFamily = 'Bravura',
   String textFontFamily = _defaultTextFontFamily,
   String color = '#000000',
@@ -258,11 +260,17 @@ String staffSystemSystemsToSvg(
   String? fontFaceDataUri,
   Map<String, String> elementColors = const {},
 }) {
+  final metadata = _firstMetadata(wrapped);
+  final titleTop = showTitle ? _titleBlockHeight(metadata) : 0.0;
   final widthPx = (wrapped.maxWidth + leftMargin) * staffSpace;
-  final heightPx = wrapped.heightWith(systemGap) * staffSpace;
+  final heightPx = (titleTop + wrapped.heightWith(systemGap)) * staffSpace;
   final b = StringBuffer();
   _svgOpen(b, widthPx, heightPx, glyphFontFamily, background, fontFaceDataUri);
-  var y = 0.0;
+  if (titleTop > 0) {
+    _emitTitleBlock(b, metadata, staffSpace, leftMargin, wrapped.maxWidth,
+        color, textFontFamily);
+  }
+  var y = titleTop * staffSpace;
   for (var i = 0; i < wrapped.systems.length; i++) {
     final system = wrapped.systems[i];
     if (showInstrumentLabels && i == 0 && leftMargin > 0) {
@@ -283,6 +291,63 @@ String staffSystemSystemsToSvg(
   }
   b.writeln('</svg>');
   return b.toString();
+}
+
+ScoreMetadata _firstMetadata(StaffSystemSystems wrapped) {
+  if (wrapped.systems.isEmpty ||
+      wrapped.systems.first.layout.source.staves.isEmpty) {
+    return const ScoreMetadata();
+  }
+  return wrapped.systems.first.layout.source.staves.first.metadata;
+}
+
+double _titleBlockHeight(ScoreMetadata metadata) {
+  final hasTitle = metadata.title?.trim().isNotEmpty ?? false;
+  final hasComposer = metadata.composer?.trim().isNotEmpty ?? false;
+  if (!hasTitle && !hasComposer) return 0;
+  final titleLines = _metadataLines(metadata.title);
+  return 3.2 + titleLines.length * 1.25 + (hasComposer ? 1.3 : 0);
+}
+
+List<String> _metadataLines(String? text) => (text ?? '')
+    .split('\n')
+    .map((line) => line.trim())
+    .where((line) => line.isNotEmpty)
+    .toList();
+
+void _emitTitleBlock(
+  StringBuffer b,
+  ScoreMetadata metadata,
+  double staffSpace,
+  double leftMargin,
+  double maxWidth,
+  String color,
+  String textFontFamily,
+) {
+  final titleLines = _metadataLines(metadata.title);
+  final composerLines = _metadataLines(metadata.composer);
+  final pageWidth = (leftMargin + maxWidth) * staffSpace;
+  final centerX = pageWidth / 2;
+  var y = 1.8 * staffSpace;
+  for (var i = 0; i < titleLines.length; i++) {
+    final size = (i == 0 ? 1.55 : 1.05) * staffSpace;
+    b.writeln('<text x="${_n(centerX)}" y="${_n(y)}" '
+        'font-family="$textFontFamily" font-size="${_n(size)}" '
+        'font-weight="${i == 0 ? '600' : '400'}" '
+        'text-anchor="middle" fill="$color" stroke="none">'
+        '${_escape(titleLines[i])}</text>');
+    y += (i == 0 ? 1.45 : 1.25) * staffSpace;
+  }
+  if (composerLines.isNotEmpty) {
+    y += 0.35 * staffSpace;
+    for (final line in composerLines) {
+      b.writeln('<text x="${_n(pageWidth)}" y="${_n(y)}" '
+          'font-family="$textFontFamily" font-size="${_n(0.9 * staffSpace)}" '
+          'text-anchor="end" fill="$color" stroke="none">'
+          '${_escape(line)}</text>');
+      y += 1.05 * staffSpace;
+    }
+  }
 }
 
 void _emitInstrumentLabels(

@@ -46,10 +46,13 @@ Score scoreFromMusicXml(String xml, {int partIndex = 0}) {
 const _defaultPartName = 'Music';
 
 /// Reads `<work>`/`<identification>` and the part's `<part-name>` into
-/// [ScoreMetadata].
+/// [ScoreMetadata]. Some notation programs put title/composer page text only
+/// in MusicXML `<credit>` blocks, so those are used as a metadata fallback.
 ScoreMetadata _metadataOf(XmlNode root, XmlNode part) {
+  final creditTitle = _creditText(root, justify: 'center');
   final title = root.child('work')?.childText('work-title') ??
-      root.childText('movement-title');
+      root.childText('movement-title') ??
+      creditTitle;
   String? composer;
   String? lyricist;
   final identification = root.child('identification');
@@ -63,6 +66,7 @@ ScoreMetadata _metadataOf(XmlNode root, XmlNode part) {
       }
     }
   }
+  composer ??= _creditText(root, justify: 'right');
   final copyright = identification?.childText('rights');
   // Part name: match the score-part with this part's id, null out the default.
   final partId = part.attributes['id'];
@@ -80,6 +84,22 @@ ScoreMetadata _metadataOf(XmlNode root, XmlNode part) {
     copyright: copyright == '' ? null : copyright,
     instrument: instrument,
   );
+}
+
+String? _creditText(XmlNode root, {required String justify}) {
+  final lines = <String>[];
+  for (final credit in root.childrenNamed('credit')) {
+    final page = credit.attributes['page'];
+    if (page != null && page != '1') continue;
+    for (final words in credit.childrenNamed('credit-words')) {
+      if (words.attributes['justify'] != justify) continue;
+      final text = words.text.trim();
+      if (text.isEmpty) continue;
+      lines.add(text);
+    }
+  }
+  if (lines.isEmpty) return null;
+  return lines.join('\n');
 }
 
 /// Parses a `score-partwise` document into a [GrandStaff]: either the

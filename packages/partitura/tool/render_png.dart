@@ -87,7 +87,8 @@ void main() {
             theme: theme,
             leftMargin: systemContext ? 10 : 0,
             showInstrumentLabels: systemContext,
-            showSystemMeasureNumbers: systemContext);
+            showSystemMeasureNumbers: systemContext,
+            showTitle: env['PARTITURA_TITLE'] == '1');
       });
     } else {
       final lower = inPath.toLowerCase();
