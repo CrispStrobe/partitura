@@ -23,8 +23,16 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-13)
 
-> **No active claims — safe to pick up. Claim with 🚧, push origin/main at
-> every checkpoint** (see [[coordination]] / gitignored `CLAUDE.md`).
+> 🚧 **Actively working on (doable tails lane):** sequential, in the
+> layout/model/braille lanes — **2.7** measure-repeat signs (`Measure.measureRepeat`
+> + simile glyph), then **7.5** braille tails (mid-score key/time changes, clef,
+> dynamics), then **2.5** explicit page/section breaks + spacers, then **2.6**
+> part extraction on the landed `MultiPartScore`. *(NOT touching the hardening
+> campaign's files, nor 2.1/2.2 model-agent lane.)* Worktree `partitura-tab`,
+> branch `feat/doable-tails`.
+>
+> **No active claims otherwise — safe to pick up. Claim with 🚧, push origin/main
+> at every checkpoint** (see [[coordination]] / gitignored `CLAUDE.md`).
 >
 > **Complete:** Phase **1** (engraving; 1.1/1.2 done, 1.3/1.4 have only optional
 > tails), Phase **3** (interactivity — cursor visualizers, editor moat, drills,
