@@ -23,13 +23,12 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-13)
 
-> 🚧 **Actively working on (doable tails lane):** sequential, in the
-> layout/model/braille lanes — **2.7** measure-repeat signs (`Measure.measureRepeat`
-> + simile glyph), then **7.5** braille tails (mid-score key/time changes, clef,
-> dynamics), then **2.5** explicit page/section breaks + spacers, then **2.6**
-> part extraction on the landed `MultiPartScore`. *(NOT touching the hardening
-> campaign's files, nor 2.1/2.2 model-agent lane.)* Worktree `partitura-tab`,
-> branch `feat/doable-tails`.
+> **Doable-tails lane landed on `main`:** 2.7 measure-repeat signs, 7.5 braille
+> mid-score key/time changes, 2.5 explicit system/page breaks. 2.6 part
+> extraction is already available (`MultiPartScore.parts[i]` + `atConcertPitch`);
+> only *linked parts* (bidirectional edit sync) remains — that's the
+> editor/model owner's `MultiPartScore`, left to them. 5.7 polymeter deferred
+> (big, multi-staff-meter engine — same lane). No active claim on this line.
 >
 > **No active claims otherwise — safe to pick up. Claim with 🚧, push origin/main
 > at every checkpoint** (see [[coordination]] / gitignored `CLAUDE.md`).
@@ -585,9 +584,12 @@ Raises the quality of everything already rendered. Slice order:
       B♭/A/E♭/F/tenor constants), `Score.transposition`, `Score.atConcertPitch()`
       (moves written pitch **and** key to sounding, clears the tag) and
       `StaffSystem.atConcertPitch()`; MusicXML `<transpose>` read/write
-      (diatonic/chromatic/octave-change). **Left:** linked parts / part
-      extraction (one edit reflected in score + part) and a written-vs-concert
-      view toggle in the renderer.
+      (diatonic/chromatic/octave-change). Part **extraction** is available now —
+      `MultiPartScore.parts[i]` is a standalone `Score`; concert pitch via
+      `MultiPartScore.atConcertPitch()`. **Left:** *linked parts* (one edit
+      reflected in both score and part — a bidirectional edit binding on
+      `MultiPartScore`, owner of the C6 model) and a written-vs-concert view
+      toggle in the renderer.
 - [~] **2.7 Measure-numbering system** — **Done:** a `showMeasureNumbers`
       overlay numbering every measure (anacrusis-aware; delivered with 2.4); and
       **every-N interval numbering** — `LayoutEngine.layout(...,
