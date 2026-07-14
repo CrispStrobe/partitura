@@ -220,5 +220,31 @@ void main() {
       final kern = scoreToKern(Score.simple(notes: 'c4:q d4 e4 f4'));
       expect(kern, isNot(contains('*^')));
     });
+
+    test('grace notes round-trip (q / qq)', () {
+      final source = Score(clef: Clef.treble, measures: [
+        Measure([
+          NoteElement(
+              pitches: [const Pitch(Step.c, octave: 5)],
+              duration: NoteDuration.quarter,
+              graceNotes: [const Pitch(Step.b, octave: 4)],
+              id: 'a'),
+          NoteElement(
+              pitches: [const Pitch(Step.d, octave: 5)],
+              duration: NoteDuration.quarter,
+              graceNotes: [const Pitch(Step.e, octave: 5)],
+              graceStyle: GraceStyle.appoggiatura,
+              id: 'b'),
+        ]),
+      ]);
+      final kern = scoreToKern(source);
+      expect(kern, contains('q')); // grace marker present
+      final notes =
+          scoreFromKern(kern).measures.single.elements.cast<NoteElement>();
+      expect(notes.first.graceNotes.single, const Pitch(Step.b, octave: 4));
+      expect(notes.first.graceStyle, GraceStyle.acciaccatura);
+      expect(notes.last.graceNotes.single, const Pitch(Step.e, octave: 5));
+      expect(notes.last.graceStyle, GraceStyle.appoggiatura);
+    });
   });
 }

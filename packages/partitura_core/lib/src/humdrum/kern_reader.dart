@@ -141,6 +141,9 @@ class _KernReader {
 
   final _measures = <Measure>[];
   var _current = <MusicElement>[];
+  // Grace notes (`q`/`qq`) awaiting attachment to the next principal note.
+  var _pendingGraces = <Pitch>[];
+  var _pendingGraceStyle = GraceStyle.acciaccatura;
   // Voice 2 — the second sub-spine after a `*^` split (intra-staff overlay).
   var _current2 = <MusicElement>[];
   // The tab columns this staff's voices currently occupy: `[c]` normally, and
@@ -185,11 +188,26 @@ class _KernReader {
       } else if (token.startsWith('*')) {
         _interpretation(token);
       } else if (token != '.') {
-        _started = true;
-        final el = _element(token);
-        _current.add(el);
-        _currentRatios.add(_tupletRatioOf(token.split(' ').first));
-        _trackSlur(token, el.id);
+        // Grace note (`q` acciaccatura / `qq` appoggiatura): accumulate for the
+        // next principal note rather than adding a timed element.
+        if (token.contains('q')) {
+          final parsed = _element(token.replaceAll('q', ''));
+          if (parsed is NoteElement) {
+            _pendingGraces.addAll(parsed.pitches);
+            _pendingGraceStyle = token.contains('qq')
+                ? GraceStyle.appoggiatura
+                : GraceStyle.acciaccatura;
+          }
+        } else {
+          _started = true;
+          final el = _element(token,
+              graceNotes: _pendingGraces, graceStyle: _pendingGraceStyle);
+          _current.add(el);
+          _currentRatios.add(_tupletRatioOf(token.split(' ').first));
+          _trackSlur(token, el.id);
+          _pendingGraces = [];
+          _pendingGraceStyle = GraceStyle.acciaccatura;
+        }
       }
       // Second sub-spine → voice 2 (no tuplets/slurs tracked; the model carries
       // those on voice 1 only). Data tokens only; skip nulls and control tokens.
@@ -387,7 +405,9 @@ class _KernReader {
       TimeSignature(t.beats, t.beatUnit,
           symbol: symbol, components: t.components);
 
-  MusicElement _element(String token) {
+  MusicElement _element(String token,
+      {List<Pitch> graceNotes = const [],
+      GraceStyle graceStyle = GraceStyle.acciaccatura}) {
     final subtokens = token.split(' ').where((s) => s.isNotEmpty).toList();
     if (subtokens.length == 1 && subtokens.first.contains('r')) {
       return RestElement(_durationOf(subtokens.first), id: _newId());
@@ -412,6 +432,8 @@ class _KernReader {
       showAccidental: showAccidental ? true : null,
       articulations: _articOf(subtokens.first),
       ornament: _ornamentOf(subtokens.first),
+      graceNotes: graceNotes,
+      graceStyle: graceStyle,
       id: _newId(),
     );
   }

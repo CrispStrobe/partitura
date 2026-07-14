@@ -241,6 +241,32 @@ void main() {
     expect(back.slurs.single.endId, ids.last);
   });
 
+  test('round-trips grace notes (write <note grace> then read back)', () {
+    final source = Score(clef: Clef.treble, measures: [
+      Measure([
+        NoteElement(
+            pitches: [const Pitch(Step.c, octave: 5)],
+            duration: NoteDuration.quarter,
+            graceNotes: [const Pitch(Step.b, octave: 4)],
+            id: 'a'),
+        NoteElement(
+            pitches: [const Pitch(Step.d, octave: 5)],
+            duration: NoteDuration.quarter,
+            graceNotes: [const Pitch(Step.e, octave: 5)],
+            graceStyle: GraceStyle.appoggiatura,
+            id: 'b'),
+      ]),
+    ]);
+    final mei = scoreToMei(source);
+    expect(mei, contains('grace="unacc"'));
+    expect(mei, contains('grace="acc"'));
+    final notes = scoreFromMei(mei).measures.single.elements.cast<NoteElement>();
+    expect(notes.first.graceNotes.single, const Pitch(Step.b, octave: 4));
+    expect(notes.first.graceStyle, GraceStyle.acciaccatura);
+    expect(notes.last.graceNotes.single, const Pitch(Step.e, octave: 5));
+    expect(notes.last.graceStyle, GraceStyle.appoggiatura);
+  });
+
   test('round-trips a tuplet (<tuplet num numbase>)', () {
     final source = Score(
       clef: Clef.treble,

@@ -129,4 +129,24 @@ void main() {
     expect(ly, contains('\\tuplet 3/2 {'));
     expect(ly, contains('}'));
   });
+
+  test('grace notes export as \\acciaccatura / \\appoggiatura', () {
+    final ly = scoreToLilyPond(Score(clef: Clef.treble, measures: [
+      Measure([
+        NoteElement(
+            pitches: [const Pitch(Step.c, octave: 5)],
+            duration: NoteDuration.quarter,
+            graceNotes: [const Pitch(Step.b, octave: 4)],
+            id: 'a'),
+        NoteElement(
+            pitches: [const Pitch(Step.d, octave: 5)],
+            duration: NoteDuration.quarter,
+            graceNotes: [const Pitch(Step.e, octave: 5)],
+            graceStyle: GraceStyle.appoggiatura,
+            id: 'b'),
+      ]),
+    ]));
+    expect(ly, contains('\\acciaccatura b\'8'));
+    expect(ly, contains('\\appoggiatura e\'\'8'));
+  });
 }

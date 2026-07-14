@@ -170,11 +170,26 @@ String _element(
   final note = element as NoteElement;
   final tie = note.tieToNext ? '~' : '';
   final marks = '${_artic(note.articulations)}${_ornament(note.ornament)}';
+  // Grace notes prefix the principal: `\acciaccatura`/`\appoggiatura` for one,
+  // `\grace { … }` for several (LilyPond has no multi-note slashed grace).
+  final grace = note.graceNotes.isEmpty ? '' : _grace(note);
   if (note.pitches.length == 1) {
-    return '${_pitch(note.pitches.single)}${_dur(note.duration)}$marks$tie$slur';
+    return '$grace${_pitch(note.pitches.single)}${_dur(note.duration)}$marks$tie$slur';
   }
   final inner = note.pitches.map(_pitch).join(' ');
-  return '<$inner>${_dur(note.duration)}$marks$tie$slur';
+  return '$grace<$inner>${_dur(note.duration)}$marks$tie$slur';
+}
+
+/// The LilyPond grace-note prefix for [note], written as small eighths.
+String _grace(NoteElement note) {
+  final notes = note.graceNotes.map((p) => '${_pitch(p)}8').join(' ');
+  if (note.graceNotes.length == 1) {
+    final cmd = note.graceStyle == GraceStyle.appoggiatura
+        ? '\\appoggiatura'
+        : '\\acciaccatura';
+    return '$cmd $notes ';
+  }
+  return '\\grace { $notes } ';
 }
 
 /// LilyPond ornament script appended to a note.

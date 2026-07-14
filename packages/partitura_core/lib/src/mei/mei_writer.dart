@@ -222,6 +222,15 @@ void _writeLayer(
     if (element is RestElement) {
       out.write('<rest ${_durAttrs(element.duration)}/>');
     } else if (element is NoteElement) {
+      // Grace notes precede the principal note (MEI `<note grace="acc|unacc">`;
+      // acc = appoggiatura, unacc = acciaccatura). No duration in the model, so
+      // they are written as small eighths.
+      if (element.graceNotes.isNotEmpty) {
+        final g = element.graceStyle == GraceStyle.appoggiatura ? 'acc' : 'unacc';
+        for (final pitch in element.graceNotes) {
+          out.write('<note grace="$g" dur="8" ${_pitchAttrs(pitch, null)}/>');
+        }
+      }
       final tie = element.tieToNext ? ' tie="i"' : '';
       final artic = _articAttrs(element.articulations);
       final xmlId = element.id == null ? '' : ' xml:id="${element.id}"';

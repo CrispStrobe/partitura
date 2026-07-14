@@ -1163,8 +1163,8 @@ Marked `[cheap]` (an additive field/enum, low blast radius) or `[deep]`
 - **Appoggiatura (grace style)** — **✓ Done:** `NoteElement.graceStyle`
   (acciaccatura/appoggiatura), gated in the grace-note renderer and
   MusicXML-round-tripped (`grace_style_test.dart`). *Left:* per-grace durations,
-  and grace-note support in MEI/MuseScore/kern/LilyPond (the grace-notes
-  enrichment on the codec backlog).
+  and grace-note support in MuseScore (MEI/kern/LilyPond now write grace —
+  MEI/kern round-trip, LilyPond `\acciaccatura`/`\appoggiatura` export).
 - **Microtones** — ✅ quarter tones done (`Pitch.microtone`, Phase 5.10);
   integer `Pitch.alter` stays −2..2. Finer just-intonation ratios still `[deep]`.
 - **Non-standard meters** — **✓ senza misura / open** is `timeSignature: null`
@@ -1188,8 +1188,9 @@ Marked `[cheap]` (an additive field/enum, low blast radius) or `[deep]`
 1. 🚧 **Inner-voice tuplet bracket glyphs** *(layout_engine.dart)* — voice 2-4
    tuplet durations already apply; drawing their `3`-bracket completes the
    feature (visible in quartet rendering).
-2. **Grace notes in the MEI/kern/LilyPond writers** — round-trip fidelity for
-   grace-heavy scores (MusicXML/ABC already do it).
+2. [x] **Grace notes in the MEI/kern/LilyPond writers — done.** MEI + kern
+   round-trip (`<note grace>` / `q`,`qq`); LilyPond exports
+   `\acciaccatura`/`\appoggiatura`. Tests in mei/kern/lilypond_test.
 3. **Mid-score tempo changes** — `Tempo` is initial-only today; carry per-measure
    tempo through model + playback + a codec or two.
 4. **ABC barline styles + bowing/emphasis** — dotted/invisible bar, `u`/`v`.

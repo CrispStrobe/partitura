@@ -145,6 +145,16 @@ String scoreToKern(Score score) {
     }
     for (var i = 0; i < measure.elements.length; i++) {
       final element = measure.elements[i];
+      // Grace notes precede the principal, one record each, marked `q`
+      // (acciaccatura) or `qq` (appoggiatura). They carry a display duration but
+      // no rhythmic time (kern ignores `q` notes when summing the measure).
+      if (element is NoteElement && element.graceNotes.isNotEmpty) {
+        final mark =
+            element.graceStyle == GraceStyle.appoggiatura ? 'qq' : 'q';
+        for (final pitch in element.graceNotes) {
+          lines.add('8${_kernPitch(pitch, null)}$mark');
+        }
+      }
       lines.add(_token(element, prevTie, _tupletRatioAt(measure, i),
           slurStart: element.id != null && slurStarts.contains(element.id),
           slurEnd: element.id != null && slurEnds.contains(element.id)));
