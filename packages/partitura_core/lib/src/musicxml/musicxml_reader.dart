@@ -20,6 +20,7 @@ import '../theory/duration.dart';
 import '../theory/interval.dart';
 import '../theory/key_signature.dart';
 import '../theory/pitch.dart';
+import '../theory/tempo.dart';
 import '../theory/time_signature.dart';
 import '../theory/transposition.dart';
 import 'xml_reader.dart';
@@ -461,6 +462,7 @@ class _PartReader {
     Clef? clefChange;
     KeySignature? keyChange;
     TimeSignature? timeChange;
+    Tempo? tempoChange;
     var startRepeat = false;
     var endRepeat = false;
     var barline = BarlineStyle.normal;
@@ -586,7 +588,16 @@ class _PartReader {
           final pedal = node.child('direction-type')?.child('pedal');
           if (pedal != null) _handlePedal(pedal);
           final metronome = node.child('direction-type')?.child('metronome');
-          if (metronome != null) _tempo ??= _tempoOf(metronome);
+          if (metronome != null) {
+            final t = _tempoOf(metronome);
+            // The first metronome is the score's initial tempo; any later one is
+            // a mid-score change on this measure.
+            if (_tempo == null) {
+              _tempo = t;
+            } else {
+              tempoChange ??= t;
+            }
+          }
           navigation ??= _navigationOf(node);
           // A plain <words> that is not a navigation label is a text annotation.
           final words = node.child('direction-type')?.childText('words');
@@ -748,6 +759,7 @@ class _PartReader {
       clefChange: clefChange,
       keyChange: keyChange,
       timeChange: timeChange,
+      tempoChange: tempoChange,
       startRepeat: startRepeat,
       endRepeat: endRepeat,
       volta: volta,

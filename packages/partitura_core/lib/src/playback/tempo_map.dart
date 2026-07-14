@@ -7,6 +7,7 @@
 /// wall-clock time t" (and its inverse) so the app can drive `highlightedIds`.
 library;
 
+import '../model/score.dart';
 import '../theory/fraction.dart';
 
 /// A tempo taking effect at a musical time, in a [TempoMap].
@@ -142,4 +143,32 @@ class SyncPoints {
     final ta = _wholeD(a.time), tb = _wholeD(b.time);
     return ta + (seconds - a.seconds) / (b.seconds - a.seconds) * (tb - ta);
   }
+}
+
+/// Builds a [TempoMap] from a [score]'s initial tempo (`Score.tempo`, at time 0)
+/// plus every `Measure.tempoChange`, placed at that measure's musical onset
+/// (whole notes from the start). Measures advance by their `actualDuration`, or
+/// the prevailing meter's capacity (× a multi-measure-rest count). Falls back to
+/// 120 quarter-BPM when no initial tempo is set, so the result always has a
+/// span at time 0.
+TempoMap tempoMapOf(Score score) {
+  final spans = <TempoSpan>[
+    TempoSpan(Fraction(0, 1), score.tempo?.quarterBpm ?? 120.0),
+  ];
+  var onset = Fraction(0, 1);
+  var meter = score.timeSignature;
+  for (final m in score.measures) {
+    meter = m.timeChange ?? meter;
+    final change = m.tempoChange;
+    if (change != null) {
+      if (onset == Fraction(0, 1)) {
+        spans[0] = TempoSpan(Fraction(0, 1), change.quarterBpm); // overrides init
+      } else {
+        spans.add(TempoSpan(onset, change.quarterBpm));
+      }
+    }
+    final bar = m.actualDuration ?? meter?.toFraction() ?? Fraction(1, 1);
+    onset = onset + (m.multiRest != null ? bar * Fraction(m.multiRest!, 1) : bar);
+  }
+  return TempoMap(spans);
 }

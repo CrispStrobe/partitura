@@ -92,4 +92,62 @@ void main() {
       );
     });
   });
+
+  group('tempoMapOf (mid-score tempo changes)', () {
+    test('collects the initial tempo + each Measure.tempoChange at its onset',
+        () {
+      final score = Score(
+        clef: Clef.treble,
+        timeSignature: TimeSignature.fourFour,
+        tempo: const Tempo(120),
+        measures: [
+          Measure([
+            NoteElement(
+                pitches: [const Pitch(Step.c, octave: 5)],
+                duration: NoteDuration.whole,
+                id: 'a'),
+          ]),
+          Measure([
+            NoteElement(
+                pitches: [const Pitch(Step.d, octave: 5)],
+                duration: NoteDuration.whole,
+                id: 'b'),
+          ], tempoChange: const Tempo(60)),
+        ],
+      );
+      final map = tempoMapOf(score);
+      expect(map.spans, hasLength(2));
+      expect(map.spans[0].at, Fraction(0, 1));
+      expect(map.spans[0].quarterBpm, 120);
+      // Second bar starts one whole note in, at half speed.
+      expect(map.spans[1].at, Fraction(1, 1));
+      expect(map.spans[1].quarterBpm, 60);
+    });
+
+    test('mid-score tempo round-trips through MusicXML', () {
+      final source = Score(
+        clef: Clef.treble,
+        timeSignature: TimeSignature.fourFour,
+        tempo: const Tempo(120),
+        measures: [
+          Measure([
+            NoteElement(
+                pitches: [const Pitch(Step.c, octave: 5)],
+                duration: NoteDuration.whole,
+                id: 'a'),
+          ]),
+          Measure([
+            NoteElement(
+                pitches: [const Pitch(Step.d, octave: 5)],
+                duration: NoteDuration.whole,
+                id: 'b'),
+          ], tempoChange: const Tempo(60)),
+        ],
+      );
+      final back = scoreFromMusicXml(scoreToMusicXml(source));
+      expect(back.tempo, const Tempo(120));
+      expect(back.measures[0].tempoChange, isNull);
+      expect(back.measures[1].tempoChange, const Tempo(60));
+    });
+  });
 }

@@ -20,6 +20,7 @@ import '../theory/clef.dart';
 import '../theory/duration.dart';
 import '../theory/key_signature.dart';
 import '../theory/pitch.dart';
+import '../theory/tempo.dart';
 import '../theory/time_signature.dart';
 
 const _recipBases = {

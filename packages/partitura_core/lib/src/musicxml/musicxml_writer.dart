@@ -296,15 +296,16 @@ class _PartWriter {
       out.writeln('      </attributes>');
     }
 
-    // The initial tempo (metronome mark) opens the first measure.
-    if (index == 0 && score.tempo != null) {
-      final t = score.tempo!;
-      final unit = _typeName(t.beatUnit);
-      final dotTags = '<beat-unit-dot/>' * t.dots;
-      final sound = _bpmStr(t.bpm * _beatQuarters(t.beatUnit, t.dots));
+    // A metronome mark: the initial tempo opens the first measure; a
+    // `Measure.tempoChange` opens the measure it takes effect on.
+    final tempo = index == 0 ? score.tempo : measure.tempoChange;
+    if (tempo != null) {
+      final unit = _typeName(tempo.beatUnit);
+      final dotTags = '<beat-unit-dot/>' * tempo.dots;
+      final sound = _bpmStr(tempo.bpm * _beatQuarters(tempo.beatUnit, tempo.dots));
       out.writeln('      <direction placement="above"><direction-type>'
           '<metronome><beat-unit>$unit</beat-unit>$dotTags'
-          '<per-minute>${_bpmStr(t.bpm)}</per-minute></metronome>'
+          '<per-minute>${_bpmStr(tempo.bpm)}</per-minute></metronome>'
           '</direction-type><sound tempo="$sound"/></direction>');
     }
 

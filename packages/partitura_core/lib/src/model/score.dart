@@ -7,6 +7,7 @@ import '../theory/duration.dart';
 import '../theory/interval.dart';
 import '../theory/key_signature.dart';
 import '../theory/pitch.dart';
+import '../theory/tempo.dart';
 import '../theory/time_signature.dart';
 import '../theory/transposition.dart';
 import 'element.dart';
@@ -1018,45 +1019,4 @@ class ScoreMetadata {
     ];
     return 'ScoreMetadata(${parts.join(', ')})';
   }
-}
-
-/// A metronome mark: [bpm] beats per minute, where one beat is a [beatUnit]
-/// note (with [dots] augmentation dots). `♩ = 120` is
-/// `Tempo(120)`; `♩. = 80` is `Tempo(80, beatUnit: DurationBase.quarter,
-/// dots: 1)`. Carried through interchange and usable by playback; the layout
-/// engine does not yet draw the mark.
-class Tempo {
-  /// Beats per minute (the [beatUnit] note gets this many per minute).
-  final double bpm;
-
-  /// The note value of one beat (default a quarter).
-  final DurationBase beatUnit;
-
-  /// Augmentation dots on the beat unit (0–2; a dotted-quarter beat is 1).
-  final int dots;
-
-  /// Creates a metronome mark of [bpm] per [beatUnit] note.
-  const Tempo(this.bpm, {this.beatUnit = DurationBase.quarter, this.dots = 0})
-      : assert(dots >= 0 && dots <= 2, 'dots must be 0..2');
-
-  /// This mark expressed in **quarter notes per minute** (normalizing the
-  /// [beatUnit] and [dots]) — the convention `secondsFor` / `TempoMap` use. So
-  /// a quarter at 120 → 120, a dotted-quarter at 80 → 120, a half at 60 → 120.
-  double get quarterBpm {
-    final beat = NoteDuration(beatUnit, dots: dots).toFraction();
-    return bpm * beat.numerator / beat.denominator * 4;
-  }
-
-  @override
-  bool operator ==(Object other) =>
-      other is Tempo &&
-      other.bpm == bpm &&
-      other.beatUnit == beatUnit &&
-      other.dots == dots;
-
-  @override
-  int get hashCode => Object.hash(bpm, beatUnit, dots);
-
-  @override
-  String toString() => 'Tempo($bpm, ${beatUnit.name}${'.' * dots})';
 }

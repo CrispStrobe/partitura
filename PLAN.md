@@ -1151,8 +1151,9 @@ Marked `[cheap]` (an additive field/enum, low blast radius) or `[deep]`
   LilyPond headers (`interchange_metadata_test.dart`).
 - **Structured tempo / metronome marks** — `♩ = 120` as data. **✓ Done:** a
   `Tempo` (bpm + beat unit + dots) on `Score`, through MusicXML/MEI/MuseScore/
-  kern/LilyPond (`interchange_tempo_test.dart`). *Left:* mid-score tempo changes
-  (initial tempo only today) and drawing it in the layout engine.
+  kern/LilyPond (`interchange_tempo_test.dart`). **✓ mid-score tempo changes**
+  now carried (`Measure.tempoChange` + `tempoMapOf`, MusicXML round-trip).
+  *Left:* drawing the mark in the layout engine.
 - **Instrument / part identity** — **✓ name done** (`ScoreMetadata.instrument`,
   via the same headers); MIDI program/channel + abbreviation still deferred.
   `[cheap]`
@@ -1201,11 +1202,10 @@ Marked `[cheap]` (an additive field/enum, low blast radius) or `[deep]`
 2. [x] **Grace notes in the MEI/kern/LilyPond writers — done.** MEI + kern
    round-trip (`<note grace>` / `q`,`qq`); LilyPond exports
    `\acciaccatura`/`\appoggiatura`. Tests in mei/kern/lilypond_test.
-3. 🚧 **Mid-score tempo changes** *(lacunae agent — theory/tempo.dart [new],
-   score.dart, measure.dart, playback/tempo_map.dart, musicxml reader+writer)* —
-   relocate `Tempo` out of `score.dart`, add `Measure.tempoChange` + a
-   `tempoMapOf(score)` builder (the `TempoMap` playback engine exists) + MusicXML
-   round-trip.
+3. [x] **Mid-score tempo changes — done.** `Tempo` moved to `theory/tempo.dart`
+   (breaks the score↔measure cycle); `Measure.tempoChange` + `tempoMapOf(score)`
+   builds a `TempoMap` from the initial tempo + per-measure changes; MusicXML
+   round-trips mid-score `<metronome>` marks. `tempo_map_test.dart`.
 4. [x] **ABC bowing** — already round-trips (`u`/`v`); dotted `.|` / double `||`
    / final `|]` barlines round-trip too. *Left:* `[|]` invisible bar, `y` spacer
    (niche).

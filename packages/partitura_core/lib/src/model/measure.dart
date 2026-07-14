@@ -5,6 +5,7 @@ import '../internal/util.dart';
 import '../theory/clef.dart';
 import '../theory/fraction.dart';
 import '../theory/key_signature.dart';
+import '../theory/tempo.dart';
 import '../theory/time_signature.dart';
 import 'element.dart';
 
@@ -188,6 +189,11 @@ class Measure {
   /// Time signature change taking effect at this measure.
   final TimeSignature? timeChange;
 
+  /// Tempo (metronome) change taking effect at this measure's start, or null.
+  /// The initial tempo lives on `Score.tempo`; `tempoMapOf` collects both into
+  /// a `TempoMap` for variable-tempo playback.
+  final Tempo? tempoChange;
+
   /// Whether a start-repeat barline (`|:`) opens this measure.
   final bool startRepeat;
 
@@ -241,6 +247,7 @@ class Measure {
     this.clefChange,
     this.keyChange,
     this.timeChange,
+    this.tempoChange,
     this.startRepeat = false,
     this.endRepeat = false,
     this.volta,
@@ -271,6 +278,7 @@ class Measure {
     Clef? clefChange,
     KeySignature? keyChange,
     TimeSignature? timeChange,
+    Tempo? tempoChange,
     bool? startRepeat,
     bool? endRepeat,
     int? volta,
@@ -290,6 +298,7 @@ class Measure {
         clefChange: clefChange ?? this.clefChange,
         keyChange: keyChange ?? this.keyChange,
         timeChange: timeChange ?? this.timeChange,
+        tempoChange: tempoChange ?? this.tempoChange,
         startRepeat: startRepeat ?? this.startRepeat,
         endRepeat: endRepeat ?? this.endRepeat,
         volta: volta ?? this.volta,
@@ -369,6 +378,7 @@ class Measure {
       other.clefChange == clefChange &&
       other.keyChange == keyChange &&
       other.timeChange == timeChange &&
+      other.tempoChange == tempoChange &&
       other.startRepeat == startRepeat &&
       other.endRepeat == endRepeat &&
       other.volta == volta &&
@@ -389,6 +399,7 @@ class Measure {
       clefChange,
       keyChange,
       timeChange,
+      tempoChange,
       startRepeat,
       endRepeat,
       volta,
