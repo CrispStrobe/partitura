@@ -1201,12 +1201,11 @@ Marked `[cheap]` (an additive field/enum, low blast radius) or `[deep]`
 2. [x] **Grace notes in the MEI/kern/LilyPond writers — done.** MEI + kern
    round-trip (`<note grace>` / `q`,`qq`); LilyPond exports
    `\acciaccatura`/`\appoggiatura`. Tests in mei/kern/lilypond_test.
-3. **Mid-score tempo changes** *(deferred — needs a prep step)* — `Tempo` is
-   initial-only. Blocked on relocating the `Tempo` class out of `score.dart`
-   (measure.dart can't import score.dart — circular) into its own file, then
-   `Measure.tempoChange` + a `tempoMapOf(score)` builder (the `TempoMap`
-   playback engine already exists) + MusicXML round-trip. Deep + hot-file, so
-   scoped as its own change to avoid parallel-agent conflict.
+3. 🚧 **Mid-score tempo changes** *(lacunae agent — theory/tempo.dart [new],
+   score.dart, measure.dart, playback/tempo_map.dart, musicxml reader+writer)* —
+   relocate `Tempo` out of `score.dart`, add `Measure.tempoChange` + a
+   `tempoMapOf(score)` builder (the `TempoMap` playback engine exists) + MusicXML
+   round-trip.
 4. [x] **ABC bowing** — already round-trips (`u`/`v`); dotted `.|` / double `||`
    / final `|]` barlines round-trip too. *Left:* `[|]` invisible bar, `y` spacer
    (niche).
