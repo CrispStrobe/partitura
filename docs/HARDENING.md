@@ -24,6 +24,7 @@ unrecognized or malformed element should be skipped (ideally logged), not throw.
 | **Round 7** — **oracle differential vs music21** over MEI (14) + new music-encoding MEI (7: Musikalisches Opfer, Beethoven quartet Op18, Hymn to Joy, …) | 21 | found + fixed **G14** (beamed notes dropped) & **G15** (only first section read); MEI oracle 0/14 → **10/14 exact**, new batch captures 100% of music21's notes (Beethoven quartet 4151, Musikalisches Opfer 850) |
 | **Round 8** — grace-note fix + fresh OSMD MusicXML batch (Joplin Elite Syncopations, Telemann Allegro, Clementi, Saltarello) via oracle | 6 | 5/6 exact (Joplin 1388, Telemann 911 notes); only ActorPrelude diverges (G13, by design). MusicXML importer stays essentially correct. |
 | **Round 9** — close **G12**: multi-voice export for kern (`*^` split) + ABC (`&` overlay), writer + reader | — | kern round-trip 89% → **100%**, ABC 90% → **97%**; corpus round-trip sweep now 100% for MusicXML/MEI/MuseScore/kern |
+| **Round 10** — 54 more music-encoding MEI (Brahms, Hummel, Liszt, Ravel, Webern, jazz…) via oracle → **G17 voice-aware tuplets** (`TupletSpan.voice`, per-voice `effectiveDurationAt`, `<tupletSpan>` resolved by note ownership not `@staff`) | 54 | Hummel 20392-note concerto, Liszt, Borodin trio, Brahms & Weber quartets → 100%; MEI oracle 0/14 (start) → **54/69** across 75 files. Residual: Schumann cello + inner-voice tuplet bracket glyphs. |
 
 ## Round-trip fidelity (import ↔ export)
 
