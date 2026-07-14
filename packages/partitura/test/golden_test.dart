@@ -2665,4 +2665,23 @@ void main() {
       ),
     );
   });
+
+  testWidgets('126 measure-repeat signs (1 / 2-bar)', (tester) async {
+    NoteElement n(String p) =>
+        NoteElement.note(Pitch.parse(p), const NoteDuration(DurationBase.half));
+    await golden(
+      tester,
+      '126_measure_repeat',
+      Score(
+        clef: Clef.treble,
+        timeSignature: TimeSignature.fourFour,
+        measures: [
+          Measure([n('c5'), n('e5')]),
+          Measure(const [], measureRepeat: 1), // repeat previous bar
+          Measure([n('d5'), n('f5')]),
+          Measure(const [], measureRepeat: 2), // repeat previous two bars
+        ],
+      ),
+    );
+  });
 }

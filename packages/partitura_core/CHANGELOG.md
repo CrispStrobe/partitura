@@ -2,6 +2,10 @@
 
 ## 0.4.1-dev.1 (in progress)
 
+- **Measure-repeat (simile) signs** (Phase 2.7): `Measure.measureRepeat` (1, 2
+  or 4) draws the SMuFL repeat-bar glyph centred in an otherwise-empty bar —
+  repeating the previous 1/2/4 bar(s). Golden 126.
+
 - **ABC lyric alignment skips rests** (hardening G8): the ABC reader no longer
   counts rests as syllable positions, so a `w:` line aligns to notes only. Real
   vocal round-trips (Mozart songs) previously attached syllables to rests, which

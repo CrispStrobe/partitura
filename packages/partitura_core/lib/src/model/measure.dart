@@ -192,6 +192,12 @@ class Measure {
   /// ≥ 2 and requires empty [elements]/[voice2].
   final int? multiRest;
 
+  /// Measure-repeat (simile) sign: this measure repeats the previous
+  /// [measureRepeat] bar(s) — 1, 2 or 4 — drawn as the SMuFL repeat-bar glyph
+  /// centred in the measure. Requires empty [elements] (the repeated content
+  /// lives in the earlier bars). Null = an ordinary measure.
+  final int? measureRepeat;
+
   /// Navigation / repeat-structure mark drawn above the staff (v0.7.1), or
   /// null. Targets sit at the measure start, instructions at its end.
   final NavigationMark? navigation;
@@ -229,6 +235,7 @@ class Measure {
     this.endRepeat = false,
     this.volta,
     this.multiRest,
+    this.measureRepeat,
     this.navigation,
     this.barline = BarlineStyle.normal,
     this.pickup = false,
@@ -236,7 +243,13 @@ class Measure {
   })  : assert(volta == null || volta >= 1, 'volta must be >= 1'),
         assert(multiRest == null || multiRest >= 2, 'multiRest must be >= 2'),
         assert(multiRest == null || elements.length == 0,
-            'a multi-measure rest holds no elements');
+            'a multi-measure rest holds no elements'),
+        assert(measureRepeat == null ||
+            measureRepeat == 1 ||
+            measureRepeat == 2 ||
+            measureRepeat == 4, 'measureRepeat must be 1, 2 or 4'),
+        assert(measureRepeat == null || elements.length == 0,
+            'a measure-repeat holds no elements');
 
   /// A copy of this measure with the given fields replaced.
   Measure copyWith({
@@ -252,6 +265,7 @@ class Measure {
     bool? endRepeat,
     int? volta,
     int? multiRest,
+    int? measureRepeat,
     NavigationMark? navigation,
     BarlineStyle? barline,
     bool? pickup,
@@ -270,6 +284,7 @@ class Measure {
         endRepeat: endRepeat ?? this.endRepeat,
         volta: volta ?? this.volta,
         multiRest: multiRest ?? this.multiRest,
+        measureRepeat: measureRepeat ?? this.measureRepeat,
         navigation: navigation ?? this.navigation,
         barline: barline ?? this.barline,
         pickup: pickup ?? this.pickup,
@@ -335,6 +350,7 @@ class Measure {
       other.endRepeat == endRepeat &&
       other.volta == volta &&
       other.multiRest == multiRest &&
+      other.measureRepeat == measureRepeat &&
       other.navigation == navigation &&
       other.barline == barline &&
       other.pickup == pickup &&
@@ -354,6 +370,7 @@ class Measure {
       endRepeat,
       volta,
       multiRest,
+      measureRepeat,
       navigation,
       barline,
       pickup,

@@ -589,9 +589,12 @@ Raises the quality of everything already rendered. Slice order:
       overlay numbering every measure (anacrusis-aware; delivered with 2.4); and
       **every-N interval numbering** — `LayoutEngine.layout(...,
       measureNumberInterval:)` / `StaffView.measureNumberInterval` label only bar
-      1 and every Nth counted bar (the common "every 5 bars" convention).
-      **Left:** per-system-only numbering (needs the wrapping layer), per-measure
-      overrides, section reset, and measure-repeat signs (1/2/4-bar).
+      1 and every Nth counted bar (the common "every 5 bars" convention); and
+      **measure-repeat (simile) signs** — `Measure.measureRepeat` (1/2/4) draws
+      the SMuFL repeat-bar glyph (`repeat1Bar`/`repeat2Bars`/`repeat4Bars`)
+      centred in an otherwise-empty bar (golden 126). **Left:** per-system-only
+      numbering (needs the wrapping layer), per-measure overrides, section reset,
+      and MusicXML round-trip for measure-repeat (`<measure-repeat>`).
 
 ### Phase 3 — Interactivity  *(the moat — where partitura wins)*
 Rides the existing cursor + selection; no audio needed.

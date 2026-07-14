@@ -227,6 +227,14 @@ abstract final class SmuflGlyph {
   /// staff line; the dots land in the middle spaces).
   static const String repeatDots = 'repeatDots';
 
+  /// Measure-repeat (simile) sign for repeating the previous [count] bar(s):
+  /// `repeat1Bar` / `repeat2Bars` / `repeat4Bars`.
+  static String measureRepeat(int count) => switch (count) {
+        2 => 'repeat2Bars',
+        4 => 'repeat4Bars',
+        _ => 'repeat1Bar',
+      };
+
   /// The glyph for a [DynamicLevel].
   static String dynamicGlyph(DynamicLevel level) => switch (level) {
         DynamicLevel.pp => 'dynamicPP',

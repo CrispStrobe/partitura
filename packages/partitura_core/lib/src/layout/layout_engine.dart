@@ -701,6 +701,10 @@ class _LayoutBuilder {
       _layoutMultiRest(measure.multiRest!);
       return;
     }
+    if (measure.measureRepeat != null) {
+      _layoutMeasureRepeat(measure.measureRepeat!);
+      return;
+    }
     if (measure.voices.length > 1) {
       _layoutMultiVoiceMeasure(measure, measureIndex);
       return;
@@ -1240,6 +1244,18 @@ class _LayoutBuilder {
       digitX += _glyphWidth(glyph);
     }
     _x = right + 1.0;
+  }
+
+  /// Measure-repeat (simile) sign — the SMuFL repeat-bar glyph centred in the
+  /// bar (2/4-bar variants carry their own "2"/"4" above the slash).
+  void _layoutMeasureRepeat(int count) {
+    const barWidth = 4.0;
+    final left = _x + 0.6;
+    final right = _x + 0.6 + barWidth;
+    final glyph = SmuflGlyph.measureRepeat(count);
+    final w = _glyphWidth(glyph);
+    _addGlyph(glyph, (left + right) / 2 - w / 2, 2.0); // centred on the staff
+    _x = right + 0.6;
   }
 
   void _validateTuplets(Measure measure) {
