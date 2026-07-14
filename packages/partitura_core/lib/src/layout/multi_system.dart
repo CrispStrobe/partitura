@@ -70,8 +70,10 @@ class MultiSystemLayout {
 /// Every system restates the clef and key signature current at its first
 /// measure; the time signature appears only on the first system and at
 /// explicit changes. Non-final systems close with a plain thin barline;
-/// only the last carries the end-of-score barline. Slurs, dynamics and hairpins whose endpoints fall on
-/// different systems are dropped (ties degrade gracefully on their own).
+/// only the last carries the end-of-score barline. Slurs whose endpoints cross a
+/// break render as per-system continuation segments; dynamics and hairpins whose
+/// endpoints fall on different systems are dropped (ties degrade gracefully on
+/// their own).
 /// A measure wider than [maxWidth] gets its own (overwide) system rather
 /// than failing. [systemBreaks] holds measure indices that must **begin** a new
 /// system — an explicit line break before each — regardless of remaining width.
@@ -91,19 +93,7 @@ MultiSystemLayout layoutSystems(
   // at each measure start.
   final natural = engine.layout(score, settings);
   final measureCount = score.measures.length;
-  final clefAt = List<Clef>.filled(measureCount + 1, score.clef);
-  final keyAt = List<KeySignature>.filled(measureCount + 1, score.keySignature);
-  final timeAt =
-      List<TimeSignature?>.filled(measureCount + 1, score.timeSignature);
-  for (var i = 0; i < measureCount; i++) {
-    final measure = score.measures[i];
-    clefAt[i + 1] = measure.clefChange ?? clefAt[i];
-    keyAt[i + 1] = measure.keyChange ?? keyAt[i];
-    timeAt[i + 1] = measure.timeChange ?? timeAt[i];
-    if (measure.clefChange != null) clefAt[i] = clefAt[i + 1];
-    if (measure.keyChange != null) keyAt[i] = keyAt[i + 1];
-    if (measure.timeChange != null) timeAt[i] = timeAt[i + 1];
-  }
+  final (clefAt, keyAt, timeAt) = _stateArrays(score);
 
   // The time signature is drawn on the first system and where a system
   // starts on an explicit change (the change glyph moves into the leading
@@ -538,14 +528,23 @@ bool _isSilentRange(Score part, int start, int end) {
   final clefAt = List<Clef>.filled(n + 1, score.clef);
   final keyAt = List<KeySignature>.filled(n + 1, score.keySignature);
   final timeAt = List<TimeSignature?>.filled(n + 1, score.timeSignature);
+  var clef = score.clef;
+  var key = score.keySignature;
+  var time = score.timeSignature;
   for (var i = 0; i < n; i++) {
     final m = score.measures[i];
-    clefAt[i + 1] = m.clefChange ?? clefAt[i];
-    keyAt[i + 1] = m.keyChange ?? keyAt[i];
-    timeAt[i + 1] = m.timeChange ?? timeAt[i];
-    if (m.clefChange != null) clefAt[i] = clefAt[i + 1];
-    if (m.keyChange != null) keyAt[i] = keyAt[i + 1];
-    if (m.timeChange != null) timeAt[i] = timeAt[i + 1];
+    clef = m.clefChange ?? clef;
+    key = m.keyChange ?? key;
+    time = m.timeChange ?? time;
+    clefAt[i] = clef;
+    keyAt[i] = key;
+    timeAt[i] = time;
+    for (final inline in m.inlineClefs) {
+      clef = inline.clef;
+    }
+    clefAt[i + 1] = clef;
+    keyAt[i + 1] = key;
+    timeAt[i + 1] = time;
   }
   return (clefAt, keyAt, timeAt);
 }
@@ -605,6 +604,17 @@ Score _slice(
         if (element.id != null) element.id!,
     ],
   };
+  final allNoteIds = _noteIdsInOrder(score.measures);
+  final sliceNoteIds = _noteIdsInOrder(measures);
+  final globalIndex = {
+    for (var i = 0; i < allNoteIds.length; i++) allNoteIds[i]: i,
+  };
+  final sliceIndices = [
+    for (final id in sliceNoteIds)
+      if (globalIndex[id] != null) globalIndex[id]!,
+  ];
+  final sliceStart = sliceIndices.isEmpty ? null : sliceIndices.reduce(min);
+  final sliceEnd = sliceIndices.isEmpty ? null : sliceIndices.reduce(max);
   return Score(
     clef: clefAt[first],
     keySignature: keyAt[first],
@@ -612,10 +622,14 @@ Score _slice(
     // Kept even when not drawn — beaming windows derive from it.
     timeSignature: timeAt[first],
     measures: measures,
-    slurs: [
-      for (final slur in score.slurs)
-        if (ids.contains(slur.startId) && ids.contains(slur.endId)) slur,
-    ],
+    slurs: _slurSegmentsForSlice(
+      score.slurs,
+      ids,
+      sliceNoteIds,
+      globalIndex,
+      sliceStart,
+      sliceEnd,
+    ),
     dynamics: [
       for (final marking in score.dynamics)
         if (ids.contains(marking.elementId)) marking,
@@ -689,4 +703,48 @@ Score _slice(
     metadata: score.metadata,
     tempo: score.tempo,
   );
+}
+
+List<String> _noteIdsInOrder(List<Measure> measures) => [
+      for (final measure in measures)
+        for (final voice in measure.voices)
+          for (final element in voice)
+            if (element is NoteElement && element.id != null) element.id!,
+    ];
+
+List<Slur> _slurSegmentsForSlice(
+  List<Slur> slurs,
+  Set<String> ids,
+  List<String> sliceNoteIds,
+  Map<String, int> globalIndex,
+  int? sliceStart,
+  int? sliceEnd,
+) {
+  if (sliceStart == null || sliceEnd == null) return const [];
+  final out = <Slur>[];
+  for (final slur in slurs) {
+    final start = globalIndex[slur.startId];
+    final end = globalIndex[slur.endId];
+    if (start == null || end == null || end <= start) continue;
+    if (end < sliceStart || start > sliceEnd) continue;
+    final containsStart = ids.contains(slur.startId);
+    final containsEnd = ids.contains(slur.endId);
+    if (!containsStart && !containsEnd) continue;
+
+    final startId = containsStart
+        ? slur.startId
+        : sliceNoteIds.firstWhere(
+            (id) => (globalIndex[id] ?? -1) >= start,
+            orElse: () => '',
+          );
+    final endId = containsEnd
+        ? slur.endId
+        : sliceNoteIds.lastWhere(
+            (id) => (globalIndex[id] ?? 1 << 30) <= end,
+            orElse: () => '',
+          );
+    if (startId.isEmpty || endId.isEmpty || startId == endId) continue;
+    out.add(Slur(startId, endId));
+  }
+  return out;
 }

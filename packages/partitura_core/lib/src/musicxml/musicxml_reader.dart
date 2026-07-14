@@ -91,8 +91,14 @@ GrandStaff grandStaffFromMusicXml(String xml) {
       int.tryParse(_firstAttributes(parts.first)?.childText('staves') ?? '1');
   if ((firstStaves ?? 1) >= 2) {
     return GrandStaff(
-      upper: _PartReader(parts.first, staff: 1).read(),
-      lower: _PartReader(parts.first, staff: 2, idOffset: 1000).read(),
+      upper: _PartReader(parts.first,
+              staff: 1, defaultClef: _defaultClefForStaff(parts.first, 1))
+          .read(),
+      lower: _PartReader(parts.first,
+              staff: 2,
+              idOffset: 1000,
+              defaultClef: _defaultClefForStaff(parts.first, 2))
+          .read(),
     );
   }
   if (parts.length < 2) {
@@ -133,9 +139,12 @@ StaffSystem staffSystemFromMusicXml(String xml) {
     final metadata = _metadataOf(root, part);
     systemBreaks.addAll(_systemBreaksOf(part));
     for (var s = 1; s <= n; s++) {
-      staves.add(
-          _PartReader(part, staff: s, idOffset: idBase, metadata: metadata)
-              .read());
+      staves.add(_PartReader(part,
+              staff: s,
+              idOffset: idBase,
+              metadata: metadata,
+              defaultClef: _defaultClefForStaff(part, s))
+          .read());
       idBase += 1000;
     }
     if (n >= 2) {
@@ -278,6 +287,37 @@ List<XmlNode> _partsOf(XmlNode root) {
 XmlNode? _firstAttributes(XmlNode part) =>
     part.child('measure')?.child('attributes');
 
+Clef _defaultClefForStaff(XmlNode part, int staff) {
+  if (staff == 1) return Clef.treble;
+
+  var measureIndex = 0;
+  for (final measure in part.childrenNamed('measure')) {
+    var staffOnset = 0;
+    for (final node in measure.children) {
+      if (node.name == 'attributes') {
+        for (final clefNode in node.childrenNamed('clef')) {
+          if (_clefNodeStaff(clefNode) != staff) continue;
+          final clef = _PartReader._clefOf(clefNode);
+          if (measureIndex == 0 && staffOnset == 0) return clef;
+          return Clef.treble;
+        }
+      } else if (node.name == 'note') {
+        if (node.child('chord') != null) continue;
+        if ((int.tryParse(node.childText('staff') ?? '1') ?? 1) != staff) {
+          continue;
+        }
+        staffOnset += int.tryParse(node.childText('duration') ?? '0') ?? 0;
+      }
+    }
+    measureIndex++;
+  }
+
+  return Clef.bass;
+}
+
+int _clefNodeStaff(XmlNode clefNode) =>
+    int.tryParse(clefNode.attributes['number'] ?? '1') ?? 1;
+
 class _PartReader {
   final XmlNode part;
 
@@ -291,7 +331,15 @@ class _PartReader {
   _PartReader(this.part,
       {required this.staff,
       this.idOffset = 0,
-      this.metadata = const ScoreMetadata()});
+      this.metadata = const ScoreMetadata(),
+      Clef? defaultClef})
+      : defaultClef = defaultClef ?? (staff == 2 ? Clef.bass : Clef.treble) {
+    _clef = this.defaultClef;
+    _leadingClef = this.defaultClef;
+  }
+
+  /// Conventional clef when the source omits an initial clef for this staff.
+  final Clef defaultClef;
 
   /// Document-level metadata (title/composer/…) to attach to the built score.
   final ScoreMetadata metadata;
@@ -361,7 +409,7 @@ class _PartReader {
     // boundary): an unclosed slur simply never became a `Slur`, so drop it and
     // read the rest rather than aborting the whole document.
     return Score(
-      clef: _leadingClef ?? Clef.treble,
+      clef: _leadingClef ?? defaultClef,
       keySignature: _key ?? const KeySignature(0),
       timeSignature: _time,
       measures: _measures,

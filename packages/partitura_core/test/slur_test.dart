@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:partitura_core/partitura_core.dart';
 import 'package:test/test.dart';
@@ -13,6 +14,27 @@ ScoreLayout layoutOf(Score score) =>
 
 List<CurvePrimitive> curvesOf(ScoreLayout layout) =>
     layout.primitives.whereType<CurvePrimitive>().toList();
+
+Point<double> cubicPoint(CurvePrimitive curve, double t) {
+  final u = 1 - t;
+  return Point(
+    u * u * u * curve.start.x +
+        3 * u * u * t * curve.control1.x +
+        3 * u * t * t * curve.control2.x +
+        t * t * t * curve.end.x,
+    u * u * u * curve.start.y +
+        3 * u * u * t * curve.control1.y +
+        3 * u * t * t * curve.control2.y +
+        t * t * t * curve.end.y,
+  );
+}
+
+bool intersectsPadded(Rectangle<double> rect, Point<double> point,
+        {double pad = 0.04}) =>
+    point.x >= rect.left - pad &&
+    point.x <= rect.right + pad &&
+    point.y >= rect.top - pad &&
+    point.y <= rect.bottom + pad;
 
 void main() {
   setUpAll(() {
@@ -95,6 +117,23 @@ void main() {
       final c6Top =
           layout.regions.firstWhere((r) => r.elementId == 'e1').bounds.top;
       expect(curve.control1.y, lessThan(c6Top));
+    });
+
+    test('long slur sampled path clears intervening note ink', () {
+      final layout = layoutOf(
+        Score.simple(notes: 'f4:e( c5 e5 g4 a4 b4 c5 d5 e5 f5 g5 a4)'),
+      );
+      final curve = curvesOf(layout).single;
+      final regions = layout.regions.where((r) =>
+          r.elementId != 'e0' && r.elementId != 'e10' && r.elementId != 'e11');
+
+      for (var i = 1; i < 32; i++) {
+        final point = cubicPoint(curve, i / 32);
+        for (final region in regions) {
+          expect(intersectsPadded(region.bounds, point), isFalse,
+              reason: 'slur $curve intersects ${region.elementId} at $point');
+        }
+      }
     });
 
     test('slurs and ties coexist', () {

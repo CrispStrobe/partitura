@@ -236,8 +236,7 @@ void main() {
   });
 
   group('span filtering', () {
-    test('slurs within one system survive, slurs across breaks are dropped',
-        () {
+    test('slurs within one system survive, slurs across breaks are split', () {
       final score = Score.simple(
         timeSignature: TimeSignature.fourFour,
         notes: 'c4:q( d4) e4 f4 | g4:q a4 b4 c5 | c5:q( b4 a4 g4) | c4:w',
@@ -259,7 +258,7 @@ void main() {
       expect(total, 2);
     });
 
-    test('a slur spanning a system break is dropped', () {
+    test('a slur spanning a system break is split into visible segments', () {
       // Slur from measure 0 into measure 3 — forced to break apart.
       final score = Score.simple(
         timeSignature: TimeSignature.fourFour,
@@ -271,13 +270,10 @@ void main() {
           .firstWhere((s) => s.firstMeasure <= 2 && 2 <= s.lastMeasure);
       expect(identical(slurStart, slurEndSystem), isFalse,
           reason: 'the slur must actually span a break for this test');
-      for (final system in multi.systems) {
-        expect(
-          system.layout.primitives.whereType<CurvePrimitive>(),
-          isEmpty,
-          reason: 'system $system',
-        );
-      }
+      expect(
+          slurStart.layout.primitives.whereType<CurvePrimitive>(), isNotEmpty);
+      expect(slurEndSystem.layout.primitives.whereType<CurvePrimitive>(),
+          isNotEmpty);
     });
 
     test('dynamics stay attached to their notes on any system', () {
@@ -388,12 +384,61 @@ void main() {
       expect(broken.systems[1].firstMeasure, 3);
     });
 
+    test('slurs crossing system breaks render as continuation segments', () {
+      final score = Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'c4:q( d4 e4 f4 | g4:q a4 b4 c5 |'
+            'c5:q b4 a4 g4 | f4:q e4 d4 c4)',
+      );
+      final broken =
+          layoutSystems(score, settings, maxWidth: 10000, systemBreaks: {2});
+
+      expect(broken.systems, hasLength(2));
+      for (final system in broken.systems) {
+        expect(
+            system.layout.primitives.whereType<CurvePrimitive>(), isNotEmpty);
+      }
+    });
+
+    test('inline clefs carry into the leading clef after a break', () {
+      final score = Score(clef: Clef.treble, measures: [
+        Measure([
+          const RestElement(NoteDuration.quarter, id: 'r0'),
+          NoteElement.note(
+            const Pitch(Step.c, octave: 3),
+            NoteDuration.quarter,
+            id: 'n0',
+          ),
+        ], inlineClefs: [
+          InlineClefChange(Fraction(1, 4), Clef.bass),
+        ]),
+        Measure([
+          NoteElement.note(
+            const Pitch(Step.c, octave: 3),
+            NoteDuration.whole,
+            id: 'n1',
+          ),
+        ]),
+      ]);
+      final broken =
+          layoutSystems(score, settings, maxWidth: 10000, systemBreaks: {1});
+
+      final secondClefs = broken.systems[1].layout.primitives
+          .whereType<GlyphPrimitive>()
+          .where((g) =>
+              g.smuflName == SmuflGlyph.gClef ||
+              g.smuflName == SmuflGlyph.fClef)
+          .toList();
+      expect(secondClefs.first.smuflName, SmuflGlyph.fClef);
+    });
+
     test('a systemBreak composes with width-driven breaking', () {
       // A narrow page already breaks; an extra forced break only adds systems.
       final natural = layoutSystems(eightMeasures(), settings, maxWidth: 30);
       final withBreak = layoutSystems(eightMeasures(), settings,
           maxWidth: 30, systemBreaks: {1});
-      expect(withBreak.systems.length, greaterThanOrEqualTo(natural.systems.length));
+      expect(withBreak.systems.length,
+          greaterThanOrEqualTo(natural.systems.length));
       expect(withBreak.systems.first.lastMeasure, 0); // break before m1
     });
   });

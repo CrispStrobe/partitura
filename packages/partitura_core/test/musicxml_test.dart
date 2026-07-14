@@ -721,6 +721,54 @@ void main() {
       expect(grand.lower.measures.single.elements.single.id, 'e1000');
     });
 
+    test('a two-staff part defaults an omitted lower clef to bass', () {
+      final grand = grandStaffFromMusicXml(doc('''
+<measure number="1">
+  <attributes>
+    <divisions>2</divisions>
+    <key><fifths>0</fifths></key>
+    <time><beats>4</beats><beat-type>4</beat-type></time>
+    <staves>2</staves>
+    <clef number="1"><sign>G</sign><line>2</line></clef>
+  </attributes>
+  ${note('C', 5, 'whole', duration: 8, extra: '<staff>1</staff>')}
+  <backup><duration>8</duration></backup>
+  ${note('C', 3, 'whole', duration: 8, extra: '<staff>2</staff>')}
+</measure>
+'''));
+
+      expect(grand.upper.clef, Clef.treble);
+      expect(grand.lower.clef, Clef.bass);
+    });
+
+    test('deferred lower-staff clef keeps prior treble state', () {
+      final grand = grandStaffFromMusicXml(doc('''
+<measure number="1">
+  <attributes>
+    <divisions>2</divisions>
+    <key><fifths>0</fifths></key>
+    <time><beats>4</beats><beat-type>4</beat-type></time>
+    <staves>2</staves>
+    <clef number="1"><sign>G</sign><line>2</line></clef>
+  </attributes>
+  ${note('C', 5, 'whole', duration: 8, extra: '<staff>1</staff>')}
+  <backup><duration>8</duration></backup>
+  ${note('E', 4, 'quarter', duration: 2, extra: '<staff>2</staff>')}
+</measure>
+<measure number="2">
+  <attributes>
+    <clef number="2"><sign>F</sign><line>4</line></clef>
+  </attributes>
+  ${note('C', 5, 'whole', duration: 8, extra: '<staff>1</staff>')}
+  <backup><duration>8</duration></backup>
+  ${note('C', 3, 'whole', duration: 8, extra: '<staff>2</staff>')}
+</measure>
+'''));
+
+      expect(grand.lower.clef, Clef.treble);
+      expect(grand.lower.measures[1].clefChange, Clef.bass);
+    });
+
     test('imported score lays out without errors', () {
       final score = scoreFromMusicXml(doc('''
 <measure number="1">

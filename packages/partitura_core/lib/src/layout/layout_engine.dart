@@ -384,12 +384,12 @@ class _LayoutBuilder {
     _layoutCrossMeasureBeams();
     _layoutTies();
     _layoutLaissezVibrer();
+    _layoutDynamics();
     _layoutSlurs();
     _layoutGlissandos();
     _layoutPortamentos();
     _layoutOttavas();
     _layoutTrillExtensions();
-    _layoutDynamics();
     _layoutPedals();
     _layoutLyrics();
     _layoutFiguredBass();
@@ -1979,8 +1979,7 @@ class _LayoutBuilder {
         continue;
       }
       final spanned = _tieInfos.sublist(startIndex, endIndex + 1);
-      final notes = spanned.where((i) => i.note != null);
-      final above = !notes.every((i) => !i.stemsDown);
+      final notes = spanned.where((i) => i.note != null).toList();
 
       double headCenterX(_TieInfo info) =>
           (info.heads.first.$2 + info.heads.first.$3) / 2;
@@ -1998,8 +1997,18 @@ class _LayoutBuilder {
         return info.heads.map((h) => h.$4).reduce(max) + 0.5;
       }
 
+      final highest = notes.reduce(
+        (a, b) => (topOf(a) ?? 0) <= (topOf(b) ?? 0) ? a : b,
+      );
+      final stemsDown = notes.where((i) => i.stemsDown).length;
+      final stemsUp = notes.length - stemsDown;
+      var above = highest.stemsDown || stemsDown > stemsUp;
+
       final x1 = headCenterX(spanned.first);
       final x2 = headCenterX(spanned.last);
+      if (_isBassFamily(score.clef) && (x2 - x1) > 20 && stemsUp > 0) {
+        above = false;
+      }
       final double y1;
       final double y2;
       final double controlY;
@@ -2024,15 +2033,84 @@ class _LayoutBuilder {
         controlY =
             max(max(y1, y2), clearance) + (0.5 + min(1.5, (x2 - x1) * 0.06));
       }
+      var start = Point(x1, y1);
+      var control1 = Point(x1 + (x2 - x1) * 0.3, controlY);
+      var control2 = Point(x1 + (x2 - x1) * 0.7, controlY);
+      var end = Point(x2, y2);
+      if ((x2 - x1) > 8) {
+        final offset = _slurClearanceOffset(
+          start,
+          control1,
+          control2,
+          end,
+          above: above,
+        );
+        if (offset != 0) {
+          final endpointOffset = offset.sign * min(offset.abs() * 0.35, 0.8);
+          start = Point(start.x, start.y + endpointOffset);
+          control1 = Point(control1.x, control1.y + offset);
+          control2 = Point(control2.x, control2.y + offset);
+          end = Point(end.x, end.y + endpointOffset);
+        }
+      }
       _addCurve(
-        Point(x1, y1),
-        Point(x1 + (x2 - x1) * 0.3, controlY),
-        Point(x1 + (x2 - x1) * 0.7, controlY),
-        Point(x2, y2),
+        start,
+        control1,
+        control2,
+        end,
         0.2,
       );
     }
   }
+
+  double _slurClearanceOffset(
+    Point<double> start,
+    Point<double> control1,
+    Point<double> control2,
+    Point<double> end, {
+    required bool above,
+  }) {
+    var violation = 0.0;
+    const clearance = 0.55;
+    for (var i = 1; i < 32; i++) {
+      final t = i / 32;
+      final p = _cubicPoint(start, control1, control2, end, t);
+      if (above) {
+        final skyline = _skylineTop(p.x - 0.2, p.x + 0.2);
+        if (skyline == null) continue;
+        violation = max(violation, p.y - (skyline - clearance));
+      } else {
+        final skyline = _skylineBottom(p.x - 0.2, p.x + 0.2);
+        if (skyline == null) continue;
+        violation = max(violation, (skyline + clearance) - p.y);
+      }
+    }
+    if (violation <= 0) return 0;
+    return above ? -violation : violation;
+  }
+
+  Point<double> _cubicPoint(
+    Point<double> p0,
+    Point<double> p1,
+    Point<double> p2,
+    Point<double> p3,
+    double t,
+  ) {
+    final u = 1 - t;
+    return Point(
+      u * u * u * p0.x +
+          3 * u * u * t * p1.x +
+          3 * u * t * t * p2.x +
+          t * t * t * p3.x,
+      u * u * u * p0.y +
+          3 * u * u * t * p1.y +
+          3 * u * t * t * p2.y +
+          t * t * t * p3.y,
+    );
+  }
+
+  bool _isBassFamily(Clef clef) =>
+      clef == Clef.bass || clef == Clef.bass8vb || clef == Clef.subbass;
 
   /// v0.3.5: dynamic markings centered below their element and hairpin
   /// wedges between two elements, both on the dynamics line under the

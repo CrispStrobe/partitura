@@ -51,17 +51,13 @@ void main() {
     await (FontLoader('packages/partitura/Bravura')
           ..addFont(Future.value(ByteData.view(fontBytes.buffer))))
         .load();
-    final flutterRoot = Platform.environment['FLUTTER_ROOT'];
-    final roboto = flutterRoot == null
-        ? null
-        : File(
-            '$flutterRoot/bin/cache/artifacts/material_fonts/Roboto-Regular.ttf');
-    final theme = (roboto?.existsSync() ?? false)
-        ? PartituraTheme.standard.copyWith(textFontFamily: 'Roboto')
-        : PartituraTheme.standard;
-    if (roboto?.existsSync() ?? false) {
-      final bytes = roboto!.readAsBytesSync();
-      await (FontLoader('Roboto')
+    final textFont = _textFontCandidate();
+    final theme = textFont == null
+        ? PartituraTheme.standard
+        : PartituraTheme.standard.copyWith(textFontFamily: textFont.family);
+    if (textFont != null) {
+      final bytes = textFont.file.readAsBytesSync();
+      await (FontLoader(textFont.family)
             ..addFont(Future.value(ByteData.view(bytes.buffer))))
           .load();
     }
@@ -108,6 +104,27 @@ void main() {
     }
     File(outPath).writeAsBytesSync(png);
   });
+}
+
+({String family, File file})? _textFontCandidate() {
+  final flutterRoot = Platform.environment['FLUTTER_ROOT'];
+  final candidates = <({String family, String path})>[
+    (family: 'PartituraText', path: '/System/Library/Fonts/NewYork.ttf'),
+    (family: 'PartituraText', path: '/System/Library/Fonts/Times.ttc'),
+    (family: 'PartituraText', path: '/Library/Fonts/Times New Roman.ttf'),
+    (family: 'PartituraText', path: '/Library/Fonts/Georgia.ttf'),
+    if (flutterRoot != null)
+      (
+        family: 'Roboto',
+        path:
+            '$flutterRoot/bin/cache/artifacts/material_fonts/Roboto-Regular.ttf'
+      ),
+  ];
+  for (final candidate in candidates) {
+    final file = File(candidate.path);
+    if (file.existsSync()) return (family: candidate.family, file: file);
+  }
+  return null;
 }
 
 /// Loads a multi-part [StaffSystem] from [path], picking the importer by

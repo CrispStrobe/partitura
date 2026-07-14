@@ -14,6 +14,9 @@ import '../layout/score_layout.dart';
 import '../layout/staff_system.dart';
 import '../smufl/smufl_codepoints.dart';
 
+const _defaultTextFontFamily =
+    "Academico, 'New York', 'Times New Roman', Times, serif";
+
 /// Serializes [layout] to an SVG document string.
 ///
 /// [staffSpace] is the pixel size of one staff space (the single scale
@@ -29,7 +32,7 @@ String scoreToSvg(
   ScoreLayout layout, {
   double staffSpace = 12,
   String glyphFontFamily = 'Bravura',
-  String textFontFamily = 'sans-serif',
+  String textFontFamily = _defaultTextFontFamily,
   String color = '#000000',
   String background = '#ffffff',
   String? fontFaceDataUri,
@@ -137,7 +140,7 @@ String grandStaffToSvg(
   GrandStaffLayout layout, {
   double staffSpace = 12,
   String glyphFontFamily = 'Bravura',
-  String textFontFamily = 'sans-serif',
+  String textFontFamily = _defaultTextFontFamily,
   String color = '#000000',
   String background = '#ffffff',
   String? fontFaceDataUri,
@@ -221,7 +224,7 @@ String staffSystemToSvg(
   StaffSystemLayout layout, {
   double staffSpace = 12,
   String glyphFontFamily = 'Bravura',
-  String textFontFamily = 'sans-serif',
+  String textFontFamily = _defaultTextFontFamily,
   String color = '#000000',
   String background = '#ffffff',
   String? fontFaceDataUri,
@@ -249,7 +252,7 @@ String staffSystemSystemsToSvg(
   bool showInstrumentLabels = false,
   bool showSystemMeasureNumbers = false,
   String glyphFontFamily = 'Bravura',
-  String textFontFamily = 'sans-serif',
+  String textFontFamily = _defaultTextFontFamily,
   String color = '#000000',
   String background = '#ffffff',
   String? fontFaceDataUri,

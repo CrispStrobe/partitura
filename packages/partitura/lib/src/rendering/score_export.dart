@@ -18,6 +18,8 @@ import 'theme.dart';
 /// `staffSpace` mirror the on-screen views.
 
 const LayoutEngine _engine = LayoutEngine();
+const _defaultTextFontFamily =
+    "Academico, 'New York', 'Times New Roman', Times, serif";
 
 LayoutSettings _settingsFor(SmuflMetadata metadata, PartituraTheme theme) {
   final boost = theme.lineBoost;
@@ -89,7 +91,7 @@ Future<String> exportScoreToSvg(
     layout,
     staffSpace: staffSpace,
     glyphFontFamily: theme.musicFont.family,
-    textFontFamily: theme.textFontFamily ?? 'sans-serif',
+    textFontFamily: theme.textFontFamily ?? _defaultTextFontFamily,
     color: _hex(theme.staffColor),
     fontFaceDataUri: embedFont ? await _fontDataUri(theme.musicFont) : null,
     elementColors: elementColors,
@@ -133,7 +135,7 @@ Future<String> exportGrandStaffToSvg(
     layout,
     staffSpace: staffSpace,
     glyphFontFamily: theme.musicFont.family,
-    textFontFamily: theme.textFontFamily ?? 'sans-serif',
+    textFontFamily: theme.textFontFamily ?? _defaultTextFontFamily,
     color: _hex(theme.staffColor),
     fontFaceDataUri: embedFont ? await _fontDataUri(theme.musicFont) : null,
     elementColors: elementColors,
