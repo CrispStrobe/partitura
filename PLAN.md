@@ -30,11 +30,10 @@ ships* at the end for the mechanics.
 > editor/model owner's `MultiPartScore`, left to them. 5.7 polymeter deferred
 > (big, multi-staff-meter engine — same lane). No active claim on this line.
 >
-> 🚧 **Actively working (notation-breadth lane), in order:** **5.7 polymeter**
-> (local per-staff meters — each staff of a `StaffSystem`/`MultiPartScore` draws
-> and beams its own time signature, aligned-measure case), then **ABC symbol
-> lines** (`s:`), then the **1.4 beam-subdivision** tail. Building on the landed
-> C6 multi-staff engine. Worktree `partitura-c6`, branch `feat/c6-reconcile`.
+> 🚧 **Actively working (notation-breadth lane), in order:** 5.7 polymeter ✓
+> (per-staff meters, golden 127) — now on **ABC symbol lines** (`s:`), then the
+> **1.4 beam-subdivision** tail. Building on the landed C6 multi-staff engine.
+> Worktree `partitura-c6`, branch `feat/c6-reconcile`.
 > *(Touching `multi_system.dart` / `staff_system.dart` / layout + `abc_reader` —
 > not the model-agent 2.1/2.2 lane, the editor `MultiPartScore` linked-parts, or
 > the hardening files.)*
@@ -826,7 +825,15 @@ No peer renderer does any of this; all build on the existing pitch / interval
       a companion signature beside the primary at the start (e.g. 3/4 + 2/4);
       display-only (capacity/beaming use the primary), round-trips through
       MusicXML `<interchangeable>`; golden 115.
-      **Left:** local per-staff meters (polymeter — needs the multi-staff engine).
+      **Local per-staff meters (polymeter)** — **done** on the C6 multi-staff
+      engine: each staff of a `StaffSystem`/`MultiPartScore` carries, draws and
+      beams its own `timeSignature`, with barlines aligned when the bars share a
+      total duration (e.g. 3/4 over 6/8). A per-staff meter change at a system
+      start is restated rather than dropped (`layoutStaffSystemSystems` /
+      `layoutGrandStaffSystems` now key `drawTime` off *any* staff's change, not
+      part 0). `polymeter_test.dart`; golden 127. *(Deeper case — staves whose
+      bars differ in total duration, so barlines do **not** align — is a separate
+      non-aligned-barline engine, still open.)*
 - [x] **5.8 Custom / atonal key signatures + cancelling-naturals policy.**
       `KeySignature.custom([KeyAccidental(step, alter), …])` — modal/atonal
       signatures the circle of fifths can't express (mixed B♭ + F♯, or a

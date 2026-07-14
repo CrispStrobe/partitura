@@ -282,7 +282,9 @@ GrandStaffSystems layoutGrandStaffSystems(
       end++;
       used += combined[end];
     }
-    final drawTime = start == 0 || upper.measures[start].timeChange != null;
+    final drawTime = start == 0 ||
+        upper.measures[start].timeChange != null ||
+        lower.measures[start].timeChange != null;
     final isLast = end == n - 1;
     final gs = GrandStaff(
       upper: _slice(
@@ -469,8 +471,11 @@ StaffSystemSystems layoutStaffSystemSystems(
       end++;
       used += combined[end];
     }
+    // Polymeter: restate the time signature at a system start if *any* staff's
+    // own meter changes there (not just part 0), so a per-staff meter change is
+    // never dropped at a wrap boundary. Each staff still draws its own meter.
     final drawTime =
-        start == 0 || parts.first.measures[start].timeChange != null;
+        start == 0 || parts.any((p) => p.measures[start].timeChange != null);
     final isLast = end == n - 1;
     // Visibility is decided per system here (with the first-system / all-silent
     // rules); the reduced [sysDoc] then lays out with hide-empty off.
