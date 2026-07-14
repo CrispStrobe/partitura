@@ -392,6 +392,7 @@ StaffSystemSystems layoutStaffSystemSystems(
   bool justify = true,
   bool gridAlign = true,
   bool hideEmptyStaves = false,
+  Set<int> systemBreaks = const {},
 }) {
   if (maxWidth <= 0) {
     throw ArgumentError.value(maxWidth, 'maxWidth', 'must be positive');
@@ -415,6 +416,7 @@ StaffSystemSystems layoutStaffSystemSystems(
       l.measureRegions.isEmpty ? l.width : l.measureRegions.first.startX;
   final leadEstimate = naturals.map(leadingOf).reduce(max);
   final states = [for (final p in parts) _stateArrays(p)];
+  final forcedBreaks = {...document.systemBreaks, ...systemBreaks};
 
   // The parts to show on the system covering [start]..[end]: with hide-empty,
   // parts silent throughout the range are dropped — except on the first system
@@ -467,7 +469,9 @@ StaffSystemSystems layoutStaffSystemSystems(
   while (start < n) {
     var end = start;
     var used = leadEstimate + combined[start];
-    while (end + 1 < n && used + combined[end + 1] <= maxWidth) {
+    while (end + 1 < n &&
+        !forcedBreaks.contains(end + 1) &&
+        used + combined[end + 1] <= maxWidth) {
       end++;
       used += combined[end];
     }
@@ -571,6 +575,7 @@ Score _slice(
         voice4: measure.voice4,
         tuplets: measure.tuplets,
         clefChange: null,
+        inlineClefs: measure.inlineClefs,
         keyChange: null,
         timeChange: null,
         tempoChange: measure.tempoChange,
@@ -680,5 +685,8 @@ Score _slice(
       for (final cd in score.chordDiagrams)
         if (ids.contains(cd.elementId)) cd,
     ],
+    transposition: score.transposition,
+    metadata: score.metadata,
+    tempo: score.tempo,
   );
 }

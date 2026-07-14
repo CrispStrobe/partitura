@@ -107,12 +107,17 @@ class StaffSystem {
   /// staff, or per-staff) — see [effectiveBarlineGroups].
   final List<BarlineGroup> barlineGroups;
 
+  /// Measure indices that must begin a new system, preserving source line
+  /// breaks such as MusicXML `<print new-system="yes">`.
+  final Set<int> systemBreaks;
+
   /// Creates a system from [staves] (at least one).
   const StaffSystem(
     this.staves, {
     this.brackets = const [],
     this.connectBarlines = true,
     this.barlineGroups = const [],
+    this.systemBreaks = const {},
   }) : assert(staves.length > 0, 'a system needs at least one staff');
 
   /// The barline groups to draw: [barlineGroups] as given, or — when that is
@@ -132,6 +137,7 @@ class StaffSystem {
         brackets: brackets,
         connectBarlines: connectBarlines,
         barlineGroups: barlineGroups,
+        systemBreaks: systemBreaks,
       );
 
   @override
@@ -140,11 +146,16 @@ class StaffSystem {
       _listEquals(other.staves, staves) &&
       _listEquals(other.brackets, brackets) &&
       other.connectBarlines == connectBarlines &&
-      _listEquals(other.barlineGroups, barlineGroups);
+      _listEquals(other.barlineGroups, barlineGroups) &&
+      _setEquals(other.systemBreaks, systemBreaks);
 
   @override
-  int get hashCode => Object.hash(Object.hashAll(staves),
-      Object.hashAll(brackets), connectBarlines, Object.hashAll(barlineGroups));
+  int get hashCode => Object.hash(
+      Object.hashAll(staves),
+      Object.hashAll(brackets),
+      connectBarlines,
+      Object.hashAll(barlineGroups),
+      Object.hashAll(systemBreaks));
 
   @override
   String toString() => 'StaffSystem(${staves.length} staves)';
@@ -355,8 +366,7 @@ StaffSystem _withEmptyStavesHidden(StaffSystem system) {
         if (visible[p] >= b.first && visible[p] <= b.last) p,
     ];
     if (positions.isNotEmpty) {
-      brackets.add(
-          StaffBracket(positions.first, positions.last, kind: b.kind));
+      brackets.add(StaffBracket(positions.first, positions.last, kind: b.kind));
     }
   }
   // Explicit barline groups clip to the surviving staves the same way; an empty
@@ -377,6 +387,7 @@ StaffSystem _withEmptyStavesHidden(StaffSystem system) {
     brackets: brackets,
     connectBarlines: system.connectBarlines,
     barlineGroups: barlineGroups,
+    systemBreaks: system.systemBreaks,
   );
 }
 
@@ -392,3 +403,6 @@ bool _listEquals<T>(List<T> a, List<T> b) {
   }
   return true;
 }
+
+bool _setEquals<T>(Set<T> a, Set<T> b) =>
+    a.length == b.length && a.containsAll(b);

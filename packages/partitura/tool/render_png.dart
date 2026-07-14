@@ -84,9 +84,14 @@ void main() {
           _loadStaffSystem(inPath), settings,
           maxWidth: maxWidth,
           hideEmptyStaves: env['PARTITURA_HIDE_EMPTY'] == '1');
+      final systemContext = env['PARTITURA_SYSTEM_CONTEXT'] == '1';
       await tester.runAsync(() async {
         png = await renderStaffSystemSystemsToPng(wrapped,
-            staffSpace: staffSpace, theme: theme);
+            staffSpace: staffSpace,
+            theme: theme,
+            leftMargin: systemContext ? 10 : 0,
+            showInstrumentLabels: systemContext,
+            showSystemMeasureNumbers: systemContext);
       });
     } else {
       final lower = inPath.toLowerCase();

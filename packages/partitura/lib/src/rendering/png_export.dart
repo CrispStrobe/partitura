@@ -148,21 +148,121 @@ Future<Uint8List> renderStaffSystemSystemsToPng(
   StaffSystemSystems wrapped, {
   double staffSpace = 12,
   double systemGap = 8,
+  double leftMargin = 0,
+  bool showInstrumentLabels = false,
+  bool showSystemMeasureNumbers = false,
   PartituraTheme theme = PartituraTheme.standard,
   Set<String> highlightedIds = const {},
   Color background = const Color(0xFFFFFFFF),
 }) async {
-  final width = (wrapped.maxWidth * staffSpace).ceil().clamp(1, 1 << 20);
+  final width =
+      ((wrapped.maxWidth + leftMargin) * staffSpace).ceil().clamp(1, 1 << 20);
   final height =
       (wrapped.heightWith(systemGap) * staffSpace).ceil().clamp(1, 1 << 20);
   return _rasterize(width, height, background, (canvas, painter) {
     var y = 0.0;
-    for (final system in wrapped.systems) {
+    for (var i = 0; i < wrapped.systems.length; i++) {
+      final system = wrapped.systems[i];
+      if (showInstrumentLabels && i == 0 && leftMargin > 0) {
+        _paintInstrumentLabels(canvas, system.layout, y, staffSpace, leftMargin,
+            theme.staffColor, theme.textFontFamily);
+      }
+      if (showSystemMeasureNumbers && i > 0) {
+        _paintSystemMeasureNumber(canvas, system, y, staffSpace, leftMargin,
+            theme.staffColor, theme.textFontFamily);
+      }
+      canvas.save();
+      canvas.translate(leftMargin * staffSpace, 0);
       _paintStaffSystem(
           canvas, painter, system.layout, y, staffSpace, theme.staffColor);
+      canvas.restore();
       y += (system.layout.height + systemGap) * staffSpace;
     }
   }, theme, staffSpace, highlightedIds);
+}
+
+void _paintText(Canvas canvas, String text, Offset position, double fontSize,
+    Color color, String? fontFamily,
+    {TextAlign align = TextAlign.left}) {
+  final painter = TextPainter(
+    text: TextSpan(
+      text: text,
+      style: TextStyle(
+        color: color,
+        fontSize: fontSize,
+        fontFamily: fontFamily,
+      ),
+    ),
+    textAlign: align,
+    textDirection: TextDirection.ltr,
+  )..layout();
+  final dx = switch (align) {
+    TextAlign.right || TextAlign.end => position.dx - painter.width,
+    TextAlign.center => position.dx - painter.width / 2,
+    _ => position.dx,
+  };
+  canvas.save();
+  canvas.translate(dx, position.dy - painter.height / 2);
+  painter.paint(canvas, Offset.zero);
+  canvas.restore();
+}
+
+void _paintInstrumentLabels(
+  Canvas canvas,
+  StaffSystemLayout layout,
+  double baseY,
+  double staffSpace,
+  double leftMargin,
+  Color color,
+  String? fontFamily,
+) {
+  var start = 0;
+  while (start < layout.source.staves.length) {
+    final label = layout.source.staves[start].metadata.instrument;
+    if (label == null || label.trim().isEmpty) {
+      start++;
+      continue;
+    }
+    var end = start;
+    while (end + 1 < layout.source.staves.length &&
+        layout.source.staves[end + 1].metadata.instrument == label) {
+      end++;
+    }
+    final top = layout.staffTop(start);
+    final bottom = layout.staffTop(end) + 4;
+    _paintText(
+      canvas,
+      label,
+      Offset((leftMargin - 1.0) * staffSpace,
+          baseY + ((top + bottom) / 2 - layout.top) * staffSpace),
+      1.1 * staffSpace,
+      color,
+      fontFamily,
+      align: TextAlign.right,
+    );
+    start = end + 1;
+  }
+}
+
+void _paintSystemMeasureNumber(
+  Canvas canvas,
+  StaffSystemSystem system,
+  double baseY,
+  double staffSpace,
+  double leftMargin,
+  Color color,
+  String? fontFamily,
+) {
+  final layout = system.layout;
+  _paintText(
+    canvas,
+    '${system.firstMeasure + 1}',
+    Offset((leftMargin + 0.5) * staffSpace,
+        baseY + (layout.staffTop(0) - layout.top - 1.0) * staffSpace),
+    0.9 * staffSpace,
+    color,
+    fontFamily,
+  );
 }
 
 /// Paints one [layout]'s staves at [baseY] px (its top-most ink lands there),

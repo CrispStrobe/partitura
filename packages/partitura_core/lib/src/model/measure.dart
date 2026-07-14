@@ -66,6 +66,29 @@ class TupletSpan {
       'TupletSpan($startIndex..$endIndex, $actual:$normal${voice == 0 ? '' : ', v${voice + 1}'})';
 }
 
+/// A clef change that takes effect inside a measure at [onset], expressed as a
+/// fraction of a whole note from the measure start.
+class InlineClefChange {
+  /// The onset where the new clef should be drawn and become current.
+  final Fraction onset;
+
+  /// The clef in force after [onset].
+  final Clef clef;
+
+  /// Creates an inline clef change.
+  const InlineClefChange(this.onset, this.clef);
+
+  @override
+  bool operator ==(Object other) =>
+      other is InlineClefChange && other.onset == onset && other.clef == clef;
+
+  @override
+  int get hashCode => Object.hash(onset, clef);
+
+  @override
+  String toString() => 'InlineClefChange($onset, ${clef.name})';
+}
+
 /// A navigation / repeat-structure mark drawn above the staff (v0.7.1).
 ///
 /// Targets ([segno], [coda]) sit at the **start** of their measure; every
@@ -182,6 +205,10 @@ class Measure {
   /// Clef change taking effect at this measure (drawn small at its start).
   final Clef? clefChange;
 
+  /// Clef changes inside the measure, drawn at their onsets and applied to
+  /// following elements.
+  final List<InlineClefChange> inlineClefs;
+
   /// Key change taking effect at this measure (cancellation naturals are
   /// drawn for steps the new signature no longer alters).
   final KeySignature? keyChange;
@@ -245,6 +272,7 @@ class Measure {
     this.voice4 = const [],
     this.tuplets = const [],
     this.clefChange,
+    this.inlineClefs = const [],
     this.keyChange,
     this.timeChange,
     this.tempoChange,
@@ -261,10 +289,12 @@ class Measure {
         assert(multiRest == null || multiRest >= 2, 'multiRest must be >= 2'),
         assert(multiRest == null || elements.length == 0,
             'a multi-measure rest holds no elements'),
-        assert(measureRepeat == null ||
-            measureRepeat == 1 ||
-            measureRepeat == 2 ||
-            measureRepeat == 4, 'measureRepeat must be 1, 2 or 4'),
+        assert(
+            measureRepeat == null ||
+                measureRepeat == 1 ||
+                measureRepeat == 2 ||
+                measureRepeat == 4,
+            'measureRepeat must be 1, 2 or 4'),
         assert(measureRepeat == null || elements.length == 0,
             'a measure-repeat holds no elements');
 
@@ -276,6 +306,7 @@ class Measure {
     List<MusicElement>? voice4,
     List<TupletSpan>? tuplets,
     Clef? clefChange,
+    List<InlineClefChange>? inlineClefs,
     KeySignature? keyChange,
     TimeSignature? timeChange,
     Tempo? tempoChange,
@@ -296,6 +327,7 @@ class Measure {
         voice4: voice4 ?? this.voice4,
         tuplets: tuplets ?? this.tuplets,
         clefChange: clefChange ?? this.clefChange,
+        inlineClefs: inlineClefs ?? this.inlineClefs,
         keyChange: keyChange ?? this.keyChange,
         timeChange: timeChange ?? this.timeChange,
         tempoChange: tempoChange ?? this.tempoChange,
@@ -334,8 +366,10 @@ class Measure {
       };
 
   /// The tuplet spans addressing [voice], with indices relative to that voice.
-  List<TupletSpan> tupletsForVoice(int voice) =>
-      [for (final t in tuplets) if (t.voice == voice) t];
+  List<TupletSpan> tupletsForVoice(int voice) => [
+        for (final t in tuplets)
+          if (t.voice == voice) t
+      ];
 
   /// The exact sum of the (tuplet-adjusted) voice-1 element durations as
   /// a fraction of a whole note. Games compare this against
@@ -376,6 +410,7 @@ class Measure {
       listEquals(other.voice4, voice4) &&
       listEquals(other.tuplets, tuplets) &&
       other.clefChange == clefChange &&
+      listEquals(other.inlineClefs, inlineClefs) &&
       other.keyChange == keyChange &&
       other.timeChange == timeChange &&
       other.tempoChange == tempoChange &&
@@ -397,6 +432,7 @@ class Measure {
       Object.hashAll(voice4),
       Object.hashAll(tuplets),
       clefChange,
+      Object.hashAll(inlineClefs),
       keyChange,
       timeChange,
       tempoChange,

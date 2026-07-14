@@ -163,8 +163,7 @@ String grandStaffToSvg(
   // Upper ink top shifts to y = 0; the lower staff's top line sits its own top
   // line at (upper bottom line = 4) + staffGap below that.
   final upperOffset = -layout.upper.top * staffSpace;
-  final lowerOffset =
-      (4 - layout.upper.top + layout.staffGap) * staffSpace;
+  final lowerOffset = (4 - layout.upper.top + layout.staffGap) * staffSpace;
   _emitStaff(b, layout.upper, staffSpace, upperOffset, color, glyphFontFamily,
       textFontFamily, elementColors);
   _emitStaff(b, layout.lower, staffSpace, lowerOffset, color, glyphFontFamily,
@@ -188,16 +187,23 @@ void _emitStaffSystem(
   Map<String, String> elementColors,
 ) {
   for (var i = 0; i < layout.staves.length; i++) {
-    _emitStaff(b, layout.staves[i], staffSpace,
-        baseY + (layout.staffTop(i) - layout.top) * staffSpace, color,
-        glyphFontFamily, textFontFamily, elementColors);
+    _emitStaff(
+        b,
+        layout.staves[i],
+        staffSpace,
+        baseY + (layout.staffTop(i) - layout.top) * staffSpace,
+        color,
+        glyphFontFamily,
+        textFontFamily,
+        elementColors);
   }
   // Systemic barlines: a vertical line at every barline x, spanning each
   // connected group (so grouped staves join and the line breaks between groups).
   final spans = layout.barlineSpans;
   final xs = layout.barlineXs;
   if (spans.isNotEmpty && xs.isNotEmpty) {
-    b.writeln('<g transform="translate(0 ${_n(baseY - layout.top * staffSpace)})'
+    b.writeln(
+        '<g transform="translate(0 ${_n(baseY - layout.top * staffSpace)})'
         ' scale($staffSpace)" stroke="$color">');
     for (final x in xs) {
       for (final span in spans) {
@@ -239,6 +245,9 @@ String staffSystemSystemsToSvg(
   StaffSystemSystems wrapped, {
   double staffSpace = 12,
   double systemGap = 8,
+  double leftMargin = 0,
+  bool showInstrumentLabels = false,
+  bool showSystemMeasureNumbers = false,
   String glyphFontFamily = 'Bravura',
   String textFontFamily = 'sans-serif',
   String color = '#000000',
@@ -246,18 +255,82 @@ String staffSystemSystemsToSvg(
   String? fontFaceDataUri,
   Map<String, String> elementColors = const {},
 }) {
-  final widthPx = wrapped.maxWidth * staffSpace;
+  final widthPx = (wrapped.maxWidth + leftMargin) * staffSpace;
   final heightPx = wrapped.heightWith(systemGap) * staffSpace;
   final b = StringBuffer();
   _svgOpen(b, widthPx, heightPx, glyphFontFamily, background, fontFaceDataUri);
   var y = 0.0;
-  for (final system in wrapped.systems) {
+  for (var i = 0; i < wrapped.systems.length; i++) {
+    final system = wrapped.systems[i];
+    if (showInstrumentLabels && i == 0 && leftMargin > 0) {
+      _emitInstrumentLabels(
+          b, system.layout, staffSpace, y, leftMargin, color, textFontFamily);
+    }
+    if (showSystemMeasureNumbers && i > 0) {
+      _emitSystemMeasureNumber(
+          b, system, staffSpace, y, leftMargin, color, textFontFamily);
+    }
+    if (leftMargin > 0) {
+      b.writeln('<g transform="translate(${_n(leftMargin * staffSpace)} 0)">');
+    }
     _emitStaffSystem(b, system.layout, staffSpace, y, color, glyphFontFamily,
         textFontFamily, elementColors);
+    if (leftMargin > 0) b.writeln('</g>');
     y += (system.layout.height + systemGap) * staffSpace;
   }
   b.writeln('</svg>');
   return b.toString();
+}
+
+void _emitInstrumentLabels(
+  StringBuffer b,
+  StaffSystemLayout layout,
+  double staffSpace,
+  double baseY,
+  double leftMargin,
+  String color,
+  String textFontFamily,
+) {
+  var start = 0;
+  while (start < layout.source.staves.length) {
+    final label = layout.source.staves[start].metadata.instrument;
+    if (label == null || label.trim().isEmpty) {
+      start++;
+      continue;
+    }
+    var end = start;
+    while (end + 1 < layout.source.staves.length &&
+        layout.source.staves[end + 1].metadata.instrument == label) {
+      end++;
+    }
+    final top = layout.staffTop(start);
+    final bottom = layout.staffTop(end) + 4;
+    final y = baseY + ((top + bottom) / 2 - layout.top) * staffSpace;
+    final x = (leftMargin - 1.0) * staffSpace;
+    b.writeln('<text x="${_n(x)}" y="${_n(y)}" '
+        'font-family="$textFontFamily" font-size="${_n(1.1 * staffSpace)}" '
+        'text-anchor="end" dominant-baseline="middle" '
+        'fill="$color" stroke="none">${_escape(label)}</text>');
+    start = end + 1;
+  }
+}
+
+void _emitSystemMeasureNumber(
+  StringBuffer b,
+  StaffSystemSystem system,
+  double staffSpace,
+  double baseY,
+  double leftMargin,
+  String color,
+  String textFontFamily,
+) {
+  final layout = system.layout;
+  final number = system.firstMeasure + 1;
+  final x = (leftMargin + 0.5) * staffSpace;
+  final y = baseY + (layout.staffTop(0) - layout.top - 1.0) * staffSpace;
+  b.writeln('<text x="${_n(x)}" y="${_n(y)}" '
+      'font-family="$textFontFamily" font-size="${_n(0.9 * staffSpace)}" '
+      'text-anchor="start" fill="$color" stroke="none">$number</text>');
 }
 
 /// Writes the `<svg>` open tag, optional embedded font and background fill.

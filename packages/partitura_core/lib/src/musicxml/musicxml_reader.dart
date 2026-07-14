@@ -17,6 +17,7 @@ import '../model/score.dart';
 import '../smufl/glyph_names.dart';
 import '../theory/clef.dart';
 import '../theory/duration.dart';
+import '../theory/fraction.dart';
 import '../theory/interval.dart';
 import '../theory/key_signature.dart';
 import '../theory/pitch.dart';
@@ -122,14 +123,19 @@ StaffSystem staffSystemFromMusicXml(String xml) {
   final partStart = <int>[];
   final partSpan = <int>[];
   var idBase = 0;
+  final systemBreaks = <int>{};
   for (final part in parts) {
     final n =
         int.tryParse(_firstAttributes(part)?.childText('staves') ?? '1') ?? 1;
     partStart.add(staves.length);
     partSpan.add(n);
     final first = staves.length;
+    final metadata = _metadataOf(root, part);
+    systemBreaks.addAll(_systemBreaksOf(part));
     for (var s = 1; s <= n; s++) {
-      staves.add(_PartReader(part, staff: s, idOffset: idBase).read());
+      staves.add(
+          _PartReader(part, staff: s, idOffset: idBase, metadata: metadata)
+              .read());
       idBase += 1000;
     }
     if (n >= 2) {
@@ -144,7 +150,23 @@ StaffSystem staffSystemFromMusicXml(String xml) {
     staves,
     brackets: brackets,
     barlineGroups: _partGroupBarlines(root, partStart, partSpan),
+    systemBreaks: systemBreaks,
   );
+}
+
+Set<int> _systemBreaksOf(XmlNode part) {
+  final breaks = <int>{};
+  var index = 0;
+  for (final measure in part.childrenNamed('measure')) {
+    if (index > 0 &&
+        measure
+            .childrenNamed('print')
+            .any((node) => node.attributes['new-system'] == 'yes')) {
+      breaks.add(index);
+    }
+    index++;
+  }
+  return breaks;
 }
 
 /// Imports multi-part MusicXML straight into a paginating [MultiPartScore] —
@@ -457,8 +479,10 @@ class _PartReader {
     final voice3 = <MusicElement>[];
     final voice4 = <MusicElement>[];
     final voiceLists = [elements, voice2, voice3, voice4];
+    final voiceOnsets = List<Fraction>.filled(4, Fraction.zero);
     final voiceOrder = <String>[]; // distinct voice labels in first-seen order
     final tuplets = <TupletSpan>[];
+    final inlineClefs = <InlineClefChange>[];
     Clef? clefChange;
     KeySignature? keyChange;
     TimeSignature? timeChange;
@@ -533,11 +557,17 @@ class _PartReader {
                 int.tryParse(clefNode.attributes['number'] ?? '1') ?? 1;
             if (number != staff) continue;
             final clef = _clefOf(clefNode);
-            if (!_leadingSet) {
+            final onset = voiceOnsets.fold<Fraction>(
+                Fraction.zero, (best, value) => value > best ? value : best);
+            if (!_leadingSet && onset == Fraction.zero) {
               _clef = clef;
               _leadingClef = clef;
             } else if (clef != _clef) {
-              clefChange = clef;
+              if (onset == Fraction.zero) {
+                clefChange = clef;
+              } else {
+                inlineClefs.add(InlineClefChange(onset, clef));
+              }
               _clef = clef;
             }
           }
@@ -714,6 +744,8 @@ class _PartReader {
             final lv = _laissezVibrerOf(node, id);
             if (lv != null) _laissezVibrer.add(lv);
           }
+          voiceOnsets[voiceIndex] =
+              voiceOnsets[voiceIndex] + duration.toFraction();
 
           final tuplet = _notations(node)
               .expand((n) => n.childrenNamed('tuplet'))
@@ -756,6 +788,7 @@ class _PartReader {
       voice4: voice4,
       tuplets: tuplets,
       clefChange: clefChange,
+      inlineClefs: inlineClefs,
       keyChange: keyChange,
       timeChange: timeChange,
       tempoChange: tempoChange,

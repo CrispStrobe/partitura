@@ -39,7 +39,18 @@ String note(String step, int octave, String type,
     '<octave>$octave</octave></pitch>'
     '<duration>$duration</duration><type>$type</type>$extra</note>';
 
+late final LayoutSettings settings;
+
 void main() {
+  setUpAll(() {
+    final source = File('../partitura/assets/smufl/bravura_metadata.json')
+        .readAsStringSync();
+    settings = LayoutSettings(
+      metadata:
+          SmuflMetadata.fromJson(jsonDecode(source) as Map<String, Object?>),
+    );
+  });
+
   group('xml reader', () {
     test('parses elements, attributes, text, entities', () {
       final root =
@@ -125,6 +136,56 @@ void main() {
 '''));
       final parsed = score.measures.single.elements.single as NoteElement;
       expect(parsed.duration.base, DurationBase.thirtySecond);
+    });
+
+    test('imports mid-measure clef changes at their onset', () {
+      final score = scoreFromMusicXml(doc('''
+<measure number="1">
+  $attrs44
+  <note><rest/><duration>2</duration><type>quarter</type></note>
+  <attributes><clef><sign>F</sign><line>4</line></clef></attributes>
+  ${note('C', 4, 'quarter')}
+</measure>
+'''));
+
+      final measure = score.measures.single;
+      expect(measure.clefChange, isNull);
+      expect(
+          measure.inlineClefs, [InlineClefChange(Fraction(1, 4), Clef.bass)]);
+    });
+
+    test('lays out following notes in a mid-measure clef', () {
+      const pitch = Pitch(Step.c, octave: 4);
+      final score = Score(
+        clef: Clef.treble,
+        measures: [
+          Measure([
+            const RestElement(NoteDuration.quarter, id: 'r'),
+            NoteElement(
+              pitches: [pitch],
+              duration: NoteDuration.quarter,
+              id: 'n',
+            ),
+          ], inlineClefs: [
+            InlineClefChange(Fraction(1, 4), Clef.bass),
+          ]),
+        ],
+      );
+
+      final layout = const LayoutEngine().layout(score, settings);
+      final clefs = layout.primitives
+          .whereType<GlyphPrimitive>()
+          .where((g) =>
+              g.smuflName == SmuflGlyph.gClef ||
+              g.smuflName == SmuflGlyph.fClef)
+          .toList();
+      expect(
+          clefs.map((g) => g.smuflName), [SmuflGlyph.gClef, SmuflGlyph.fClef]);
+      final notehead = layout.primitives
+          .whereType<GlyphPrimitive>()
+          .singleWhere((g) => g.elementId == 'n');
+      expect(notehead.position.y,
+          4 - pitch.staffPosition(Clef.bass).toDouble() / 2);
     });
 
     test('bass and C clefs', () {
@@ -718,6 +779,33 @@ void main() {
       expect(sys.staves[1].clef, Clef.bass);
       expect(sys.staves[0].measures.single.elements.single.id, 'e0');
       expect(sys.staves[1].measures.single.elements.single.id, 'e1000');
+    });
+
+    test('carries part metadata and explicit system breaks', () {
+      final sys = staffSystemFromMusicXml(multi(
+        '<score-part id="P1"><part-name>Piano</part-name></score-part>',
+        '''
+<part id="P1">
+  <measure number="1">
+    <attributes><divisions>1</divisions><staves>2</staves>
+      <clef number="1"><sign>G</sign><line>2</line></clef>
+      <clef number="2"><sign>F</sign><line>4</line></clef>
+    </attributes>
+    ${note('C', 5, 'quarter', duration: 1, extra: '<staff>1</staff>')}
+    <backup><duration>1</duration></backup>
+    ${note('C', 3, 'quarter', duration: 1, extra: '<staff>2</staff>')}
+  </measure>
+  <measure number="2">
+    <print new-system="yes"/>
+    ${note('D', 5, 'quarter', duration: 1, extra: '<staff>1</staff>')}
+    <backup><duration>1</duration></backup>
+    ${note('D', 3, 'quarter', duration: 1, extra: '<staff>2</staff>')}
+  </measure>
+</part>''',
+      ));
+
+      expect(sys.staves.map((s) => s.metadata.instrument), ['Piano', 'Piano']);
+      expect(sys.systemBreaks, {1});
     });
 
     test('a two-staff part is braced', () {

@@ -79,6 +79,8 @@ render options:
   --no-embed-font                      Do not embed the engraving font
   --width <spaces>                     Max system width in staff spaces for
                                        multi-part scores (default 120)
+  --no-system-context                  Omit multi-staff instrument labels and
+                                       line-start bar numbers
   --hide-empty                         Drop empty staves per system (multi-part)
   --single                             Force the single-part path (import the
                                        first part only)
@@ -134,6 +136,7 @@ const _booleanFlags = {
   'infer-rhythm',
   'single',
   'page',
+  'no-system-context',
 };
 
 int _info(List<String> args) {
@@ -424,9 +427,15 @@ int _render(List<String> args) {
     if (system != null && system.staves.length > 1) {
       final maxWidth = double.tryParse(options['width'] ?? '') ?? 120.0;
       final wrapped = layoutStaffSystemSystems(system, settings,
-          maxWidth: maxWidth, hideEmptyStaves: options.containsKey('hide-empty'));
+          maxWidth: maxWidth,
+          hideEmptyStaves: options.containsKey('hide-empty'));
+      final systemContext = !options.containsKey('no-system-context');
       final svg = staffSystemSystemsToSvg(wrapped,
-          staffSpace: staffSpace, fontFaceDataUri: fontUri);
+          staffSpace: staffSpace,
+          fontFaceDataUri: fontUri,
+          leftMargin: systemContext ? 10 : 0,
+          showInstrumentLabels: systemContext,
+          showSystemMeasureNumbers: systemContext);
       File(outPath).writeAsStringSync(svg);
       stdout.writeln('wrote $outPath (${svg.length} bytes, '
           '${system.staves.length} staves'
@@ -612,6 +621,8 @@ int _renderPng(String inPath, String outPath, Map<String, String> options,
       'PARTITURA_WIDTH': options['width']!,
     if (multiPart && options.containsKey('hide-empty'))
       'PARTITURA_HIDE_EMPTY': '1',
+    if (multiPart && !options.containsKey('no-system-context'))
+      'PARTITURA_SYSTEM_CONTEXT': '1',
     if (options['tuning'] != null) 'PARTITURA_TUNING': options['tuning']!,
     if (options['staff-space'] != null)
       'PARTITURA_STAFF_SPACE': options['staff-space']!,

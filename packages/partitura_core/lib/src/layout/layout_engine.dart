@@ -745,8 +745,8 @@ class _LayoutBuilder {
       // extends left; a rest anchors its ink there via _x.
       final columnX = columns == null ? null : columns[onset];
       if (columnX != null) _x = measureContentStart + columnX;
-      final columnNoteX =
-          columnX == null ? null : measureContentStart + columnX;
+      _applyInlineClefs(measure, onset);
+      final columnNoteX = columnX == null ? null : _x;
       onset += measure.effectiveDurationAt(i);
       switch (element) {
         case NoteElement():
@@ -869,6 +869,7 @@ class _LayoutBuilder {
       if (forced != null && forced[onset] != null) {
         _x = measureContentStart + forced[onset]!;
       }
+      _applyInlineClefs(measure, onset);
       final columnX = _x;
       final nextOnset = c + 1 < distinct.length ? distinct[c + 1] : measureEnd;
       final delta = nextOnset - onset;
@@ -2872,11 +2873,7 @@ class _LayoutBuilder {
   void _applyMeasureChanges(Measure measure) {
     final clefChange = measure.clefChange;
     if (clefChange != null && clefChange != _clef) {
-      _clef = clefChange;
-      final (glyph, position) = _clefGlyph(_clef);
-      const changeScale = 0.8;
-      _addGlyph(glyph, _x, _yOf(position), scale: changeScale);
-      _x += _glyphWidth(glyph) * changeScale + s.clefGap * 0.75;
+      _layoutClefChange(clefChange);
     }
     final keyChange = measure.keyChange;
     if (keyChange != null && keyChange != _key) {
@@ -2904,6 +2901,22 @@ class _LayoutBuilder {
       _time = timeChange;
       _layoutTimeSignature();
     }
+  }
+
+  void _applyInlineClefs(Measure measure, Fraction onset) {
+    for (final change in measure.inlineClefs) {
+      if (change.onset == onset && change.clef != _clef) {
+        _layoutClefChange(change.clef);
+      }
+    }
+  }
+
+  void _layoutClefChange(Clef clef) {
+    _clef = clef;
+    final (glyph, position) = _clefGlyph(_clef);
+    const changeScale = 0.8;
+    _addGlyph(glyph, _x, _yOf(position), scale: changeScale);
+    _x += _glyphWidth(glyph) * changeScale + s.clefGap * 0.75;
   }
 
   /// v0.3.8: `|:` — thick line, thin line, dots.

@@ -12,13 +12,15 @@ StaffSystem eightBarTrio() => StaffSystem([
       Score.simple(
         clef: Clef.treble,
         timeSignature: TimeSignature.fourFour,
-        notes: 'c5:q d5 e5 f5 | g5:q a5 b5 c6 | c6:q b5 a5 g5 | f5:q e5 d5 c5 | '
+        notes:
+            'c5:q d5 e5 f5 | g5:q a5 b5 c6 | c6:q b5 a5 g5 | f5:q e5 d5 c5 | '
             'e5:q f5 g5 a5 | b5:q a5 g5 f5 | e5:q d5 c5 d5 | c5:w',
       ),
       Score.simple(
         clef: Clef.treble,
         timeSignature: TimeSignature.fourFour,
-        notes: 'e4:q f4 g4 a4 | b4:q c5 d5 e5 | e5:q d5 c5 b4 | a4:q g4 f4 e4 | '
+        notes:
+            'e4:q f4 g4 a4 | b4:q c5 d5 e5 | e5:q d5 c5 b4 | a4:q g4 f4 e4 | '
             'g4:q a4 b4 c5 | d5:q c5 b4 a4 | g4:q f4 e4 f4 | e4:w',
       ),
       Score.simple(
@@ -120,7 +122,8 @@ void main() {
   });
 
   test('rejects a non-positive maxWidth', () {
-    expect(() => layoutStaffSystemSystems(eightBarTrio(), settings, maxWidth: 0),
+    expect(
+        () => layoutStaffSystemSystems(eightBarTrio(), settings, maxWidth: 0),
         throwsArgumentError);
   });
 
@@ -133,10 +136,43 @@ void main() {
     // One `scale(` staff group per staff per system (plus barline connectors),
     // so at least three staves × N systems worth of scaled groups appear.
     final scaledGroups = 'scale('.allMatches(svg).length;
-    expect(scaledGroups,
-        greaterThanOrEqualTo(3 * wrapped.systems.length));
+    expect(scaledGroups, greaterThanOrEqualTo(3 * wrapped.systems.length));
     // Notehead glyphs from all three parts are present.
     expect(svg, contains('<text'));
+  });
+
+  test('wrapped SVG can show instrument labels and original bar numbers', () {
+    final piano = StaffSystem([
+      Score.simple(
+        clef: Clef.treble,
+        timeSignature: TimeSignature.fourFour,
+        metadata: const ScoreMetadata(instrument: 'Piano'),
+        notes: 'c5:q d5 e5 f5 | g5:q a5 b5 c6 | c6:q b5 a5 g5 | f5:q e5 d5 c5',
+      ),
+      Score.simple(
+        clef: Clef.bass,
+        timeSignature: TimeSignature.fourFour,
+        metadata: const ScoreMetadata(instrument: 'Piano'),
+        notes: 'c3:q e3 g3 c4 | c3:q e3 g3 c4 | c3:q e3 g3 c4 | c3:q e3 g3 c4',
+      ),
+    ], brackets: const [
+      StaffBracket(0, 1, kind: StaffBracketKind.brace),
+    ]);
+    final wrapped = layoutStaffSystemSystems(piano, settings, maxWidth: 28);
+    expect(wrapped.systems.length, greaterThan(1));
+
+    final svg = staffSystemSystemsToSvg(
+      wrapped,
+      staffSpace: 12,
+      leftMargin: 10,
+      showInstrumentLabels: true,
+      showSystemMeasureNumbers: true,
+    );
+
+    expect(svg, contains('>Piano<'));
+    expect('>Piano<'.allMatches(svg), hasLength(1));
+    expect(svg, contains('>2<'));
+    expect(wrapped.systems[1].firstMeasure, 1);
   });
 
   test('staffSystemToSvg renders a single multi-part system', () {
