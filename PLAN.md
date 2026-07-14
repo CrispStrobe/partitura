@@ -1053,7 +1053,8 @@ are executed **one after another, each with tests**. Status: `[x]` done,
 - [x] Shorthand `~ H T M P` → ornaments / fermata
 - [x] Navigation `!segno!` `!coda!` `!D.C.!` `!D.S.!` `!fine!` (+ al fine/coda)
       → `Measure.navigation` (drives the `playbackTimeline` jumps)
-- [ ] Bowing `u`/`v`, emphasis `L` (no model equivalent yet)
+- [x] Bowing `u`/`v` — round-trips (`Articulation.upBow`/`downBow`, writer emits
+  `u`/`v`, reader `_applyShorthand`). *Left:* emphasis `L` (no model equivalent).
 
 **Text, symbols, inline fields**
 - [x] `"C"` chord symbols → annotations; `w:` lyrics with `- _ * |`
@@ -1191,9 +1192,15 @@ Marked `[cheap]` (an additive field/enum, low blast radius) or `[deep]`
 2. [x] **Grace notes in the MEI/kern/LilyPond writers — done.** MEI + kern
    round-trip (`<note grace>` / `q`,`qq`); LilyPond exports
    `\acciaccatura`/`\appoggiatura`. Tests in mei/kern/lilypond_test.
-3. **Mid-score tempo changes** — `Tempo` is initial-only today; carry per-measure
-   tempo through model + playback + a codec or two.
-4. **ABC barline styles + bowing/emphasis** — dotted/invisible bar, `u`/`v`.
+3. **Mid-score tempo changes** *(deferred — needs a prep step)* — `Tempo` is
+   initial-only. Blocked on relocating the `Tempo` class out of `score.dart`
+   (measure.dart can't import score.dart — circular) into its own file, then
+   `Measure.tempoChange` + a `tempoMapOf(score)` builder (the `TempoMap`
+   playback engine already exists) + MusicXML round-trip. Deep + hot-file, so
+   scoped as its own change to avoid parallel-agent conflict.
+4. [x] **ABC bowing** — already round-trips (`u`/`v`); dotted `.|` / double `||`
+   / final `|]` barlines round-trip too. *Left:* `[|]` invisible bar, `y` spacer
+   (niche).
 5. **MEI `<harm>` / ABC structured chords**; arbitrary text dynamics.
 6. `[deep]`/low: fine-ratio microtones, the 4-voice/staff cap, Schumann's
    nested-tuplet residual.
