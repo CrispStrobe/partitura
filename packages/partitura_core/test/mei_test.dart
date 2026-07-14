@@ -393,4 +393,34 @@ void main() {
     );
     expect(scoreFromMei(xml).measures, hasLength(3));
   });
+
+  test('a staff absent from a measure reads empty, not another staff (G19)', () {
+    // Two staves; measure 2 omits <staff n="2">. Staff 2 must read an empty
+    // bar there, not fall back to staff 1's notes (which duplicated them).
+    const xml = '''
+<mei xmlns="http://www.music-encoding.org/ns/mei">
+ <music><body><mdiv><score>
+  <scoreDef><staffGrp>
+    <staffDef n="1" clef.shape="G" clef.line="2"/>
+    <staffDef n="2" clef.shape="F" clef.line="4"/>
+  </staffGrp></scoreDef>
+  <section>
+   <measure n="1">
+     <staff n="1"><layer n="1"><note pname="c" oct="5" dur="4"/></layer></staff>
+     <staff n="2"><layer n="1"><note pname="c" oct="3" dur="4"/></layer></staff>
+   </measure>
+   <measure n="2">
+     <staff n="1"><layer n="1"><note pname="d" oct="5" dur="4"/></layer></staff>
+   </measure>
+  </section>
+ </score></mdiv></body></music>
+</mei>''';
+    final sys = staffSystemFromMei(xml);
+    expect(sys.staves, hasLength(2));
+    final bass = sys.staves[1];
+    // Staff 2: C3 in bar 1, and NO notes in bar 2 (not a duplicate of the D5).
+    expect(bass.measures[0].elements.whereType<NoteElement>().single.pitches
+        .single, const Pitch(Step.c, octave: 3));
+    expect(bass.measures[1].elements.whereType<NoteElement>(), isEmpty);
+  });
 }

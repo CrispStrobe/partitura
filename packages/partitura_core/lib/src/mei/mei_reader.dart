@@ -325,14 +325,21 @@ class _MeiReader {
         }
       }
     }
-    // The `<staff>` for this reader's staff: match `@n`, else the Nth in order,
-    // else the first (a single-staff measure).
+    // The `<staff>` for this reader's staff. When the `<staff>`s are `@n`-
+    // labelled, match `@n` exactly — if this staff is *absent* from the measure,
+    // read nothing (an empty bar), rather than falling back to another staff's
+    // content (which duplicated it — a chord staff reading the melody, G19).
+    // Only unlabelled `<staff>`s (single-staff docs) match by position.
     final staves = measureNode.childrenNamed('staff').toList();
-    final staff = staves.isEmpty
-        ? null
-        : staves.firstWhere((s) => s.attributes['n'] == '$staffN',
-            orElse: () =>
-                staffN <= staves.length ? staves[staffN - 1] : staves.first);
+    final XmlNode? staff;
+    if (staves.isEmpty) {
+      staff = null;
+    } else if (staves.any((s) => s.attributes.containsKey('n'))) {
+      final matches = staves.where((s) => s.attributes['n'] == '$staffN');
+      staff = matches.isEmpty ? null : matches.first;
+    } else {
+      staff = staffN <= staves.length ? staves[staffN - 1] : staves.first;
+    }
     final layers = staff?.childrenNamed('layer').toList() ?? const <XmlNode>[];
 
     Clef? clefChange;
