@@ -1209,9 +1209,14 @@ Marked `[cheap]` (an additive field/enum, low blast radius) or `[deep]`
 4. [x] **ABC bowing** — already round-trips (`u`/`v`); dotted `.|` / double `||`
    / final `|]` barlines round-trip too. *Left:* `[|]` invisible bar, `y` spacer
    (niche).
-5. **MEI `<harm>` / ABC structured chords**; arbitrary text dynamics.
-6. `[deep]`/low: fine-ratio microtones, the 4-voice/staff cap, Schumann's
-   nested-tuplet residual.
+5. **Deliberately deferred (low value / deep, not churned):**
+   - **MEI `<harm>` / ABC structured chords** — ABC/MEI carry chords as *text*
+     today, which already round-trips the chord string; structured import needs
+     a full chord-symbol string parser (`Cmaj7`→root+kind+bass) for little gain.
+   - **Arbitrary text dynamics** (`poco f`) — niche.
+   - `[deep]`/low: fine-ratio microtones, the 4-voice/staff cap (synthetic test
+     only), Schumann's nested-tuplet residual (pitch-perfect, small duration
+     edge), drawing the tempo mark in the layout engine.
 
 Convention: prefer implementing a `[cheap]` lacuna when a codec would otherwise
 have to drop it; batch the `[deep]` ones into their Phase (2/5) rather than
