@@ -35,7 +35,10 @@ ships* at the end for the mechanics.
 > The **1.4 beam-subdivision** item was reviewed and needs no work — its
 > remainder (finer 32nd beamlet breaks at the half-beat) is intentionally
 > deferred, as it contradicts the tested "continuous within a beat" rule and is a
-> maintainer call. No active claim on this line.
+> maintainer call; confirmed a no-op for the only consumer (`../mus` bottoms out
+> at the 16th). Golden **128** (`128_learning_rhythms`) locks in that consumer's
+> real rhythmic vocabulary (16ths / dotted / 6/8) as a canary. No active claim on
+> this line.
 >
 > **Test-coverage hardening landed:** filled unit-test gaps in the pure OMR /
 > braille modules — semantic parser (5 rarer clefs, bad-duration error,
