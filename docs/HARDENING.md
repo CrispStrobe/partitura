@@ -33,6 +33,7 @@ unrecognized or malformed element should be skipped (ideally logged), not throw.
 | **Round 16** — K545 engraving parity follow-up + Verovio oracle sweep + round-trip sweep | 8 | Fixed **G24/G25/G27/G28/G30/G31** and partially mitigated **G29**: MusicXML inline clefs now import/layout at their measure onset; staff-system SVG and Flutter PNG share left-margin instrument labels and original line-start bar numbers; cross-system slurs now render as per-line continuation segments instead of disappearing; omitted initial lower-staff clefs in two-staff MusicXML now default to bass; below-staff words and cross-voice head spacing are preserved; overwide wrapped systems are backed off after real layout; adjacent staves expand their gap when local slur/ink bounds would collide. K545 SVG/PNG now show `Piano`, line starts `5, 8, 11…`, all 101 imported slurs as visible line segments, lower-staff bass clefs where the current clef is bass, and the previously overflowing T57/T70 systems fit at `--width 120`. Text markings now use a music-style serif fallback (`Academico`/New York/Times) instead of generic sans where possible. Round-trip stayed **100%** for MusicXML/MEI/kern/ABC/MuseScore over r15. Verovio note oracle is **1/8 exact** and mostly Verovio-only, so log **G26** for the remaining visible-note under-read / oracle-mode investigation rather than treating it as a visual engraving blocker. |
 | **Rounds 17-19** — `--quorum` (music21 + Verovio) over 42 fresh files: Bach 4-part chorales (kern + music21 MusicXML), music-encoding structure/lyrics MEI, Palestrina masses (kern), Monteverdi madrigals (mxl) | 42 | **0 consensus-bugs.** All confirmed correct (both-agree) or resolved-correct (Verovio over-expanded repeats). partitura validated across Bach chorales, Renaissance modal polyphony (musica ficta), and multi-section/verse MEI. Only oracle-side SKIPs (Verovio couldn't parse some Monteverdi mxl). |
 | **Round 20** — Bach chorale MusicXML + essen-folksong ABC via `--quorum` (now with the **abc2midi tiebreaker**) | 27 | Bach MusicXML all correct. ABC flagged 1 "consensus-bug" (`essentune11`) — the same no-carry accidental false-positive; **abc2midi (reference) confirms partitura** (98.4% vs the oracles' 92%), so the quorum now **auto-resolves it to CHECK✓**. The quorum consults abc2midi on ABC consensus-bugs, since music21 & Verovio share the no-carry convention. |
+| **Round 21** — exotic: **Schoenberg Op.19 (atonal)** + Beethoven string quartets (music21 corpus) via `--quorum` | 6 | **0 consensus-bugs.** Atonal Schoenberg (dense accidentals, no key) → resolved-correct; Beethoven quartets suspect only from Verovio repeat-expansion (partitura ≈ music21, off by 1 on op18no1-1). |
 
 ## Round-trip fidelity (import ↔ export)
 
@@ -40,6 +41,10 @@ Beyond "does it crash?", we measure **how much survives** a write-then-read
 round-trip — this exercises the importer *and* the exporter together and
 quantifies parse fidelity. Two harnesses:
 
+* `test/oracle_validated_test.dart` — committed, self-contained: pins the
+  spec-correct ABC behaviours the oracle campaign proved partitura reads right
+  (accidental carry within the bar + reset, key applied to bare notes, broken
+  rhythm, mid-tune key change) against buggy external parsers.
 * `test/roundtrip_fidelity_test.dart` — committed, self-contained: feature-probe
   scores (stepwise, chords+rests, dotted+ties, accidentals, wide range) through
   every round-trippable format. Notation formats are held to the **full notated
