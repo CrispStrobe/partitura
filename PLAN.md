@@ -1145,6 +1145,12 @@ Marked `[cheap]` (an additive field/enum, low blast radius) or `[deep]`
   on both staves), **cue/ossia notes, explicit beam grouping.** `[deep]`
 - **Tuplet/​slur constraints** — tuplets cannot cross barlines or nest;
   documented model constraints, not bugs.
+- 🚧 **Voice-aware tuplets** *(lacunae agent — `measure.dart`,
+  `playback_timeline.dart`, `layout_engine.dart`, `mei_reader.dart`)* — tuplets
+  currently attach to voice 1 only (`TupletSpan` indexes `elements`), so
+  inner-voice tuplets in string-quartet MEI (Schumann/Brahms) diverge from the
+  music21 oracle. Adding a `voice` field to `TupletSpan` + voice-aware
+  `effectiveDurationAt`, populated by the readers. See `docs/HARDENING.md` G17.
 
 Convention: prefer implementing a `[cheap]` lacuna when a codec would otherwise
 have to drop it; batch the `[deep]` ones into their Phase (2/5) rather than
