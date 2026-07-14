@@ -149,6 +149,14 @@ String scoreToAbc(
       }
       body.write(' ');
     }
+    // Inner voices (stems-down voice 2, etc.) are written as ABC voice overlays:
+    // `voice1 … & voice2 …` within the same bar. Voices 2–4 carry no tuplets or
+    // slurs in the model, so a compact note/rest/chord emitter suffices.
+    for (final voice in [measure.voice2, measure.voice3, measure.voice4]) {
+      if (voice.isEmpty) continue;
+      body.write('& ');
+      _emitOverlayVoice(body, voice, unit, score.keySignature);
+    }
     if (measure.endRepeat) {
       body.write(':|');
     } else {
@@ -170,6 +178,30 @@ String scoreToAbc(
         'w:${verse1.map((l) => l.text + (l.hyphenToNext ? '-' : '')).join(' ')}');
   }
   return b.toString();
+}
+
+/// Emits an overlay voice's notes/chords/rests (with durations and ties) into
+/// [body] — the part after an `&` in a bar. Overlay voices carry no tuplets,
+/// slurs, lyrics or chord symbols in the model, so this is deliberately compact.
+void _emitOverlayVoice(StringBuffer body, List<MusicElement> elements,
+    Fraction unit, KeySignature key) {
+  final acc = <String, int>{}; // fresh accidental state for this overlay voice
+  for (final element in elements) {
+    if (element is RestElement) {
+      body.write('z${_lengthOf(element.duration, unit)}');
+    } else if (element is NoteElement) {
+      final len = _lengthOf(element.duration, unit);
+      if (element.pitches.length == 1) {
+        body.write('${_noteToken(element.pitches.single, acc, key)}$len');
+      } else {
+        final inner =
+            element.pitches.map((p) => _noteToken(p, acc, key)).join();
+        body.write('[$inner]$len');
+      }
+      if (element.tieToNext) body.write('-');
+    }
+    body.write(' ');
+  }
 }
 
 /// The ABC token for [pitch] — octave letter with an explicit accidental only

@@ -428,6 +428,10 @@ class _AbcBody {
       : _idPfx = idPrefix;
 
   List<_Rec> _recs = [];
+  // Overlay voices (`&`) already completed in the current measure. Voice 1 is
+  // the live [_recs]; each `&` pushes the current recs here and starts a fresh
+  // voice. Flushed into a Measure's voice2/3/4 at the barline.
+  final List<List<_Rec>> _overlayRecs = [];
   final List<TupletSpan> _tuplets = [];
   bool _nextStartRepeat = false;
   bool _nextBarDotted = false;
@@ -473,6 +477,15 @@ class _AbcBody {
       } else if (c == ')') {
         _pos++;
         _closeSlur();
+      } else if (c == '&') {
+        // Voice overlay: finalize the current voice and start the next one in
+        // this same bar. Tuplet/broken state is per-voice; measure accidentals
+        // persist across the staff's overlaid voices.
+        _pos++;
+        _overlayRecs.add(_recs);
+        _recs = [];
+        _tupletLeft = 0;
+        _brokenNext = null;
       } else if (c == '-') {
         _pos++;
         if (_recs.isNotEmpty) _recs.last.tie = true;
@@ -755,25 +768,32 @@ class _AbcBody {
       _nextVolta = null;
       return;
     }
-    if (_recs.isEmpty && measures.isEmpty) return;
-    if (_recs.isEmpty && !endRepeat && style == BarlineStyle.normal) return;
-    final elements = <MusicElement>[
-      for (final r in _recs)
-        if (r.pitches == null)
-          RestElement(_durationOf(r.dur), id: r.id)
-        else
-          NoteElement(
-            pitches: r.pitches!,
-            duration: _durationOf(r.dur),
-            tieToNext: r.tie,
-            articulations: r.articulations,
-            graceNotes: r.grace,
-            ornament: r.ornament,
-            id: r.id,
-          ),
-    ];
+    final empty = _recs.isEmpty && _overlayRecs.isEmpty;
+    if (empty && measures.isEmpty) return;
+    if (empty && !endRepeat && style == BarlineStyle.normal) return;
+    // Voice 1 is the first overlay (or the live recs if there was no `&`);
+    // voices 2–4 follow. The model holds up to four voices per measure.
+    final voices = [..._overlayRecs, _recs];
+    List<MusicElement> build(List<_Rec> recs) => [
+          for (final r in recs)
+            if (r.pitches == null)
+              RestElement(_durationOf(r.dur), id: r.id)
+            else
+              NoteElement(
+                pitches: r.pitches!,
+                duration: _durationOf(r.dur),
+                tieToNext: r.tie,
+                articulations: r.articulations,
+                graceNotes: r.grace,
+                ornament: r.ornament,
+                id: r.id,
+              ),
+        ];
     measures.add(Measure(
-      elements,
+      build(voices[0]),
+      voice2: voices.length > 1 ? build(voices[1]) : const [],
+      voice3: voices.length > 2 ? build(voices[2]) : const [],
+      voice4: voices.length > 3 ? build(voices[3]) : const [],
       tuplets: List.of(_tuplets),
       clefChange: _pendingClefChange,
       keyChange: _pendingKeyChange,
@@ -785,6 +805,7 @@ class _AbcBody {
       barline: style,
     ));
     _recs = [];
+    _overlayRecs.clear();
     _tuplets.clear();
     _nextStartRepeat = false;
     _nextVolta = null;
@@ -881,8 +902,9 @@ class _AbcBody {
     _recs.add(rec);
     // Only notes take `w:` syllables — a rest is skipped in the lyric stream
     // (ABC aligns syllables to notes, not rests). Including rests here would
-    // shift every following syllable and attach some to rests.
-    if (rec.pitches != null) noteOrder.add(rec.id);
+    // shift every following syllable and attach some to rests. Overlay voices
+    // (after a `&`) never take lyrics — only voice 1 does.
+    if (rec.pitches != null && _overlayRecs.isEmpty) noteOrder.add(rec.id);
     // Tuplet span accounting.
     if (_tupletLeft > 0) {
       _tupletLeft--;

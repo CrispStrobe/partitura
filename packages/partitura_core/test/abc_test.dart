@@ -234,6 +234,30 @@ void main() {
       expect(
           () => scoreFromAbc('X:1\nT:No key\nCDEF\n'), throwsFormatException);
     });
+
+    test('a `&` voice overlay imports as voice 2', () {
+      final s = scoreFromAbc(
+          'X:1\nM:4/4\nL:1/8\nK:C\nc2 d2 e2 f2 & C4 G4 |\n');
+      final m = s.measures.single;
+      expect(m.elements.whereType<NoteElement>().map((n) => n.pitches.single.octave),
+          everyElement(5)); // voice 1: c5 d5 e5 f5
+      expect(m.voice2.whereType<NoteElement>().map((n) => n.pitches.single.toString()),
+          ['C4', 'G4']); // the overlaid lower voice
+    });
+
+    test('a two-voice score round-trips through the `&` overlay', () {
+      final source = Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'c5:q d5 e5 f5 ; c4:h g4:h',
+      );
+      final back = scoreFromAbc(scoreToAbc(source));
+      int notes(Score s) => s.measures
+          .expand((m) => [...m.elements, ...m.voice2, ...m.voice3, ...m.voice4])
+          .whereType<NoteElement>()
+          .length;
+      expect(notes(back), notes(source)); // no voice dropped
+      expect(back.measures.first.voice2, isNotEmpty);
+    });
   });
 
   group('fidelity: the abcjs example tune-book', () {
