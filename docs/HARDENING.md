@@ -28,6 +28,7 @@ unrecognized or malformed element should be skipped (ideally logged), not throw.
 | **Round 11** — real **KernScores** piano (Chopin mazurkas, Mozart sonatas) via oracle | 8 | 0/8 exact — **found G18**: multi-staff kern `*^` column-shift drops ~half the notes on piano scores (2 spines + splits). Confirmed pitch-level (partitura 46-89% of music21). Top priority for the next kern-reader pass. |
 | **Round 12** — more KernScores piano (Beethoven/Mozart/Chopin/Scarlatti sonatas), validating G18 | 6 | 3/6 exact after G18 (Mozart sonatas + mazurka → 100%, Beethoven op2 99.5%); kern reader now reads **up to 4 sub-spine voices** per staff. Residual: Beethoven op13/2 *Pathétique* at 86% is **pitch-perfect** (1643/1643 notes) — a pure kern **tuplet-duration** edge (891 tuplet reciprocals), same class as the MEI voice-tuplet residual, not note-dropping. |
 | **Round 13** — **new format/source: real ABC** (music21's own O'Neill's-1850 Irish tune corpus), 20 single tunes via oracle | 20 | 10/20 "exact" — but the divergences are **music21's** ABC-parser limits, not partitura: (a) it ignores ABC **broken rhythm** `a>b` (partitura correctly gives 0.75/0.25, music21 uniform 0.5 — tune14 is a hornpipe with 23 `>`); (b) it mis-applies the **key signature** to bare notes (tune07 K:D: partitura F#/C#/B-natural = correct D-major, music21 gives naturals + B♭). Every tune is pitch-perfect where music21 parses correctly. **Lesson: music21 is not a reliable ABC oracle** — use round-trip fidelity for ABC instead (already 100%). |
+| **Rounds 14-15** — extend corpus (Scarlatti/Mozart/Chopin-prelude/Beethoven **kern**, fresh O'Neill **ABC**) + run the **`--quorum`** better-oracle-check | 8 + 20 | r11-r14: **0 consensus-bugs** (all divergences = kern tuplet-duration / ABC broken-rhythm / Verovio repeat-expansion, correctly resolved or flagged suspect). r15 ABC: 1 "consensus-bug" that is a **quorum false-positive** — see the accidental-carry note below. |
 | **Round 15** — public-domain MuseTrainer MusicXML/MXL piano set + Verovio visual comparison (Bach, Canon, Satie, Mozart K545, Joplin, WTC) | 8 | Round-trip stayed 100% for notation exporters; K545 visual sweep found **G20/G21/G22/G23**. Fixed: hidden MusicXML playback notes rendered visibly, inner-voice MusicXML tuplets ignored, line-break slicing dropped voice3/4, CLI PNG rendered text/dynamics as boxes. Residual: mid-measure clef changes need a model extension; staff labels and line-start bar numbers need left-margin system SVG support. |
 | **Round 16** — K545 engraving parity follow-up + Verovio oracle sweep + round-trip sweep | 8 | Fixed **G24/G25**: MusicXML inline clefs now import/layout at their measure onset; staff-system SVG and Flutter PNG share left-margin instrument labels and original line-start bar numbers. K545 SVG/PNG now show `Piano`, line starts `5, 8, 11…`, and long slur curves. Round-trip stayed **100%** for MusicXML/MEI/kern/ABC/MuseScore over r15. Verovio note oracle is **1/8 exact** and mostly Verovio-only, so log **G26** for the remaining visible-note under-read / oracle-mode investigation rather than treating it as a visual engraving blocker. |
 
@@ -133,6 +134,24 @@ key signatures), so it is not a trustworthy oracle everywhere. Two additions:
   case where two independent parsers agree against partitura. Every divergence
   this whole hardening effort surfaced traced back to an oracle limitation or a
   since-fixed reader bug — strong, triangulated evidence the importer is correct.
+
+## Limit of the ensemble oracle — a shared convention can fool a quorum
+
+The `--quorum` better-oracle-check flagged `oneill103.abc` as a consensus-bug
+(both music21 **and** Verovio read F♯ where partitura reads F♮ on 4 notes). But
+this is a **false positive**: the tune has `=f` (explicit natural) followed by a
+bare `f` **in the same bar**, and the **ABC 2.1 spec says an accidental carries
+to the end of the bar** — so partitura (F♮) is *spec-correct*, and *both* oracles
+share a common non-spec no-carry convention. A minimal test confirms it:
+`K:G` … `=f f | f f` → partitura `F♮ F♮ | F♯ F♯` (carry within bar, reset at the
+barline), music21 & Verovio both `F♮ F♯ | F♯ F♯`.
+
+Lesson: even two independent oracles agreeing is not proof — when the tools
+share an ecosystem convention that departs from the format spec, the quorum can
+be wrong and partitura right. Consensus-bugs still must be checked against the
+**spec**, not just the tools. (Whether to match the ecosystem's no-carry
+behaviour for real-world ABC interop is an owner decision, not silently changed
+— partitura currently follows the written standard.)
 
 ## Gaps
 
