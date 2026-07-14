@@ -1,12 +1,12 @@
-name: partitura_workspace
-description: Workspace root for the partitura music notation libraries.
+name: crisp_notation_workspace
+description: Workspace root for the crisp_notation music notation libraries.
 publish_to: none
 
 environment:
   sdk: ^3.5.0
 
 workspace:
-  - packages/partitura_core
-  - packages/partitura
-  - packages/partitura/example
-  - packages/partitura_cli
+  - packages/crisp_notation_core
+  - packages/crisp_notation
+  - packages/crisp_notation/example
+  - packages/crisp_notation_cli

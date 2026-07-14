@@ -1,6 +1,6 @@
-# partitura — roadmap & living tracker
+# crisp_notation — roadmap & living tracker
 
-partitura's north star: **match, then surpass, the capabilities of mature
+crisp_notation's north star: **match, then surpass, the capabilities of mature
 interactive notation renderers and professional engraving software** — while
 keeping its own edge and its boundary.
 
@@ -8,13 +8,13 @@ keeping its own edge and its boundary.
   hit-testable, selectable, draggable, highlightable), a pure-Dart
   deterministic layout engine testable without a renderer, a pedagogy-shaped
   music-theory core, and a repaint-only highlight pipeline.
-- **Boundary (permanent):** partitura renders and supplies a timing map; it
+- **Boundary (permanent):** crisp_notation renders and supplies a timing map; it
   never synthesizes audio. Apps bring their own synth.
 
 This is the single planning document: what has shipped, and the prioritized
 sequence of everything still to build. **Every item ships the full
-pipeline** — model + layout + unit tests in `partitura_core`; painting +
-goldens + interaction tests in `partitura`; a gallery entry where visual;
+pipeline** — model + layout + unit tests in `crisp_notation_core`; painting +
+goldens + interaction tests in `crisp_notation`; a gallery entry where visual;
 CONTRACT/CHANGELOG updates; all gates green (`dart format`, analyze with zero
 issues, all tests) — and lands as its own commit. See *How each feature
 ships* at the end for the mechanics.
@@ -23,9 +23,7 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-13)
 
-> **Actively working on:** competitor feature discovery and lacunae backlog updates
-> *(Antigravity — `/Users/christianstrobele/code/partitura-competitor-analysis` worktree, `feat/competitor-analysis`;
-> files: PLAN.md).*
+> **Actively working on:** between features.
 >
 > **Doable-tails lane landed on `main`:** 2.7 measure-repeat signs, 7.5 braille
 > mid-score key/time changes, 2.5 explicit system/page breaks. 2.6 part
@@ -70,10 +68,10 @@ ships* at the end for the mechanics.
 > at every checkpoint** (see [[coordination]] / gitignored `CLAUDE.md`).
 >
 > 🚧 **Oracle interchange parity sweeps and lacuna triage** *(Codex oracle
-> agent — `packages/partitura_core/tool/oracle_diff.dart`,
-> `packages/partitura_core/tool/roundtrip_sweep.dart`, `docs/HARDENING.md`,
+> agent — `packages/crisp_notation_core/tool/oracle_diff.dart`,
+> `packages/crisp_notation_core/tool/roundtrip_sweep.dart`, `docs/HARDENING.md`,
 > targeted codec/model fixes as each consensus bug is isolated; corpus artifacts
-> under `/Volumes/backups/ai/partitura-corpus`).*
+> under `/Volumes/backups/ai/crisp_notation-corpus`).*
 >
 > **Complete:** Phase **1** (engraving; 1.1/1.2 done, 1.3/1.4 have only optional
 > tails), Phase **3** (interactivity — cursor visualizers, editor moat, drills,
@@ -105,10 +103,10 @@ ships* at the end for the mechanics.
 ### Workshop editor contracts (C1–C10)
 
 External consumer (KlangUniversum "Composition Workshop",
-`mus-workshop/docs/WORKSHOP_PARTITURA_CONTRACTS.md`) needs these interactive-
-editor APIs on `partitura-public@main`. All **additive / backward-compatible**
+`mus-workshop/docs/WORKSHOP_CRISP_NOTATION_CONTRACTS.md`) needs these interactive-
+editor APIs on `crisp_notation-public@main`. All **additive / backward-compatible**
 (new optional params / new widgets; no signature breaks). Convention:
-`StaffTarget`, element `id` strings, `PartituraTheme`, `staffSpace`, staff-space
+`StaffTarget`, element `id` strings, `CrispNotationTheme`, `staffSpace`, staff-space
 y-down coords. Priority: **C1+C2 → C3 → C5 → C4**.
 
 - [x] **C1 — Staff-tap on the multi-line view.** `MultiSystemView.onStaffTap`
@@ -219,7 +217,7 @@ y-down coords. Priority: **C1+C2 → C3 → C5 → C4**.
     notes were read as full notes (now folded into the principal note). MEI
     oracle 0/14 → 16/20 exact; Brandenburg 758→9140 notes. `mei_test.dart`.
   - **G13 was a mis-diagnosis (no action).** ActorPrelude's oracle divergence is
-    *not* tremolo expansion (partitura keeps the 14 tremolos as marks); it's the
+    *not* tremolo expansion (crisp_notation keeps the 14 tremolos as marks); it's the
     deliberate G6 snapping of irregular un-typed `<duration>`s to the nearest
     notatable value. By design — see `docs/HARDENING.md` §G13.
 - [x] **C7 — region controller.** The private render objects' `elementRegions`
@@ -249,7 +247,7 @@ y-down coords. Priority: **C1+C2 → C3 → C5 → C4**.
 
 Notes that sound at the same time on different staves must line up vertically —
 the rule every serious engraver enforces (LilyPond `SpacingSpanner`, MuseScore
-`Segment`s, Dorico/Finale/Sibelius). Today partitura spaces each staff
+`Segment`s, Dorico/Finale/Sibelius). Today crisp_notation spaces each staff
 independently (only barlines align via shared `measureWidths`), so
 rhythmically-independent hands drift out of vertical alignment.
 
@@ -383,24 +381,24 @@ turn); multi-measure rests; octave clefs (8va/8vb) + ottava brackets.
   Sheet Music Transformer recognizes a staff-notation image into `bekern`
   tokens; `bekernToKern` reconstructs Humdrum, and a multi-spine kern reader
   (`grandStaffFromKern`/`staffSystemFromKern`, `**ekern`-aware) maps it to a
-  `GrandStaff`/`Score`/`StaffSystem` — all pure Dart, in `partitura_core`
+  `GrandStaff`/`Score`/`StaffSystem` — all pure Dart, in `crisp_notation_core`
   (`src/omr/`). Tuplet reciprocals read as real `TupletSpan`s (see the Humdrum
   tuplet round-trip below), so recognized triplets keep their sounding rhythm.
   The recognition engine is reached over `dart:ffi`
   (`CrispEmbedOmrEngine`) behind the `OmrEngine` abstraction, exposed as the
-  `partitura omr` CLI command (image → MusicXML/`.mxl`/`.krn`). Verified
+  `crisp_notation omr` CLI command (image → MusicXML/`.mxl`/`.krn`). Verified
   end-to-end: FFI bekern is byte-identical to the reference engine on the
   GrandStaff samples, and each round-trips through MusicXML.
 - **Second engine — Polyphonic-TrOMR.** CrispEmbed's TrOMR engine emits PrIMuS-
   style *semantic* notation (`clef-G2 note-C4_quarter …`, chords via `|`) for a
   single polyphonic staff; `scoreFromSemantic` (`src/omr/semantic.dart`, pure
-  Dart) parses it to a `Score`. The `partitura omr` command **auto-detects the
+  Dart) parses it to a `Score`. The `crisp_notation omr` command **auto-detects the
   dialect** (`omrDialectOf`) and routes SMT→`GrandStaff`, TrOMR→`Score` through
   the same FFI engine and output formats. Verified end-to-end on the TrOMR
   sample (image → `Score` → MusicXML).
 - **Scan → rendered notation.** `grandStaffToSvg` (`svg/svg_export.dart`) renders
   a two-staff `GrandStaffLayout` — the per-staff emitter is shared with
-  `scoreToSvg`, so `scoreToSvg` is byte-for-byte unchanged. `partitura omr` now
+  `scoreToSvg`, so `scoreToSvg` is byte-for-byte unchanged. `crisp_notation omr` now
   writes `.svg` directly (a grand staff for SMT, a single staff for TrOMR;
   falling back to the upper staff if a recognized grand staff's staves disagree
   on measure count). Verified live: both engines render a scan to SVG.
@@ -416,13 +414,13 @@ turn); multi-measure rests; octave clefs (8va/8vb) + ottava brackets.
   (`src/omr/lilynotes.dart`, pure Dart) parses it to an unmetered single-staff
   `Score`, and `omrDialectOf` gained a third branch. Verified live end-to-end: a
   whiteboard photo → `Score` → MusicXML/kern/PNG (all three CrispEmbed OMR
-  engines — SMT, TrOMR, Flova — now route through `partitura omr`, auto-detected).
-- **Model auto-download.** `partitura omr --model <name>` (`smt-grandstaff` /
+  engines — SMT, TrOMR, Flova — now route through `crisp_notation omr`, auto-detected).
+- **Model auto-download.** `crisp_notation omr --model <name>` (`smt-grandstaff` /
   `tromr` / `flova`) fetches the GGUF from Hugging Face to
-  `$XDG_CACHE_HOME/partitura/omr` and reuses it — no manual model wrangling
+  `$XDG_CACHE_HOME/crisp_notation/omr` and reuses it — no manual model wrangling
   (`resolveOmrModel` in `crispembed_omr.dart`). A path still works as before.
   Verified live: `--model smt-grandstaff` downloaded and recognized end to end.
-- **Full-page / multi-system.** `partitura omr --page` splits a full-page scan
+- **Full-page / multi-system.** `crisp_notation omr --page` splits a full-page scan
   into staff systems by horizontal-projection band detection
   (`segmentStaffSystems`, pure Dart) and recognizes each, concatenating them
   into one score (per-system measures appended; grand staffs keep equal
@@ -431,9 +429,9 @@ turn); multi-measure rests; octave clefs (8va/8vb) + ottava brackets.
   repeat across systems.*
 - **Reusable OMR library.** The whole pipeline (engine + image decode /
   segmentation / model download + the pure-Dart parsers) is exposed as
-  `package:partitura_cli/omr.dart`, so any Dart program — the CLI **and Flutter
+  `package:crisp_notation_cli/omr.dart`, so any Dart program — the CLI **and Flutter
   desktop** (macOS/Windows/Linux, where `dart:ffi` works) — can drive OMR, then
-  render/export with `partitura_core`.
+  render/export with `crisp_notation_core`.
 - **Remaining OMR gaps:** **no web/WASM path** — Dart/Flutter web has no
   `dart:ffi`, and CrispEmbed's WASM build does not expose the OMR engines (an
   upstream change would be required); a Flutter *widget* is not provided (the
@@ -446,7 +444,7 @@ turn); multi-measure rests; octave clefs (8va/8vb) + ottava brackets.
 
 ## Distance to industry-standard level
 
-partitura's category is a **rendering + model library**, not a WYSIWYG editor,
+crisp_notation's category is a **rendering + model library**, not a WYSIWYG editor,
 so parity is measured against serious interactive renderers and against
 professional *engraving* quality — not against note-entry apps. Note-entry /
 editing and audio synthesis are deliberately **out of category** (the latter a
@@ -460,7 +458,7 @@ nested repeats), a broad interchange surface (MusicXML, MIDI, the full
 `.gp3`–`.gp` line, plus MuseScore `.mscx`/`.mscz`), and the category-unusual
 extras — a renderer-free deterministic layout engine, hit-testing, a
 highlight/timing pipeline, SVG/PNG export, a CLI, and a **WasmGC-compilable**
-core (`dart compile wasm`; see `packages/partitura_core/example/wasm/`).
+core (`dart compile wasm`; see `packages/crisp_notation_core/example/wasm/`).
 
 The remaining distance falls in three buckets:
 
@@ -475,7 +473,7 @@ The remaining distance falls in three buckets:
   Phase-5 breadth staples (voices 3–4, lyric verses/melisma/hyphenation,
   figured bass, extra clefs, more noteheads, microtonal, additive meters).
   Deeper MusicXML fidelity for arbitrary published files also lives here.
-- **Differentiators** (where partitura aims to *exceed*, not match — peers do
+- **Differentiators** (where crisp_notation aims to *exceed*, not match — peers do
   none of these): the **Phase 3** interactivity moat (cursor-synced piano /
   fretboard visualizers, overlays, looping, played-vs-expected, accessibility)
   and the **Phase 4** theory/analysis moat (Roman numerals, voice-leading,
@@ -536,7 +534,7 @@ Raises the quality of everything already rendered. Slice order:
       `SmuflMetadata` it is handed; a heavier-stemmed font renders heavier
       stems, proven by `font_metrics_test`). A `MusicFont` descriptor (family +
       package + metadata asset) plus a `MusicFonts` per-font metadata loader
-      make the font swappable via `PartituraTheme.musicFont` (default Bravura);
+      make the font swappable via `CrispNotationTheme.musicFont` (default Bravura);
       the painter draws glyphs in the theme's font and **every view** (staff,
       multi-system, system, page, grand-staff, tab, PNG export) loads the
       theme font's metadata and relayouts on a font change. An end-to-end
@@ -642,13 +640,13 @@ Raises the quality of everything already rendered. Slice order:
       numbering (needs the wrapping layer), per-measure overrides, section reset,
       and MusicXML round-trip for measure-repeat (`<measure-repeat>`).
 
-### Phase 3 — Interactivity  *(the moat — where partitura wins)*
+### Phase 3 — Interactivity  *(the moat — where crisp_notation wins)*
 Rides the existing cursor + selection; no audio needed.
 - [x] **3.1 Cursor-synced instrument visualizers** — `PianoKeyboardView` (keys
       light up; per-pitch/hand colors; golden 119) and `FretboardView` (guitar /
       bass, `tuning` low→high; lights every fret position sounding a pitch, open
       strings ringed, inlays; golden 120), driven from the cursor via core's
-      `pitchesForElements(score, ids)` → sounding MIDI. App drives, partitura
+      `pitchesForElements(score, ids)` → sounding MIDI. App drives, crisp_notation
       renders. `piano_keyboard_view_test.dart`, `fretboard_view_test.dart`,
       `playback_test.dart`.
 - [x] **3.2 Note-name & rhythm-count overlays** — the note-name overlay
@@ -661,11 +659,11 @@ Rides the existing cursor + selection; no audio needed.
       painted as a translucent selection/loop band across systems on
       `MultiSystemView` (goldens 109) and spanning both staves on
       `InteractiveGrandStaffView` (golden 111). The app owns drag-to-select;
-      partitura renders the resolved band.
+      crisp_notation renders the resolved band.
 - [x] **3.4 Error / annotation overlay** — `EditorMark` (color + optional
       message) per note id via `errorOverlay`; the note draws in the mark color
       with a wedge above its staff, so assessment / ear-training apps supply
-      their own analysis and ask partitura to show it (both views).
+      their own analysis and ask crisp_notation to show it (both views).
 - [x] **3.5 Warped-time cursor + external sync points** — `TempoMap`
       (piecewise-constant `TempoSpan`s; `secondsAt`/`timeAt`/`constant`) extends
       the fixed-clock `secondsFor` to variable tempo; `SyncPoints` maps
@@ -985,12 +983,12 @@ enum encodings so files round-trip cleanly), tiered by importance:
       time-signature meta; voice→channel). Contract-safe (no audio).
 - [x] **7.2 Raster + vector export** — SVG (`scoreToSvg`, pure-Dart emitter
       over `ScoreLayout`; notation and tab; optional embedded font) and PNG
-      (`renderLayoutToPng` in the `partitura` package, via `dart:ui`). Both
+      (`renderLayoutToPng` in the `crisp_notation` package, via `dart:ui`). Both
       serve notation and tablature.
 - [~] **7.3 Wider import** — additional interchange formats beyond MusicXML.
       **Done:** MIDI import (`scoreFromMidi`); plain-text/ASCII tab import
       (`asciiTabToScore`); `.gp` import **and** export (`scoreFromGpif` /
-      `scoreToGpif` GPIF subset + the `.gp` ZIP container in `partitura_cli`).
+      `scoreToGpif` GPIF subset + the `.gp` ZIP container in `crisp_notation_cli`).
       That import also reads the common playing techniques (HO/PO, slides, bends,
       vibrato, palm mute, let ring, dead, natural/artificial/pinch harmonic)
       into the tab marks. All formats round-trip transparently through the
@@ -999,7 +997,7 @@ enum encodings so files round-trip cleanly), tiered by importance:
       `.gp5`, a from-scratch byte-exact reader — plus `.gpx` (v6, BCFZ/BCFS)
       and `.gp` (v7/8, GPIF-in-ZIP), all wired into the CLI and
       regression-tested against real vendored alphaTab fixtures
-      (`partitura_cli/test/gp_fixtures_test.dart`; `.gp3`/`.gp4`/`.gp5` agree note-for-note
+      (`crisp_notation_cli/test/gp_fixtures_test.dart`; `.gp3`/`.gp4`/`.gp5` agree note-for-note
       on the shared techniques). **ABC notation import + export**
       (`scoreFromAbc` / `scoreToAbc`) — the folk/traditional plain-text format:
       `M`/`L`/`K` header (meter, unit length, key + church modes, clef), notes
@@ -1046,7 +1044,7 @@ enum encodings so files round-trip cleanly), tiered by importance:
       `timeChange` on a measure reprints its new signature before the bar (the
       running key drives accidental suppression from that point). **Left:**
       in-accord voices, clef signs, dynamics/slurs/fingering, line/format rules.
-- [x] **7.6 CLI tool** (`partitura_cli`) — a pure-Dart command line for
+- [x] **7.6 CLI tool** (`crisp_notation_cli`) — a pure-Dart command line for
       `info` / `timeline` / `convert` (MusicXML ↔ MIDI) / `render` (SVG or,
       by delegating to the Flutter SDK, PNG; notation or `--tab`), with live
       process tests. *Left (nice-to-have):* reading the DSL / more input
@@ -1258,7 +1256,7 @@ bolting fields on ad hoc.
 
 ## Permanently out of scope
 
-partitura is an interactive **rendering + theory substrate**, not an editor or
+crisp_notation is an interactive **rendering + theory substrate**, not an editor or
 a DAW. Explicitly not pursued:
 
 - **Audio synthesis / playback / mixing of any kind** (the timing map and MIDI
@@ -1279,14 +1277,14 @@ a DAW. Explicitly not pursued:
 Mirror the v0.3–v0.7 pattern. A note-attached mark, a score-level span, and a
 measure-level mark each thread through a fixed set of touch points:
 
-1. **Model** — `partitura_core/lib/src/model/{element,measure,score}.dart`:
+1. **Model** — `crisp_notation_core/lib/src/model/{element,measure,score}.dart`:
    a field on `NoteElement`/`Measure`, or a new span class + a `Score.<list>`;
    update the constructor, `==`, `hashCode`, `toString`.
 2. **Plumbing** — carry the field through `Score.transposedBy`, the
    `multi_system.dart` per-line rebuild (filter spans by contained ids), and
    the MusicXML reader's chord-merge rebuild.
 3. **Glyphs** — names + helper in `smufl/glyph_names.dart`; codepoints in
-   `partitura/lib/src/rendering/smufl_glyphs.dart`. Verify the glyph exists in
+   `crisp_notation/lib/src/rendering/smufl_glyphs.dart`. Verify the glyph exists in
    the bundled font metadata first (`bBoxOf` throws on a missing name).
 4. **Layout** — a `_layoutXxx()` pass in `layout_engine.dart`, or draw inside
    `_layoutNote` when stem/notehead geometry is needed. Use `_addGlyph` /
@@ -1297,16 +1295,16 @@ measure-level mark each thread through a fixed set of touch points:
 6. **Interchange** — MusicXML reader + writer, round-trip tested. Spans mirror
    the slur/wedge number-pairing pattern; note-attached marks live in
    `<notations>`.
-7. **Tests** — a `*_test.dart` in `partitura_core/test/` (value semantics,
+7. **Tests** — a `*_test.dart` in `crisp_notation_core/test/` (value semantics,
    layout assertions on emitted primitives, MusicXML round-trip, transpose).
-8. **Golden + gallery** — a numbered scene in `partitura/test/golden_test.dart`
+8. **Golden + gallery** — a numbered scene in `crisp_notation/test/golden_test.dart`
    (regenerate with `flutter test --update-goldens --plain-name '<name>'`) and
-   an entry in `partitura/example/lib/gallery.dart`. **Always view the
+   an entry in `crisp_notation/example/lib/gallery.dart`. **Always view the
    generated PNG** — several real bugs have been caught only by looking.
 9. **Docs** — `docs/CONTRACT.md` (model bullet + capabilities paragraph), both
    `CHANGELOG.md` files, and check the item off here.
 10. **Commit** per feature, then the gates: `dart analyze` + `dart test` in
-    `partitura_core`, `flutter analyze` + `flutter test` in `partitura`,
+    `crisp_notation_core`, `flutter analyze` + `flutter test` in `crisp_notation`,
     `dart format`.
 
 **Gotcha:** `smufl_glyphs.dart` stores codepoints as literal escape text

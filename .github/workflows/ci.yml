@@ -21,11 +21,11 @@ jobs:
         with:
           channel: stable
       - run: flutter pub get
-      - name: partitura_core
-        working-directory: packages/partitura_core
+      - name: crisp_notation_core
+        working-directory: packages/crisp_notation_core
         run: dart pub publish --dry-run
-      - name: partitura
-        working-directory: packages/partitura
+      - name: crisp_notation
+        working-directory: packages/crisp_notation
         run: dart pub publish --dry-run
 
   wasm-smoke:
@@ -38,10 +38,10 @@ jobs:
           channel: stable
       - run: flutter pub get
       - name: Compile to WasmGC
-        working-directory: packages/partitura_core/example/wasm
+        working-directory: packages/crisp_notation_core/example/wasm
         run: bash build.sh
       - name: Run the WASM codec smoke under Node
-        working-directory: packages/partitura_core/example/wasm
+        working-directory: packages/crisp_notation_core/example/wasm
         run: node run_node.mjs
 
   ios-build-check:
@@ -54,5 +54,5 @@ jobs:
           channel: stable
       - run: flutter pub get
       - name: Build iOS (no code signing)
-        working-directory: packages/partitura/example
+        working-directory: packages/crisp_notation/example
         run: flutter build ios --no-codesign

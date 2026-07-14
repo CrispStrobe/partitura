@@ -1,4 +1,4 @@
-# partitura
+# crisp_notation
 
 Music notation rendering for Dart & Flutter, with first-class interactivity.
 
@@ -7,45 +7,45 @@ contract ([HANDOVER.md](HANDOVER.md)); active development now follows
 [PLAN.md](PLAN.md). API guarantees consumers may rely on are in
 [docs/CONTRACT.md](docs/CONTRACT.md); design decisions are logged in
 [docs/DESIGN.md](docs/DESIGN.md); the running feature log is each package's
-CHANGELOG ([core](packages/partitura_core/CHANGELOG.md),
-[Flutter](packages/partitura/CHANGELOG.md), [CLI](packages/partitura_cli/CHANGELOG.md)).
+CHANGELOG ([core](packages/crisp_notation_core/CHANGELOG.md),
+[Flutter](packages/crisp_notation/CHANGELOG.md), [CLI](packages/crisp_notation_cli/CHANGELOG.md)).
 
-![partitura rendering](packages/partitura/doc/hero.png)
+![crisp_notation rendering](packages/crisp_notation/doc/hero.png)
 
 | Package | Contents | Depends on |
 |---|---|---|
-| [`partitura_core`](packages/partitura_core) | Music theory model (pitch, duration, key, scale, chord, harmonic function), score document model, deterministic layout engine. Pure Dart. | Dart SDK only |
-| [`partitura`](packages/partitura) | Flutter rendering (`StaffView`, wrapped `MultiSystemView`) and interaction (`InteractiveStaff`, `InteractiveGrandStaffView`): hit-testing, selection, drag-to-staff, hover caret + ghost-note preview, error/loop overlays and a `ScoreEditorController`. Bundles the Bravura SMuFL font. | Flutter, `partitura_core` |
-| [`partitura_cli`](packages/partitura_cli) | Command-line tool: inspect scores, convert between MusicXML / `.mxl` / MIDI / MuseScore / `.gp` / ABC, render to SVG (notation or tab). Pure Dart. | `partitura_core` |
+| [`crisp_notation_core`](packages/crisp_notation_core) | Music theory model (pitch, duration, key, scale, chord, harmonic function), score document model, deterministic layout engine. Pure Dart. | Dart SDK only |
+| [`crisp_notation`](packages/crisp_notation) | Flutter rendering (`StaffView`, wrapped `MultiSystemView`) and interaction (`InteractiveStaff`, `InteractiveGrandStaffView`): hit-testing, selection, drag-to-staff, hover caret + ghost-note preview, error/loop overlays and a `ScoreEditorController`. Bundles the Bravura SMuFL font. | Flutter, `crisp_notation_core` |
+| [`crisp_notation_cli`](packages/crisp_notation_cli) | Command-line tool: inspect scores, convert between MusicXML / `.mxl` / MIDI / MuseScore / `.gp` / ABC, render to SVG (notation or tab). Pure Dart. | `crisp_notation_core` |
 
 ## Install
 
 Once published to pub.dev:
 
 ```sh
-flutter pub add partitura          # Flutter rendering + interaction
-dart pub add partitura_core        # pure-Dart theory/layout/interchange only
+flutter pub add crisp_notation          # Flutter rendering + interaction
+dart pub add crisp_notation_core        # pure-Dart theory/layout/interchange only
 ```
 
 Until then (or to track `main`), depend on it from git — the Flutter package
-needs both, since `partitura_core` isn't on pub.dev yet:
+needs both, since `crisp_notation_core` isn't on pub.dev yet:
 
 ```yaml
 dependencies:
-  partitura:
-    git: { url: https://github.com/CrispStrobe/partitura.git, path: packages/partitura, ref: v0.4.0 }
-  partitura_core:
-    git: { url: https://github.com/CrispStrobe/partitura.git, path: packages/partitura_core, ref: v0.4.0 }
+  crisp_notation:
+    git: { url: https://github.com/CrispStrobe/crisp_notation.git, path: packages/crisp_notation, ref: v0.4.0 }
+  crisp_notation_core:
+    git: { url: https://github.com/CrispStrobe/crisp_notation.git, path: packages/crisp_notation_core, ref: v0.4.0 }
 ```
 
 The CLI ships as prebuilt native binaries on each
-[release](https://github.com/CrispStrobe/partitura/releases) (macOS/Linux/Windows),
-or run it from source: `dart run partitura_cli:partitura <command>`.
+[release](https://github.com/CrispStrobe/crisp_notation/releases) (macOS/Linux/Windows),
+or run it from source: `dart run crisp_notation_cli:crisp_notation <command>`.
 
 ## Why another notation library?
 
 VexFlow, OpenSheetMusicDisplay and abcjs are JavaScript and render statically.
-partitura targets Flutter apps that need **interactive** notation — education
+crisp_notation targets Flutter apps that need **interactive** notation — education
 games, ear-training, theory drills — where every notehead must be tappable,
 draggable and highlightable.
 
@@ -100,7 +100,7 @@ LilyPond `.ly` and braille-music (`.brl`) export.
 
 **Optical music recognition.** A staff-notation image imports to a score via
 [CrispEmbed](https://github.com/CrispStrobe/CrispEmbed), auto-routing three
-engines through one `partitura omr` command: the Sheet Music Transformer
+engines through one `crisp_notation omr` command: the Sheet Music Transformer
 (grand staff → `GrandStaff`, via `bekern` tokens), Polyphonic-TrOMR (single
 polyphonic staff → `Score`, via *semantic* notation), and Flova (handwritten /
 whiteboard staves → `Score`, via LilyPond "simple notes"). A full-page scan is
@@ -108,7 +108,7 @@ split into staff systems (`--page`) and transcribed end to end; models
 auto-download by name from Hugging Face. All map into the one `Score` model, so a
 scan then exports like any other input (image → MusicXML/`**kern`/…). The
 token→score conversion is pure Dart; the recognition engine loads over FFI, and
-the whole pipeline is reusable as `package:partitura_cli/omr.dart` (CLI or
+the whole pipeline is reusable as `package:crisp_notation_cli/omr.dart` (CLI or
 Flutter desktop, wherever `dart:ffi` works).
 
 **Beyond the category.** A renderer-free deterministic layout engine,
@@ -122,7 +122,7 @@ Still out: page frames/spacers and a physical mm/spatium scaling unit
 ## License
 
 Code: [MIT](LICENSE). Bundled Bravura font: SIL OFL 1.1 (© Steinberg Media
-Technologies GmbH), see [OFL.txt](packages/partitura/assets/fonts/OFL.txt).
+Technologies GmbH), see [OFL.txt](packages/crisp_notation/assets/fonts/OFL.txt).
 
 ## Development
 

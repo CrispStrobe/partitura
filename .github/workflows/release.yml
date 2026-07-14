@@ -2,7 +2,7 @@ name: release
 
 # Builds release artifacts and attaches them to the GitHub Release for the
 # pushed tag: the native CLI executables (macOS/Linux/Windows), an Android APK
-# of the example app, and the partitura_core WasmGC modules. The Release itself
+# of the example app, and the crisp_notation_core WasmGC modules. The Release itself
 # (with curated notes) is created by `gh release create v<x.y.z>`; pushing that
 # tag triggers this workflow.
 on:
@@ -23,18 +23,18 @@ jobs:
         include:
           - os: macos-latest
             target: macos-arm64
-            asset: partitura-macos-arm64
+            asset: crisp_notation-macos-arm64
           - os: ubuntu-latest
             target: linux-x64
-            asset: partitura-linux-x64
+            asset: crisp_notation-linux-x64
           - os: windows-latest
             target: windows-x64
-            asset: partitura-windows-x64.exe
+            asset: crisp_notation-windows-x64.exe
     steps:
       - uses: actions/checkout@v4
 
       # Flutter bundles the Dart SDK. The pub *workspace* includes the Flutter
-      # `partitura` package, so resolving any member needs Flutter present —
+      # `crisp_notation` package, so resolving any member needs Flutter present —
       # even though the CLI itself is pure Dart and compiles with `dart`.
       - uses: subosito/flutter-action@v2
         with:
@@ -45,7 +45,7 @@ jobs:
 
       - name: Compile CLI (pure Dart)
         shell: bash
-        run: dart compile exe packages/partitura_cli/bin/partitura.dart -o "${{ matrix.asset }}"
+        run: dart compile exe packages/crisp_notation_cli/bin/crisp_notation.dart -o "${{ matrix.asset }}"
 
       - name: Smoke-test the binary
         shell: bash
@@ -68,14 +68,14 @@ jobs:
       - name: Resolve dependencies
         run: flutter pub get
       - name: Build debug APK (unsigned)
-        working-directory: packages/partitura/example
+        working-directory: packages/crisp_notation/example
         run: flutter build apk --debug
       - name: Upload to the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp packages/partitura/example/build/app/outputs/flutter-apk/app-debug.apk partitura-example-android.apk
-          gh release upload "${{ github.ref_name }}" partitura-example-android.apk --clobber
+          cp packages/crisp_notation/example/build/app/outputs/flutter-apk/app-debug.apk crisp_notation-example-android.apk
+          gh release upload "${{ github.ref_name }}" crisp_notation-example-android.apk --clobber
 
   wasm:
     name: build wasm module
@@ -87,11 +87,11 @@ jobs:
           channel: stable
       - name: Resolve dependencies
         run: flutter pub get
-      - name: Compile partitura_core to WasmGC
-        working-directory: packages/partitura_core/example/wasm
+      - name: Compile crisp_notation_core to WasmGC
+        working-directory: packages/crisp_notation_core/example/wasm
         run: bash build.sh
       - name: Upload to the release
-        working-directory: packages/partitura_core/example/wasm/build
+        working-directory: packages/crisp_notation_core/example/wasm/build
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "${{ github.ref_name }}" wasm_smoke.wasm wasm_smoke.mjs main.wasm main.mjs --clobber

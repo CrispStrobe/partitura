@@ -1,4 +1,4 @@
-# partitura — design log
+# crisp_notation — design log
 
 Running log of non-obvious decisions and their rationale. Append as you go;
 terse is fine. Active roadmap coordination lives in PLAN.md.
@@ -6,7 +6,7 @@ terse is fine. Active roadmap coordination lives in PLAN.md.
 ## Pre-seeded decisions (scaffold, 2026-07-10)
 
 - **Naming**: the project was scaffolded as "neume" and renamed to
-  "partitura" the same day (maintainer decision). HANDOVER.md is retained
+  "crisp_notation" the same day (maintainer decision). HANDOVER.md is retained
   only as historical context; current coordination lives in PLAN.md and the
   implemented public contract lives in docs/CONTRACT.md.
 - **Coordinate system**: layout works in *staff spaces* (1 space = gap between
@@ -15,7 +15,7 @@ terse is fine. Active roadmap coordination lives in PLAN.md.
   factor. SMuFL convention: font size = 4 × staff space.
 - **Staff position convention**: `Pitch.staffPosition(clef)` returns 0 for the
   bottom line, +1 per line/space upward (treble: E4 = 0; bass: G2 = 0).
-- **Two packages, not three**: layout stays in `partitura_core` (pure Dart,
+- **Two packages, not three**: layout stays in `crisp_notation_core` (pure Dart,
   logic testable without Flutter); a separate layout package added friction
   without a consumer that wants layout-but-not-theory.
 - **No dependencies**: theory core is small at our scope; owning it keeps the
@@ -59,15 +59,15 @@ terse is fine. Active roadmap coordination lives in PLAN.md.
 ## M2 — layout engine (2026-07-10)
 
 - **Geometry types**: HANDOVER.md's pseudo-code uses `Offset`, but
-  `partitura_core` cannot depend on Flutter. We use `dart:math`'s
+  `crisp_notation_core` cannot depend on Flutter. We use `dart:math`'s
   `Point<double>` / `Rectangle<double>` (SDK-only). Deliberately NOT a
   custom class named `Offset`/`Rect` — that would collide with `dart:ui`
-  in every consumer that imports both Flutter and partitura.
+  in every consumer that imports both Flutter and crisp_notation.
 - **y of a staff position**: `y = (8 - p) / 2` (origin top line, y down).
 - **Metadata flow**: core cannot load assets; the consumer decodes
   `bravura_metadata.json` and passes it via
   `SmuflMetadata.fromJson` → `LayoutSettings(metadata: …)`. Core tests read
-  the file from `../partitura/assets/` directly. Glyph metrics (bboxes,
+  the file from `../crisp_notation/assets/` directly. Glyph metrics (bboxes,
   stem anchors) come from the font metadata, not hardcoded values; SMuFL
   bbox/anchor y-up coordinates are flipped at the single point of entry.
 - **Spacing formula** (rule 13): a note/rest advances
@@ -131,7 +131,7 @@ terse is fine. Active roadmap coordination lives in PLAN.md.
 - **Goldens** (21 scenes) were generated on **macOS** with Flutter 3.44.4;
   font rendering differs across platforms, so run them on macOS or
   regenerate locally (`flutter test --update-goldens`).
-- **Example app** is a workspace member (`packages/partitura/example` in
+- **Example app** is a workspace member (`packages/crisp_notation/example` in
   the root `workspace:` list) — pub workspaces don't allow unlisted nested
   packages.
 
@@ -163,7 +163,7 @@ terse is fine. Active roadmap coordination lives in PLAN.md.
   they go live once the repo is pushed to the `repository:` URL.
 - **`dart pub publish --dry-run`** passes for both packages; the only
   warning is the (expected) uncommitted-changes notice at check time.
-  Archive: partitura ≈ 856 KB compressed, dominated by the unmodified
+  Archive: crisp_notation ≈ 856 KB compressed, dominated by the unmodified
   Bravura font + metadata (OFL requires shipping it unrenamed/unsubset).
 - **Example verified**: macOS debug build launched and ran; web and iOS
   simulator debug builds compile. Goldens + widget tests cover rendering
@@ -224,7 +224,7 @@ terse is fine. Active roadmap coordination lives in PLAN.md.
 ## Test expansion round 2 + contract doc (2026-07-10)
 
 - Added constructor-validation and engraving-quality suites (core 233
-  tests), theme/geometry/gesture contracts and two new goldens (partitura
+  tests), theme/geometry/gesture contracts and two new goldens (crisp_notation
   64 tests), example control-flow tests and an extended on-device
   integration run. Full inventory in docs/CONTRACT.md §9.
 - **Library fix found by the retry test**: `Bravura.load()` cached a
@@ -259,7 +259,7 @@ terse is fine. Active roadmap coordination lives in PLAN.md.
   positions, accidental implications, beam windows, signature tables)
   reads the current state, so changes are one code path, not special
   cases.
-- Volta numbers reuse the SMuFL tuplet digits at 0.8× — partitura still
+- Volta numbers reuse the SMuFL tuplet digits at 0.8× — crisp_notation still
   has no text primitive; revisit when lyrics (v0.4) introduce one.
 - Interaction quantization still maps via one clef; documented caveat in
   CONTRACT.md until the geometry API grows per-measure clefs.
@@ -337,7 +337,7 @@ terse is fine. Active roadmap coordination lives in PLAN.md.
   along the baseline under following voice-1 notes without their own
   syllable and stop at the next syllable.
 - Widget tests default to the framework's box font; goldens opt into a
-  real face via `PartituraTheme.textFontFamily: 'Roboto'`, loaded from
+  real face via `CrispNotationTheme.textFontFamily: 'Roboto'`, loaded from
   the local Flutter SDK in `test_setup.dart` (no font asset added to
   the package).
 
@@ -362,7 +362,7 @@ terse is fine. Active roadmap coordination lives in PLAN.md.
   falling back to duration/divisions arithmetic for whole-measure
   rests. `<backup>`/`<forward>` are ignored: voices are grouped by
   their `<voice>` label instead (first label seen per measure = our
-  voice 1), which matches partitura's two-voice model.
+  voice 1), which matches crisp_notation's two-voice model.
 - Directions (dynamics, wedge starts) and `<harmony>` attach to the
   **next** note read; wedge stops anchor on the most recent note.
 - Two id spaces (`e0…`, `e1000…`) keep grand-staff element ids unique
@@ -520,14 +520,14 @@ terse is fine. Active roadmap coordination lives in PLAN.md.
 
 ## v0.6.9 editor moat — overlays + imperative control (Phase 3.3/3.4/3.8, 2026-07-12)
 
-- Design stance made explicit: **partitura renders, the app drives.** The
+- Design stance made explicit: **crisp_notation renders, the app drives.** The
   multi-line and grand-staff views gain repaint-only overlays —
   `errorOverlay` (`Map<String, EditorMark>`, each mark a `Color` + optional
   `message`, drawn as the element's ink color plus a small wedge above it),
   `loopRange` (`(startId, endId)`, a translucent band spanning systems /
   both staves), and `rectOfElement(id)` geometry on the render object. The
   `message` is *carried, not drawn* — the app surfaces it from its own
-  `onElementTap` / `onHover` hit, so partitura owns no tooltip UI.
+  `onElementTap` / `onHover` hit, so crisp_notation owns no tooltip UI.
 - `ScoreEditorController` is a `ChangeNotifier` that is the single source of
   truth for a view's overlay state (`setLoop`/`clearLoop`,
   `mark`/`unmark`/`setMarks`, `highlight`/…), bound into the views via
@@ -558,7 +558,7 @@ terse is fine. Active roadmap coordination lives in PLAN.md.
 
 ## v0.6.11 OMR — three engines through one command (2026-07-12)
 
-- `partitura omr` routes three CrispEmbed engines, auto-selected by dialect
+- `crisp_notation omr` routes three CrispEmbed engines, auto-selected by dialect
   (`omrDialectOf` → `OmrDialect`): SMT `bekern` → grand staff, Polyphonic-
   TrOMR semantic → polyphonic staff, Flova simple-notes LilyPond
   (`scoreFromLilyNotes`) → handwritten single staff. `--page` splits a
@@ -568,7 +568,7 @@ terse is fine. Active roadmap coordination lives in PLAN.md.
 - Division of labour is the point: token→score parsing stays **pure Dart**
   (testable without a model, web-safe, deterministic), and only the
   recognition engine is FFI. The whole pipeline is re-exported as
-  `package:partitura_cli/omr.dart`, so any Dart program where `dart:ffi`
+  `package:crisp_notation_cli/omr.dart`, so any Dart program where `dart:ffi`
   works can drive OMR — the CLI and Flutter desktop alike — not just the
   CLI binary. Web stays out of reach (no `dart:ffi`).
 

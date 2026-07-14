@@ -30,7 +30,7 @@ breaks into systems and paginates. Two agents built toward it in parallel with
 ### A. Public `main` — the layout primitive (increment 1)
 
 `layoutStaffSystemSystems(StaffSystem document, LayoutSettings, {maxWidth, …})`
-→ `StaffSystemSystems` (in `partitura_core/lib/src/layout/multi_system.dart`).
+→ `StaffSystemSystems` (in `crisp_notation_core/lib/src/layout/multi_system.dart`).
 
 - Takes an N-part `StaffSystem` and breaks it into systems no wider than
   `maxWidth`, packing measures by the widest part so **barlines align across
@@ -49,7 +49,7 @@ This layer is **pure layout** — it has no document model and no widget.
 
 ### B. Private clone — the document + widget (not yet on public `main`)
 
-A separate design in `partitura-private` (must be moved to public):
+A separate design in `crisp_notation-private` (must be moved to public):
 
 - `MultiPartScore` model + `MultiPartScore.fromStaffSystem` (bridges importers).
 - Multi-part line-breaking + pagination.
@@ -68,7 +68,7 @@ The two are complementary, not competing — keep both, layered:
    rather than re-implementing the wrapping/justification. Concretely:
    `MultiPartScore` → build a `StaffSystem` (one `Score` per part) → feed
    `layoutStaffSystemSystems` → paginate the resulting systems.
-3. Move B's commits from `partitura-private` onto public `main`, deleting any
+3. Move B's commits from `crisp_notation-private` onto public `main`, deleting any
    duplicate wrapping/justification logic in favour of A.
 4. Delete whichever pagination code duplicates `layoutPages`
    (`PagedLayout` already paginates a `List<StaffSystem>` — a

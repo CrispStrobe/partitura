@@ -1,6 +1,6 @@
-# partitura — features and public API contract (v0.4-dev)
+# crisp_notation — features and public API contract (v0.4-dev)
 
-This document describes what partitura **does** and which API surface and
+This document describes what crisp_notation **does** and which API surface and
 behaviors consumers may **rely on**. It reflects the implementation as
 shipped; active development follows [PLAN.md](../PLAN.md), and the reasoning
 behind non-obvious choices is in [DESIGN.md](DESIGN.md). The original build
@@ -16,11 +16,11 @@ a documented migration note.
 
 | Package | Platform | Depends on | Contents |
 |---|---|---|---|
-| `partitura_core` | any Dart | Dart SDK only (zero deps) | music theory, score model, deterministic layout engine, SMuFL metadata types |
-| `partitura` | Flutter | Flutter + `partitura_core` (re-exported) | rendering (`StaffView`), interaction (`InteractiveStaff`), bundled Bravura font (SIL OFL 1.1) |
+| `crisp_notation_core` | any Dart | Dart SDK only (zero deps) | music theory, score model, deterministic layout engine, SMuFL metadata types |
+| `crisp_notation` | Flutter | Flutter + `crisp_notation_core` (re-exported) | rendering (`StaffView`), interaction (`InteractiveStaff`), bundled Bravura font (SIL OFL 1.1) |
 
-`partitura_core` must never gain a runtime dependency; `partitura` must
-never gain one beyond Flutter + `partitura_core`. The Bravura font ships
+`crisp_notation_core` must never gain a runtime dependency; `crisp_notation` must
+never gain one beyond Flutter + `crisp_notation_core`. The Bravura font ships
 unconverted, unsubset and unrenamed (OFL Reserved Font Name clause).
 
 ## 2. Binding conventions
@@ -44,7 +44,7 @@ Changing any of them is a breaking change:
   (deliberately not Flutter's `Offset`/`Rect`, and deliberately no custom
   types of those names — see DESIGN.md).
 
-## 3. Theory layer (`partitura_core`)
+## 3. Theory layer (`crisp_notation_core`)
 
 | Type | Contract |
 |---|---|
@@ -63,7 +63,7 @@ Changing any of them is a breaking change:
 All theory types are immutable value types: `==`/`hashCode` are
 value-based, invalid constructor arguments fail asserts in debug builds.
 
-## 4. Score model (`partitura_core`)
+## 4. Score model (`crisp_notation_core`)
 
 - `Score` = clef + `KeySignature` (default C) + optional `TimeSignature`
   (null = unmetered: no time signature drawn, measure sums unchecked) +
@@ -171,14 +171,14 @@ The `annotations:` parameter works the same way but places text
 skips a note (`annotations: 'C * G7 *'`). Model type:
 `Annotation(elementId, text)` in `Score.annotations`.
 
-## 5. Layout engine (`partitura_core`)
+## 5. Layout engine (`crisp_notation_core`)
 
 `const LayoutEngine().layout(score, settings)` → `ScoreLayout`.
 
 - `LayoutSettings(metadata: …)`: engraving values (staff line/stem/ledger/
   beam/barline thicknesses, ledger extension) default to the font's
   `engravingDefaults`; spacing policy (padding, gaps, `spacingBase`,
-  `spacingPerLog2`, `minNoteGap`, `stemLength` 3.5) is partitura's own and
+  `spacingPerLog2`, `minNoteGap`, `stemLength` 3.5) is crisp_notation's own and
   overridable per instance.
 - `SmuflMetadata.fromJson(...)` parses a SMuFL font metadata file
   (engraving defaults, glyph bounding boxes, stem anchors); core never
@@ -360,7 +360,7 @@ slurs/ties, tuplets, grace notes, articulations and dynamics in v0.3; two
 voices, grand staff, line breaking, lyrics and chord symbols/annotations in
 v0.4.
 
-## 5b. MusicXML import & export (`partitura_core`)
+## 5b. MusicXML import & export (`crisp_notation_core`)
 
 Export: `scoreToMusicXml(score)` / `grandStaffToMusicXml(grandStaff)`
 (two parts P1/P2). Round-trip guarantee: re-importing an exported
@@ -382,7 +382,7 @@ with `scoreTo`/`scoreFromMusicXml`. Reading follows the
 `META-INF/container.xml` rootfile, else the first non-`META-INF` `.xml`. Pure
 Dart (web-safe): the archive deflates/inflates through the in-repo `zip.dart`.
 
-## 5c. Playback cursor (`partitura_core`)
+## 5c. Playback cursor (`crisp_notation_core`)
 
 `playbackTimeline(score, {expandRepeats = true})` → sorted
 `List<PlaybackNote>` (`elementId`, `start`/`duration` as whole-note
@@ -400,7 +400,7 @@ highlight (rests excluded). `secondsFor(wholeNotes, quarterBpm:)` maps
 musical time to seconds. **No audio, ever** — apps bring their own
 synth and drive `highlightedIds` from this timeline.
 
-## 5d. Transposition (`partitura_core`)
+## 5d. Transposition (`crisp_notation_core`)
 
 `score.transposedBy(interval, descending: false)` → a new `Score` with
 every pitch (chords, both voices, grace notes), the key signature and
@@ -410,7 +410,7 @@ stay unchanged, so highlights/taps/playback keep working. Note:
 Flutter's `material.dart` also exports an `Interval` — `hide Interval`
 on the material import when using both.
 
-## 5e. MIDI import & export (`partitura_core`)
+## 5e. MIDI import & export (`crisp_notation_core`)
 
 Export: `scoreToMidi(score, {quarterBpm = 120, ticksPerQuarter = 480})` →
 `Uint8List`: a Standard MIDI File (format 0). Built on `playbackTimeline`,
@@ -419,7 +419,7 @@ One tempo and (if the score is metered) one time-signature meta event at
 tick 0; each note/chord emits a note-on per pitch at velocity 80 and a
 matching note-off; voice 1 → channel 0, voice 2 → channel 1. Grace notes
 carry no time and are omitted. **Contract-safe**: this is a byte stream for
-a consumer's own synth/DAW — partitura still produces no audio.
+a consumer's own synth/DAW — crisp_notation still produces no audio.
 
 Import: `scoreFromMidi(Uint8List bytes)` → `Score` (format 0 and 1; all
 tracks merged). MIDI carries no spelling, clef, key, ties, voices or
@@ -534,7 +534,7 @@ importer also emits `TabVoicing`s so re-rendering as tab keeps each note on the
 string it was written on (rather than the engine's default lowest-fret).
 No tab lines → a single whole-rest measure. Dependency-free, deterministic.
 
-## 5f. SVG export (`partitura_core`)
+## 5f. SVG export (`crisp_notation_core`)
 
 `scoreToSvg(layout, {staffSpace, glyphFontFamily, textFontFamily, color,
 background, fontFaceDataUri})` → a standalone SVG document string. It renders
@@ -545,9 +545,9 @@ native SVG). Pass `fontFaceDataUri` (a `data:` URI of the engraving font) to
 embed it via `@font-face` for a self-contained file. The
 `smuflCodepoints` name→character table also lives in core now (shared by the
 Flutter painter and this emitter). Pure Dart, deterministic. *(Raster/PNG
-export rides the Flutter renderer — see the `partitura` package.)*
+export rides the Flutter renderer — see the `crisp_notation` package.)*
 
-## 6. Rendering (`partitura`)
+## 6. Rendering (`crisp_notation`)
 
 - `Bravura.load()` — parses the bundled font metadata once (async,
   cached, single-flight; failures are not cached and retry). Apps should
@@ -562,7 +562,7 @@ export rides the Flutter renderer — see the `partitura` package.)*
   letter below it and `showBeatNumbers` the counting overlay above — teaching
   overlays that also render through the SVG back-end. `elementColors` is a
   repaint-only per-id color map that mirrors `highlightedIds`.
-- `PartituraTheme` — `staffColor` (furniture), `noteColor` (element ink),
+- `CrispNotationTheme` — `staffColor` (furniture), `noteColor` (element ink),
   `highlightColor` (wins over everything), `elementColors` per-id
   overrides, `kidMode`/`hitSlop`/`lineBoost`, `textFontFamily` for
   lyrics/annotations (null = platform default). Presets: `standard`,
@@ -607,7 +607,7 @@ export rides the Flutter renderer — see the `partitura` package.)*
   `GrandStaff` overloads. `MusicFont.fontAsset` supplies the font bytes for the
   SVG embed.
 
-## 7. Interaction (`partitura`)
+## 7. Interaction (`crisp_notation`)
 
 `InteractiveStaff(score, theme, staffSpace, highlightedIds, onElementTap,
 onStaffTap, showGhostNote, ghostDuration)`:
@@ -623,7 +623,7 @@ onStaffTap, showGhostNote, ghostDuration)`:
 - While dragging (and `showGhostNote`), a semi-transparent quantized
   ghost notehead of `ghostDuration` (with preview ledger lines) follows
   the pointer and vanishes on release.
-- Selection is app state: pass `highlightedIds` down; partitura never
+- Selection is app state: pass `highlightedIds` down; crisp_notation never
   stores a selection.
 
 ### Editor surface (the multi-line and grand-staff views)
@@ -651,7 +651,7 @@ moat — all repaint-only, no relayout:
   full-height insertion bar) and a `ghostTarget` + `ghostDuration` preview
   notehead; element drag hooks `onElementDragStart(id)` /
   `onElementDragUpdate(id, target)` / `onElementDragEnd(id, target)` report a
-  drag on an existing element (partitura only reports; the app rebuilds the
+  drag on an existing element (crisp_notation only reports; the app rebuilds the
   score). `StaffTarget` carries `systemIndex` + `staffIndex`.
 - **C10a** `suppressElementIds: Set<String>` — omits those elements from paint
   entirely (notehead, stem, flag, beam, ledger, curve), a clean
@@ -702,7 +702,7 @@ strict lints (incl. `public_member_api_docs`), all tests green:
 
 | Suite | Scope |
 |---|---|
-| `partitura_core` unit tests (230+) | theory tables + property sweeps, layout rules 1–14, layout edge/quality suites, DSL, SMuFL parsing, validation |
-| `partitura` widget tests (70+) | sizing, hit testing, gestures, ghost lifecycle, repaint/relayout policy, asset loading, pixel-level paint verification |
+| `crisp_notation_core` unit tests (230+) | theory tables + property sweeps, layout rules 1–14, layout edge/quality suites, DSL, SMuFL parsing, validation |
+| `crisp_notation` widget tests (70+) | sizing, hit testing, gestures, ghost lifecycle, repaint/relayout policy, asset loading, pixel-level paint verification |
 | Golden corpus (25 scenes + hero) | all four clefs, all durations, dots, accidentals, chords, beams, rests, signatures, highlights, kid mode, ghost, fit-to-width (macOS-generated) |
 | Example widget tests + integration test | real app boot, gallery scroll, place/select/clear flow, duration & clef controls — `flutter test integration_test -d macos` |
