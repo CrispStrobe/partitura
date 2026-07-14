@@ -1150,12 +1150,13 @@ Marked `[cheap]` (an additive field/enum, low blast radius) or `[deep]`
   on both staves), **cue/ossia notes, explicit beam grouping.** `[deep]`
 - **Tuplet/​slur constraints** — tuplets cannot cross barlines or nest;
   documented model constraints, not bugs.
-- 🚧 **Voice-aware tuplets** *(lacunae agent — `measure.dart`,
-  `playback_timeline.dart`, `layout_engine.dart`, `mei_reader.dart`)* — tuplets
-  currently attach to voice 1 only (`TupletSpan` indexes `elements`), so
-  inner-voice tuplets in string-quartet MEI (Schumann/Brahms) diverge from the
-  music21 oracle. Adding a `voice` field to `TupletSpan` + voice-aware
-  `effectiveDurationAt`, populated by the readers. See `docs/HARDENING.md` G17.
+- [x] **Voice-aware tuplets — done.** `TupletSpan.voice` (0-3) + voice-aware
+  `Measure.effectiveDurationAt(index, {voice})` / `tupletsForVoice` / `voiceAt`;
+  playback + beam-grouping + validation apply per-voice tuplets; the MEI reader
+  tags `<tuplet>`/​`<tupletSpan>` with the holding voice. Borodin trio 91%→100%
+  on the oracle. *Left:* inner-voice tuplet **bracket glyphs** (visual), and a
+  residual on Schumann's cello staff (9 `<tupletSpan>`s referencing chords not
+  resolving). 1358 core + 123 goldens green.
 
 Convention: prefer implementing a `[cheap]` lacuna when a codec would otherwise
 have to drop it; batch the `[deep]` ones into their Phase (2/5) rather than

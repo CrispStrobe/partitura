@@ -162,7 +162,7 @@ class Measure {
 
   /// Optional second (lower) voice. When non-empty, voice 1 stems are
   /// forced up and voice 2 stems down; elements sharing an onset align in
-  /// one column. Tuplets are voice-1 only in v0.4.
+  /// one column. Tuplets may address any voice (see [TupletSpan.voice]).
   final List<MusicElement> voice2;
 
   /// Optional third voice (stems up, like voice 1). Carried through the model,
@@ -174,7 +174,8 @@ class Measure {
   /// Optional fourth voice (stems down, like voice 2). See [voice3].
   final List<MusicElement> voice4;
 
-  /// Tuplet spans over [elements] (treat as immutable, non-overlapping).
+  /// Tuplet spans (immutable, non-overlapping within a voice). Each addresses
+  /// the voice named by [TupletSpan.voice] — voice 1 ([elements]) by default.
   final List<TupletSpan> tuplets;
 
   /// Clef change taking effect at this measure (drawn small at its start).
