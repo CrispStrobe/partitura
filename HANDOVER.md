@@ -1,9 +1,8 @@
 # HANDOVER: Build `neume` — a music notation rendering library for Dart/Flutter
 
 > **Historical document.** This is the *original* build contract, kept verbatim
-> for the record. The project was renamed to **partitura** (see
-> [HANDOVER_PARTITURA.md](HANDOVER_PARTITURA.md)) and has long since completed
-> the five-milestone scope below; active development now follows
+> for the record. The project was renamed to **partitura** and has long since
+> completed the five-milestone scope below; active development now follows
 > [PLAN.md](PLAN.md). For the *current* feature set and public-API guarantees,
 > read [README.md](README.md) and [docs/CONTRACT.md](docs/CONTRACT.md) — not this
 > file.
