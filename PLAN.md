@@ -23,6 +23,10 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-13)
 
+> **Actively working on:** competitor feature discovery and lacunae backlog updates
+> *(Antigravity — `/Users/christianstrobele/code/partitura-competitor-analysis` worktree, `feat/competitor-analysis`;
+> files: PLAN.md).*
+>
 > **Doable-tails lane landed on `main`:** 2.7 measure-repeat signs, 7.5 braille
 > mid-score key/time changes, 2.5 explicit system/page breaks. 2.6 part
 > extraction is already available (`MultiPartScore.parts[i]` + `atConcertPitch`);
@@ -286,7 +290,6 @@ own goldens):**
   re-rendered; `grand_staff_test.dart` asserts it. **§2.9 complete.** (Multi-voice
   staves stay notehead-aligned for diatonic music and degrade gracefully with
   accidentals — a further refinement if ever needed.)
-
 - **Shipped: v0.1 → v0.7.2** — the full common-notation set plus the
   piano/technical layer. All green.
 - **In progress (partial):**
@@ -1158,6 +1161,9 @@ enriched toward it, one feature-group per commit.
   `e0, e1, …`; span anchoring survives only because writer+reader agree on
   order). MIDI additionally loses spelling (re-spelled sharp), tuplets and all
   structure (unfolded via `playbackTimeline`).
+- **MusicXML page & system layout** — read `<page-layout>` (margins/size), `<system-layout>` (distances), and `<appearance>` metrics into the layout engine's initial state; write them back from the computed `PageMetrics`.
+- **MusicXML playback data** — parse `<midi-program>`, `<midi-channel>`, `<volume>`, and `<pan>` inside `<score-part>` to initialize `ScoreMetadata.instrument` defaults, and export them.
+- **Timewise MusicXML parsing** — support the alternative `score-timewise` (measure-first) root XML topology by pivoting the parse tree into the existing partwise chord-merge logic.
 
 ### Layer 2 — Score-model lacunae (feature is NOT representable at all)
 
@@ -1237,7 +1243,13 @@ Marked `[cheap]` (an additive field/enum, low blast radius) or `[deep]`
    - `[deep]`/low: fine-ratio microtones, the 4-voice/staff cap (synthetic test
      only), Schumann's nested-tuplet residual (pitch-perfect, small duration
      edge), drawing the tempo mark in the layout engine.
-
+- **Microtonality & Sagittal accidentals** — expand `Pitch.alter` (currently an integer) to hold fine-grained values (`quarterToneSharp`, `komaFlat`, `sagittal11MediumDiesisDown`), map them in `smufl_glyphs.dart`, draw them in the layout engine, and support the MusicXML `<accidental>` round-trip. `[deep]`
+- **Gregorian chant (square notation)** — introduce `Neume` on `Score` containing `NeumeComponent` elements (punctum, virga, podatus), specifying a `NeumeNotationStyle`. Requires rendering logic for 4-line staves, `doClef`/`faClef`, and structural marks (`episema`, `mora`, `custos`). `[deep]`
+- **Mensural notation** — introduce `MensuralNote` and `MensuralRest` elements with `MensuralHeadShape` (oblique/diamond) and `PlicaDirection`. Requires `Ligature` spans over notes, `Mensur` time signatures, and MEI `<mensur>`/`<ligature>` round-tripping. `[deep]`
+- **Acoustics & Tuning systems** — add `TuningSystem` (e.g. `EqualTemperament`, `JustIntonation`) to `Score`, allowing `Pitch` to compute exact frequencies integrating cents offsets and base `TuningFork` temperature adjustments. Applies to `playbackTimeline` for precise pitch-bend MIDI export. `[deep]`
+- **Extended ornaments & techniques** — expand `Ornament` and `Articulation` enums with the long tail (e.g. `schleifer`, `plop`, `snapPizzicato`, `tongueram`, `flutter`), map their SMuFL glyphs, draw them attached to notes, and round-trip to MusicXML/MEI. `[cheap]`
+- **Post-tonal theory extensions** — expand `theory/` with pure Dart pitch-class arithmetic (modulo-12 math), tone-row transformations (`invertSet`, `retrograde`), and scale quality metrics (e.g., Dorian Brightness Quotient). `[cheap]`
+- **Jianpu (numbered notation)** — alternative `LayoutEngine` pass replacing standard staff lines and noteheads with Jianpu numeric primitives, handling its specific barlines and repeat start/end marks. `[deep]`
 Convention: prefer implementing a `[cheap]` lacuna when a codec would otherwise
 have to drop it; batch the `[deep]` ones into their Phase (2/5) rather than
 bolting fields on ad hoc.
