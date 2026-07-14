@@ -51,16 +51,16 @@ ships* at the end for the mechanics.
 > voice-leading **hidden-octaves** rule. Test-only. (roman-numeral / key-finding
 > checked — already well covered.) No active claim on this line.
 >
-> 🚧 **Actively working (Workshop contracts C11 + C12 — unblock mus G6
-> multi-instrument):** **C11** `multiPartToMusicXml(MultiPartScore, {partNames})`
-> — a public N-part MusicXML writer (reuses `_document`/`_part`; brackets →
-> `<part-group>` group-symbol, barline groups → group-barline), round-tripping
-> through `multiPartScoreFromMusicXml`. **C12** `InteractiveMultiPartView` — a
-> part-aware interaction wrapper over `MultiPartView` mirroring
-> `InteractiveGrandStaffView` (staff-tap / hover-ghost / drag give `(partIndex,
-> StaffTarget)`). Both exported from the barrels. Worktree `partitura-tab`,
-> branch `feat/c11-c12-multipart`. *(Touches `musicxml_writer.dart` — heads-up to
-> the hardening lane; new `interactive_multi_part_view.dart`; barrels.)*
+> **Workshop C11 + C12 (mus G6 multi-instrument) landed on `main`, exported.**
+> **C11** `multiPartToMusicXml(MultiPartScore, {partNames})` — public N-part
+> MusicXML writer (brackets → `<part-group>` group-symbol; barline groups →
+> group-barline; per-part `<transpose>`), round-trips through
+> `multiPartScoreFromMusicXml`. **C12** `InteractiveMultiPartView` — part-aware
+> interaction over `MultiPartView` (added `RenderMultiPartView.targetAt` +
+> ghost / highlightedIds / elementColors / suppressElementIds); staff-tap / hover
+> / drag report `(partIndex, StaffTarget)`. **C12 follow-up (documented, not
+> blocking mus's core):** `dragPreviewOpacity` (C10b redraw), an `EditorCaret`
+> painter, and an `ElementRegionController` binding on the multi-part view.
 >
 > **No active claims otherwise — safe to pick up. Claim with 🚧, push origin/main
 > at every checkpoint** (see [[coordination]] / gitignored `CLAUDE.md`).

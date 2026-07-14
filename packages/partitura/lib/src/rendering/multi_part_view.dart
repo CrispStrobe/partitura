@@ -7,6 +7,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart' hide PageMetrics;
 import 'package:partitura_core/partitura_core.dart';
 
+import '../interaction/staff_target.dart';
 import 'layout_painter.dart';
 import 'music_font.dart';
 import 'theme.dart';
@@ -142,6 +143,59 @@ class RenderMultiPartView extends RenderBox {
   /// Called with the element id when the user taps an element on the current
   /// page.
   void Function(String elementId)? onElementTap;
+
+  /// Called when a tap lands on empty staff space: the part index it fell in and
+  /// the quantized [StaffTarget]. Used by `InteractiveMultiPartView`.
+  void Function(int partIndex, StaffTarget target)? onStaffTapRaw;
+
+  /// Ids painted in the highlight color; per-element ink colors; and ids hidden
+  /// from the layout (a clean drag-source hide, C10a). Repaint-only.
+  Set<String> _highlightedIds = const {};
+  set highlightedIds(Set<String> value) {
+    if (_setEq(value, _highlightedIds)) return;
+    _highlightedIds = value;
+    _painter.highlightedIds = value;
+    markNeedsPaint();
+  }
+
+  set elementColors(Map<String, Color> value) {
+    _painter.elementColors = value;
+    markNeedsPaint();
+  }
+
+  Set<String> _suppressElementIds = const {};
+  set suppressElementIds(Set<String> value) {
+    if (_setEq(value, _suppressElementIds)) return;
+    _suppressElementIds = value;
+    _painter.suppressIds = value;
+    markNeedsPaint();
+  }
+
+  /// A placement ghost: a translucent notehead of [_ghostDuration] at
+  /// [_ghostTarget] in part [_ghostPart]'s coordinate space, or none.
+  int? _ghostPart;
+  StaffTarget? _ghostTarget;
+  NoteDuration _ghostDuration = NoteDuration.quarter;
+  set ghostPart(int? value) {
+    if (value == _ghostPart) return;
+    _ghostPart = value;
+    markNeedsPaint();
+  }
+
+  set ghostTarget(StaffTarget? value) {
+    if (value == _ghostTarget) return;
+    _ghostTarget = value;
+    markNeedsPaint();
+  }
+
+  set ghostDuration(NoteDuration value) {
+    if (value == _ghostDuration) return;
+    _ghostDuration = value;
+    markNeedsPaint();
+  }
+
+  static bool _setEq(Set<String> a, Set<String> b) =>
+      a.length == b.length && a.containsAll(b);
 
   MultiPartPagedLayout? _layout;
   late final LayoutPainter _painter =
@@ -404,21 +458,78 @@ class RenderMultiPartView extends RenderBox {
     return null;
   }
 
+  /// Resolves [local] (local pixels) to the **part** it falls in plus a
+  /// quantized [StaffTarget] in that part's coordinate space — the inverse of
+  /// [elementIdAt], for staff-tap note entry and drag-to-move. Picks the part
+  /// whose staff centre is nearest vertically (so a tap lands in one part even
+  /// in the gaps), or null when the page is empty. `partIndex` is the new axis;
+  /// `StaffTarget.staffIndex` mirrors it, `systemIndex` is the page-local system.
+  ({int partIndex, StaffTarget target})? targetAt(Offset local) {
+    ({int partIndex, StaffTarget target})? best;
+    var bestDy = double.infinity;
+    final systems = _currentPageSystems;
+    for (var s = 0; s < systems.length; s++) {
+      final placed = systems[s];
+      final system = placed.system.layout;
+      final systemTopY = _systemTopY(placed);
+      for (var i = 0; i < system.staves.length; i++) {
+        final partOriginY = systemTopY + system.staffTop(i) * _staffSpace;
+        // Distance from the tap to this part's staff centre (its y = 2 line).
+        final centreY = partOriginY + 2 * _staffSpace;
+        final dy = (local.dy - centreY).abs();
+        if (dy >= bestDy) continue;
+        final yStaff = (local.dy - partOriginY) / _staffSpace;
+        final xStaff = (local.dx - _originX) / _staffSpace;
+        // Same quantization as the single-part view: position 8 = top line.
+        final staffPosition = (8 - 2 * yStaff).round().clamp(-6, 14);
+        var localMeasure = 0;
+        for (final m in system.staves[i].measureRegions) {
+          if (m.startX <= xStaff) {
+            localMeasure = m.index;
+          } else {
+            break;
+          }
+        }
+        bestDy = dy;
+        best = (
+          partIndex: i,
+          target: StaffTarget(
+            staffPosition: staffPosition,
+            measureIndex: placed.system.firstMeasure + localMeasure,
+            systemIndex: s,
+            staffIndex: i,
+          ),
+        );
+      }
+    }
+    return best;
+  }
+
   // ------------------------------------------------------------------ input
 
   @override
-  bool hitTestSelf(Offset position) => onElementTap != null;
+  bool hitTestSelf(Offset position) =>
+      onElementTap != null || onStaffTapRaw != null;
 
   @override
   void handleEvent(PointerEvent event, covariant BoxHitTestEntry entry) {
-    if (event is PointerDownEvent && onElementTap != null) {
+    if (event is PointerDownEvent &&
+        (onElementTap != null || onStaffTapRaw != null)) {
       _tap.addPointer(event);
     }
   }
 
   void _handleTapUp(TapUpDetails details) {
     final id = elementIdAt(details.localPosition);
-    if (id != null) onElementTap?.call(id);
+    if (id != null) {
+      onElementTap?.call(id);
+      return;
+    }
+    final handler = onStaffTapRaw;
+    if (handler != null) {
+      final hit = targetAt(details.localPosition);
+      if (hit != null) handler(hit.partIndex, hit.target);
+    }
   }
 
   @override
@@ -463,6 +574,48 @@ class RenderMultiPartView extends RenderBox {
       _paintBarlineGroups(canvas, system, originX, systemTopY);
       _paintBrackets(canvas, system, originX, systemTopY);
     }
+    _paintGhost(canvas, page, originX, offset);
+  }
+
+  /// A translucent placement notehead at [_ghostTarget] in part [_ghostPart].
+  void _paintGhost(
+      Canvas canvas, MultiPartPageLayout page, double originX, Offset offset) {
+    final target = _ghostTarget;
+    final part = _ghostPart;
+    if (target == null || part == null) return;
+    if (target.systemIndex < 0 || target.systemIndex >= page.systems.length) {
+      return;
+    }
+    final placed = page.systems[target.systemIndex];
+    final system = placed.system.layout;
+    if (part < 0 || part >= system.staves.length) return;
+    final staff = system.staves[part];
+    final localMeasure = target.measureIndex - placed.system.firstMeasure;
+    MeasureRegion? region;
+    for (final m in staff.measureRegions) {
+      if (m.index == localMeasure) region = m;
+    }
+    if (region == null) return;
+    final systemTopY = offset.dy +
+        (_metrics.marginTop + placed.top - system.top) * _staffSpace;
+    final partOriginY = systemTopY + system.staffTop(part) * _staffSpace;
+    final glyph = switch (_ghostDuration.base) {
+      DurationBase.whole => SmuflGlyph.noteheadWhole,
+      DurationBase.half => SmuflGlyph.noteheadHalf,
+      _ => SmuflGlyph.noteheadBlack,
+    };
+    final width =
+        MusicFonts.metadataOrNull(_theme.musicFont)?.bBoxOf(glyph).width ??
+            1.18;
+    final x = region.startX + 0.6; // just inside the measure
+    final y = (8 - target.staffPosition) / 2;
+    _painter.paintGlyph(
+      canvas,
+      Offset(originX, partOriginY),
+      glyph,
+      math.Point(x - width / 2, y),
+      _theme.highlightColor.withValues(alpha: 0.45),
+    );
   }
 
   /// Draws the systemic barlines for each [BarlineSpan]: a vertical line at

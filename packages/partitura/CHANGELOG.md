@@ -2,6 +2,13 @@
 
 ## 0.4.1-dev.1 (in progress)
 
+- **`InteractiveMultiPartView`** (Workshop C12): part-aware interaction over
+  `MultiPartView` — staff-tap-to-place, hover ghost and drag-to-move report
+  `(partIndex, StaffTarget)`; `RenderMultiPartView` gains `targetAt`, a placement
+  ghost, and `highlightedIds`/`elementColors`/`suppressElementIds` overlays.
+  (`dragPreviewOpacity` / `EditorCaret` / `ElementRegionController` are a
+  documented follow-up.)
+
 - **`StaffView.measureNumberInterval`** (Phase 2.7): with `showMeasureNumbers`,
   label only bar 1 and every Nth bar.
 
