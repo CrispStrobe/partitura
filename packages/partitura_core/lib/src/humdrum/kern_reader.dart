@@ -207,8 +207,8 @@ class _KernReader {
   // Grace notes (`q`/`qq`) awaiting attachment to the next principal note.
   var _pendingGraces = <Pitch>[];
   var _pendingGraceStyle = GraceStyle.acciaccatura;
-  // Voice 2 — the second sub-spine after a `*^` split (intra-staff overlay).
-  var _current2 = <MusicElement>[];
+  // Voices 2-4 — the extra sub-spines after `*^` split(s) of this staff.
+  var _extraVoices = [<MusicElement>[], <MusicElement>[], <MusicElement>[]];
   // Per-element tuplet ratio (null = not a tuplet), aligned with [_current].
   var _currentRatios = <({int actual, int normal})?>[];
   final _slurs = <Slur>[];
@@ -268,19 +268,21 @@ class _KernReader {
           _pendingGraceStyle = GraceStyle.acciaccatura;
         }
       }
-      // Second sub-spine → voice 2 (no tuplets/slurs tracked; the model carries
-      // those on voice 1 only). Data tokens only; skip nulls and control tokens.
-      if (myCols.length > 1) {
-        final t2 = at(myCols[1]);
-        if (t2 != '.' &&
-            !t2.startsWith('*') &&
-            !t2.startsWith('=') &&
-            !t2.startsWith('!')) {
-          _current2.add(_element(t2));
+      // Extra sub-spines → voices 2-4 (the model holds four; tuplets/slurs stay
+      // on voice 1). Data tokens only; skip nulls and control tokens.
+      for (var v = 1; v < myCols.length && v <= 3; v++) {
+        final tv = at(myCols[v]);
+        if (tv != '.' &&
+            !tv.startsWith('*') &&
+            !tv.startsWith('=') &&
+            !tv.startsWith('!')) {
+          _extraVoices[v - 1].add(_element(tv));
         }
       }
     }
-    if (_current.isNotEmpty || _current2.isNotEmpty) _finishMeasure();
+    if (_current.isNotEmpty || _extraVoices.any((v) => v.isNotEmpty)) {
+      _finishMeasure();
+    }
     return Score(
       clef: _leadingClef,
       keySignature: _leadingKey,
@@ -339,14 +341,16 @@ class _KernReader {
   void _finishMeasure() {
     _measures.add(Measure(
       _current,
-      voice2: _current2,
+      voice2: _extraVoices[0],
+      voice3: _extraVoices[1],
+      voice4: _extraVoices[2],
       clefChange: _pendingClef,
       keyChange: _pendingKey,
       timeChange: _pendingTime,
       tuplets: _tupletSpansOf(_currentRatios),
     ));
     _current = <MusicElement>[];
-    _current2 = <MusicElement>[];
+    _extraVoices = [<MusicElement>[], <MusicElement>[], <MusicElement>[]];
     _currentRatios = <({int actual, int normal})?>[];
     _pendingClef = null;
     _pendingKey = null;
