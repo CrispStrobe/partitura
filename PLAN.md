@@ -30,6 +30,15 @@ ships* at the end for the mechanics.
 > editor/model owner's `MultiPartScore`, left to them. 5.7 polymeter deferred
 > (big, multi-staff-meter engine — same lane). No active claim on this line.
 >
+> 🚧 **Actively working (notation-breadth lane), in order:** **5.7 polymeter**
+> (local per-staff meters — each staff of a `StaffSystem`/`MultiPartScore` draws
+> and beams its own time signature, aligned-measure case), then **ABC symbol
+> lines** (`s:`), then the **1.4 beam-subdivision** tail. Building on the landed
+> C6 multi-staff engine. Worktree `partitura-c6`, branch `feat/c6-reconcile`.
+> *(Touching `multi_system.dart` / `staff_system.dart` / layout + `abc_reader` —
+> not the model-agent 2.1/2.2 lane, the editor `MultiPartScore` linked-parts, or
+> the hardening files.)*
+>
 > **No active claims otherwise — safe to pick up. Claim with 🚧, push origin/main
 > at every checkpoint** (see [[coordination]] / gitignored `CLAUDE.md`).
 >
