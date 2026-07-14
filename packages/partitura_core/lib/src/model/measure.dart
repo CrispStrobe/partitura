@@ -27,16 +27,23 @@ class TupletSpan {
   /// The number of notes of the same value the group squeezes into.
   final int normal;
 
+  /// Which voice the span's indices address: 0 = [elements] (voice 1),
+  /// 1 = [voice2], 2 = [voice3], 3 = [voice4]. Indices are relative to that
+  /// voice's own element list.
+  final int voice;
+
   /// Creates a tuplet span.
   const TupletSpan(
     this.startIndex,
     this.endIndex, {
     required this.actual,
     required this.normal,
+    this.voice = 0,
   })  : assert(startIndex >= 0, 'startIndex must be >= 0'),
         assert(endIndex >= startIndex, 'endIndex must be >= startIndex'),
         assert(actual >= 2, 'actual must be >= 2'),
-        assert(normal >= 1, 'normal must be >= 1');
+        assert(normal >= 1, 'normal must be >= 1'),
+        assert(voice >= 0 && voice <= 3, 'voice must be 0..3');
 
   /// Whether [index] lies inside this span.
   bool contains(int index) => index >= startIndex && index <= endIndex;
@@ -47,13 +54,15 @@ class TupletSpan {
       other.startIndex == startIndex &&
       other.endIndex == endIndex &&
       other.actual == actual &&
-      other.normal == normal;
+      other.normal == normal &&
+      other.voice == voice;
 
   @override
-  int get hashCode => Object.hash(startIndex, endIndex, actual, normal);
+  int get hashCode => Object.hash(startIndex, endIndex, actual, normal, voice);
 
   @override
-  String toString() => 'TupletSpan($startIndex..$endIndex, $actual:$normal)';
+  String toString() =>
+      'TupletSpan($startIndex..$endIndex, $actual:$normal${voice == 0 ? '' : ', v${voice + 1}'})';
 }
 
 /// A navigation / repeat-structure mark drawn above the staff (v0.7.1).
@@ -294,16 +303,29 @@ class Measure {
   /// The sounding duration of the element at [index] as an exact fraction
   /// of a whole note, scaled by its tuplet span if any: a triplet eighth
   /// sounds 1/12.
-  Fraction effectiveDurationAt(int index) {
-    var fraction = elements[index].duration.toFraction();
+  Fraction effectiveDurationAt(int index, {int voice = 0}) {
+    final list = voiceAt(voice);
+    var fraction = list[index].duration.toFraction();
     for (final span in tuplets) {
-      if (span.contains(index)) {
+      if (span.voice == voice && span.contains(index)) {
         fraction = fraction * Fraction(span.normal, span.actual);
         break;
       }
     }
     return fraction;
   }
+
+  /// The element list for [voice] (0 = voice 1 / [elements], … 3 = [voice4]).
+  List<MusicElement> voiceAt(int voice) => switch (voice) {
+        1 => voice2,
+        2 => voice3,
+        3 => voice4,
+        _ => elements,
+      };
+
+  /// The tuplet spans addressing [voice], with indices relative to that voice.
+  List<TupletSpan> tupletsForVoice(int voice) =>
+      [for (final t in tuplets) if (t.voice == voice) t];
 
   /// The exact sum of the (tuplet-adjusted) voice-1 element durations as
   /// a fraction of a whole note. Games compare this against

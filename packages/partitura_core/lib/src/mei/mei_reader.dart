@@ -412,14 +412,12 @@ class _MeiReader {
             }
             final actual = int.tryParse(node.attributes['num'] ?? '');
             final normal = int.tryParse(node.attributes['numbase'] ?? '');
-            // Tuplets are voice-1 only in the model.
-            if (l == 0 &&
-                actual != null &&
+            if (actual != null &&
                 actual >= 2 &&
                 normal != null &&
                 elements.length - 1 >= start) {
               tuplets.add(TupletSpan(start, elements.length - 1,
-                  actual: actual, normal: normal));
+                  actual: actual, normal: normal, voice: l));
             }
           default:
             break; // beam, dynam, slur, …: ignored
@@ -428,17 +426,20 @@ class _MeiReader {
       byLayer.add(elements);
     }
 
-    // Resolve <tupletSpan> control events (by note id) to voice-1 index ranges.
-    final voice1 = byLayer.isEmpty ? const <MusicElement>[] : byLayer[0];
+    // Resolve <tupletSpan> control events (by note id) to a voice + index range,
+    // searching whichever voice holds the referenced notes.
     for (final ts in tupletSpans) {
       final startId = _xmlIdToId[ts.startid];
       final endId = _xmlIdToId[ts.endid];
       if (startId == null || endId == null || ts.num < 2) continue;
-      final si = voice1.indexWhere((e) => e.id == startId);
-      final ei = voice1.indexWhere((e) => e.id == endId);
-      if (si >= 0 && ei >= si) {
-        tuplets.add(
-            TupletSpan(si, ei, actual: ts.num, normal: ts.numbase));
+      for (var v = 0; v < byLayer.length; v++) {
+        final si = byLayer[v].indexWhere((e) => e.id == startId);
+        final ei = byLayer[v].indexWhere((e) => e.id == endId);
+        if (si >= 0 && ei >= si) {
+          tuplets.add(TupletSpan(si, ei,
+              actual: ts.num, normal: ts.numbase, voice: v));
+          break;
+        }
       }
     }
 
@@ -474,6 +475,13 @@ class _MeiReader {
       {List<Pitch> graceNotes = const [],
       GraceStyle graceStyle = GraceStyle.acciaccatura}) {
     final notes = chord.childrenNamed('note').toList();
+    final id = _idFor(chord.attributes['xml:id']);
+    // Map each chord-member note's xml:id to the chord element too, so a control
+    // event (tupletSpan, slur, …) anchored to a chord's inner note resolves.
+    for (final n in notes) {
+      final nid = n.attributes['xml:id'];
+      if (nid != null) _xmlIdToId[nid] = id;
+    }
     return NoteElement(
       pitches: [for (final n in notes) _pitchFrom(n)],
       duration: _durationFrom(chord),
@@ -484,7 +492,7 @@ class _MeiReader {
       ornament: _ornaments[chord.attributes['xml:id']],
       graceNotes: graceNotes,
       graceStyle: graceStyle,
-      id: _idFor(chord.attributes['xml:id']),
+      id: id,
     );
   }
 

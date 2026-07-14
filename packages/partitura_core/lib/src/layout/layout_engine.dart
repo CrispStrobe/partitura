@@ -816,16 +816,15 @@ class _LayoutBuilder {
         ? forcedColumns![measureIndex]
         : null;
     final measureContentStart = _x;
-    Fraction effectiveAt(int voice, int index) => voice == 0
-        ? measure.effectiveDurationAt(index)
-        : voices[voice][index].duration.toFraction();
+    Fraction effectiveAt(int voice, int index) =>
+        measure.effectiveDurationAt(index, voice: voice);
 
     final groupsPerVoice = [
       for (var v = 0; v < n; v++)
         _computeBeamGroups(
           voices[v],
           effectiveAt: (i) => effectiveAt(v, i),
-          tuplets: v == 0 ? measure.tuplets : const [],
+          tuplets: measure.tupletsForVoice(v),
           forcedStemsDown: v.isOdd,
         ),
     ];
@@ -1259,16 +1258,20 @@ class _LayoutBuilder {
   }
 
   void _validateTuplets(Measure measure) {
-    final seen = <int>{};
-    for (final span in measure.tuplets) {
-      if (span.endIndex >= measure.elements.length) {
-        throw ArgumentError(
-          '$span exceeds the measure (${measure.elements.length} elements)',
-        );
-      }
-      for (var i = span.startIndex; i <= span.endIndex; i++) {
-        if (!seen.add(i)) {
-          throw ArgumentError('Tuplet spans overlap at element $i');
+    // Validate per voice — each span's indices address its own voice's list.
+    for (var v = 0; v < 4; v++) {
+      final len = measure.voiceAt(v).length;
+      final seen = <int>{};
+      for (final span in measure.tupletsForVoice(v)) {
+        if (span.endIndex >= len) {
+          throw ArgumentError(
+            '$span exceeds voice ${v + 1} ($len elements)',
+          );
+        }
+        for (var i = span.startIndex; i <= span.endIndex; i++) {
+          if (!seen.add(i)) {
+            throw ArgumentError('Tuplet spans overlap at element $i');
+          }
         }
       }
     }
@@ -1278,7 +1281,7 @@ class _LayoutBuilder {
   /// tuplet members to their sounding width.
   double _tupletLog2Adjust(Measure measure, int index) {
     for (final span in measure.tuplets) {
-      if (span.contains(index)) {
+      if (span.voice == 0 && span.contains(index)) {
         return log(span.normal / span.actual) / ln2;
       }
     }
@@ -1289,6 +1292,10 @@ class _LayoutBuilder {
   /// group.
   void _layoutTuplets(Measure measure, Map<int, int> tieIndexOf) {
     for (final span in measure.tuplets) {
+      // Voice-1 brackets only for now; the tieIndexOf map addresses voice 1.
+      // Inner-voice tuplet durations still apply (playback/spacing); drawing
+      // their brackets is a follow-up.
+      if (span.voice != 0) continue;
       final infos = [
         for (var i = span.startIndex; i <= span.endIndex; i++)
           _tieInfos[tieIndexOf[i]!],

@@ -242,5 +242,32 @@ void main() {
       expect(render(), contains('tuplet3'));
       expect(render(), contains('tuplet5'));
     });
+
+    test('a tuplet on voice 2 scales that voice, not voice 1', () {
+      // A triplet of eighths in voice 2 (three eighths in the time of two).
+      final m = Measure(
+        [
+          for (final s in ['c', 'd'])
+            NoteElement(
+                pitches: [Pitch(Step.values.byName(s), octave: 5)],
+                duration: NoteDuration.half,
+                id: 'a$s'),
+        ],
+        voice2: [
+          for (final s in ['e', 'f', 'g'])
+            NoteElement(
+                pitches: [Pitch(Step.values.byName(s), octave: 4)],
+                duration: NoteDuration.quarter,
+                id: 'b$s'),
+        ],
+        tuplets: const [TupletSpan(0, 2, actual: 3, normal: 2, voice: 1)],
+      );
+      // Voice 1 unaffected (a half note is still 1/2).
+      expect(m.effectiveDurationAt(0, voice: 0), Fraction(1, 2));
+      // Voice 2's three quarters scale to 1/3 whole each → the bar sums to 1.
+      expect(m.effectiveDurationAt(0, voice: 1), Fraction(1, 6));
+      expect(m.tupletsForVoice(1), hasLength(1));
+      expect(m.tupletsForVoice(0), isEmpty);
+    });
   });
 }

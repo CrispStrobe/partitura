@@ -149,9 +149,9 @@ List<PlaybackNote> playbackTimeline(Score score, {bool expandRepeats = true}) {
     voice1End = clock;
 
     clock = measureStart;
-    for (final element in measure.voice2) {
-      final (numerator, denominator) = element.duration.fraction;
-      final duration = Fraction(numerator, denominator);
+    for (var i = 0; i < measure.voice2.length; i++) {
+      final element = measure.voice2[i];
+      final duration = measure.effectiveDurationAt(i, voice: 1);
       if (element.id != null) {
         result.add(PlaybackNote(
           elementId: element.id!,
@@ -166,13 +166,13 @@ List<PlaybackNote> playbackTimeline(Score score, {bool expandRepeats = true}) {
     }
     final voice2End = clock;
 
-    // Voices 3–4 (no tuplets) use voice 2's timing model.
+    // Voices 3–4 — now tuplet-aware too (via effectiveDurationAt per voice).
     final extraEnds = <Fraction>[];
     for (final (v, elements) in [(2, measure.voice3), (3, measure.voice4)]) {
       clock = measureStart;
-      for (final element in elements) {
-        final (numerator, denominator) = element.duration.fraction;
-        final duration = Fraction(numerator, denominator);
+      for (var i = 0; i < elements.length; i++) {
+        final element = elements[i];
+        final duration = measure.effectiveDurationAt(i, voice: v);
         if (element.id != null) {
           result.add(PlaybackNote(
             elementId: element.id!,
