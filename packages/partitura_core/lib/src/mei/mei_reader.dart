@@ -296,12 +296,11 @@ class _MeiReader {
         final eid = node.attributes['endid']?.replaceFirst('#', '');
         final num = int.tryParse(node.attributes['num'] ?? '');
         final numbase = int.tryParse(node.attributes['numbase'] ?? '');
-        final st = node.attributes['staff'];
-        if (sid != null &&
-            eid != null &&
-            num != null &&
-            numbase != null &&
-            (st == null || st == '$staffN')) {
+        // Don't filter by the span's `@staff` — that's a *draw* hint; the
+        // referenced notes can be on another staff. Resolution below only
+        // succeeds for spans whose notes this reader actually built, so each
+        // span lands on exactly the staff that holds it.
+        if (sid != null && eid != null && num != null && numbase != null) {
           tupletSpans.add((startid: sid, endid: eid, num: num, numbase: numbase));
         }
       }
