@@ -143,6 +143,44 @@ void main() {
           ]));
     });
 
+    test('a mid-score key change prints its new signature (7.5)', () {
+      final score = Score(
+        clef: Clef.treble,
+        measures: [
+          Measure([
+            NoteElement.note(
+                const Pitch(Step.c, octave: 4), NoteDuration.quarter),
+          ]),
+          Measure([
+            NoteElement.note(
+                const Pitch(Step.c, octave: 4), NoteDuration.quarter),
+          ], keyChange: const KeySignature(1)), // → G major, one sharp
+        ],
+      );
+      final parts = scoreToBraille(score).split(' ');
+      expect(parts, hasLength(2));
+      expect(parts[1], startsWith(cell([1, 4, 6]))); // ♯ leads measure 2
+    });
+
+    test('a mid-score time change prints its new signature (7.5)', () {
+      final score = Score(
+        clef: Clef.treble,
+        timeSignature: TimeSignature.fourFour,
+        measures: [
+          Measure([
+            NoteElement.note(const Pitch(Step.c, octave: 4), NoteDuration.half),
+          ]),
+          Measure([
+            NoteElement.note(const Pitch(Step.c, octave: 4), NoteDuration.half),
+          ], timeChange: const TimeSignature(3, 4)),
+        ],
+      );
+      // Measure 2 (after the leading 4/4 header + m1) opens with 3/4.
+      final parts = scoreToBraille(score).split(' ');
+      expect(parts.last,
+          startsWith(cells([[3, 4, 5, 6], [1, 4], [2, 5, 6]]))); // ⠼ 3 4
+    });
+
     test('measures are separated by a braille space', () {
       final braille = scoreToBraille(Score.simple(notes: 'c4:q d4 | e4:q f4'));
       final parts = braille.split(' ');

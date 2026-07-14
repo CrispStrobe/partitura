@@ -2,6 +2,10 @@
 
 ## 0.4.1-dev.1 (in progress)
 
+- **Braille mid-score signature changes** (Phase 7.5): `scoreToBraille` reprints
+  the key/time signature at a measure with a `keyChange` / `timeChange`, and the
+  running key drives accidental suppression from that point.
+
 - **Measure-repeat (simile) signs** (Phase 2.7): `Measure.measureRepeat` (1, 2
   or 4) draws the SMuFL repeat-bar glyph centred in an otherwise-empty bar —
   repeating the previous 1/2/4 bar(s). Golden 126.

@@ -983,8 +983,10 @@ enum encodings so files round-trip cleanly), tiered by importance:
       compound with an octave mark); and a **signature header** — the standard
       key signature (repeated ♯/♭ signs, or number-sign form beyond three) then
       the time signature (number sign + upper-cell numerator + lower-cell
-      denominator). **Left:** in-accord voices, mid-score key/time changes, clef
-      signs, dynamics/slurs/fingering, and line/format rules.
+      denominator). Also done: **mid-score key/time changes** — a `keyChange` /
+      `timeChange` on a measure reprints its new signature before the bar (the
+      running key drives accidental suppression from that point). **Left:**
+      in-accord voices, clef signs, dynamics/slurs/fingering, line/format rules.
 - [x] **7.6 CLI tool** (`partitura_cli`) — a pure-Dart command line for
       `info` / `timeline` / `convert` (MusicXML ↔ MIDI) / `render` (SVG or,
       by delegating to the Flutter SDK, PNG; notation or `--tab`), with live

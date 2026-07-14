@@ -12,6 +12,7 @@ import '../model/score.dart';
 import '../theory/duration.dart';
 import '../theory/key_signature.dart';
 import '../theory/pitch.dart';
+import '../theory/time_signature.dart';
 
 /// Renders [score] as a string of Unicode braille-music cells (U+2800…), one
 /// run of notes/rests per measure with measures separated by a braille space.
@@ -24,10 +25,21 @@ String scoreToBraille(Score score) {
   final buffer = StringBuffer();
   final header = _signatureHeader(score);
   if (header.isNotEmpty) buffer.write('$header ');
+  var key = score.keySignature; // the running key, tracking mid-score changes
   Pitch? previous; // last note, for the octave-mark interval rule
   for (var m = 0; m < score.measures.length; m++) {
     if (m > 0) buffer.write(' '); // measure separator (blank cell)
     final measure = score.measures[m];
+    // Mid-score signature changes print their new sign(s) before the bar.
+    if (measure.keyChange != null) {
+      key = measure.keyChange!;
+      buffer.write(_keySignatureCells(key));
+      previous = null; // an octave mark follows a signature change
+    }
+    if (measure.timeChange != null) {
+      buffer.write(_timeSignatureCells(measure.timeChange!));
+      previous = null;
+    }
     for (final element in measure.elements) {
       switch (element) {
         case NoteElement():
@@ -35,7 +47,7 @@ String scoreToBraille(Score score) {
           final pitches = [...element.pitches]
             ..sort((a, b) => b.midiNumber - a.midiNumber);
           final ref = pitches.first;
-          final acc = _accidentalFor(ref, score.keySignature);
+          final acc = _accidentalFor(ref, key);
           if (acc != null) buffer.write(acc);
           if (_needsOctaveMark(previous, ref)) {
             buffer.write(_octaveMark(ref.octave));
@@ -46,7 +58,7 @@ String scoreToBraille(Score score) {
           for (final lower in pitches.skip(1)) {
             final d = _diatonic(ref) - _diatonic(lower);
             if (d <= 0) continue; // unison / duplicate — skip
-            final lacc = _accidentalFor(lower, score.keySignature);
+            final lacc = _accidentalFor(lower, key);
             if (lacc != null) buffer.write(lacc);
             if (d > 7) buffer.write(_octaveMark(lower.octave)); // compound
             buffer.write(_intervalSign(((d - 1) % 7) + 1));
@@ -170,21 +182,22 @@ String _intervalSign(int n) => switch (n) {
 /// The leading signature header: the standard key signature then the time
 /// signature, or empty when there is neither (a custom/atonal key prints no
 /// signature here — its accidentals ride on the notes).
-String _signatureHeader(Score score) {
-  final b = StringBuffer();
-  final key = score.keySignature;
-  if (key.isStandard && key.fifths != 0) {
-    final sign = key.fifths > 0 ? _cell([1, 4, 6]) : _cell([1, 2, 6]); // ♯ / ♭
-    final count = key.fifths.abs();
-    // Up to three: repeat the sign; more: number sign + digit + sign.
-    b.write(count <= 3 ? sign * count : _numberSign + _upperDigits(count) + sign);
-  }
-  final time = score.timeSignature;
-  if (time != null) {
-    b.write(_numberSign + _upperDigits(time.beats) + _lowerDigits(time.beatUnit));
-  }
-  return b.toString();
+String _signatureHeader(Score score) =>
+    _keySignatureCells(score.keySignature) +
+    (score.timeSignature == null ? '' : _timeSignatureCells(score.timeSignature!));
+
+/// The braille cells for a standard key signature (empty for C major / atonal).
+String _keySignatureCells(KeySignature key) {
+  if (!key.isStandard || key.fifths == 0) return '';
+  final sign = key.fifths > 0 ? _cell([1, 4, 6]) : _cell([1, 2, 6]); // ♯ / ♭
+  final count = key.fifths.abs();
+  // Up to three: repeat the sign; more: number sign + digit + sign.
+  return count <= 3 ? sign * count : _numberSign + _upperDigits(count) + sign;
 }
+
+/// The braille cells for a numeric time signature.
+String _timeSignatureCells(TimeSignature time) =>
+    _numberSign + _upperDigits(time.beats) + _lowerDigits(time.beatUnit);
 
 /// The braille number sign (dots 3-4-5-6), prefacing numeric signs.
 final String _numberSign = _cell([3, 4, 5, 6]);
