@@ -156,6 +156,21 @@ partitura's ABC reading. (abc2midi's overall midi@ql match is low only because
 its MIDI is playback: repeats expanded + articulation gaps, like Verovio.) For
 ABC, abc2midi is the authoritative pitch oracle; music21/Verovio are not.
 
+The 8/45 tunes whose pitch set differed from abc2midi (5.03, 2025-04-26) are
+**abc2midi's own tie-parsing bugs**, not partitura errors: it errors on the
+O'Neill tie syntax (`{d}c3-B`, `f/-e/` → "Could not find note to be tied" on
+nearly every tune) and on 8 emits a spurious pitch (an E♭ where there is no
+`_e`; an F♮ in a D-major tune with no accidentals). Spot-checked against the
+spec, partitura is correct on all of them. The newer **abc2midiu v1.0**
+(keryell's abc-2.2 fork, 2026-04, built from source) gives the **same** result —
+it confirms the accidental carry *and* reproduces the identical spurious pitches
+from the same tie-errors — so the tie bug is inherent to the abc2midi family,
+not a stale version. So **all three ABC engines (music21, Verovio,
+abc2midi/abc2midiu) have distinct bugs on real tunes — no-carry accidentals,
+repeat expansion, tie parsing — while partitura reads them spec-faithfully.**
+There is no single clean ABC oracle; the round-trip harness (100%) is the
+reliable ABC fidelity measure.
+
 Lesson: even two independent oracles agreeing is not proof — when the tools
 share an ecosystem convention that departs from the format spec, the quorum can
 be wrong and partitura right. Consensus-bugs still must be checked against the
