@@ -10,8 +10,9 @@
 /// (`!segno!`/`!D.C.!`/`!D.S.!`/`!fine!`…), quoted `"C"`/positioned `"^…"`
 /// annotations, bar lines (repeats, double/final, variant endings `|1`/`[2`),
 /// multi-measure rests (`Z`), inline fields (`[K:…]`/`[M:…]`/`[L:…]`), `w:`
-/// lyrics aligned to the notes, `Q:` tempo and `P:` part labels (as
-/// annotations), and line continuation (`\`).
+/// lyrics and `s:` symbol lines (chord symbols / dynamics / decorations aligned
+/// to the notes), `Q:` tempo and `P:` part labels (as annotations), and line
+/// continuation (`\`).
 ///
 /// Multi-voice tunes (`V:`) import each voice as its own staff via
 /// [staffSystemFromAbc] (one aligned system); [scoreFromAbc] takes the first
@@ -110,8 +111,11 @@ class _Tune {
   final Map<String, StringBuffer> bodies;
   final Map<String, List<String>> lyrics;
 
+  /// Per-voice `s:` symbol lines (decorations / chord symbols aligned to notes).
+  final Map<String, List<String>> symbols;
+
   _Tune(this.meter, this.unit, this.key, this.headerClef, this.tempo,
-      this.order, this.clefs, this.bodies, this.lyrics);
+      this.order, this.clefs, this.bodies, this.lyrics, this.symbols);
 
   /// Builds the [Score] for one voice [id].
   Score buildScore(String id) {
@@ -136,14 +140,26 @@ class _Tune {
         annotations = [Annotation(firstNote, tempo!), ...annotations];
       }
     }
+
+    // `s:` symbol lines: decorations / chord symbols aligned to the notes.
+    var finalMeasures = measures;
+    var finalDynamics = parser.dynamics;
+    final sLines = symbols[id] ?? const [];
+    if (sLines.isNotEmpty) {
+      final applied = _applySymbols(sLines, parser.noteOrder, measures);
+      finalMeasures = applied.measures;
+      annotations = [...annotations, ...applied.annotations];
+      finalDynamics = [...parser.dynamics, ...applied.dynamics];
+    }
+
     return Score(
       clef: clef,
       keySignature: key,
       timeSignature: meter,
-      measures: measures,
+      measures: finalMeasures,
       annotations: annotations,
       slurs: parser.slurs,
-      dynamics: parser.dynamics,
+      dynamics: finalDynamics,
       lyrics: voiceLyrics,
     );
   }
@@ -161,6 +177,7 @@ _Tune _collectTune(String abc) {
   final clefs = <String, Clef>{};
   final bodies = <String, StringBuffer>{};
   final lyrics = <String, List<String>>{};
+  final symbols = <String, List<String>>{};
   String? current; // the voice body lines are currently attributed to
 
   void ensure(String id) {
@@ -168,6 +185,7 @@ _Tune _collectTune(String abc) {
     order.add(id);
     bodies[id] = StringBuffer();
     lyrics[id] = <String>[];
+    symbols[id] = <String>[];
   }
 
   // Resolve the voice to attribute body content / lyrics to.
@@ -217,6 +235,8 @@ _Tune _collectTune(String abc) {
       final value = line.substring(2).trim();
       if (line[0] == 'w') {
         lyrics[active()]!.add(value);
+      } else if (line[0] == 's') {
+        symbols[active()]!.add(value);
       } else if (line[0] == 'V') {
         declareVoice(value, switchTo: true);
       } else if (line[0] == 'P' && value.isNotEmpty) {
@@ -254,8 +274,8 @@ _Tune _collectTune(String abc) {
           ? Fraction(1, 16)
           : Fraction(1, 8));
 
-  return _Tune(
-      meter, unit, key, headerClef, tempo, order, clefs, bodies, lyrics);
+  return _Tune(meter, unit, key, headerClef, tempo, order, clefs, bodies,
+      lyrics, symbols);
 }
 
 /// Parses a `Q:` value into readable tempo text — an optional quoted label and
@@ -1000,6 +1020,188 @@ class _AbcBody {
 
 /// Aligns `w:` syllable lines to the note ids in [noteOrder] (which contains
 /// `|` markers at barlines, matching the `|` advance in `w:`).
+/// Applies `s:` symbol lines to a voice: aligns whitespace-separated tokens to
+/// the notes in [noteOrder] (as `w:` aligns syllables — `*` skips a note, `|`
+/// syncs to a barline), classifies each token, and returns the (possibly
+/// rebuilt) [measures] plus the new annotations / dynamics. `"…"` tokens become
+/// chord-symbol / text [Annotation]s, `!p!`…`!fff!` become [DynamicMarking]s,
+/// and articulation / ornament decorations (`!trill!`, `.`, `~`, `H`…) merge
+/// onto their aligned note.
+({
+  List<Measure> measures,
+  List<Annotation> annotations,
+  List<DynamicMarking> dynamics,
+}) _applySymbols(
+    List<String> sLines, List<String> noteOrder, List<Measure> measures) {
+  final tokens = <String>[];
+  for (final line in sLines) {
+    tokens.addAll(_splitSymbolTokens(line));
+  }
+  final annotations = <Annotation>[];
+  final dynamics = <DynamicMarking>[];
+  final decoById = <String, ({Set<Articulation> artic, Ornament? ornament})>{};
+
+  var ti = 0;
+  for (final id in noteOrder) {
+    if (ti >= tokens.length) break;
+    if (id == '|') {
+      while (ti < tokens.length && tokens[ti] == '|') {
+        ti++;
+      }
+      continue;
+    }
+    var tok = tokens[ti];
+    while (tok == '|' && ti + 1 < tokens.length) {
+      ti++;
+      tok = tokens[ti];
+    }
+    ti++;
+    if (tok == '*' || tok == '|') continue; // skip this note
+    final sym = _symbolOf(tok);
+    if (sym == null) continue;
+    if (sym.annotation != null) {
+      annotations.add(Annotation(id, sym.annotation!));
+    }
+    if (sym.dynamic != null) dynamics.add(DynamicMarking(id, sym.dynamic!));
+    if (sym.artic.isNotEmpty || sym.ornament != null) {
+      final prev = decoById[id];
+      decoById[id] = (
+        artic: {...?prev?.artic, ...sym.artic},
+        ornament: sym.ornament ?? prev?.ornament,
+      );
+    }
+  }
+
+  final outMeasures =
+      decoById.isEmpty ? measures : _mergeDecorations(measures, decoById);
+  return (measures: outMeasures, annotations: annotations, dynamics: dynamics);
+}
+
+/// Splits an `s:` line into tokens on whitespace, keeping a quoted `"…"` chord
+/// symbol or a `!…!` decoration (which may contain spaces) as one token.
+List<String> _splitSymbolTokens(String line) {
+  final tokens = <String>[];
+  var i = 0;
+  while (i < line.length) {
+    final c = line[i];
+    if (c == ' ' || c == '\t') {
+      i++;
+      continue;
+    }
+    if (c == '"' || c == '!') {
+      final close = line.indexOf(c, i + 1);
+      if (close < 0) {
+        tokens.add(line.substring(i));
+        break;
+      }
+      tokens.add(line.substring(i, close + 1));
+      i = close + 1;
+    } else {
+      var j = i;
+      while (j < line.length && line[j] != ' ' && line[j] != '\t') {
+        j++;
+      }
+      tokens.add(line.substring(i, j));
+      i = j;
+    }
+  }
+  return tokens;
+}
+
+/// Classifies one `s:` token into its chord-symbol/text annotation, dynamic
+/// level, and/or articulation + ornament, or null when it carries none.
+({
+  String? annotation,
+  DynamicLevel? dynamic,
+  Set<Articulation> artic,
+  Ornament? ornament,
+})? _symbolOf(String tok) {
+  if (tok.isEmpty) return null;
+  // "…" chord symbol / text (drop a leading position marker ^_<>@).
+  if (tok.startsWith('"')) {
+    var text =
+        tok.substring(1, tok.endsWith('"') ? tok.length - 1 : tok.length);
+    if (text.isNotEmpty && '^_<>@'.contains(text[0])) {
+      text = text.substring(1);
+    }
+    text = text.trim();
+    return text.isEmpty
+        ? null
+        : (annotation: text, dynamic: null, artic: const {}, ornament: null);
+  }
+  // !name! decoration, or a bare shorthand character (. ~ H T M P u v > ^).
+  final name = tok.startsWith('!')
+      ? tok.substring(1, tok.endsWith('!') ? tok.length - 1 : tok.length)
+      : tok;
+  final dyn = DynamicLevel.values.asNameMap()[name];
+  final artic = _symbolArtic(name);
+  final orn = _symbolOrnament(name);
+  if (dyn == null && artic == null && orn == null) return null;
+  return (
+    annotation: null,
+    dynamic: dyn,
+    artic: artic == null ? const {} : {artic},
+    ornament: orn,
+  );
+}
+
+/// The articulation for an `s:` decoration name or shorthand char (mirrors the
+/// inline `!…!` / shorthand mapping).
+Articulation? _symbolArtic(String s) => switch (s) {
+      'fermata' || 'invertedfermata' || 'H' => Articulation.fermata,
+      'accent' || 'emphasis' || '>' => Articulation.accent,
+      'tenuto' => Articulation.tenuto,
+      'marcato' || '^' => Articulation.marcato,
+      'staccato' || '.' => Articulation.staccato,
+      'upbow' || 'u' => Articulation.upBow,
+      'downbow' || 'v' => Articulation.downBow,
+      _ => null,
+    };
+
+/// The ornament for an `s:` decoration name or shorthand char.
+Ornament? _symbolOrnament(String s) => switch (s) {
+      'trill' || 'tr' || 'T' => Ornament.trill,
+      'mordent' || 'lowermordent' || 'M' => Ornament.mordent,
+      'uppermordent' || 'pralltriller' || 'P' => Ornament.shortTrill,
+      'turn' || 'turnx' || '~' => Ornament.turn,
+      'invertedturn' || 'invertedturnx' => Ornament.invertedTurn,
+      _ => null,
+    };
+
+/// Rebuilds the notes named in [byId] with their `s:` articulations / ornament
+/// merged in (other elements and measure fields are untouched).
+List<Measure> _mergeDecorations(List<Measure> measures,
+    Map<String, ({Set<Articulation> artic, Ornament? ornament})> byId) {
+  MusicElement rebuild(MusicElement e) {
+    if (e is! NoteElement || e.id == null) return e;
+    final deco = byId[e.id];
+    if (deco == null) return e;
+    return NoteElement(
+      pitches: e.pitches,
+      duration: e.duration,
+      showAccidental: e.showAccidental,
+      tieToNext: e.tieToNext,
+      articulations: {...e.articulations, ...deco.artic},
+      graceNotes: e.graceNotes,
+      graceStyle: e.graceStyle,
+      ornament: deco.ornament ?? e.ornament,
+      fingerings: e.fingerings,
+      arpeggio: e.arpeggio,
+      tremolo: e.tremolo,
+      notehead: e.notehead,
+      id: e.id,
+    );
+  }
+
+  return [
+    for (final m in measures)
+      m.copyWith(
+        elements: [for (final e in m.elements) rebuild(e)],
+        voice2: [for (final e in m.voice2) rebuild(e)],
+      ),
+  ];
+}
+
 List<Lyric> _alignLyrics(List<String> lines, List<String> noteOrder) {
   if (lines.isEmpty) return const [];
   // Flatten every w: line into a stream of syllable tokens.

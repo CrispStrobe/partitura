@@ -31,8 +31,9 @@ ships* at the end for the mechanics.
 > (big, multi-staff-meter engine — same lane). No active claim on this line.
 >
 > 🚧 **Actively working (notation-breadth lane), in order:** 5.7 polymeter ✓
-> (per-staff meters, golden 127) — now on **ABC symbol lines** (`s:`), then the
-> **1.4 beam-subdivision** tail. Building on the landed C6 multi-staff engine.
+> (per-staff meters, golden 127), ABC symbol lines ✓ (`s:` chord symbols /
+> dynamics / decorations) — now on the **1.4 beam-subdivision** tail. Building on
+> the landed C6 multi-staff engine.
 > Worktree `partitura-c6`, branch `feat/c6-reconcile`.
 > *(Touching `multi_system.dart` / `staff_system.dart` / layout + `abc_reader` —
 > not the model-agent 2.1/2.2 lane, the editor `MultiPartScore` linked-parts, or
@@ -978,7 +979,12 @@ enum encodings so files round-trip cleanly), tiered by importance:
       validated against the abcjs example tune-book. The decoration set is now
       comprehensive (articulations, ornaments incl. `!invertedturn!`, navigation,
       dynamics + shorthand) and multi-voice tunes import as a `StaffSystem`
-      (golden 76). **Left:** ABC symbol lines (`s:`) and other niche fields;
+      (golden 76). **`s:` symbol lines** now import too: whitespace-separated
+      tokens align to the notes of the preceding music line (like `w:` — `*`
+      skips, `|` syncs), where `"…"` → a chord-symbol/text `Annotation`,
+      `!p!`…`!fff!` → a `DynamicMarking`, and `!trill!`/`.`/`~`/`H`… decorations
+      merge onto their note. `abc_symbol_line_test.dart`. **Left:** other niche
+      fields (`U:` redefinable symbols, `m:` macros, `W:` unaligned words);
       `.ptb` (PowerTab, no freely-licensed test corpus).
 - [x] **7.4 Repeat unfolding** — `playbackTimeline` linearizes repeats /
       voltas / D.C. / D.S. / To Coda / al Fine / al Coda into performance
@@ -1061,8 +1067,8 @@ are executed **one after another, each with tests**. Status: `[x]` done,
       staccato)
 - [x] `u`/`v` up/down-bow → `Articulation.upBow`/`downBow` (drawn above the
       staff; round-trips through ABC and MusicXML `<technical>`)
-- [ ] `U:` redefinable symbols, `m:` macros, `s:` symbol lines, `W:` unaligned
-      words
+- [ ] `U:` redefinable symbols, `m:` macros, `W:` unaligned words
+      *(`s:` symbol lines — chord symbols / dynamics / decorations — landed)*
 - [x] `%` comments; `%%` stylesheet directives ignored (rendering-hint only)
 
 **Structure**
