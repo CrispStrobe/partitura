@@ -131,7 +131,11 @@ void main(List<String> args) {
         '[--oracle music21|verovio | --quorum] <file> …');
     exit(64);
   }
-  final dumper = oracle == 'verovio' ? 'verovio_dump.py' : 'oracle_dump.py';
+  final dumper = switch (oracle) {
+    'verovio' => 'verovio_dump.py',
+    'abc2midi' => 'abc2midi_dump.py', // reference ABC engine (authoritative)
+    _ => 'oracle_dump.py',
+  };
   final python = Platform.environment['ORACLE_PYTHON'] ?? _defaultPython;
 
   if (quorum) {

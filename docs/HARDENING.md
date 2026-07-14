@@ -146,6 +146,16 @@ share a common non-spec no-carry convention. A minimal test confirms it:
 `K:G` … `=f f | f f` → partitura `F♮ F♮ | F♯ F♯` (carry within bar, reset at the
 barline), music21 & Verovio both `F♮ F♯ | F♯ F♯`.
 
+**Settled by a third oracle — `abc2midi`, the *reference* ABC engine** (James
+Allwright / Seymour Shlien; `tool/abc2midi_dump.py`, `--oracle abc2midi`): it
+gives `F♮ F♮ | F♯ F♯`, **identical to partitura** — so partitura and the
+reference implementation agree, and music21 + Verovio share a non-spec no-carry
+bug. Across 45 real ABC tunes, partitura's **pitch set matches abc2midi on
+37/45** (only 11 pitch-classes differ total) — the reference engine validates
+partitura's ABC reading. (abc2midi's overall midi@ql match is low only because
+its MIDI is playback: repeats expanded + articulation gaps, like Verovio.) For
+ABC, abc2midi is the authoritative pitch oracle; music21/Verovio are not.
+
 Lesson: even two independent oracles agreeing is not proof — when the tools
 share an ecosystem convention that departs from the format spec, the quorum can
 be wrong and partitura right. Consensus-bugs still must be checked against the
