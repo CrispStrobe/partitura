@@ -406,7 +406,9 @@ StaffSystemSystems layoutStaffSystemSystems(
       l.measureRegions.isEmpty ? l.width : l.measureRegions.first.startX;
   final leadEstimate = naturals.map(leadingOf).reduce(max);
   final states = [for (final p in parts) _stateArrays(p)];
-  final forcedBreaks = {...document.systemBreaks, ...systemBreaks};
+  final hardBreaks = systemBreaks;
+  final sourceBreaks = document.systemBreaks.difference(hardBreaks);
+  final softBreakFill = maxWidth * 0.72;
 
   // The parts to show on the system covering [start]..[end]: with hide-empty,
   // parts silent throughout the range are dropped — except on the first system
@@ -460,7 +462,8 @@ StaffSystemSystems layoutStaffSystemSystems(
     var end = start;
     var used = leadEstimate + combined[start];
     while (end + 1 < n &&
-        !forcedBreaks.contains(end + 1) &&
+        !hardBreaks.contains(end + 1) &&
+        (!sourceBreaks.contains(end + 1) || used < softBreakFill) &&
         used + combined[end + 1] <= maxWidth) {
       end++;
       used += combined[end];

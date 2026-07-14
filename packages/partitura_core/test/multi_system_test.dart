@@ -129,6 +129,26 @@ void main() {
           closeTo(
               naturalMiddle.staves.single.measureRegions.single.endX, 1e-9));
     });
+
+    test('underfilled source system breaks are soft, explicit breaks are hard',
+        () {
+      final score = Score.simple(notes: 'c4:q d4 | e4:q f4 | g4:q a4');
+      final sourceBreak = layoutStaffSystemSystems(
+        StaffSystem([score], systemBreaks: {1}),
+        settings,
+        maxWidth: 100,
+      );
+      expect(sourceBreak.systems, hasLength(1));
+
+      final explicitBreak = layoutStaffSystemSystems(
+        StaffSystem([score]),
+        settings,
+        maxWidth: 100,
+        systemBreaks: {1},
+      );
+      expect(explicitBreak.systems, hasLength(2));
+      expect(explicitBreak.systems.first.lastMeasure, 0);
+    });
   });
 
   group('justification', () {
