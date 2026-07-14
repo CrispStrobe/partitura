@@ -111,9 +111,14 @@ PagedLayout layoutPages(
   double systemGap = 8,
   bool justifyVertically = true,
   bool justify = true,
+  Set<int> systemBreaks = const {},
+  Set<int> pageBreaks = const {},
 }) {
+  // A forced page break implies a forced system break at the same measure.
   final multi = layoutSystems(score, settings,
-      maxWidth: metrics.contentWidth, justify: justify);
+      maxWidth: metrics.contentWidth,
+      justify: justify,
+      systemBreaks: {...systemBreaks, ...pageBreaks});
   final contentHeight = metrics.contentHeight;
 
   final pages = <PageLayout>[];
@@ -123,6 +128,11 @@ PagedLayout layoutPages(
     final onPage = <SystemLayout>[];
     var used = 0.0;
     while (i < multi.systems.length) {
+      // An explicit page break starts a fresh page at this system.
+      if (onPage.isNotEmpty &&
+          pageBreaks.contains(multi.systems[i].firstMeasure)) {
+        break;
+      }
       final systemHeight = multi.systems[i].layout.height;
       final needed =
           onPage.isEmpty ? systemHeight : used + systemGap + systemHeight;

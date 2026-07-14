@@ -375,5 +375,26 @@ void main() {
       expect(multi.systems.single.toString(), contains('0..7'));
       expect(multi.toString(), contains('1 systems'));
     });
+
+    test('explicit systemBreaks force a line break (2.5)', () {
+      // Wide enough for everything on one system…
+      final one = layoutSystems(eightMeasures(), settings, maxWidth: 10000);
+      expect(one.systems, hasLength(1));
+      // …but a forced break at measure 3 splits it 0..2 | 3..7.
+      final broken = layoutSystems(eightMeasures(), settings,
+          maxWidth: 10000, systemBreaks: {3});
+      expect(broken.systems, hasLength(2));
+      expect(broken.systems[0].lastMeasure, 2);
+      expect(broken.systems[1].firstMeasure, 3);
+    });
+
+    test('a systemBreak composes with width-driven breaking', () {
+      // A narrow page already breaks; an extra forced break only adds systems.
+      final natural = layoutSystems(eightMeasures(), settings, maxWidth: 30);
+      final withBreak = layoutSystems(eightMeasures(), settings,
+          maxWidth: 30, systemBreaks: {1});
+      expect(withBreak.systems.length, greaterThanOrEqualTo(natural.systems.length));
+      expect(withBreak.systems.first.lastMeasure, 0); // break before m1
+    });
   });
 }

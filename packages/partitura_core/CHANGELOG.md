@@ -2,6 +2,11 @@
 
 ## 0.4.1-dev.1 (in progress)
 
+- **Explicit system / page breaks** (Phase 2.5): `layoutSystems(..., systemBreaks:)`
+  forces a line break before given measure indices; `layoutPages(...,
+  systemBreaks:, pageBreaks:)` forces a new page (a page break implies a system
+  break). Width-driven breaking still applies elsewhere.
+
 - **Braille mid-score signature changes** (Phase 7.5): `scoreToBraille` reprints
   the key/time signature at a measure with a `keyChange` / `timeChange`, and the
   running key drives accidental suppression from that point.

@@ -73,12 +73,14 @@ class MultiSystemLayout {
 /// only the last carries the end-of-score barline. Slurs, dynamics and hairpins whose endpoints fall on
 /// different systems are dropped (ties degrade gracefully on their own).
 /// A measure wider than [maxWidth] gets its own (overwide) system rather
-/// than failing.
+/// than failing. [systemBreaks] holds measure indices that must **begin** a new
+/// system — an explicit line break before each — regardless of remaining width.
 MultiSystemLayout layoutSystems(
   Score score,
   LayoutSettings settings, {
   required double maxWidth,
   bool justify = true,
+  Set<int> systemBreaks = const {},
 }) {
   const engine = LayoutEngine();
   if (maxWidth <= 0) {
@@ -132,6 +134,7 @@ MultiSystemLayout layoutSystems(
     final leading = leadingWidthFor(start);
     var end = start;
     while (end + 1 < measureCount &&
+        !systemBreaks.contains(end + 1) && // a forced break starts a new system
         leading +
                 (natural.measureRegions[end + 1].endX -
                     natural.measureRegions[start].startX) +

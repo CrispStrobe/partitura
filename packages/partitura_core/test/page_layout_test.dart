@@ -126,4 +126,17 @@ void main() {
     final paged = layoutPages(longScore(6), settings, metrics: metrics);
     expect(paged.pages.every((p) => p.systems.isNotEmpty), isTrue);
   });
+
+  test('an explicit pageBreak starts a fresh page (2.5)', () {
+    // A tall page that would hold everything on one page…
+    const metrics = PageMetrics(width: 400, height: 400);
+    final one = layoutPages(longScore(6), settings, metrics: metrics);
+    expect(one.pages, hasLength(1));
+    // …a forced page break at measure 3 splits it into two pages, with the
+    // second page starting at that measure.
+    final broken = layoutPages(longScore(6), settings,
+        metrics: metrics, pageBreaks: {3});
+    expect(broken.pages, hasLength(2));
+    expect(broken.pages[1].systems.first.system.firstMeasure, 3);
+  });
 }

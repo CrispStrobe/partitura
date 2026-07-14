@@ -574,9 +574,12 @@ Raises the quality of everything already rendered. Slice order:
       systems into `PageMetrics` pages (size + margins in staff spaces), packing
       systems by content height and vertically justifying every page but the
       last (page-fill); `ScorePageView` renders a single page at its exact
-      aspect ratio with margins and an optional frame (golden 81). **Left:** a
-      physical spatium/mm scaling unit, explicit page/section breaks, spacers,
-      and title/text frames.
+      aspect ratio with margins and an optional frame (golden 81); and
+      **explicit system / page breaks** — `layoutSystems(..., systemBreaks:)`
+      forces a line break before given measure indices, and
+      `layoutPages(..., systemBreaks:, pageBreaks:)` forces a new page (a page
+      break implies a system break). **Left:** a physical spatium/mm scaling
+      unit, spacers, and title/text frames.
 - [~] **2.6 Linked parts + transposing instruments + concert-pitch toggle** —
       **Done:** `Transposition` (interval + direction + octaves, with named
       B♭/A/E♭/F/tenor constants), `Score.transposition`, `Score.atConcertPitch()`
