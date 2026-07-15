@@ -23,6 +23,12 @@ ships* at the end for the mechanics.
 
 ## Status (2026-07-13)
 
+> **N-line staves landed on `main` (crisp_notation_core 0.4.2):**
+> `LayoutEngine.layout(..., staffLineCount:)` renders staves with any number of
+> lines (1 for a neutral percussion/rhythm line, 3/6/…) instead of assuming 5;
+> every vertical reference derives from the count and the 5-line default is
+> byte-for-byte unchanged (`test/n_line_staff_test.dart`). No active claim.
+>
 > **Actively working on:** between features.
 >
 > **Doable-tails lane landed on `main`:** 2.7 measure-repeat signs, 7.5 braille

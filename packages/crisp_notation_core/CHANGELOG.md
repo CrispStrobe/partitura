@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.2 (2026-07-15)
+
+- **Configurable staff-line count** (N-line staves): `LayoutEngine.layout(...,
+  staffLineCount:)` draws staves with any number of lines — 1 for a neutral
+  percussion/rhythm line, 3, 6, or more for non-standard and pedagogical staves
+  — instead of assuming a 5-line staff. Every vertical reference (staff lines,
+  bounding box, stem direction, stem-length clamps, ledger lines, and beam
+  slant clamps) derives from the line count. The default remains 5 lines and is
+  byte-for-byte identical to previous output.
+
 ## 0.4.1 (2026-07-14)
 
 - **Imported sheet titles**: MusicXML `<credit>` title/composer text is now used
