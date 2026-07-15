@@ -1,6 +1,8 @@
 import 'package:crisp_notation_core/crisp_notation_core.dart';
 import 'package:flutter/widgets.dart' hide PageMetrics;
 
+import '../interaction/editor_caret.dart';
+import '../interaction/element_region_controller.dart';
 import '../interaction/staff_target.dart';
 import 'multi_part_view.dart';
 import 'theme.dart';
@@ -16,10 +18,15 @@ import 'theme.dart';
 /// mirrors the part and `systemIndex` is the page-local system). The element id
 /// is the element's own id in the `MultiPartScore` — no `p<n>:` prefix.
 ///
-/// Wired now: tap-select, staff-tap-to-place, hover ghost, drag-to-move, and the
-/// `highlightedIds` / `elementColors` / `suppressElementIds` overlays. Not yet:
-/// `dragPreviewOpacity`, an `EditorCaret`, and an `ElementRegionController`
-/// binding (a documented C12 follow-up).
+/// Wired now: tap-select, staff-tap-to-place, hover ghost, drag-to-move, the
+/// `highlightedIds` / `elementColors` / `suppressElementIds` overlays, an
+/// `ElementRegionController` binding (C12c — marquee / cross-part region
+/// queries), and an `EditorCaret` (C12b — insertion caret in the owning part).
+/// A **live drag preview** is achievable app-side by combining
+/// `suppressElementIds` (hide the dragged note) with the placement ghost
+/// (`ghostPart`/`ghostTarget` following the pointer) — so a dedicated
+/// `dragPreviewOpacity` (real-glyph translation, as single-part C10b) is an
+/// optional future nicety, not required.
 class InteractiveMultiPartView extends StatefulWidget {
   /// The multi-part document to render.
   final MultiPartScore document;
@@ -82,6 +89,14 @@ class InteractiveMultiPartView extends StatefulWidget {
   final void Function(String elementId, int partIndex, StaffTarget target)?
       onElementDragEnd;
 
+  /// Exposes this page's element hit-regions (across all parts) to app code —
+  /// the geometry behind marquee selection / drag-to-reorder (C12c).
+  final ElementRegionController? controller;
+
+  /// An insertion caret drawn before its `beforeElementId`, in that element's
+  /// part (C12b). Null draws none.
+  final EditorCaret? caret;
+
   /// Creates an interactive multi-part view.
   const InteractiveMultiPartView({
     super.key,
@@ -104,6 +119,8 @@ class InteractiveMultiPartView extends StatefulWidget {
     this.onElementDragStart,
     this.onElementDragUpdate,
     this.onElementDragEnd,
+    this.controller,
+    this.caret,
   });
 
   @override
@@ -213,6 +230,8 @@ class _InteractiveMultiPartViewState extends State<InteractiveMultiPartView> {
           ghostDuration: widget.ghostDuration,
           onElementTap: widget.onElementTap,
           onStaffTapRaw: widget.onStaffTap == null ? null : _handleRawStaffTap,
+          controller: widget.controller,
+          caret: widget.caret,
         ),
       ),
     );
@@ -229,6 +248,8 @@ class _MultiPartViewWithHooks extends MultiPartView {
   final StaffTarget? ghostTarget;
   final NoteDuration ghostDuration;
   final void Function(int partIndex, StaffTarget target)? onStaffTapRaw;
+  final ElementRegionController? controller;
+  final EditorCaret? caret;
 
   const _MultiPartViewWithHooks({
     super.key,
@@ -247,11 +268,15 @@ class _MultiPartViewWithHooks extends MultiPartView {
     this.ghostTarget,
     this.ghostDuration = NoteDuration.quarter,
     this.onStaffTapRaw,
+    this.controller,
+    this.caret,
   });
 
   void _apply(RenderMultiPartView r) {
     r
       ..onStaffTapRaw = onStaffTapRaw
+      ..regionController = controller
+      ..caret = caret
       ..highlightedIds = highlightedIds
       ..elementColors = elementColors
       ..suppressElementIds = suppressElementIds

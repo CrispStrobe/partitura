@@ -7,6 +7,8 @@ import 'package:flutter/rendering.dart';
 // one from crisp_notation_core.
 import 'package:flutter/widgets.dart' hide PageMetrics;
 
+import '../interaction/editor_caret.dart';
+import '../interaction/element_region_controller.dart';
 import '../interaction/staff_target.dart';
 import 'layout_painter.dart';
 import 'music_font.dart';
@@ -108,7 +110,7 @@ class MultiPartView extends LeafRenderObjectWidget {
 }
 
 /// Render object behind [MultiPartView].
-class RenderMultiPartView extends RenderBox {
+class RenderMultiPartView extends RenderBox implements ElementRegionProvider {
   /// Creates the render object.
   RenderMultiPartView({
     required MultiPartScore document,
@@ -147,6 +149,20 @@ class RenderMultiPartView extends RenderBox {
   /// Called when a tap lands on empty staff space: the part index it fell in and
   /// the quantized [StaffTarget]. Used by `InteractiveMultiPartView`.
   void Function(int partIndex, StaffTarget target)? onStaffTapRaw;
+
+  ElementRegionController? _regionController;
+
+  /// The C7 region controller this view feeds (marquee / drag-reorder across
+  /// parts), or null. This render object already reports [elementRegions] /
+  /// [elementIdsIn] for the current page, so it *is* the provider — the
+  /// controller just re-binds to it. Neither layout nor paint.
+  ElementRegionController? get regionController => _regionController;
+  set regionController(ElementRegionController? value) {
+    if (identical(value, _regionController)) return;
+    _regionController?.detach(this);
+    _regionController = value;
+    _regionController?.attach(this);
+  }
 
   /// Ids painted in the highlight color; per-element ink colors; and ids hidden
   /// from the layout (a clean drag-source hide, C10a). Repaint-only.
@@ -191,6 +207,15 @@ class RenderMultiPartView extends RenderBox {
   set ghostDuration(NoteDuration value) {
     if (value == _ghostDuration) return;
     _ghostDuration = value;
+    markNeedsPaint();
+  }
+
+  /// An insertion caret drawn before its `beforeElementId` (C12b). The element
+  /// id uniquely locates the part, so the caret lands in the right staff.
+  EditorCaret? _caret;
+  set caret(EditorCaret? value) {
+    if (value == _caret) return;
+    _caret = value;
     markNeedsPaint();
   }
 
@@ -407,6 +432,7 @@ class RenderMultiPartView extends RenderBox {
   /// Read-only hit regions of every element with an id on the current page, in
   /// local pixels, each tagged with the global `measureIndex` it sits in — for
   /// app-side marquee / range selection and custom overlays.
+  @override
   List<({String id, Rect bounds, int measureIndex})> get elementRegions {
     final out = <({String id, Rect bounds, int measureIndex})>[];
     for (final placed in _currentPageSystems) {
@@ -444,6 +470,7 @@ class RenderMultiPartView extends RenderBox {
 
   /// The ids of every element whose hit region intersects [localRect] (local
   /// pixels) on the current page — a marquee selection.
+  @override
   List<String> elementIdsIn(Rect localRect) => [
         for (final region in elementRegions)
           if (region.bounds.overlaps(localRect)) region.id,
@@ -534,6 +561,7 @@ class RenderMultiPartView extends RenderBox {
 
   @override
   void dispose() {
+    _regionController?.detach(this);
     _tap.dispose();
     super.dispose();
   }
@@ -575,6 +603,36 @@ class RenderMultiPartView extends RenderBox {
       _paintBrackets(canvas, system, originX, systemTopY);
     }
     _paintGhost(canvas, page, originX, offset);
+    _paintCaret(canvas, page, originX, offset);
+  }
+
+  /// A vertical insertion caret just left of the caret's `beforeElementId`,
+  /// spanning the staff of whichever part owns that element (C12b).
+  void _paintCaret(
+      Canvas canvas, MultiPartPageLayout page, double originX, Offset offset) {
+    final caret = _caret;
+    final beforeId = caret?.beforeElementId;
+    if (beforeId == null) return;
+    for (final placed in page.systems) {
+      final system = placed.system.layout;
+      final systemTopY = offset.dy +
+          (_metrics.marginTop + placed.top - system.top) * _staffSpace;
+      for (var i = 0; i < system.staves.length; i++) {
+        for (final region in system.staves[i].regions) {
+          if (region.elementId != beforeId) continue;
+          final partOriginY = systemTopY + system.staffTop(i) * _staffSpace;
+          final x = originX + (region.bounds.left - 0.3) * _staffSpace;
+          canvas.drawLine(
+            Offset(x, partOriginY - 1 * _staffSpace),
+            Offset(x, partOriginY + 5 * _staffSpace),
+            Paint()
+              ..color = _theme.highlightColor
+              ..strokeWidth = 0.14 * _staffSpace,
+          );
+          return;
+        }
+      }
+    }
   }
 
   /// A translucent placement notehead at [_ghostTarget] in part [_ghostPart].

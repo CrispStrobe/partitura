@@ -37,6 +37,8 @@ void main() {
     void Function(String)? onElementTap,
     void Function(String, int, StaffTarget)? onElementDragEnd,
     Set<String> suppress = const {},
+    ElementRegionController? controller,
+    EditorCaret? caret,
   }) async {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
@@ -49,6 +51,8 @@ void main() {
             onStaffTap: onStaffTap,
             onElementTap: onElementTap,
             onElementDragEnd: onElementDragEnd,
+            controller: controller,
+            caret: caret,
           ),
         ),
       ),
@@ -142,6 +146,40 @@ void main() {
         ),
       ),
     ));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('an ElementRegionController reports regions across all parts',
+      (tester) async {
+    final controller = ElementRegionController();
+    final render = await pump(tester, controller: controller);
+    expect(controller.isAttached, isTrue);
+    // One whole-note per part → three regions, one in each of the 3 staves.
+    expect(controller.elementRegions, hasLength(3));
+    // A marquee over the whole page selects every part's note.
+    final all = controller.elementIdsIn(Offset.zero & render.size);
+    expect(all.toSet(), render.elementRegions.map((r) => r.id).toSet());
+    expect(all, hasLength(3));
+  });
+
+  testWidgets('the controller detaches when the view is disposed',
+      (tester) async {
+    final controller = ElementRegionController();
+    await pump(tester, controller: controller);
+    expect(controller.isAttached, isTrue);
+    await tester.pumpWidget(const SizedBox.shrink());
+    expect(controller.isAttached, isFalse);
+  });
+
+  testWidgets('an EditorCaret paints before its element (any part)',
+      (tester) async {
+    final probe = await pump(tester);
+    // Pick an element in the *second* part to prove the caret finds its staff.
+    final id = probe.elementRegions[1].id;
+    await pump(tester, caret: EditorCaret(beforeElementId: id));
+    expect(tester.takeException(), isNull);
+    // A null caret is a no-op (still no exception).
+    await pump(tester, caret: const EditorCaret());
     expect(tester.takeException(), isNull);
   });
 }
