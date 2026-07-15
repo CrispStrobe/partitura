@@ -98,6 +98,10 @@ class InteractiveGrandStaffView extends LeafRenderObjectWidget {
   /// An insertion caret to draw (spans the system at the resolved x), or null.
   final EditorCaret? caret;
 
+  /// Whether to label each system's first bar (from bar 2 on) with its global
+  /// measure number, above the upper staff.
+  final bool showMeasureNumbers;
+
   /// A translucent preview notehead to draw at this staff location (its
   /// `staffIndex` picks the staff), or null.
   final StaffTarget? ghostTarget;
@@ -136,6 +140,7 @@ class InteractiveGrandStaffView extends LeafRenderObjectWidget {
     this.onStaffTap,
     this.onHover,
     this.caret,
+    this.showMeasureNumbers = false,
     this.ghostTarget,
     this.ghostDuration = NoteDuration.quarter,
     this.onElementDragStart,
@@ -165,6 +170,7 @@ class InteractiveGrandStaffView extends LeafRenderObjectWidget {
         ..onStaffTap = onStaffTap
         ..onHover = onHover
         ..caret = caret
+        ..showMeasureNumbers = showMeasureNumbers
         ..ghostTarget = ghostTarget
         ..ghostDuration = ghostDuration
         ..onElementDragStart = onElementDragStart
@@ -195,6 +201,7 @@ class InteractiveGrandStaffView extends LeafRenderObjectWidget {
       ..onStaffTap = onStaffTap
       ..onHover = onHover
       ..caret = caret
+      ..showMeasureNumbers = showMeasureNumbers
       ..ghostTarget = ghostTarget
       ..ghostDuration = ghostDuration
       ..onElementDragStart = onElementDragStart
@@ -280,6 +287,17 @@ class RenderInteractiveGrandStaffView extends RenderBox
   set caret(EditorCaret? value) {
     if (value == _caret) return;
     _caret = value;
+    markNeedsPaint();
+  }
+
+  bool _showMeasureNumbers = false;
+
+  /// Whether to label each system's first bar (from bar 2 on) with its global
+  /// measure number, above the upper staff. Repaint only.
+  bool get showMeasureNumbers => _showMeasureNumbers;
+  set showMeasureNumbers(bool value) {
+    if (value == _showMeasureNumbers) return;
+    _showMeasureNumbers = value;
     markNeedsPaint();
   }
 
@@ -911,6 +929,35 @@ class RenderInteractiveGrandStaffView extends RenderBox
     _paintDragPreview(canvas, offset);
     _paintGhost(canvas, offset);
     _paintCaret(canvas, offset);
+    _paintMeasureNumbers(canvas, offset);
+  }
+
+  /// Labels each system's first bar (skipping bar 1) with its global measure
+  /// number, above the upper staff at the left edge.
+  void _paintMeasureNumbers(Canvas canvas, Offset offset) {
+    if (!_showMeasureNumbers) return;
+    final systems = _systems;
+    if (systems == null) return;
+    for (var i = 0; i < systems.systems.length; i++) {
+      if (systems.systems[i].firstMeasure <= 0) continue;
+      final origin = offset + upperOrigin(i);
+      final tp = TextPainter(
+        text: TextSpan(
+          text: '${systems.systems[i].firstMeasure + 1}',
+          style: TextStyle(
+            color: _theme.staffColor,
+            fontSize: 0.9 * _staffSpace,
+            fontFamily: _theme.textFontFamily,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(
+        canvas,
+        Offset(origin.dx + 0.2 * _staffSpace, origin.dy - 2.1 * _staffSpace),
+      );
+    }
   }
 
   bool get _liveDragActive =>

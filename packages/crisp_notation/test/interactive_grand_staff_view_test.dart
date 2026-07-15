@@ -315,4 +315,19 @@ void main() {
     // Overlays are repaint-only — never relayout.
     expect(identical(render.grandStaffSystems, before), isTrue);
   });
+
+  testWidgets('showMeasureNumbers labels wrapped systems without error',
+      (tester) async {
+    await tester.pumpWidget(
+      wrap(InteractiveGrandStaffView(
+        grandStaff: eightBarPiano(),
+        staffSpace: 10,
+        showMeasureNumbers: true,
+      )),
+    );
+    expect(tester.takeException(), isNull);
+    final systems = renderOf(tester).grandStaffSystems!.systems;
+    // Wraps into >1 system, so a later system starts past bar 1 (gets a number).
+    expect(systems.any((s) => s.firstMeasure > 0), isTrue);
+  });
 }
