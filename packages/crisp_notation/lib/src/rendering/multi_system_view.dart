@@ -72,6 +72,10 @@ class MultiSystemView extends LeafRenderObjectWidget {
   /// null to hide it.
   final EditorCaret? caret;
 
+  /// Whether to label the first bar of each wrapped system with its global
+  /// measure number (the opening bar's "1" is left implicit).
+  final bool showMeasureNumbers;
+
   /// A translucent preview notehead to draw at this staff location (e.g. the
   /// live [onHover] target), or null for none.
   final StaffTarget? ghostTarget;
@@ -132,6 +136,7 @@ class MultiSystemView extends LeafRenderObjectWidget {
     this.onStaffTap,
     this.onHover,
     this.caret,
+    this.showMeasureNumbers = false,
     this.ghostTarget,
     this.ghostDuration = NoteDuration.quarter,
     this.onElementDragStart,
@@ -159,6 +164,7 @@ class MultiSystemView extends LeafRenderObjectWidget {
         ..onStaffTap = onStaffTap
         ..onHover = onHover
         ..caret = caret
+        ..showMeasureNumbers = showMeasureNumbers
         ..ghostTarget = ghostTarget
         ..ghostDuration = ghostDuration
         ..onElementDragStart = onElementDragStart
@@ -187,6 +193,7 @@ class MultiSystemView extends LeafRenderObjectWidget {
       ..onStaffTap = onStaffTap
       ..onHover = onHover
       ..caret = caret
+      ..showMeasureNumbers = showMeasureNumbers
       ..ghostTarget = ghostTarget
       ..ghostDuration = ghostDuration
       ..onElementDragStart = onElementDragStart
@@ -273,6 +280,18 @@ class RenderMultiSystemView extends RenderBox
   set caret(EditorCaret? value) {
     if (value == _caret) return;
     _caret = value;
+    markNeedsPaint();
+  }
+
+  bool _showMeasureNumbers = false;
+
+  /// Whether to label the first bar of every wrapped system with its global
+  /// measure number (the multi-line convention — the opening bar's "1" is left
+  /// implicit). Repaint only.
+  bool get showMeasureNumbers => _showMeasureNumbers;
+  set showMeasureNumbers(bool value) {
+    if (value == _showMeasureNumbers) return;
+    _showMeasureNumbers = value;
     markNeedsPaint();
   }
 
@@ -787,6 +806,34 @@ class RenderMultiSystemView extends RenderBox
     _paintDragPreview(context.canvas, offset);
     _paintGhost(context.canvas, offset);
     _paintCaret(context.canvas, offset);
+    _paintMeasureNumbers(context.canvas, offset);
+  }
+
+  /// Labels the first bar of each wrapped system (from the 2nd system on) with
+  /// its global measure number, just above the top staff line at the left edge.
+  void _paintMeasureNumbers(Canvas canvas, Offset offset) {
+    if (!_showMeasureNumbers) return;
+    final layout = _layout;
+    if (layout == null) return;
+    for (var i = 1; i < layout.systems.length; i++) {
+      final origin = offset + originOfSystem(i);
+      final tp = TextPainter(
+        text: TextSpan(
+          text: '${layout.systems[i].firstMeasure + 1}',
+          style: TextStyle(
+            color: _theme.staffColor,
+            fontSize: 0.9 * _staffSpace,
+            fontFamily: _theme.textFontFamily,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(
+        canvas,
+        Offset(origin.dx + 0.2 * _staffSpace, origin.dy - 2.1 * _staffSpace),
+      );
+    }
   }
 
   /// The staff-space position of [id]'s notehead (or, failing that, its first

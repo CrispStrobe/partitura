@@ -482,4 +482,30 @@ void main() {
       expect(clefs, isNotEmpty);
     }
   });
+
+  testWidgets('showMeasureNumbers labels wrapped systems without error',
+      (tester) async {
+    await tester.pumpWidget(
+      wrap(
+        MultiSystemView(
+          score: eightMeasures(),
+          staffSpace: 10,
+          showMeasureNumbers: true,
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    final render = renderOf(tester);
+    expect(render.showMeasureNumbers, isTrue);
+    // Multiple systems, so at least one gets a global bar number (2nd on).
+    expect(render.multiSystemLayout!.systems.length, greaterThan(1));
+    expect(render.multiSystemLayout!.systems[1].firstMeasure, greaterThan(0));
+  });
+
+  testWidgets('measure numbers default off (opt-in)', (tester) async {
+    await tester.pumpWidget(
+      wrap(MultiSystemView(score: eightMeasures(), staffSpace: 10)),
+    );
+    expect(renderOf(tester).showMeasureNumbers, isFalse);
+  });
 }
