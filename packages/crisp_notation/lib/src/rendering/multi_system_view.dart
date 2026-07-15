@@ -76,6 +76,12 @@ class MultiSystemView extends LeafRenderObjectWidget {
   /// measure number (the opening bar's "1" is left implicit).
   final bool showMeasureNumbers;
 
+  /// Whether to draw each note's name below the staff (a beginner aid).
+  final bool showNoteNames;
+
+  /// How [showNoteNames] spells each pitch (letter / German / solfège).
+  final NoteNameStyle noteNameStyle;
+
   /// A translucent preview notehead to draw at this staff location (e.g. the
   /// live [onHover] target), or null for none.
   final StaffTarget? ghostTarget;
@@ -137,6 +143,8 @@ class MultiSystemView extends LeafRenderObjectWidget {
     this.onHover,
     this.caret,
     this.showMeasureNumbers = false,
+    this.showNoteNames = false,
+    this.noteNameStyle = NoteNameStyle.letter,
     this.ghostTarget,
     this.ghostDuration = NoteDuration.quarter,
     this.onElementDragStart,
@@ -165,6 +173,8 @@ class MultiSystemView extends LeafRenderObjectWidget {
         ..onHover = onHover
         ..caret = caret
         ..showMeasureNumbers = showMeasureNumbers
+        ..showNoteNames = showNoteNames
+        ..noteNameStyle = noteNameStyle
         ..ghostTarget = ghostTarget
         ..ghostDuration = ghostDuration
         ..onElementDragStart = onElementDragStart
@@ -194,6 +204,8 @@ class MultiSystemView extends LeafRenderObjectWidget {
       ..onHover = onHover
       ..caret = caret
       ..showMeasureNumbers = showMeasureNumbers
+      ..showNoteNames = showNoteNames
+      ..noteNameStyle = noteNameStyle
       ..ghostTarget = ghostTarget
       ..ghostDuration = ghostDuration
       ..onElementDragStart = onElementDragStart
@@ -293,6 +305,27 @@ class RenderMultiSystemView extends RenderBox
     if (value == _showMeasureNumbers) return;
     _showMeasureNumbers = value;
     markNeedsPaint();
+  }
+
+  bool _showNoteNames = false;
+
+  /// Whether to draw each note's name below the staff (a beginner aid). The
+  /// labels are part of the engraving, so this relayouts.
+  bool get showNoteNames => _showNoteNames;
+  set showNoteNames(bool value) {
+    if (value == _showNoteNames) return;
+    _showNoteNames = value;
+    markNeedsLayout();
+  }
+
+  NoteNameStyle _noteNameStyle = NoteNameStyle.letter;
+
+  /// How [showNoteNames] spells each pitch (letter / German / solfège).
+  NoteNameStyle get noteNameStyle => _noteNameStyle;
+  set noteNameStyle(NoteNameStyle value) {
+    if (value == _noteNameStyle) return;
+    _noteNameStyle = value;
+    if (_showNoteNames) markNeedsLayout();
   }
 
   StaffTarget? _ghostTarget;
@@ -522,6 +555,8 @@ class RenderMultiSystemView extends RenderBox
       _settingsFor(metadata),
       maxWidth: maxWidthSpaces,
       justify: _justify,
+      showNoteNames: _showNoteNames,
+      noteNameStyle: _noteNameStyle,
     );
     _layout = layout;
     final widthSpaces =

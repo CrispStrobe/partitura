@@ -1120,4 +1120,31 @@ void main() {
       expect(flagsOf(layout), isNotEmpty); // beat 2's lone eighth
     });
   });
+
+  group('note-name overlay naming style', () {
+    List<String> namesOf(Score score, NoteNameStyle style) =>
+        const LayoutEngine()
+            .layout(score, settings, showNoteNames: true, noteNameStyle: style)
+            .primitives
+            .whereType<TextPrimitive>()
+            .map((t) => t.text)
+            .toList();
+
+    test('letter / German / solfège spell C and B differently', () {
+      final score = Score.simple(notes: 'c4:q b4'); // C then B
+      expect(namesOf(score, NoteNameStyle.letter), containsAll(['C', 'B']));
+      expect(namesOf(score, NoteNameStyle.german), containsAll(['C', 'H']));
+      expect(namesOf(score, NoteNameStyle.solfege), containsAll(['do', 'ti']));
+    });
+
+    test('default style is letter (unchanged English behaviour)', () {
+      final score = Score.simple(notes: 'b4:q');
+      final names = const LayoutEngine()
+          .layout(score, settings, showNoteNames: true)
+          .primitives
+          .whereType<TextPrimitive>()
+          .map((t) => t.text);
+      expect(names, contains('B'));
+    });
+  });
 }

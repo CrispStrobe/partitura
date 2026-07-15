@@ -28,6 +28,18 @@ enum NoteheadScheme {
   solfege,
 }
 
+/// How the [LayoutEngine.layout] `showNoteNames` overlay spells each pitch.
+enum NoteNameStyle {
+  /// English letters: C D E F G A B.
+  letter,
+
+  /// German letters: like [letter], but B-natural is **H** and B-flat is **B**.
+  german,
+
+  /// Fixed-do solfège syllables: do re mi fa sol la ti (C = do).
+  solfege,
+}
+
 /// Distances and thicknesses the layout engine works with.
 ///
 /// All values are in **staff spaces** (1 space = the gap between two

@@ -83,6 +83,8 @@ MultiSystemLayout layoutSystems(
   required double maxWidth,
   bool justify = true,
   Set<int> systemBreaks = const {},
+  bool showNoteNames = false,
+  NoteNameStyle noteNameStyle = NoteNameStyle.letter,
 }) {
   const engine = LayoutEngine();
   if (maxWidth <= 0) {
@@ -135,14 +137,20 @@ MultiSystemLayout layoutSystems(
     final drawTime = drawTimeFor(start);
     var slice = _slice(score, start, end, clefAt, keyAt, timeAt);
     var layout = engine.layout(slice, settings,
-        drawTimeSignature: drawTime, finalBarline: end == measureCount - 1);
+        drawTimeSignature: drawTime,
+        finalBarline: end == measureCount - 1,
+        showNoteNames: showNoteNames,
+        noteNameStyle: noteNameStyle);
     // Safety trim: if the estimate was ever optimistic, push measures to
     // the next system rather than overflow.
     while (layout.width > maxWidth && end > start) {
       end--;
       slice = _slice(score, start, end, clefAt, keyAt, timeAt);
       layout = engine.layout(slice, settings,
-          drawTimeSignature: drawTime, finalBarline: end == measureCount - 1);
+          drawTimeSignature: drawTime,
+          finalBarline: end == measureCount - 1,
+          showNoteNames: showNoteNames,
+          noteNameStyle: noteNameStyle);
     }
     final isLastSystem = end == measureCount - 1;
     if (justify && !isLastSystem && layout.width < maxWidth) {

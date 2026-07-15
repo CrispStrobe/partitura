@@ -508,4 +508,35 @@ void main() {
     );
     expect(renderOf(tester).showMeasureNumbers, isFalse);
   });
+
+  testWidgets('showNoteNames draws the labels in the chosen style',
+      (tester) async {
+    await tester.pumpWidget(
+      wrap(MultiSystemView(
+        score: eightMeasures(),
+        staffSpace: 10,
+        showNoteNames: true,
+        noteNameStyle: NoteNameStyle.german,
+      )),
+    );
+    expect(tester.takeException(), isNull);
+    final render = renderOf(tester);
+    expect(render.showNoteNames, isTrue);
+    expect(render.noteNameStyle, NoteNameStyle.german);
+    // The names are engraved into the layout as text primitives.
+    final texts = render.multiSystemLayout!.systems
+        .expand((s) => s.layout.primitives)
+        .whereType<TextPrimitive>();
+    expect(texts, isNotEmpty);
+    expect(
+        render.showNoteNames && renderOf(tester).showMeasureNumbers, isFalse);
+  });
+
+  testWidgets('note names default off', (tester) async {
+    await tester.pumpWidget(
+      wrap(MultiSystemView(score: eightMeasures(), staffSpace: 10)),
+    );
+    expect(renderOf(tester).showNoteNames, isFalse);
+    expect(renderOf(tester).noteNameStyle, NoteNameStyle.letter);
+  });
 }
