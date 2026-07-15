@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.3 (2026-07-15)
+
+- **Runnable example** (`example/crisp_notation_core_example.dart`): a tour of
+  the theory model and the terse score DSL. Docs-only; no API changes.
+
 ## 0.4.2 (2026-07-15)
 
 - **Configurable staff-line count** (N-line staves): `LayoutEngine.layout(...,
