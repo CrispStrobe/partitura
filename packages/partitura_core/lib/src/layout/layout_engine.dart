@@ -65,6 +65,7 @@ class LayoutEngine {
     double crossStaffOffset = 0,
     Clef? clefAbove,
     Clef? clefBelow,
+    int staffLineCount = 5,
   }) =>
       _LayoutBuilder(score, settings,
               leadingWidth: leadingWidth,
@@ -77,12 +78,10 @@ class LayoutEngine {
               showMeasureNumbers: showMeasureNumbers,
               crossStaffOffset: crossStaffOffset,
               clefAbove: clefAbove,
-              clefBelow: clefBelow)
+              clefBelow: clefBelow,
+              staffLineCount: staffLineCount)
           .build();
 }
-
-/// y-coordinate of a staff position (0 = bottom line → y = 4; y grows down).
-double _yOf(num staffPosition) => (8 - staffPosition) / 2;
 
 /// Mutable bounding-box accumulator.
 class _Bounds {
@@ -189,7 +188,27 @@ class _LayoutBuilder {
   final Clef? clefAbove;
   final Clef? clefBelow;
 
+  /// Number of staff lines (5 for an ordinary notation staff; 1 for a neutral
+  /// percussion line, etc.). Drives every vertical reference below.
+  final int staffLineCount;
+
   SmuflMetadata get meta => s.metadata;
+
+  /// Staff position of the top line (bottom line is position 0; each position
+  /// step is half a staff space). 8 for a 5-line staff.
+  int get _topPosition => 2 * (staffLineCount - 1);
+
+  /// Staff position of the middle line — the reference for stem direction.
+  /// 4 for a 5-line staff.
+  double get _middlePosition => (staffLineCount - 1).toDouble();
+
+  /// y of the middle line — the reference for stem-length clamps. 2 for a
+  /// 5-line staff.
+  double get _middleY => (staffLineCount - 1) / 2;
+
+  /// y of a staff [position] (position 0 = bottom line → y = staffLineCount−1;
+  /// y grows downward). For a 5-line staff this is `(8 − position) / 2`.
+  double _yOf(num position) => (_topPosition - position) / 2;
 
   final List<LayoutPrimitive> _primitives = [];
   final Map<String, _Bounds> _elementBounds = {};
@@ -265,7 +284,8 @@ class _LayoutBuilder {
       this.showMeasureNumbers = false,
       this.crossStaffOffset = 0,
       this.clefAbove,
-      this.clefBelow});
+      this.clefBelow,
+      this.staffLineCount = 5});
 
   /// Staff-shift per element id from [Score.crossStaff] (id → ±staves); empty
   /// unless the score has cross-staff notes.
@@ -386,7 +406,7 @@ class _LayoutBuilder {
 
     // Staff lines span the full width; paint them first.
     final staffLines = [
-      for (var line = 0; line < 5; line++)
+      for (var line = 0; line < staffLineCount; line++)
         LinePrimitive(
           Point(0, line.toDouble()),
           Point(width, line.toDouble()),
@@ -398,7 +418,7 @@ class _LayoutBuilder {
       0,
       -s.staffLineThickness / 2,
       width,
-      4 + s.staffLineThickness / 2,
+      (staffLineCount - 1) + s.staffLineThickness / 2,
     );
 
     final top = _ink.minY - s.verticalPadding;
@@ -1244,7 +1264,8 @@ class _LayoutBuilder {
 
     // Rule 5: stem down when the notehead farthest from the middle line is
     // on or above it (chords: decided by the farther extreme; ties → down).
-    final stemsDown = stemsDownOverride ?? ((top - 4) >= (4 - bottom));
+    final stemsDown = stemsDownOverride ??
+        ((top - _middlePosition) >= (_middlePosition - bottom));
 
     // Rule 9: accidentals — shown when the pitch deviates from what the key
     // signature and earlier accidentals in this measure imply;
@@ -1343,7 +1364,7 @@ class _LayoutBuilder {
               _yOf(bottom) + s.stemLength + _stemExtension(_beamCountOf(base));
           // Extend toward the middle line — but not for a cross-staff note,
           // whose stem is meant to leave the staff toward its neighbour.
-          if (tipY < 2 && crossShift == 0) tipY = 2;
+          if (tipY < _middleY && crossShift == 0) tipY = _middleY;
           _addLine(
             Point(stemX, attachY),
             Point(stemX, tipY),
@@ -1368,7 +1389,7 @@ class _LayoutBuilder {
           var tipY =
               _yOf(top) - s.stemLength - _stemExtension(_beamCountOf(base));
           // Extend toward the middle line — but not for a cross-staff note.
-          if (tipY > 2 && crossShift == 0) tipY = 2;
+          if (tipY > _middleY && crossShift == 0) tipY = _middleY;
           _addLine(
             Point(stemX, attachY),
             Point(stemX, tipY),
@@ -1508,7 +1529,7 @@ class _LayoutBuilder {
         elementId: elementId,
       );
     }
-    for (var p = 10 + positionShift; p <= topPosition; p += 2) {
+    for (var p = _topPosition + 2 + positionShift; p <= topPosition; p += 2) {
       _addLine(
         Point(left, _yOf(p)),
         Point(right, _yOf(p)),
@@ -2820,14 +2841,14 @@ class _LayoutBuilder {
       // Never let a downward beam sit above the middle line.
       for (final n in notes) {
         final y = slope * n.stemX + intercept;
-        if (y < 2) intercept += 2 - y;
+        if (y < _middleY) intercept += _middleY - y;
       }
     } else {
       intercept =
           notes.map((n) => n.refY - stemLength - slope * n.stemX).reduce(min);
       for (final n in notes) {
         final y = slope * n.stemX + intercept;
-        if (y > 2) intercept -= y - 2;
+        if (y > _middleY) intercept -= y - _middleY;
       }
     }
 
