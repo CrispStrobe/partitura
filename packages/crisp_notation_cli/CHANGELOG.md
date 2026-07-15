@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.3 (2026-07-15)
+
+- **First pub.dev release.** Install with
+  `dart pub global activate crisp_notation_cli` to get the `crisp_notation`
+  command (inspect, convert between MusicXML/MEI/kern/MIDI/MuseScore/GP/ABC with
+  LilyPond & braille export, render to SVG/PNG, and OMR). Added a usage example.
+  `render ... .png` needs the Flutter SDK; `omr` needs the native
+  `libcrispembed` — SVG/convert/info are pure Dart.
+
 ## 0.4.1 (2026-07-14)
 
 - **Sheet title rendering**: multi-staff `render` outputs include imported
