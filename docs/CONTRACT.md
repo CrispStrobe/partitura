@@ -11,6 +11,21 @@ a documented migration note.
 
 ---
 
+## Contents
+
+- [1. Packages](#1-packages)
+- [2. Binding conventions](#2-binding-conventions)
+- [3. Theory layer](#3-theory-layer-crisp_notation_core)
+- [4. Score model](#4-score-model-crisp_notation_core) · [`Score.simple` DSL](#scoresimple-dsl)
+- [5. Layout engine](#5-layout-engine-crisp_notation_core) · [Engraving rules](#engraving-rules-implemented) · [Systems & gridding](#systems--cross-staff-onset-column-gridding) · [Pagination](#pagination)
+- Interchange & export: [5b. MusicXML](#5b-musicxml-import--export-crisp_notation_core) · [5c. Playback cursor](#5c-playback-cursor-crisp_notation_core) · [5d. Transposition](#5d-transposition-crisp_notation_core) · [5e. MIDI](#5e-midi-import--export-crisp_notation_core) · [5f. SVG](#5f-svg-export-crisp_notation_core) · [5g. ABC](#5g-abc-notation-crisp_notation_core) · [5h. Multi-part & staff systems](#5h-multi-part-scores--staff-systems-crisp_notation_core) · [5i. OMR](#5i-optical-music-recognition-crisp_notation_core--crisp_notation_cli)
+- [6. Rendering](#6-rendering-crisp_notation)
+- [7. Interaction](#7-interaction-crisp_notation)
+- [8. Guarantees](#8-guarantees)
+- [9. Quality gates](#9-quality-gates)
+
+---
+
 ## 1. Packages
 
 | Package | Platform | Depends on | Contents |
@@ -61,6 +76,15 @@ Changing any of them is a breaking change:
 | `Scale` | major, natural/harmonic/melodic (ascending) minor; `pitches` = 8 ascending pitches from the tonic, each letter used once, spelled diatonically |
 | `Triad` | major/minor/diminished/augmented on a root, inversions 0–2 (`pitches` from the bass upward, ascending) |
 | `Key` | `Key.major` / `Key.minor`; `signature` (throws beyond ±7 fifths); `triadFor(HarmonicFunction)`: major keys → all major; minor keys → t and s minor, **D major** (harmonic-minor convention) |
+| `ChordAnalysis` | chord identification (the inverse of `Triad`): `identifyChord(pitches)` → root/`ChordType`/inversion/bass (null under 3 distinct pitch classes or with no template match), `symbol` (`Am7`, `C/E`), `chordSymbolFor(pitches)`, `chordReadings(pcs, {bassPc})` for all enharmonic re-readings. `ChordType` is an enhanced enum of 29 templates (triads, sevenths, sixths, 9ths/11ths/13ths, and the augmented sixths `It+6`/`Fr+6`/`Ger+6`, matched by spelling — `isAugmentedSixth`) |
+| `RomanNumeral` | bidirectional harmonic analysis: `romanNumeralFor(chord, key)`, `romanNumeralOf(pitches, key)` → degree, `alteration`, `ChordType`, `inversion`, secondary `appliedTo`; `figure` (figured-bass) and `symbol` (`V6/5`, `vii°7`, `bVI`, `V7/V`); `pitchClassesOf(rn, key)` realizes it back to pitch classes |
+| Key finding | Krumhansl-Schmuckler over Krumhansl-Kessler profiles: `findKey(weights)` (12-element vector, index 0 = C; null if empty/all-zero), `keyOf(pitches, {durations})`, `localKeys(pitches, {window = 8, step = 1})` as a sliding-window modulation tracker |
+| Voice leading | `checkVoiceLeading(chords)` → `List<VoiceLeadingIssue>` (`rule`, `chordIndex`, `upperVoice`, `lowerVoice`) over `VoiceLeadingRule`: parallel/hidden fifths & octaves, voice crossing, voice overlap, spacing. Each chord is ordered top voice (index 0) down to bass; for motion rules `chordIndex` is the **second** chord of the pair |
+| Set theory | post-tonal pitch-class sets: `pitchClassSet(pitches)`, `transposeSet`, `invertSet`, `normalForm`, `primeForm` (Forte), `intervalClassVector`, `zRelated(a, b)`, `forteNumber(pcs)` (null for the empty set **and for hexachords** — that catalogue is not transcribed) |
+| Twelve-tone | serial row operations: `transposeRow(row, n)`, `retrograde`, `invertRow` (about the row's **first** note), `retrogradeInversion`, `twelveToneMatrix(row)` (throws `ArgumentError` unless `row` is a permutation of 0–11) |
+| Neo-Riemannian | `extension NeoRiemannian on Triad` — `parallel` (P), `relative` (R), `leittonwechsel` (L). All three throw `StateError` on a non-major/minor triad |
+| Scale matching | `matchingScales(pcs)` → every `Scale` (all 12 tonics × `ScaleType`) containing `pcs`, best fit first (rooted-in-set before merely-containing, then major before minor modes, then by tonic); `[]` if none |
+| `Tempo` | `Tempo(bpm, {beatUnit = DurationBase.quarter, dots = 0})` (asserts 0–2 dots); `quarterBpm` normalizes beat unit + dots to quarter-BPM (dotted-quarter@80 → 120). Carried by `Score` (initial) and `Measure.tempoChange` |
 
 All theory types are immutable value types: `==`/`hashCode` are
 value-based, invalid constructor arguments fail asserts in debug builds.
@@ -125,6 +149,13 @@ value-based, invalid constructor arguments fail asserts in debug builds.
   equality over the given lists; mutating a list in place makes an "old"
   and "new" score compare equal and defeats change detection downstream
   (`StaffView` skips relayout for `==` scores). Copy lists per rebuild.
+
+- **Accessibility**: `semanticLabel(element)` → a screen-reader string
+  (`"C sharp 4 quarter note"`, `"C 4, E 4, G 4 chord, half note"`,
+  `"quarter rest"`); `semanticLabels(score)` → `Map<String, String>` id → label
+  for every **identified** element across `measure.elements` and
+  `voice2`…`voice4`. Handles microtonal accidentals and breve…64th with
+  dotted/double-dotted prefixes.
 
 ### `Score.simple` DSL
 
@@ -363,6 +394,37 @@ slurs/ties, tuplets, grace notes, articulations and dynamics in v0.3; two
 voices, grand staff, line breaking, lyrics and chord symbols/annotations in
 v0.4.
 
+
+### Pagination
+
+`layoutPages(score, settings, {required PageMetrics metrics, systemGap = 8,
+justifyVertically = true, justify = true, systemBreaks = const {},
+pageBreaks = const {}})` → `PagedLayout`. Line-breaks the score to the content
+width (via `layoutSystems`), then packs systems top-to-bottom into pages no
+taller than the content height, `systemGap` staff-spaces apart.
+
+- `PageMetrics({required width, required height, marginTop = 8,
+  marginBottom = 8, marginLeft = 8, marginRight = 8})` — the page box, all in
+  **staff spaces** (the caller converts from physical sizes via the spatium).
+  `contentWidth` / `contentHeight` are the page minus its margins. Asserts a
+  positive page and margins that do not exceed it.
+- `PagedLayout` — `pages` (`List<PageLayout>`), the `metrics` used, and
+  `systemWidth` (== content width, the width every non-final system was
+  justified to).
+- `PageLayout` — `systems` (`List<PositionedSystem>`, top to bottom) and
+  `justified` (whether this page's systems were spread to fill).
+- `PositionedSystem` — the `SystemLayout` and its `top` offset in staff spaces
+  **from the content-box top** (add `PageMetrics.marginTop` for the
+  page-relative position).
+
+With `justifyVertically` (the default) every page except the last spreads its
+systems to fill the content height, surplus shared equally across the
+inter-system gaps; the last page and any single-system page keep the natural
+`systemGap`. `justify: false` skips *horizontal* justification of the systems
+themselves. A forced `pageBreaks` entry implies a system break at the same
+measure. A system taller than the content height still gets its own page rather
+than failing.
+
 ## 5b. MusicXML import & export (`crisp_notation_core`)
 
 Export: `scoreToMusicXml(score)` / `grandStaffToMusicXml(grandStaff)`
@@ -550,6 +612,140 @@ embed it via `@font-face` for a self-contained file. The
 Flutter painter and this emitter). Pure Dart, deterministic. *(Raster/PNG
 export rides the Flutter renderer — see the `crisp_notation` package.)*
 
+
+## 5g. ABC notation (`crisp_notation_core`)
+
+Import: `scoreFromAbc(abc)` → `Score` (first tune, first voice).
+`staffSystemFromAbc(abc)` → `StaffSystem` — one notation staff per `V:` voice,
+top to bottom in declaration order, each keeping its own clef (`V:… clef=…` or
+the `K:` header) and lyrics; ids are prefixed per voice so they stay unique.
+Voices with fewer bars than the longest are padded with trailing whole rests so
+the system still aligns rather than failing. `multiPartScoreFromAbc(abc)` →
+`MultiPartScore`, so a tune line-breaks and paginates straight into
+`layoutMultiPartPages` / `MultiPartView`. All three throw `FormatException` if no
+tune body / `K:` field is found.
+
+Subset: a broad slice of **ABC 2.1** — the `M`/`L`/`K` header, then pitched notes
+(accidentals from the key + in-measure state, octave marks, `L`-relative and
+fractional lengths), rests, chords, broken rhythm (`>`/`<`), ties, tuplets,
+slurs, grace notes (incl. `{/…}`), decorations (`!…!` and the shorthand
+`. ~ H T M P u v` → articulations / ornaments / dynamics / bowing), navigation
+(`!segno!`/`!D.C.!`/`!D.S.!`/`!fine!`…), quoted `"C"` and positioned `"^…"`
+annotations, bar lines (repeats, double/final, variant endings `|1`/`[2`),
+multi-measure rests (`Z`), inline fields (`[K:…]`/`[M:…]`/`[L:…]`), `w:` lyrics
+and `s:` symbol lines, `Q:` tempo and `P:` part labels (as annotations), and line
+continuation (`\`). Unmodeled decorations are skipped so real tunes still import.
+
+Export: `scoreToAbc(score, {unitLength, index = 1, title})` → an ABC tune string.
+`unitLength` is the `L:` field (default 1/8), `index` the `X:` tune number,
+`title` the optional `T:`. Emits the `M`/`L`/`K` header then notes, rests,
+chords, ties, tuplets, slurs, grace notes, staccato, `"C"` chord symbols and bar
+lines (repeats, double/final); a single lyric verse becomes a `w:` line.
+Accidentals are written relative to the key **in force**, so mid-tune `[K:…]`
+changes read back at pitch. **Export is single-voice** — there is no
+`staffSystemToAbc`.
+
+Round-trip: both codecs funnel through the one `Score` model, so a score
+round-trips for the data ABC can represent. Export is a narrower subset than
+import (no navigation marks, dynamics, multi-measure rests or multi-voice), so an
+imported tune is **not** guaranteed to re-export byte-identically. Pure Dart,
+web-safe, no file I/O — pass the tune as a string.
+
+## 5h. Multi-part scores & staff systems (`crisp_notation_core`)
+
+**Model.** `StaffSystem(staves, {brackets, connectBarlines, barlineGroups,
+systemBreaks})` is N `Score`s rendered as **one aligned system**.
+`MultiPartScore(parts, {brackets = const [], barlineGroups = const []})` is the
+paginating counterpart: a whole piece as N parts (same measure count and meter)
+that line-breaks into multi-staff systems and paginates as one document. Asserts
+at least one part; element ids should be unique across parts so interaction stays
+unambiguous. `MultiPartScore.fromStaffSystem(system)` promotes a single system
+into a document, preserving barline semantics; `toStaffSystem()` goes back;
+`atConcertPitch()` untransposes every part.
+
+`BarlineGroup(first, last)` is a contiguous run of part indices whose barlines
+connect through the group (`contains(index)`; asserts `last >= first`,
+`first >= 0`). An **empty** `barlineGroups` means barlines connect through the
+whole system. One group spanning every staff reproduces `connectBarlines: true`;
+two groups (strings connected, winds connected, the barline broken between them)
+is what all-or-nothing `connectBarlines` could not express.
+`StaffBracket(first, last, kind)` with `StaffBracketKind` draws the left-edge
+brackets/braces (may be empty or nested).
+
+**Import.** `staffSystemFromMusicXml(xml)` → `StaffSystem`: every part — and
+every staff of a multi-staff part — becomes one aligned staff. Multi-staff parts
+(e.g. piano) are joined by a brace; `<part-group>`s in the `<part-list>` (with a
+`bracket`/`brace`/`square`/`line` group-symbol) become the corresponding
+`StaffBracket`s. Ids get disjoint spaces per staff.
+`multiPartScoreFromMusicXml(xml)` wraps that as a `MultiPartScore`. Throws
+`FormatException` on documents the subset cannot represent.
+
+**Layout.** `layoutStaffSystemSystems(document, settings, {required maxWidth,
+staffGap = 4.0, justify = true, gridAlign = true, hideEmptyStaves = false,
+systemBreaks = const {}, showNoteNames = false, noteNameStyle =
+NoteNameStyle.letter})` → `StaffSystemSystems` breaks a `StaffSystem` into
+systems no wider than `maxWidth`. Measures are packed by the **widest** part so
+barlines stay aligned across every part; the time signature draws only on the
+first system (and at explicit changes); every non-final system closes with a
+plain barline and, unless `justify` is false, stretches to fill `maxWidth` via a
+shared note-spacing stretch. With `hideEmptyStaves`, a part whose measures over a
+system's range are entirely rests is dropped from that system (the orchestral
+space-saver) — the first system always shows every part, a would-be-blank system
+keeps all its parts, and brackets/barline groups clip to what remains. Throws if
+the parts disagree on measure count or `maxWidth` ≤ 0. `StaffSystemSystems`
+carries `systems` / `maxWidth` and `heightWith(systemGap)`; each
+`StaffSystemSystem` has `layout`, `firstMeasure`, `lastMeasure`.
+
+`layoutMultiPartPages(document, settings, {required metrics, staffGap = 4.0,
+systemGap = 8, justifyVertically = true, justify = true, hideEmptyStaves = false,
+showNoteNames = false, noteNameStyle})` → `MultiPartPagedLayout` (`pages` /
+`metrics` / `systemWidth`) paginates a `MultiPartScore` on the same rules as
+`layoutPages`: pages of `MultiPartPageLayout` (`systems`, `justified`) holding
+`PositionedMultiPartSystem` (`system`, `top`).
+
+## 5i. Optical music recognition (`crisp_notation_core` + `crisp_notation_cli`)
+
+Staff image → `Score`. The **recognition** is done by an external engine; core
+ships only the pure-Dart back half of the pipeline, so the whole image-to-model
+chain is testable without a native library (feed a known token string, assert on
+the `Score`).
+
+**Core (pure Dart, no FFI).** `OmrEngine` is an abstract one-method interface
+(`Future<String> recognize(OmrImage image)`); `OmrImage(pixels, {required width,
+required height, channels = 1})` is a row-major buffer (1 = gray, 3 = RGB,
+4 = RGBA). `omrDialectOf(tokens)` → `OmrDialect` sniffs which engine produced the
+tokens: `bekern` (SMT, a linearised grand-staff Humdrum), `semantic` (TrOMR
+PrIMuS-style `clef-G2 note-C4_quarter …`), or `lilyNotes` (Flova LilyPond simple
+notes). Parsers: `bekernToScore` (first spine), `bekernToGrandStaff`,
+`bekernToStaffSystem`, `bekernToKern` (→ Humdrum `**kern`), `scoreFromSemantic`,
+`scoreFromLilyNotes`. Helpers `recognizeGrandStaff(engine, image)` /
+`recognizeScore(engine, image)` compose an engine with the parsers.
+
+**Engine (`crisp_notation_cli`).** `package:crisp_notation_cli/omr.dart` is the
+whole pipeline in one import (it re-exports the core parsers). The engine is
+`CrispEmbedOmrEngine.load(modelPath, {lib})` — a `dart:ffi` bridge to
+**`libcrispembed`**, required at runtime; `recognizeSync(image)` / `recognize`,
+and `dispose()` when done. Failures throw `OmrEngineException`. Image helpers:
+`decodeOmrImage(path)`, `decodeImageFile(path)`, `omrImageOf(img.Image)`, and
+`segmentStaffSystems(...)` to split a full-page scan into per-system crops.
+`resolveOmrModel(model, {cacheDir, onStatus})` returns an existing path as-is, or
+downloads a registered name from Hugging Face into `cacheDir` (default
+`$XDG_CACHE_HOME/crisp_notation/omr`) and returns the cached path.
+`omrModelRegistry` maps `smt-grandstaff` / `smt` / `tromr` / `flova` → (repo,
+GGUF file).
+
+**Platforms.** FFI-only: the CLI and Flutter **desktop** (macOS / Windows /
+Linux). **Not web** — Dart/Flutter web has no `dart:ffi`, and CrispEmbed's WASM
+build does not expose the OMR engines. Core's parsers remain web-safe.
+
+**CLI.** `crisp_notation omr <image> <out.(musicxml|mxl|krn|svg|png)>
+--model <gguf|name> [--lib <path>] [--threads <n>] [--single] [--page]`. The
+engine is auto-detected from the returned dialect. `--model` accepts a GGUF path
+or a registry name (auto-downloads); or set `CRISP_NOTATION_OMR_MODEL`. `--lib`
+points at `libcrispembed`; or set `CRISPEMBED_LIB`. `--single` imports the first
+spine only; `--page` splits a full-page scan into staff systems and recognizes
+each, concatenated.
+
 ## 6. Rendering (`crisp_notation`)
 
 - `Bravura.load()` — parses the bundled font metadata once (async,
@@ -609,6 +805,38 @@ export rides the Flutter renderer — see the `crisp_notation` package.)*
   font as a data-URI. `exportGrandStaffToPng` / `exportGrandStaffToSvg` are the
   `GrandStaff` overloads. `MusicFont.fontAsset` supplies the font bytes for the
   SVG embed.
+
+- `PianoKeyboardView({highlightedPitches = const {}, firstMidi = 48,
+  lastMidi = 84, pitchColors, highlightColor, theme, whiteKeyWidth = 16,
+  height = 80})` — a piano keyboard lighting MIDI numbers; the range snaps out to
+  white keys, lit color resolves `pitchColors?[midi] ?? highlightColor ??
+  theme.highlightColor`. Purely visual — no audio.
+- `FretboardView({tuning = FretboardView.standardGuitar, frets = 12,
+  highlightedPitches = const {}, pitchColors, highlightColor, theme,
+  fretWidth = 26, stringSpacing = 14})` — a fretboard with the low string at the
+  bottom, a thick nut, and inlays at 3/5/7/9 (double at 12). Lights **every**
+  (string, fret) whose pitch is highlighted, so a pitch playable on several
+  strings lights all of them; open notes draw left of the nut. Statics
+  `standardGuitar` (`[40, 45, 50, 55, 59, 64]`) and `standardBass`
+  (`[28, 33, 38, 43]`).
+- `ScorePageView({required score, required metrics, theme, staffSpace = 8,
+  systemGap = 8, justifyVertically = true, pageIndex = 0,
+  drawPageBorder = false, showSystemDividers = false})` — paginates a `Score` via
+  `layoutPages` and paints the single page `pageIndex` at exactly
+  `metrics.width × staffSpace` by `metrics.height × staffSpace`. An out-of-range
+  `pageIndex` paints an empty page. **`metrics` is core's `PageMetrics`** —
+  Flutter's `widgets.dart` also exports one, so `hide PageMetrics` on the Flutter
+  import when using both. `RenderScorePageView` is public (`pagedLayout`,
+  `pageCount` — 0 and null until `MusicFonts.load` resolves, then it self-heals).
+- `MultiPartView(document, metrics, {theme, staffSpace = 8, staffGap = 4,
+  systemGap = 10, justifyVertically = true, hideEmptyStaves = false,
+  pageIndex = 0, drawPageBorder = false, onElementTap})` — paints one page of a
+  paginated `MultiPartScore` (§5h). `RenderMultiPartView` is public and
+  implements `ElementRegionProvider`.
+- `StaffSystemView(system, {theme, staffSpace, staffGap = 4.0, gridAlign = true,
+  hideEmptyStaves = false, highlightedIds, onElementTap})` — a single
+  un-paginated `StaffSystem` (`staffSpace` null = fit to width).
+  `RenderStaffSystemView` is public.
 
 ## 7. Interaction (`crisp_notation`)
 
@@ -677,6 +905,25 @@ moat — all repaint-only, no relayout:
   **app-owned** `ScrollController` — `attachViewport(scrollController:,
   rectOfElement:)`, then `scrollToNote(id, {alignment})` (or `offsetToReveal(id)`
   to compute the offset and animate yourself).
+
+- `evaluateDrill({required score, required expectedIds, required played,
+  correctColor, wrongColor})` → `DrillResult` (`overlay` as
+  `Map<String, EditorMark>`, `extraPitches`, `missingPitches`, `isPerfect`)
+  compares expected element ids against the sounding MIDI set: each expected
+  element marks `'correct'` or `'missing N note(s)'`. Elements with no pitches
+  (rests / grace / unknown ids) are skipped and produce no overlay entry. Feeds a
+  view's `errorOverlay` or `ScoreEditorController.setMarks`/`showDrill`.
+- `TranspositionController(Score base)` — a `ChangeNotifier` over
+  `Score.transposedBy` / `atConcertPitch`: `base`, `score`, `isTransposed`,
+  `transposeBy(interval, {descending = false})`, `octaveUp()`, `octaveDown()`,
+  `showConcertPitch()`, `reset()`. `transposeBy` **composes** (it transposes the
+  current `score`, not `base`); `showConcertPitch` and `reset` restart from
+  `base`. A redundant change fires no notification. Renders nothing — the app
+  rebuilds a view off `controller.score`.
+- `InteractiveMultiPartView(document, metrics, {…, controller, caret,
+  showMeasureNumbers, showNoteNames, noteNameStyle})` — the editor surface over a
+  paginated `MultiPartScore`; staff-tap / hover / drag callbacks carry
+  `(partIndex, StaffTarget)`. See §5h.
 
 ## 8. Guarantees
 
