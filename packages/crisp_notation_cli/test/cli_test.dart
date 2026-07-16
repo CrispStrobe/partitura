@@ -42,8 +42,7 @@ void main() {
         // checkout to find the Flutter package the PNG path needs — point it
         // there explicitly.
         environment: {
-          'CRISP_NOTATION_PACKAGE':
-              File('../crisp_notation').absolute.path,
+          'CRISP_NOTATION_PACKAGE': File('../crisp_notation').absolute.path,
         },
       );
 
