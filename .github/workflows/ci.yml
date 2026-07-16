@@ -1,8 +1,12 @@
 name: ci
 
-# Ongoing checks on every push to main and every PR. Kept lean and fast:
-# pub.dev publish-readiness for the two library packages, the WasmGC smoke,
+# Ongoing checks on every push to main and every PR: the test suites, format and
+# analyze, pub.dev publish-readiness for the library packages, the WasmGC smoke,
 # and an iOS build-check (compiles the example without code-signing).
+#
+# The golden corpus is rasterised by the host, so goldens run on macOS only —
+# the baselines are macOS-generated and a Linux runner reports size mismatches
+# that mean nothing. Keep it that way; do not "fix" goldens on Linux.
 on:
   push:
     branches: [main]
@@ -12,6 +16,54 @@ permissions:
   contents: read
 
 jobs:
+  format-analyze:
+    name: format + analyze
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - name: dart format
+        run: dart format --set-exit-if-changed packages/*/lib packages/*/test
+      - name: flutter analyze
+        run: flutter analyze
+
+  core-tests:
+    name: crisp_notation_core tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - name: dart test
+        working-directory: packages/crisp_notation_core
+        run: dart test
+
+  flutter-tests:
+    name: crisp_notation widget + golden tests
+    # macOS: the golden baselines are macOS-generated (see the note above).
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - name: flutter test
+        working-directory: packages/crisp_notation
+        run: flutter test
+      - name: Upload golden failure diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-failures
+          path: packages/crisp_notation/test/failures/
+          if-no-files-found: ignore
+
   publish-dry-run:
     name: pub.dev publish dry-run
     runs-on: ubuntu-latest
