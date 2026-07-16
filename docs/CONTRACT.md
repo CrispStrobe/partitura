@@ -94,10 +94,11 @@ value-based, invalid constructor arguments fail asserts in debug builds.
 - `Score` = clef + `KeySignature` (default C) + optional `TimeSignature`
   (null = unmetered: no time signature drawn, measure sums unchecked) +
   `List<Measure>`.
-- `Measure` = ordered `List<MusicElement>` (voice 1) plus an optional
-  `voice2` (DSL `;`): voice 1 stems up / voice 2 down, onsets align in
-  columns, rests displace vertically, cross-voice unisons/seconds shift
-  voice 2 rightward; ties bind per voice, accidental state is shared;
+- `Measure` = ordered `List<MusicElement>` (voice 1) plus up to three more
+  voices (`voice2`/`voice3`/`voice4`, DSL `;`): odd voices (1, 3) stem up, even
+  voices (2, 4) stem down, onsets align in columns, rests displace vertically,
+  cross-voice unisons/seconds shift the lower voice rightward; ties bind per
+  voice, accidental state is shared;
   tuplets and directives are voice-1 only. Plus non-overlapping
   `TupletSpan`s (`actual` notes in the time of `normal` over a contiguous
   element range; cannot cross barlines), optional mid-score changes
@@ -114,7 +115,15 @@ value-based, invalid constructor arguments fail asserts in debug builds.
   meter is auto-detected as a `Measure.pickup` (anacrusis).
   `Score.barNumberAt(index)` (C9) gives the displayed bar number with the pickup
   uncounted — 1-based over non-pickup measures, `null` for a pickup itself; the
-  measure-number overlay and the MEI writer both use it.
+  measure-number overlay and the MEI writer both use it. Further `Measure`
+  fields: `inlineClefs` (`List<InlineClefChange>` — `InlineClefChange(onset,
+  clef)`, a clef change drawn mid-measure at its onset), `measureRepeat` (`int?`
+  — a 1/2/4-bar simile repeat sign, requires empty `elements`), `actualDuration`
+  (`Fraction?` — an explicit intended bar length overriding the meter for an
+  irregular bar; it also suppresses pickup auto-detection), `barline`
+  (`BarlineStyle`, default `normal` — the closing right-barline style, overridden
+  when `endRepeat` is set) and `tempoChange` (`Tempo?` — a metronome change at
+  the measure start).
 - `MusicElement` (sealed) = `NoteElement` (1 pitch = note, n pitches =
   chord; `showAccidental`: `null` auto / `true` force / `false` hide;
   `tieToNext` ties to the next note element — identical pitches only,
@@ -145,6 +154,21 @@ value-based, invalid constructor arguments fail asserts in debug builds.
   model-only (no DSL shorthand); drawn on a dynamics line below the
   staff that drops beneath any low element ink. The optional `id` makes an element addressable by the
   interaction layer; ids should be unique per score.
+- `Score.chordSymbols`: `ChordSymbol(elementId, root, quality, {bass})`
+  structured lead-sheet harmony above a note — unlike text `annotations`, the
+  root/bass are real `Pitch`es, so they transpose with the music (model-only).
+- `Score.portamentos`: `Portamento(startId, endId)` curved-slide lines between
+  note elements (model-only); same id/order rules as slurs.
+- `Score.crossMeasureBeams`: `CrossMeasureBeam(startId, endId)` (model-only) —
+  forces the spanned notes into one beam group continued across a barline.
+- `Score.ottavas`: `Ottava(startId, endId, {down})` an 8va (`down: false`,
+  bracket above) or 8vb (`down: true`, bracket below) octave-transposition line
+  over the spanned notes (model-only).
+- `Score.breathMarks`: `BreathMark(noteId, BreathSymbol)` breath mark / caesura
+  drawn after a note element (model-only).
+- `Score.jazzMarks`: `JazzMark(noteId, JazzArticulation)` jazz / brass
+  articulations (scoop, doit, fall, plop, and lift/flip/smear/bend) on a note
+  element — the model container behind the §5 jazz-articulation rendering.
 - **Lists are treated as immutable.** Model equality is deep value
   equality over the given lists; mutating a list in place makes an "old"
   and "new" score compare equal and defeats change detection downstream
@@ -183,6 +207,7 @@ finger   := '=' digit(s) suffix: =3 one finger, =1,3,5 per chord tone
 grace    := '{pitch,pitch}' prefix before the chord ({g4}a4:q)
 directive:= measure-level tokens: !clef=bass, !key=-2, !time=3/4,
             !repeat, !endrepeat, !volta=1, !mrest=N,
+            !barline=<style> (doubleBar, finalBar, heavy, dashed, dotted, none),
             !nav=<mark> (segno, coda, toCoda, daCapo, daCapoAlFine,
             daCapoAlCoda, dalSegno, dalSegnoAlFine, dalSegnoAlCoda, fine)
 voices   := ';' splits a measure into up to four voices
@@ -213,7 +238,15 @@ skips a note (`annotations: 'C * G7 *'`). Model type:
 
 ## 5. Layout engine (`crisp_notation_core`)
 
-`const LayoutEngine().layout(score, settings)` → `ScoreLayout`.
+`const LayoutEngine().layout(score, settings, {…})` → `ScoreLayout`. Named
+options: `leadingWidth` / `measureWidths` (minimum widths for barline alignment
+across a grand staff), `targetWidth` (pad the staff without stretching note
+spacing), `spacingStretch` (= 1.0, uniform justification widening),
+`drawTimeSignature` (= true), `finalBarline` (= true; a plain thin close when
+false), `showNoteNames` / `noteNameStyle` (= `NoteNameStyle.letter`),
+`showBeatNumbers`, `showMeasureNumbers` / `measureNumberInterval` (= 1),
+`deferredStems` (id → stem-down override), `forcedColumns` (shared onset→x table
+for cross-staff gridding) and `staffLineCount` (= 5).
 
 - `LayoutSettings(metadata: …)`: engraving values (staff line/stem/ledger/
   beam/barline thicknesses, ledger extension) default to the font's
@@ -388,6 +421,12 @@ p-i-m-a fingering** (`Score.tabFingerings` — `TabFingering(noteId,
 RightHandFinger)`, the letter below the fret), **slap / pop**
 (`Score.slapPops` — `SlapPop(noteId, …)`, "S"/"P" above), and **tremolo
 picking** (`Score.tremoloPickings` — `TremoloPicking(noteId)`, stacked slashes).
+Also **slide-in/out** (`Score.slideInOuts` — `TabSlide(noteId, SlideInOut)`, a
+slide stroke into or out of a single note), **pick-stroke direction**
+(`Score.pickStrokes` — `PickStroke(noteId, {up})`), **golpe**
+(`Score.golpes` — `Golpe(noteId)`, a body-tap mark), **wah**
+(`Score.wahs` — `Wah(noteId, {open})`), and **volume fade / swell**
+(`Score.fades` — `Fade(startId, endId, {out})`, a span) — all tab-engine-only.
 *(This lifts the former "tablature out" clause — a consumer requested it.)*
 
 **Now in scope** (formerly non-goals): per-column skyline collision avoidance,
@@ -473,13 +512,23 @@ synth and drive `highlightedIds` from this timeline.
 
 ## 5d. Transposition (`crisp_notation_core`)
 
-`score.transposedBy(interval, descending: false)` → a new `Score` with
-every pitch (chords, both voices, grace notes), the key signature and
-mid-score key changes moved; keys beyond ±7 accidentals wrap to the
-enharmonic equivalent. Ids, rhythm, spans, lyrics and annotation text
-stay unchanged, so highlights/taps/playback keep working. Note:
-Flutter's `material.dart` also exports an `Interval` — `hide Interval`
-on the material import when using both.
+`score.transposedBy(interval, {descending: false, keepTransposition: true})` →
+a new `Score` with every pitch (chords, all voices, grace notes), the key
+signature and mid-score key changes moved; keys beyond ±7 accidentals wrap to
+the enharmonic equivalent. Structured `chordSymbols` move with the music; ids,
+rhythm, spans, lyrics and free-text annotations stay unchanged, so
+highlights/taps/playback keep working. `keepTransposition` (default true)
+carries the score's `Transposition` tag onto the result — pass false to drop it.
+
+For **transposing instruments**, `Score.transposition` (`Transposition?`, null =
+concert pitch) records how written pitch relates to sounding pitch
+(`Transposition(interval, {down = true, octaves = 0})`; presets `bFlat` / `a` /
+`eFlat` / `f` / `bFlatTenor`). `score.atConcertPitch()` returns the sounding
+score — written pitches and key moved per the tag, the tag cleared; a
+concert-pitch part is returned unchanged.
+
+Note: Flutter's `material.dart` also exports an `Interval` — `hide Interval` on
+the material import when using both.
 
 ## 5e. MIDI import & export (`crisp_notation_core`)
 
@@ -760,7 +809,9 @@ each, concatenated.
   and the widget self-heals when the load completes.
 - `StaffView(score, theme, staffSpace, highlightedIds, elementColors,
   onElementTap, noteheadScheme, showNoteNames, showBeatNumbers,
-  showMeasureNumbers)` — a `LeafRenderObjectWidget`. `staffSpace` = px per staff
+  showMeasureNumbers, measureNumberInterval)` — a `LeafRenderObjectWidget`.
+  `measureNumberInterval` (default 1) labels bar 1 and every Nth bar.
+  `staffSpace` = px per staff
   space; `null` fits the available width. Glyphs paint via `TextPainter`
   (baseline-anchored, font size = 4 × staff space). `noteheadScheme` selects the
   shape-note / pitch-name / solfège heads; `showNoteNames` draws each note's
@@ -770,7 +821,8 @@ each, concatenated.
 - `CrispNotationTheme` — `staffColor` (furniture), `noteColor` (element ink),
   `highlightColor` (wins over everything), `elementColors` per-id
   overrides, `kidMode`/`hitSlop`/`lineBoost`, `textFontFamily` for
-  lyrics/annotations (null = platform default). Presets: `standard`,
+  lyrics/annotations (null = platform default), and `musicFont` (the SMuFL
+  engraving face, default `MusicFont.bravura`). Presets: `standard`,
   `kids` (hit slop 1.5 spaces, line boost 1.4). Value type with
   `copyWith`.
 - `GrandStaffView(grandStaff, …)` renders a `GrandStaff` (two scores):
