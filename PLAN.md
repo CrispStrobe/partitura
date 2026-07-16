@@ -21,22 +21,31 @@ ships* at the end for the mechanics.
 
 ---
 
-## Status (2026-07-13)
+## Status (2026-07-16)
 
+> **Published:** crisp_notation 0.4.3 · crisp_notation_core 0.4.4 ·
+> crisp_notation_cli 0.4.3. The library lives in one clone; the versions of the
+> three packages diverge, so release tags are package-scoped
+> (`crisp_notation_core-v0.4.4`).
+>
+> **Note names + system-start measure numbers landed on `main`:**
+> `NoteNameStyle` (letter / German / solfège) with `showNoteNames` /
+> `noteNameStyle` on `MultiSystemView`, `InteractiveGrandStaffView` and
+> `InteractiveMultiPartView` (core 0.4.4 owns the enum and the layout pass), and
+> `showMeasureNumbers` numbering the first measure of each system on those same
+> three views. Both opt-in.
+>
 > **N-line staves landed on `main` (crisp_notation_core 0.4.2):**
 > `LayoutEngine.layout(..., staffLineCount:)` renders staves with any number of
 > lines (1 for a neutral percussion/rhythm line, 3/6/…) instead of assuming 5;
 > every vertical reference derives from the count and the 5-line default is
-> byte-for-byte unchanged (`test/n_line_staff_test.dart`). No active claim.
->
-> **Actively working on:** between features.
+> byte-for-byte unchanged (`test/n_line_staff_test.dart`).
 >
 > **Doable-tails lane landed on `main`:** 2.7 measure-repeat signs, 7.5 braille
 > mid-score key/time changes, 2.5 explicit system/page breaks. 2.6 part
 > extraction is already available (`MultiPartScore.parts[i]` + `atConcertPitch`);
 > only *linked parts* (bidirectional edit sync) remains — that's the
-> editor/model owner's `MultiPartScore`, left to them. 5.7 polymeter deferred
-> (big, multi-staff-meter engine — same lane). No active claim on this line.
+> editor/model owner's `MultiPartScore`, left to them.
 >
 > **Notation-breadth lane landed on `main`:** 5.7 polymeter (per-staff meters,
 > golden 127) and ABC `s:` symbol lines (chord symbols / dynamics / decorations).
@@ -45,19 +54,19 @@ ships* at the end for the mechanics.
 > deferred, as it contradicts the tested "continuous within a beat" rule and is a
 > maintainer call; confirmed a no-op for the only consumer (KlangUniversum
 > bottoms out at the 16th). Golden **128** (`128_learning_rhythms`) locks in that consumer's
-> real rhythmic vocabulary (16ths / dotted / 6/8) as a canary. No active claim on
+> real rhythmic vocabulary (16ths / dotted / 6/8) as a canary.
 > this line.
 >
 > **Test-coverage hardening landed:** filled unit-test gaps in the pure OMR /
 > braille modules — semantic parser (5 rarer clefs, bad-duration error,
 > circle-of-fifths keys), `omrDialectOf` dialect edges + `OmrImage` size assert,
 > and braille edge cases (double accidentals, octave clamping, 16th/32nd value
-> aliases). Test-only. No active claim on this line.
+> aliases). Test-only.
 >
 > **Test-coverage hardening round 2 landed:** figured-bass seventh-chord
 > inversions (6/5, 4/3, 2) + flat/natural figure accidentals, and the missing
 > voice-leading **hidden-octaves** rule. Test-only. (roman-numeral / key-finding
-> checked — already well covered.) No active claim on this line.
+> checked — already well covered.)
 >
 > **Workshop C11 + C12 (mus G6 multi-instrument) landed on `main`, exported.**
 > **C11** `multiPartToMusicXml(MultiPartScore, {partNames})` — public N-part
@@ -66,11 +75,9 @@ ships* at the end for the mechanics.
 > `multiPartScoreFromMusicXml`. **C12** `InteractiveMultiPartView` — part-aware
 > interaction over `MultiPartView` (added `RenderMultiPartView.targetAt` +
 > ghost / highlightedIds / elementColors / suppressElementIds); staff-tap / hover
-> / drag report `(partIndex, StaffTarget)`. **C12 follow-up (documented, not
-> blocking mus's core):** `dragPreviewOpacity` (C10b redraw), an `EditorCaret`
-> painter, and an `ElementRegionController` binding on the multi-part view.
->
-> **No active claims otherwise — safe to pick up.**
+> / drag report `(partIndex, StaffTarget)`. **C12b/C12c landed** (`afc283a`):
+> `EditorCaret` + `ElementRegionController` on `InteractiveMultiPartView`.
+> **Left:** `dragPreviewOpacity` (real-glyph translation, as single-part C10b).
 >
 > 🚧 **Oracle interchange parity sweeps and lacuna triage** — driven by
 > `packages/crisp_notation_core/tool/oracle_diff.dart` and
@@ -92,14 +99,17 @@ ships* at the end for the mechanics.
 > ported). `StaffSystem` gained per-group barline spans — which also **delivers
 > the Phase-5 custom-span barlines (5.6)**. Goldens 124/125.
 >
-> **Open:** Phase **2** tails — 2.4 ✓ (`Measure.actualDuration`), 2.7
-> ✓ (every-N numbering); still open: 2.1 N-line-staff generalization, 2.2
-> cross-staff-beam tail, 2.3 ossia/divisi, 2.5 page/section-break objects, 2.6
-> part extraction, and the 2.7 numbering tail (per-system, measure-repeat signs).
-> Phase **5**: 5.6 cross-staff span barlines now landed via C6's per-group
-> barlines; **5.7 polymeter** is unblocked. Phase **7** tails — 7.3 ✓
-> (`!invertedturn!`), 7.5 ✓ (braille signatures + chords); still open: braille
-> in-accord/dynamics, ABC symbol lines, `.ptb` import (blocked on a test corpus).
+> **Open:** Phase **2** tails — 2.1 ✓ (N-line staves, core 0.4.2), 2.4 ✓
+> (`Measure.actualDuration`), 2.5 ✓ (explicit system/page breaks), 2.6 ✓ (part
+> extraction via `MultiPartScore.parts[i]`), 2.7 ✓ (every-N + per-system
+> numbering, measure-repeat signs); still open: 2.2 cross-staff-beam tail
+> (slanted / multi-bar, cross-staff chords), 2.3 ossia/divisi, 2.5's spatium/mm
+> unit + spacers + title frames, 2.6 *linked parts* (bidirectional edit sync).
+> Phase **5**: 5.6 ✓ cross-staff span barlines (via C6's per-group barlines);
+> **5.7 ✓ polymeter** (golden 127) — only the non-aligned-barline engine remains.
+> Phase **7** tails — 7.3 ✓ (`!invertedturn!`, ABC `s:` symbol lines), 7.5 ✓
+> (braille signatures + chords + mid-score key/time changes); still open: braille
+> in-accord/dynamics/clefs, `.ptb` import (blocked on a test corpus).
 
 
 
@@ -251,8 +261,7 @@ y-down coords. Priority: **C1+C2 → C3 → C5 → C4**.
 ### 2.9 Cross-staff onset-column gridding (professional multi-staff spacing)
 
 Notes that sound at the same time on different staves must line up vertically —
-the rule every serious engraver enforces (LilyPond `SpacingSpanner`, MuseScore
-`Segment`s, Dorico/Finale/Sibelius). Today crisp_notation spaces each staff
+the rule every serious engraver enforces. Today crisp_notation spaces each staff
 independently (only barlines align via shared `measureWidths`), so
 rhythmically-independent hands drift out of vertical alignment.
 
@@ -316,34 +325,33 @@ own goldens):**
     `.ly` export-only), with the common techniques; nested repeats now expand
     in `playbackTimeline`. The container codecs (ZIP + BCFS) and DEFLATE are
     pure Dart, so the whole surface is web-safe / WASM-compilable.
-- **Test counts:** 701 core + 141 widget + 39 CLI, all gates green.
+- **Test counts:** 1445 core + 301 widget/golden + ~75 CLI; 135 golden PNGs.
+  Core and widget/golden green. CI runs format+analyze, the core suite and the
+  widget/golden suite (goldens on macOS — the baselines are host-rasterised).
+  The CLI suite is not yet wired into CI: it spawns a subprocess per case and
+  needs triage first.
 
-### ▶ Where the next agent picks up
+### ▶ What's left
 
-Remaining, roughly by leverage:
+Roughly by leverage:
 
-1. **More tab techniques** (Phase 6.4 tail) — tremolo picking, grace notes,
-   trill, staccato/accent, slap/pop (bass), p-i-m-a fingering, rasgueado.
-   Model each like `Bend` (a `Score.<list>` keyed by note id, rendered in
-   `TabLayoutEngine`) or reuse an existing span. The GP binary/GPIF readers
-   already parse most of these bytes — wire them through as you add each mark.
-   Tab code: `theory/tuning.dart`, `layout/tab_layout.dart`,
-   `rendering/tab_staff_view.dart`.
-2. **Resume the Phase sequence** at Phase 1.4's remainder (beam subdivision,
-   cross-measure beams), then Phase 2 (structure / N-staff — also unblocks
-   tab-paired-with-notation, Phase 6.3), Phase 3 (interaction moat), Phase 4
-   (theory moat), Phase 5 (breadth).
-3. **Interchange tail** — `.ptb` (PowerTab) is blocked on a freely-licensed
-   test corpus; Braille export (7.5) is the last unstarted 7.x item.
+1. **2.2 cross-staff tail** — slanted / multi-bar (16th) beams, cross-staff
+   chords, and the MusicXML `<staff>` round-trip.
+2. **2.3 ossia / divisi.**
+3. **2.5's remainder** — a physical spatium/mm unit, spacers, title frames.
+4. **2.6 linked parts** — bidirectional edit sync between a part and the score.
+5. **1.3's optional `.otf` vendoring** (the engine work is done; this is a ~1MB
+   second font asset — get owner OK).
+6. **Braille tail** — in-accord, dynamics, clefs.
+7. **CLI test suite triage** — it spawns a subprocess per case, takes ~16 min
+   and is red; it must be fixed before it can gate merges in CI.
 
-**Note — a correction the next agent should trust:** Phase 1.1 "optical
-spacing" is **already implemented** (`layout_engine.dart` `_advance` spaces
-by duration-log2 with a justification stretch). The real Phase-1 gaps are
-1.2 skyline collision avoidance and 1.3 pluggable fonts (needs a ~1MB second
-font asset added — get owner OK).
+Blocked: `.ptb` (PowerTab) import, on a freely-licensed test corpus.
 
-Owner conventions (see also the session memory): **one planning doc
-(`PLAN.md`), no competitor product names in committed docs.** Each feature
+Owner conventions: **one planning doc (`PLAN.md`); no competitor comparisons
+or marketing name-drops in committed docs** — format and tool names (MusicXML,
+MEI, MuseScore, LilyPond, abcjs, alphaTab, music21) are technical identifiers
+and are fine. Each feature
 ships the full pipeline (see *How each feature ships* at the end).
 
 ---
@@ -585,7 +593,7 @@ Raises the quality of everything already rendered. Slice order:
       the engine defers the joined notes' stems (`deferredStems` →
       `ScoreLayout.crossStaffStubs`) and `layoutGrandStaff` draws the connecting
       beam between the staves using `staffGap` (upper notes stem down, lower up).
-      Golden 93; `cross_staff_test.dart`. **Left:** slanted / multi-bar (16th)
+      Golden 94; `cross_staff_test.dart`. **Left:** slanted / multi-bar (16th)
       cross-staff beams, cross-staff chords/stems (a single stem's noteheads on
       both staves), and a MusicXML `<staff>` round-trip.
 - [~] **2.3 Hide-empty / ossia / divisi / cutaway staves** — dynamic staff
@@ -729,15 +737,14 @@ No peer renderer does any of this; all build on the existing pitch / interval
       standard-voicing templates; and **augmented sixths** (Italian / French /
       German) recognized by the *spelled* augmented-sixth interval, so a German
       6th is not misread as its enharmonic dominant 7th (`It+6`/`Fr+6`/`Ger+6`).
-      **Left:** ~~alternate spellings / enharmonic re-reads~~ → done:
-      `chordReadings(pcs, {bassPc})` enumerates every tonal reading of a
-      pitch-class set (C6 vs Am7; dim7 four ways; aug three).
+      **Also done:** `chordReadings(pcs, {bassPc})` enumerates every tonal
+      reading of a pitch-class set (C6 vs Am7; dim7 four ways; aug three).
       `chord_readings_test.dart`.
 - [x] **4.5 Post-tonal set theory** — `normalForm`, Forte `primeForm`,
       `intervalClassVector` and `zRelated` for a pitch-class set, plus
       `transposeSet`/`invertSet`/`pitchClassSet` helpers
-      (`theory/set_theory.dart`). *Left:* ~~the Forte set-class number table~~ →
-      done: `forteNumber(pcs)` (`3-11`, `4-27`, `7-35`, Z-classes) — trichords–
+      (`theory/set_theory.dart`). **Also done:** `forteNumber(pcs)`
+      (`3-11`, `4-27`, `7-35`, Z-classes) — trichords–
       pentachords catalogued, 7–10 via complement, verified complete over all
       2¹² subsets; hexachords null for now. `forte_number_test.dart`.
 - [x] **4.6 Figured-bass realization** — `figuredChordPitchClasses(bass, figure,
@@ -1222,7 +1229,7 @@ Marked `[cheap]` (an additive field/enum, low blast radius) or `[deep]`
   playback + beam-grouping + validation apply per-voice tuplets; the MEI reader
   tags `<tuplet>`/​`<tupletSpan>` with the holding voice and resolves spans by
   note ownership. Hummel/Liszt/Borodin/Brahms/Weber → 100% on the oracle;
-  MEI oracle 54/69. 1358 core + 123 goldens green.
+  MEI oracle 54/69.
 
 **Remaining long-tail, sorted by importance (lacunae agent working through):**
 1. 🚧 **Inner-voice tuplet bracket glyphs** *(layout_engine.dart)* — voice 2-4
@@ -1273,7 +1280,6 @@ a DAW. Explicitly not pursued:
   history.
 - **Audio/video export**, VST/expression-map playback, and general
   plugin/extension frameworks.
-- **Percussion notation** — until a consumer asks.
 
 ---
 
