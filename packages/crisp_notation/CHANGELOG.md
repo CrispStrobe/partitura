@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.4.2 (2026-07-16)
+
+- **Note names under noteheads**: `showNoteNames` / `noteNameStyle` on
+  `StaffView`, `MultiSystemView`, `InteractiveGrandStaffView` and
+  `InteractiveMultiPartView`. `NoteNameStyle` picks letter (C D E F G A B),
+  German (B-natural is **H**, B-flat is **B**) or fixed-do solfège
+  (do re mi fa sol la ti). Off by default; a teaching aid for early readers.
+  Requires `crisp_notation_core` 0.4.4, which owns the enum and the layout pass.
+
+- **System-start measure numbers**: `showMeasureNumbers` on `MultiSystemView`,
+  `InteractiveMultiPartView` and `InteractiveGrandStaffView` numbers the first
+  measure of each system — the wrapped/multi-part counterpart of `StaffView`'s
+  existing `showMeasureNumbers` / `measureNumberInterval`. Opt-in.
+
+- **`InteractiveMultiPartView` gains `EditorCaret` + `ElementRegionController`**
+  (Workshop C12b/C12c), closing two of the three follow-ups 0.4.1 documented.
+  `dragPreviewOpacity` (real-glyph translation, as single-part C10b) remains
+  outstanding.
+
 ## 0.4.1 (2026-07-14)
 
 - **Sheet title rendering**: wrapped SVG/PNG staff-system exports can reserve
