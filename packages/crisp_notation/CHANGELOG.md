@@ -2,12 +2,15 @@
 
 ## 0.4.2 (2026-07-16)
 
-- **Note names under noteheads**: `showNoteNames` / `noteNameStyle` on
-  `StaffView`, `MultiSystemView`, `InteractiveGrandStaffView` and
+- **Note names under noteheads**, beyond the single staff: `showNoteNames` and
+  `noteNameStyle` are new on `MultiSystemView`, `InteractiveGrandStaffView` and
   `InteractiveMultiPartView`. `NoteNameStyle` picks letter (C D E F G A B),
   German (B-natural is **H**, B-flat is **B**) or fixed-do solfège
   (do re mi fa sol la ti). Off by default; a teaching aid for early readers.
   Requires `crisp_notation_core` 0.4.4, which owns the enum and the layout pass.
+
+  `StaffView.showNoteNames` already shipped in 0.4.1 and is unchanged: it draws
+  the letter overlay and does **not** take a `noteNameStyle`.
 
 - **System-start measure numbers**: `showMeasureNumbers` on `MultiSystemView`,
   `InteractiveMultiPartView` and `InteractiveGrandStaffView` numbers the first
