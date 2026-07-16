@@ -43,8 +43,8 @@ ships* at the end for the mechanics.
 > The **1.4 beam-subdivision** item was reviewed and needs no work — its
 > remainder (finer 32nd beamlet breaks at the half-beat) is intentionally
 > deferred, as it contradicts the tested "continuous within a beat" rule and is a
-> maintainer call; confirmed a no-op for the only consumer (`../mus` bottoms out
-> at the 16th). Golden **128** (`128_learning_rhythms`) locks in that consumer's
+> maintainer call; confirmed a no-op for the only consumer (KlangUniversum
+> bottoms out at the 16th). Golden **128** (`128_learning_rhythms`) locks in that consumer's
 > real rhythmic vocabulary (16ths / dotted / 6/8) as a canary. No active claim on
 > this line.
 >
@@ -70,14 +70,13 @@ ships* at the end for the mechanics.
 > blocking mus's core):** `dragPreviewOpacity` (C10b redraw), an `EditorCaret`
 > painter, and an `ElementRegionController` binding on the multi-part view.
 >
-> **No active claims otherwise — safe to pick up. Claim with 🚧, push origin/main
-> at every checkpoint** (see [[coordination]] / gitignored `CLAUDE.md`).
+> **No active claims otherwise — safe to pick up.**
 >
-> 🚧 **Oracle interchange parity sweeps and lacuna triage** *(Codex oracle
-> agent — `packages/crisp_notation_core/tool/oracle_diff.dart`,
-> `packages/crisp_notation_core/tool/roundtrip_sweep.dart`, `docs/HARDENING.md`,
-> targeted codec/model fixes as each consensus bug is isolated; corpus artifacts
-> under `/Volumes/backups/ai/crisp_notation-corpus`).*
+> 🚧 **Oracle interchange parity sweeps and lacuna triage** — driven by
+> `packages/crisp_notation_core/tool/oracle_diff.dart` and
+> `packages/crisp_notation_core/tool/roundtrip_sweep.dart`, logged in
+> `docs/HARDENING.md`, with targeted codec/model fixes as each bug is isolated.
+> The sweep corpus is a local artifact and is not part of this repo.
 >
 > **Complete:** Phase **1** (engraving; 1.1/1.2 done, 1.3/1.4 have only optional
 > tails), Phase **3** (interactivity — cursor visualizers, editor moat, drills,
@@ -108,9 +107,9 @@ ships* at the end for the mechanics.
 
 ### Workshop editor contracts (C1–C10)
 
-External consumer (KlangUniversum "Composition Workshop",
-`mus-workshop/docs/WORKSHOP_CRISP_NOTATION_CONTRACTS.md`) needs these interactive-
-editor APIs on `crisp_notation-public@main`. All **additive / backward-compatible**
+External consumer ([KlangUniversum](https://github.com/CrispStrobe/klang-universum)
+"Composition Workshop") needs these interactive-
+editor APIs on `main`. All **additive / backward-compatible**
 (new optional params / new widgets; no signature breaks). Convention:
 `StaffTarget`, element `id` strings, `CrispNotationTheme`, `staffSpace`, staff-space
 y-down coords. Priority: **C1+C2 → C3 → C5 → C4**.
