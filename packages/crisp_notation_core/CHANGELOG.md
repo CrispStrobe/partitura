@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.4 (2026-07-16)
+
+- **Note names under noteheads**: `NoteNameStyle` (`letter` — C D E F G A B;
+  `german` — B-natural is **H** and B-flat is **B**; `solfege` — fixed-do
+  do re mi fa sol la ti) plus `showNoteNames:` / `noteNameStyle:` on
+  `LayoutEngine.layout(...)` and on the staff-system, multi-system, grand-staff
+  and multi-part layout entry points. Off by default; a teaching aid for
+  early readers. Additive — no signature breaks.
+
 ## 0.4.3 (2026-07-15)
 
 - **Runnable example** (`example/crisp_notation_core_example.dart`): a tour of
