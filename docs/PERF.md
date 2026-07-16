@@ -43,11 +43,12 @@ the changed measure range), not constant-factor tuning.
 
 `benchmark/layout_benchmark.dart` prints the table and then fails (exit 1) on:
 
-1. **Superlinear scaling** — the 800-bar / 100-bar time *ratio* exceeds 32x
-   (linear is ~8x; observed 3x on a warm laptop to 11x on a cold CI runner).
-   Because it is a ratio, it is independent of how fast the machine is, so it
-   does not flake on a slow runner while still catching an accidental O(n²)
-   pass, which reads ~64x at this scale.
+1. **Superlinear scaling** — the *per-bar* cost at 800 bars vs 200 bars exceeds
+   2.5x. Per-bar cost is constant for a linear engine, so the ratio sits near
+   1.0 regardless of machine speed; an O(n²) pass makes per-bar grow with n and
+   reads ~4.0. Using two large sizes (not a tiny base) avoids small-size cache
+   skew, and each point is a min-of-reps, so the gate stays stable on a loaded
+   machine instead of tripping on a single stalled measurement.
 2. **A gross absolute slowdown** — 800-bar layout over 1500 ms (>10x the local
    baseline; a coarse backstop).
 

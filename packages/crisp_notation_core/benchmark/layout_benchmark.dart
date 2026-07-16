@@ -8,11 +8,10 @@
 //
 // It prints a table and then checks two things, exiting non-zero on failure:
 //
-//  1. **Scaling stays linear.** The 800-bar / 100-bar time ratio must stay well
-//     under quadratic. This is a *ratio*, so it is independent of how fast the
-//     machine is — a slow CI runner and a fast laptop agree on it — which makes
-//     it a non-flaky gate that still catches an accidental O(n^2) pass (the
-//     ratio would jump from ~8 to ~60+).
+//  1. **Scaling stays linear.** The *per-bar* cost at 800 bars vs 200 bars must
+//     stay near 1.0 (an O(n^2) pass reads ~4.0). Per-bar is machine-independent,
+//     both sizes are large enough to avoid small-size cache skew, and each point
+//     is a min-of-reps, so the metric is stable even on a loaded machine.
 //  2. **A generous absolute ceiling**, as a coarse backstop for a gross slowdown.
 //
 // Baseline (Apple silicon, AOT, 2026-07): ~130 us/bar, 800 bars ~= 93 ms,
@@ -22,16 +21,28 @@ import 'dart:io';
 
 import 'package:crisp_notation_core/crisp_notation_core.dart';
 
-double _bench(void Function() f, {int warmup = 20, required int iters}) {
+/// Returns the **minimum** ms/call over [reps] measured passes. Min (not mean)
+/// is the standard choice for microbenchmarks: noise only ever adds time, so the
+/// fastest pass is the least-disturbed estimate of true cost. Taking the min
+/// keeps the scaling ratio stable even when the machine is loaded — without it a
+/// single pass that stalls during the 800-bar timing can spuriously trip the
+/// gate (observed a 34x spike right after a heavy test run; clean it is ~8-11x).
+double _bench(void Function() f,
+    {int warmup = 20, required int iters, int reps = 5}) {
   for (var i = 0; i < warmup; i++) {
     f();
   }
-  final sw = Stopwatch()..start();
-  for (var i = 0; i < iters; i++) {
-    f();
+  var best = double.infinity;
+  for (var r = 0; r < reps; r++) {
+    final sw = Stopwatch()..start();
+    for (var i = 0; i < iters; i++) {
+      f();
+    }
+    sw.stop();
+    final ms = sw.elapsedMicroseconds / iters / 1000;
+    if (ms < best) best = ms;
   }
-  sw.stop();
-  return sw.elapsedMicroseconds / iters / 1000; // ms per call
+  return best;
 }
 
 Score _score(int bars) => Score.simple(
@@ -67,15 +78,18 @@ void main() {
         '${(notes / (ms / 1000) / 1000).toStringAsFixed(0).padLeft(4)}k notes/s');
   }
 
-  // Gate 1 — linearity (runner-speed-independent ratio).
-  final ratio = timings[800]! / timings[100]!;
-  // 800/100 = 8x the work. Linear -> ~8; observed 3x (warm laptop) to 11x (cold
-  // CI runner, where the 100-bar case is disproportionately cache-favoured). The
-  // ceiling is set well above that spread so the gate never flakes, while still
-  // catching the thing it exists for: an accidental O(n^2) pass reads ~64x here.
-  const maxRatio = 32.0;
-  stdout.writeln('\nscaling: 800-bar / 100-bar = '
-      '${ratio.toStringAsFixed(1)}x work-ratio (linear ~= 8, ceiling $maxRatio)');
+  // Gate 1 — linearity, as the ratio of *per-bar* cost at two large sizes.
+  // per-bar = time / bars; for a linear engine it is constant, so the ratio is
+  // ~1.0 regardless of machine speed. An O(n^2) pass makes per-bar grow with n,
+  // so 800-vs-200 (4x the work) reads ~4x. Using 200 and 800 — both large —
+  // avoids the small-size cache skew that made an 800/100 ratio swing 8-20x;
+  // combined with min-of-reps timing the metric is stable under load.
+  final perBar200 = timings[200]! / 200;
+  final perBar800 = timings[800]! / 800;
+  final ratio = perBar800 / perBar200;
+  const maxRatio = 2.5; // linear ~1.0; an O(n^2) pass reads ~4.0.
+  stdout.writeln('\nscaling: per-bar 800 / per-bar 200 = '
+      '${ratio.toStringAsFixed(2)}x (linear ~= 1.0, ceiling $maxRatio)');
 
   // Gate 2 — coarse absolute backstop. Local AOT ~= 93 ms at 800 bars; a CI
   // runner is a few times slower, so 1500 ms leaves >10x headroom.
@@ -85,7 +99,8 @@ void main() {
   var failed = false;
   if (ratio > maxRatio) {
     stderr.writeln('REGRESSION: layout scaling is superlinear '
-        '(${ratio.toStringAsFixed(1)}x > $maxRatio) — likely an O(n^2) pass.');
+        '(per-bar ratio ${ratio.toStringAsFixed(2)}x > $maxRatio) '
+        '— likely an O(n^2) pass.');
     failed = true;
   }
   if (abs800 > maxAbsMs) {
