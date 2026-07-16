@@ -165,7 +165,9 @@ token    := rest | chord                  tokens split on whitespace
 rest     := 'r' (':' duration)?
 chord    := pitch ('+' pitch)* (':' duration)?
 pitch    := [a-gA-G] ('##'|'#'|'bb'|'b'|'n')? octaveInt
-duration := ('w'|'h'|'q'|'e'|'s') ('.' | '..')?
+duration := ('b'|'w'|'h'|'q'|'e'|'s'|'t'|'x') ('.' | '..')?
+            b breve, w whole, h half, q quarter, e eighth,
+            s sixteenth, t thirty-second, x sixty-fourth
 tie      := '~' at the end of a chord token (c4:q~)
 slur     := '(' opens / ')' closes, at the end of a chord token
             (c4:q( d4 e4)) — may cross barlines, no nesting
@@ -183,8 +185,8 @@ directive:= measure-level tokens: !clef=bass, !key=-2, !time=3/4,
             !repeat, !endrepeat, !volta=1, !mrest=N,
             !nav=<mark> (segno, coda, toCoda, daCapo, daCapoAlFine,
             daCapoAlCoda, dalSegno, dalSegnoAlFine, dalSegnoAlCoda, fine)
-voices   := ';' splits a measure into voice 1 and voice 2
-            (c5:q d5 ; c4:h)
+voices   := ';' splits a measure into up to four voices
+            (c5:q d5 ; c4:h) — more than four throws
 ```
 
 Durations are sticky (initial default: quarter). `n` = explicit natural
@@ -204,6 +206,10 @@ The `annotations:` parameter works the same way but places text
 **above** the staff (chord symbols, rehearsal marks, tempo text): `*`
 skips a note (`annotations: 'C * G7 *'`). Model type:
 `Annotation(elementId, text)` in `Score.annotations`.
+
+`Score.simple` also takes `clef:`, `keySignature:`, `timeSignature:`, a
+`metadata:` (`ScoreMetadata`, default empty) and an initial `tempo:`
+(`Tempo?`) — the same fields as the `Score` constructor.
 
 ## 5. Layout engine (`crisp_notation_core`)
 
