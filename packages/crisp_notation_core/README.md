@@ -11,6 +11,14 @@ For rendering and interaction in Flutter, use the
 [`crisp_notation`](https://pub.dev/packages/crisp_notation) package, which builds on
 this one.
 
+Part of a three-package family: [crisp_notation_core](https://pub.dev/packages/crisp_notation_core) (pure-Dart engine) · [crisp_notation](https://pub.dev/packages/crisp_notation) (Flutter rendering) · [crisp_notation_cli](https://pub.dev/packages/crisp_notation_cli) (CLI).
+
+## Install
+
+```sh
+dart pub add crisp_notation_core
+```
+
 ## Quickstart
 
 ```dart
@@ -43,7 +51,7 @@ void main() {
 | Interchange | MusicXML (+ compressed `.mxl`), MEI, Humdrum `**kern`, MIDI, MuseScore (`.mscx`/`.mscz`), `.gp3`–`.gp5`/`.gpx`/`.gp`, GPIF and ABC readers/writers (+ LilyPond `.ly` and braille `.brl` export), all through the one `Score` model — `Slur` and `TupletSpan` round-trip through every note-carrying codec |
 | SMuFL | `SmuflMetadata` (engraving defaults, glyph boxes, stem anchors parsed from a SMuFL font's metadata JSON), glyph-name constants |
 
-Still **out of scope** (see [PLAN.md](../../PLAN.md) for the roadmap):
+Still **out of scope** (see [PLAN.md](https://github.com/CrispStrobe/crisp_notation/blob/main/PLAN.md) for the roadmap):
 page frames/spacers and a physical mm/spatium scaling unit (planned); audio
 (never).
 

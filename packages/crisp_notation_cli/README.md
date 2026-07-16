@@ -6,10 +6,21 @@ music notation libraries: inspect scores, convert between a dozen formats
 family / ABC, plus LilyPond and braille-music export), render to SVG or PNG (notation or tab), and
 recognize sheet-music images (OMR) — all pure Dart (OMR and PNG aside).
 
+Part of a three-package family: [crisp_notation_core](https://pub.dev/packages/crisp_notation_core) (pure-Dart engine) · [crisp_notation](https://pub.dev/packages/crisp_notation) (Flutter rendering) · [crisp_notation_cli](https://pub.dev/packages/crisp_notation_cli) (CLI).
+
+## Install
+
+```sh
+dart pub global activate crisp_notation_cli
+```
+
+Then run the `crisp_notation` command directly (or
+`dart run crisp_notation_cli:crisp_notation` inside a project that depends on it).
+
 ## Usage
 
 ```
-dart run crisp_notation_cli:crisp_notation <command> [arguments]
+crisp_notation <command> [arguments]
 ```
 
 | Command | Purpose |
@@ -40,9 +51,16 @@ horizontal spacing (otherwise all notes are eighths).
 |---|---|
 | `--tab` | Render as guitar/bass tablature |
 | `--tuning <std\|dropD\|bass>` | Tab tuning (default `std`) |
+| `--track <n>` | Which track to import from a `.gp`/`.gpif` |
+| `--infer-rhythm` | Guess note durations from tab spacing (plain-text tab input) |
 | `--staff-space <px>` | Pixels per staff space (default 12) |
 | `--metadata <path>` | SMuFL font metadata JSON (auto-located in the repo otherwise) |
 | `--no-embed-font` | Do not embed the engraving font in the SVG |
+| `--width <spaces>` | Max system width in staff spaces for multi-part scores (default 120) |
+| `--no-system-context` | Omit multi-staff instrument labels and line-start bar numbers |
+| `--no-title` | Omit imported title/composer page text |
+| `--hide-empty` | Drop empty staves per system (multi-part) |
+| `--single` | Force the single-part path (import the first part only) |
 
 By default the engraving font is embedded via `@font-face`, so the SVG renders
 anywhere.

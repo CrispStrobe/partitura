@@ -6,10 +6,18 @@ identifiable, hit-testable, highlightable and draggable. Builds on
 [`crisp_notation_core`](https://pub.dev/packages/crisp_notation_core) (re-exported)
 and bundles the Bravura SMuFL font.
 
+Part of a three-package family: [crisp_notation_core](https://pub.dev/packages/crisp_notation_core) (pure-Dart engine) · [crisp_notation](https://pub.dev/packages/crisp_notation) (Flutter rendering) · [crisp_notation_cli](https://pub.dev/packages/crisp_notation_cli) (CLI).
+
 ![crisp_notation rendering](https://raw.githubusercontent.com/CrispStrobe/crisp_notation/main/packages/crisp_notation/doc/hero.png)
 
 Made for education apps — ear training, theory drills, note-reading games —
 where static SVG renderers fall short.
+
+## Install
+
+```sh
+flutter pub add crisp_notation
+```
 
 ## Quickstart
 
@@ -66,7 +74,7 @@ await controller.scrollToNote('e42');                      // reveal a note
 
 ## Feature matrix
 
-| In (v0.4-dev) | Out (planned / never) |
+| In (v0.4) | Out (planned / never) |
 |---|---|
 | Single staff, N-staff systems, grand staff; automatic line-breaking + pagination | Page frames / spacers (in progress) |
 | All clefs (treble/bass/alto/tenor + French-violin, soprano, mezzo, baritone, sub-bass, octave variants, percussion) | Physical mm / spatium scaling unit (in progress) |
