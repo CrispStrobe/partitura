@@ -163,6 +163,25 @@ void main() {
       }
     });
 
+    test('a justified system never overflows maxWidth', () {
+      // The load-bearing invariant of the stretch solver, independent of how it
+      // converges: it must accept only a stretch whose width still fits. The
+      // "stretched to maxWidth" test above pins the lower bound (fills the
+      // line); this pins the upper bound (never spills past it) across a range
+      // of widths, so a solver that overshoots can't slip through.
+      for (final maxWidth in [30.0, 37.5, 45.0, 60.0, 92.0]) {
+        final multi =
+            layoutSystems(eightMeasures(), settings, maxWidth: maxWidth);
+        for (final system in multi.systems) {
+          expect(
+            system.layout.width,
+            lessThanOrEqualTo(maxWidth + 0.1),
+            reason: 'system at maxWidth=$maxWidth overflows',
+          );
+        }
+      }
+    });
+
     test('the final system keeps its natural width', () {
       const maxWidth = 45.0;
       final justified =
