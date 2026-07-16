@@ -1,11 +1,11 @@
-# crisp_notation — features and public API contract (v0.4-dev)
+# crisp_notation — features and public API contract (v0.4)
 
 This document describes what crisp_notation **does** and which API surface and
 behaviors consumers may **rely on**. It reflects the implementation as
 shipped; active development follows [PLAN.md](../PLAN.md), and the reasoning
 behind non-obvious choices is in [DESIGN.md](DESIGN.md).
 
-Both packages are pre-1.0: minor versions may break APIs, but anything
+All three packages are pre-1.0: minor versions may break APIs, but anything
 listed under *Guarantees* below is treated as stable and only changes with
 a documented migration note.
 
@@ -17,10 +17,13 @@ a documented migration note.
 |---|---|---|---|
 | `crisp_notation_core` | any Dart | Dart SDK only (zero deps) | music theory, score model, deterministic layout engine, SMuFL metadata types |
 | `crisp_notation` | Flutter | Flutter + `crisp_notation_core` (re-exported) | rendering (`StaffView`), interaction (`InteractiveStaff`), bundled Bravura font (SIL OFL 1.1) |
+| `crisp_notation_cli` | any Dart | `crisp_notation_core` + `ffi`, `image` | the `crisp_notation` command: inspect, convert, render SVG/PNG, OMR |
 
 `crisp_notation_core` must never gain a runtime dependency; `crisp_notation` must
-never gain one beyond Flutter + `crisp_notation_core`. The Bravura font ships
-unconverted, unsubset and unrenamed (OFL Reserved Font Name clause).
+never gain one beyond Flutter + `crisp_notation_core`. The zero-dependency rule
+binds those two only — `crisp_notation_cli` is a tool, not a library, and may
+take dependencies. The Bravura font ships unconverted, unsubset and unrenamed
+(OFL Reserved Font Name clause).
 
 ## 2. Binding conventions
 
@@ -99,7 +102,8 @@ value-based, invalid constructor arguments fail asserts in debug builds.
   `tremolo`: 1–5 stroke count drawn through the stem, stemmed notes only)
   or `RestElement`.
 - `Score.slurs`: `Slur(startId, endId)` phrasing curves between note
-  elements; unknown or reversed ids throw at layout time.
+  elements; a span whose ids are unknown or reversed is **skipped**, not drawn
+  (see *Dangling spans* below).
 - `Score.glissandos`: `Glissando(startId, endId)` straight slide lines
   between two notes (model-only); same id/order rules as slurs.
 - `Score.pedals`: `Pedal(startId, endId)` sustain-pedal spans (model-only);
@@ -333,7 +337,7 @@ open/muted x·o markers, name, base-fret label, optional barre) that renders
 through the SVG/PNG pipeline. `Score.chordDiagrams`
 (`PlacedChordDiagram(elementId, diagram, {scale})`) drops a diagram above a
 note on a shared row above the staff — the lead-sheet convention — rendered by
-**both** the notation and tab engines (an unknown id throws at layout time).
+**both** the notation and tab engines (a diagram on an unknown id is skipped).
 `Score.taps` (`Tap(noteId)` — a "T" above the
 fret) and `Score.tremoloBars` (`TremoloBar(noteId, {steps})` — a whammy-bar V
 with the dip amount, a system separate from string bends) add tapping and
@@ -687,11 +691,21 @@ moat — all repaint-only, no relayout:
 3. **Value semantics**: all model/theory types compare by value; a
    value-equal score swap is a no-op (see the list-immutability rule in
    §4).
-4. **Loud failures**: unspellable transpositions, out-of-range
+4. **Loud failures for bad values**: unspellable transpositions, out-of-range
    signatures, unnameable intervals and unknown glyphs throw
    (`ArgumentError`); malformed DSL throws `FormatException`; invalid
-   constructor arguments fail asserts in debug builds. Nothing degrades
-   silently.
+   constructor arguments fail asserts in debug builds.
+5. **Dangling spans are skipped, not fatal**: a span whose `startId`/`endId`
+   is unknown, or whose ends are reversed or equal, is dropped and the rest of
+   the score still renders. This is deliberate — real imports carry spans whose
+   other end sits in a part that was not imported, and the renderer must not
+   crash on real input. It applies to slurs, glissandos, portamentos, laissez
+   vibrer, dynamics, hairpins, pedals and chord diagrams.
+
+   Two cases have **not** been converted and still throw `ArgumentError` on an
+   unknown id: palm-mute/let-ring spans and annotation/chord-symbol placement.
+   Treat that asymmetry as a known inconsistency rather than a guarantee — the
+   direction of travel is to skip.
 5. **Zero dependencies** and the licensing rules of §1.
 
 ## 9. Quality gates
@@ -701,7 +715,8 @@ strict lints (incl. `public_member_api_docs`), all tests green:
 
 | Suite | Scope |
 |---|---|
-| `crisp_notation_core` unit tests (230+) | theory tables + property sweeps, layout rules 1–14, layout edge/quality suites, DSL, SMuFL parsing, validation |
-| `crisp_notation` widget tests (70+) | sizing, hit testing, gestures, ghost lifecycle, repaint/relayout policy, asset loading, pixel-level paint verification |
-| Golden corpus (25 scenes + hero) | all four clefs, all durations, dots, accidentals, chords, beams, rests, signatures, highlights, kid mode, ghost, fit-to-width (macOS-generated) |
+| `crisp_notation_core` unit tests (~1390, 114 files) | theory tables + property sweeps, layout rules 1–14, layout edge/quality suites, DSL, SMuFL parsing, interchange round-trips, validation |
+| `crisp_notation` widget tests (~300, 36 files) | sizing, hit testing, gestures, ghost lifecycle, repaint/relayout policy, asset loading, pixel-level paint verification |
+| `crisp_notation_cli` tests (~75, 7 files) | command wiring, convert/render/info flows, interchange fixtures |
+| Golden corpus (135 scenes + hero) | all four clefs, all durations, dots, accidentals, chords, beams, rests, signatures, highlights, kid mode, ghost, fit-to-width, multi-part/grand-staff systems (macOS-generated) |
 | Example widget tests + integration test | real app boot, gallery scroll, place/select/clear flow, duration & clef controls — `flutter test integration_test -d macos` |

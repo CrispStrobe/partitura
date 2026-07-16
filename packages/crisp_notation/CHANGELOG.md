@@ -95,6 +95,8 @@
   metadata lookup and the font data-URI, so a print / page-export action is a
   single call. `MusicFont` gains a `fontAsset` for the SVG embed.
 
+## 0.4.0 (2026-07-13)
+
 First tagged release. Everything below shipped during the 0.4.0 cycle.
 
 - **Tab technique tail** (Phase 6.4, completes 6.4): `TabStaffView` now renders

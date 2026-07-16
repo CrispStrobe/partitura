@@ -2,6 +2,12 @@ name: crisp_notation_cli
 description: The crisp_notation command-line tool — inspect scores, convert MusicXML/MEI/kern/MIDI/MuseScore/GP/ABC, export LilyPond and braille, render SVG/PNG, and run OMR.
 version: 0.4.3
 repository: https://github.com/CrispStrobe/crisp_notation
+issue_tracker: https://github.com/CrispStrobe/crisp_notation/issues
+topics:
+  - music
+  - music-notation
+  - sheet-music
+  - smufl
 
 environment:
   sdk: ^3.5.0

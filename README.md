@@ -2,7 +2,10 @@
 
 Music notation rendering for Dart & Flutter, with first-class interactivity.
 
-**Status: v0.4.0 released; 0.4.1-dev in progress.** Active development follows
+**Status: published on pub.dev** — [`crisp_notation`](https://pub.dev/packages/crisp_notation)
+0.4.1, [`crisp_notation_core`](https://pub.dev/packages/crisp_notation_core) 0.4.3,
+[`crisp_notation_cli`](https://pub.dev/packages/crisp_notation_cli) 0.4.3.
+Active development follows
 [PLAN.md](PLAN.md). API guarantees consumers may rely on are in
 [docs/CONTRACT.md](docs/CONTRACT.md); design decisions are logged in
 [docs/DESIGN.md](docs/DESIGN.md); the running feature log is each package's
@@ -19,27 +22,35 @@ CHANGELOG ([core](packages/crisp_notation_core/CHANGELOG.md),
 
 ## Install
 
-Once published to pub.dev:
-
 ```sh
 flutter pub add crisp_notation          # Flutter rendering + interaction
 dart pub add crisp_notation_core        # pure-Dart theory/layout/interchange only
 ```
 
-Until then (or to track `main`), depend on it from git — the Flutter package
-needs both, since `crisp_notation_core` isn't on pub.dev yet:
+`crisp_notation` pulls in `crisp_notation_core` itself — add the core directly
+only if you want the pure-Dart layer without Flutter.
+
+The CLI installs from pub.dev too, which puts a `crisp_notation` command on your
+`PATH`:
+
+```sh
+dart pub global activate crisp_notation_cli
+crisp_notation --help
+```
+
+It is also published as prebuilt native binaries on each
+[release](https://github.com/CrispStrobe/crisp_notation/releases)
+(macOS/Linux/Windows).
+
+To track `main` ahead of the releases, depend on it from git instead:
 
 ```yaml
 dependencies:
   crisp_notation:
-    git: { url: https://github.com/CrispStrobe/crisp_notation.git, path: packages/crisp_notation, ref: v0.4.0 }
+    git: { url: https://github.com/CrispStrobe/crisp_notation.git, path: packages/crisp_notation }
   crisp_notation_core:
-    git: { url: https://github.com/CrispStrobe/crisp_notation.git, path: packages/crisp_notation_core, ref: v0.4.0 }
+    git: { url: https://github.com/CrispStrobe/crisp_notation.git, path: packages/crisp_notation_core }
 ```
-
-The CLI ships as prebuilt native binaries on each
-[release](https://github.com/CrispStrobe/crisp_notation/releases) (macOS/Linux/Windows),
-or run it from source: `dart run crisp_notation_cli:crisp_notation <command>`.
 
 ## Why another notation library?
 

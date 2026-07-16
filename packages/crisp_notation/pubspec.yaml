@@ -2,6 +2,7 @@ name: crisp_notation
 description: Music notation rendering for Flutter with first-class interactivity - staves, notes, chords, hit-testing, selection and drag. Bundles the Bravura SMuFL font (OFL).
 version: 0.4.1
 repository: https://github.com/CrispStrobe/crisp_notation
+issue_tracker: https://github.com/CrispStrobe/crisp_notation/issues
 topics:
   - music
   - music-notation
