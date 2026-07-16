@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.3 (2026-07-16)
+
+- **Docs only; no API changes.** Corrects the 0.4.2 entry below, which said
+  `StaffView` gained `showNoteNames` / `noteNameStyle` in 0.4.2. `StaffView`
+  has had `showNoteNames` since 0.4.1 and takes no `noteNameStyle`; following
+  the old wording produced an `undefined_named_parameter` error. 0.4.2's code
+  is unaffected — if you are on 0.4.2 there is no reason to upgrade.
+
 ## 0.4.2 (2026-07-16)
 
 - **Note names under noteheads**, beyond the single staff: `showNoteNames` and
