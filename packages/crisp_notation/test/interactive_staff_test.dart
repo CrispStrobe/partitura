@@ -208,4 +208,41 @@ void main() {
     await tester.pumpWidget(build(const {'e1'}));
     expect(identical(renderStaff(tester).scoreLayout, layoutBefore), isTrue);
   });
+
+  testWidgets('dragging the ghost note repaints every frame, never relayouts',
+      (tester) async {
+    await tester.pumpWidget(wrap(InteractiveStaff(
+      score: Score.simple(notes: 'c4:q d4 e4 f4'),
+      staffSpace: 12,
+      showGhostNote: true,
+      onStaffTap: (_) {},
+    )));
+    final staff = renderStaff(tester);
+    final layout0 = staff.scoreLayout;
+    expect(layout0, isNotNull);
+
+    // The ghost note is the one thing that moves on every drag frame. It must
+    // follow the pointer by repaint alone — never a relayout — or editing a
+    // large score stutters. Drag across several positions and assert the layout
+    // stays the identical object throughout.
+    final measure = staff.scoreLayout!.measureRegions.last;
+    final topLeft = tester.getTopLeft(find.bySubtype<StaffView>());
+    final target =
+        topLeft + staff.staffToLocal(math.Point(measure.endX - 0.4, 4.0));
+
+    final gesture = await tester.startGesture(target - const Offset(0, 30));
+    var sawGhost = false;
+    for (final d in const [Offset(0, 0), Offset(8, -18), Offset(16, 12)]) {
+      await gesture.moveTo(target + d);
+      await tester.pump();
+      sawGhost = sawGhost || staff.ghostNote != null;
+      expect(identical(staff.scoreLayout, layout0), isTrue,
+          reason: 'a ghost move must repaint, not relayout');
+    }
+    await gesture.up();
+    await tester.pump();
+    expect(sawGhost, isTrue,
+        reason: 'the drag must actually raise a ghost, or the test is vacuous');
+    expect(identical(staff.scoreLayout, layout0), isTrue);
+  });
 }
