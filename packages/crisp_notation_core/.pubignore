@@ -1,0 +1,4 @@
+# Dev-only benchmark harness: reads the sibling crisp_notation font asset by a
+# monorepo-relative path, so it does not run from a published archive. Keep it
+# out of the pub.dev package. See docs/PERF.md.
+benchmark/

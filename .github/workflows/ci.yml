@@ -43,6 +43,24 @@ jobs:
         working-directory: packages/crisp_notation_core
         run: dart test
 
+  layout-benchmark:
+    name: layout benchmark (regression gate)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      # AOT-compiled: JIT numbers are 10-40x wrong (see docs/PERF.md). The gate
+      # is a runner-speed-independent linearity ratio, so it does not flake on a
+      # slow shared runner but still catches an accidental O(n^2) layout pass.
+      - name: benchmark + gate
+        working-directory: packages/crisp_notation_core
+        run: |
+          dart compile exe benchmark/layout_benchmark.dart -o /tmp/lb
+          /tmp/lb
+
   cli-tests:
     name: crisp_notation_cli tests
     # macOS: the CLI's PNG-render tests need the Flutter SDK (they shell out to

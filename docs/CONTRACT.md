@@ -1016,7 +1016,8 @@ moat — all repaint-only, no relayout:
 ## 9. Quality gates
 
 Every commit: `dart format` clean, `flutter analyze` zero issues under
-strict lints (incl. `public_member_api_docs`), all tests green:
+strict lints (incl. `public_member_api_docs`), all tests green, and the
+AOT layout benchmark within its linear-scaling gate (see [PERF.md](PERF.md)):
 
 | Suite | Scope |
 |---|---|
