@@ -7,14 +7,6 @@ library;
 import 'pitch.dart';
 import 'scale.dart';
 
-// Pitch-class offsets of each scale type from the tonic.
-const _offsets = {
-  ScaleType.major: [0, 2, 4, 5, 7, 9, 11],
-  ScaleType.naturalMinor: [0, 2, 3, 5, 7, 8, 10],
-  ScaleType.harmonicMinor: [0, 2, 3, 5, 7, 8, 11],
-  ScaleType.melodicMinor: [0, 2, 3, 5, 7, 9, 11],
-};
-
 /// Every [Scale] (over all 12 tonics and every [ScaleType]) whose pitch classes
 /// contain all of [pcs], best fit first. A scale "rooted" in the set (its tonic
 /// is one of [pcs]) ranks ahead of one that merely contains them; then major
@@ -25,7 +17,9 @@ List<Scale> matchingScales(Set<int> pcs) {
   final rooted = <bool>[];
   for (var t = 0; t < 12; t++) {
     for (final type in ScaleType.values) {
-      final scalePcs = {for (final o in _offsets[type]!) (t + o) % 12};
+      final scalePcs = {
+        for (final o in Scale.semitoneOffsetsFor(type)) (t + o) % 12
+      };
       if (pcs.every(scalePcs.contains)) {
         matches.add(Scale(_spellTonic(t), type));
         rooted.add(pcs.contains(t));
