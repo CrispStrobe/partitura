@@ -18,7 +18,9 @@ import 'dart:io';
 
 import 'package:crisp_notation_core/crisp_notation_core.dart';
 
-const _defaultPython = '/Users/christianstrobele/miniconda3/bin/python3';
+/// Resolved from `PATH`. Point `ORACLE_PYTHON` at a specific interpreter if the
+/// one on `PATH` lacks music21/verovio.
+const _defaultPython = 'python3';
 
 /// crisp_notation's note multiset for a file: `(midi, quarterLength)` across every
 /// part/staff. Uses the *multi-part* importer so it lines up with music21's
