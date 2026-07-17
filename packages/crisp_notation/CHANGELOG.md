@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.4 (2026-07-17)
+
+- **Note names on the static `MultiPartView`** — completes the 0.4.2 rollout.
+  `showNoteNames` and `noteNameStyle` are now constructor parameters on
+  `MultiPartView` (they were already on `MultiSystemView`,
+  `InteractiveGrandStaffView` and `InteractiveMultiPartView`); the paged layout
+  already carried the flag, only the widget didn't expose it. `RenderMultiPartView`
+  also gains `showNoteNames` / `noteNameStyle` getters. Off by default — no change
+  to existing renders.
+
 ## 0.4.3 (2026-07-16)
 
 - **Docs only; no API changes.** Corrects the 0.4.2 entry below, which said

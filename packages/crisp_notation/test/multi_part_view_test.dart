@@ -183,6 +183,42 @@ void main() {
     expect(render.elementIdAt(render.size.bottomRight(Offset.zero)), isNull);
   });
 
+  testWidgets('showNoteNames engraves note-name labels across the pages',
+      (tester) async {
+    Future<int> textPrimitives({required bool showNames}) async {
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: MultiPartView(
+            document: quartet(),
+            metrics: const PageMetrics(width: 130, height: 90),
+            staffSpace: 6,
+            showNoteNames: showNames,
+            noteNameStyle: NoteNameStyle.german,
+          ),
+        ),
+      ));
+      final render =
+          tester.renderObject<RenderMultiPartView>(find.byType(MultiPartView));
+      expect(tester.takeException(), isNull);
+      expect(render.showNoteNames, showNames);
+      expect(render.noteNameStyle, NoteNameStyle.german);
+      return render.pagedLayout!.pages
+          .expand((p) => p.systems)
+          .expand((s) => s.system.layout.staves)
+          .expand((staff) => staff.primitives)
+          .whereType<TextPrimitive>()
+          .length;
+    }
+
+    // The names are engraved as extra text primitives (vs the same document
+    // without them) — proving the widget now threads the flag to the layout.
+    final withNames = await textPrimitives(showNames: true);
+    final without = await textPrimitives(showNames: false);
+    expect(withNames, greaterThan(without),
+        reason:
+            'note-name labels add text primitives ($withNames vs $without)');
+  });
+
   testWidgets('124 orchestral system: bracket + two barline groups',
       (tester) async {
     await tester.pumpWidget(

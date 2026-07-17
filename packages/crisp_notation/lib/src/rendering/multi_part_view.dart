@@ -56,6 +56,13 @@ class MultiPartView extends LeafRenderObjectWidget {
   /// Whether to stroke a thin frame around the page edge.
   final bool drawPageBorder;
 
+  /// Whether to draw each note's name below its staff (a beginner aid). Part of
+  /// the engraving, so toggling it relayouts.
+  final bool showNoteNames;
+
+  /// How [showNoteNames] spells each pitch (letter / German / solfège).
+  final NoteNameStyle noteNameStyle;
+
   /// Called with the element id when the user taps an element on the current
   /// page. Ids come from any part; keep them unique across parts.
   final void Function(String elementId)? onElementTap;
@@ -73,6 +80,8 @@ class MultiPartView extends LeafRenderObjectWidget {
     this.hideEmptyStaves = false,
     this.pageIndex = 0,
     this.drawPageBorder = false,
+    this.showNoteNames = false,
+    this.noteNameStyle = NoteNameStyle.letter,
     this.onElementTap,
   });
 
@@ -89,7 +98,10 @@ class MultiPartView extends LeafRenderObjectWidget {
         hideEmptyStaves: hideEmptyStaves,
         pageIndex: pageIndex,
         drawPageBorder: drawPageBorder,
-      )..onElementTap = onElementTap;
+      )
+        ..showNoteNames = showNoteNames
+        ..noteNameStyle = noteNameStyle
+        ..onElementTap = onElementTap;
 
   @override
   void updateRenderObject(
@@ -105,6 +117,8 @@ class MultiPartView extends LeafRenderObjectWidget {
       ..hideEmptyStaves = hideEmptyStaves
       ..pageIndex = pageIndex
       ..drawPageBorder = drawPageBorder
+      ..showNoteNames = showNoteNames
+      ..noteNameStyle = noteNameStyle
       ..onElementTap = onElementTap;
   }
 }
@@ -233,6 +247,7 @@ class RenderMultiPartView extends RenderBox implements ElementRegionProvider {
 
   /// Whether to draw each note's name below its staff (a beginner aid). Part of
   /// the engraving, so this relayouts.
+  bool get showNoteNames => _showNoteNames;
   set showNoteNames(bool value) {
     if (value == _showNoteNames) return;
     _showNoteNames = value;
@@ -242,6 +257,7 @@ class RenderMultiPartView extends RenderBox implements ElementRegionProvider {
   NoteNameStyle _noteNameStyle = NoteNameStyle.letter;
 
   /// How [showNoteNames] spells each pitch (letter / German / solfège).
+  NoteNameStyle get noteNameStyle => _noteNameStyle;
   set noteNameStyle(NoteNameStyle value) {
     if (value == _noteNameStyle) return;
     _noteNameStyle = value;
