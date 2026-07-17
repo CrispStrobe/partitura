@@ -165,8 +165,10 @@ class _StaffReader {
   bool _leadingSet = false;
   Clef? _clef;
   Clef _leadingClef = Clef.treble;
-  KeySignature? _key;
-  TimeSignature? _time;
+  KeySignature? _key; // running key; _leadingKey holds the score's initial
+  KeySignature? _leadingKey;
+  TimeSignature? _time; // running meter; _leadingTime holds the score's initial
+  TimeSignature? _leadingTime;
   Tempo? _tempo;
 
   final _measures = <Measure>[];
@@ -183,8 +185,8 @@ class _StaffReader {
     }
     return Score(
       clef: _leadingClef,
-      keySignature: _key ?? const KeySignature(0),
-      timeSignature: _time,
+      keySignature: _leadingKey ?? const KeySignature(0),
+      timeSignature: _leadingTime,
       measures: _measures,
       slurs: [
         for (var i = 0; i < _slurStartIds.length && i < _slurEndIds.length; i++)
@@ -238,16 +240,20 @@ class _StaffReader {
             if (key == null) break;
             if (!_leadingSet) {
               _key = key;
+              _leadingKey = key;
             } else if (key != (_key ?? const KeySignature(0))) {
               keyChange = key;
+              _key = key; // advance the running key (mirrors _clef)
             }
           case 'TimeSig':
             final time = _timeOf(node);
             if (time == null) break;
             if (!_leadingSet) {
               _time = time;
+              _leadingTime = time;
             } else if (time != _time) {
               timeChange = time;
+              _time = time; // advance the running meter (mirrors _clef)
             }
           case 'Chord':
             final chord = _chordOf(node);

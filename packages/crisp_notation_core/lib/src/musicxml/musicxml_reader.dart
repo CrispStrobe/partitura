@@ -369,8 +369,10 @@ class _PartReader {
 
   Clef? _clef; // running clef (mid-score changes update it)
   Clef? _leadingClef;
-  KeySignature? _key;
-  TimeSignature? _time;
+  KeySignature? _key; // running key; _leadingKey holds the score's initial
+  KeySignature? _leadingKey;
+  TimeSignature? _time; // running meter; _leadingTime holds the score's initial
+  TimeSignature? _leadingTime;
   Transposition? _transposition;
   Tempo? _tempo;
 
@@ -430,8 +432,8 @@ class _PartReader {
     // read the rest rather than aborting the whole document.
     return Score(
       clef: _leadingClef ?? defaultClef,
-      keySignature: _key ?? const KeySignature(0),
-      timeSignature: _time,
+      keySignature: _leadingKey ?? const KeySignature(0),
+      timeSignature: _leadingTime,
       measures: _measures,
       slurs: _slurs,
       dynamics: _dynamics,
@@ -603,8 +605,10 @@ class _PartReader {
           if (key != null) {
             if (!_leadingSet) {
               _key = key;
+              _leadingKey = key;
             } else if (key != (_key ?? const KeySignature(0))) {
               keyChange = key;
+              _key = key; // advance the running key (mirrors _clef)
             }
           }
           final time = node.child('time');
@@ -612,8 +616,10 @@ class _PartReader {
             final signature = _parseTimeSig(time);
             if (!_leadingSet) {
               _time = signature;
+              _leadingTime = signature;
             } else if (signature != _time) {
               timeChange = signature;
+              _time = signature; // advance the running meter (mirrors _clef)
             }
           }
           final multipleRest =

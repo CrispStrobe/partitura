@@ -53,6 +53,22 @@ String _soundingTotal(Score s) {
   return '$num/$den';
 }
 
+// The effective (clef, key) as it evolves measure-by-measure — catches a
+// mid-score change that is dropped or a change back to the initial value that a
+// reader mistakes for "no change". (Meter changes would alter measure capacity,
+// so the generator injects only capacity-neutral clef/key changes.)
+List<String> _stateSeq(Score s) {
+  var clef = s.clef;
+  var key = s.keySignature;
+  final out = <String>[];
+  for (final m in s.measures) {
+    if (m.clefChange != null) clef = m.clefChange!;
+    if (m.keyChange != null) key = m.keyChange!;
+    out.add('${clef.name}/${key.fifths}');
+  }
+  return out;
+}
+
 // Written duration in 64ths of a whole note.
 int _units(NoteDuration d) {
   const base = {
@@ -174,14 +190,43 @@ Score _generate(int seed) {
   final cap = ts.measureCapacity;
   final capUnits = 64 * cap.$1 ~/ cap.$2;
   final nBars = 1 + rng.nextInt(4);
+  var runningClef = clef;
+  var runningKey = key;
   final measures = <Measure>[];
   for (var b = 0; b < nBars; b++) {
     final (els, tups) = _voice(rng, capUnits, nextId);
+    // Capacity-neutral mid-score changes on inner bars. 1/3 of the time the
+    // change targets the *initial* clef/key — the case that exposed the
+    // reader's running-vs-leading bug.
+    Clef? clefChange;
+    KeySignature? keyChange;
+    if (b > 0 && rng.nextInt(3) == 0) {
+      final target = rng.nextInt(3) == 0
+          ? clef
+          : const [Clef.treble, Clef.bass][rng.nextInt(2)];
+      if (target != runningClef) {
+        clefChange = target;
+        runningClef = target;
+      }
+    }
+    if (b > 0 && rng.nextInt(3) == 0) {
+      final target =
+          rng.nextInt(3) == 0 ? key : KeySignature(rng.nextInt(7) - 3);
+      if (target != runningKey) {
+        keyChange = target;
+        runningKey = target;
+      }
+    }
     if (rng.nextInt(3) == 0) {
       final (v2, _) = _voice(rng, capUnits, nextId);
-      measures.add(Measure(els, voice2: v2, tuplets: tups));
+      measures.add(Measure(els,
+          voice2: v2,
+          tuplets: tups,
+          clefChange: clefChange,
+          keyChange: keyChange));
     } else {
-      measures.add(Measure(els, tuplets: tups));
+      measures.add(Measure(els,
+          tuplets: tups, clefChange: clefChange, keyChange: keyChange));
     }
   }
   return Score(
@@ -200,13 +245,19 @@ void main() {
 
   const seeds = 150;
 
+  // ABC is a folk-tune subset: mid-tune clef/key changes are a documented loss,
+  // so the clef/key-sequence invariant applies to the full codecs only.
+  const fullCodecs = {'MusicXML', 'MEI', 'kern', 'MuseScore'};
+
   codecs.forEach((name, codec) {
     test('$name preserves note content over $seeds generated scores', () {
+      final checkState = fullCodecs.contains(name);
       for (var seed = 1; seed <= seeds; seed++) {
         final score = _generate(seed);
         final want = _multiset(score);
         if (want.isEmpty) continue;
         final wantSound = _soundingTotal(score);
+        final wantState = _stateSeq(score);
 
         final Score back;
         try {
@@ -220,6 +271,12 @@ void main() {
         expect(_soundingTotal(back), wantSound,
             reason: 'seed $seed: sounding total drifted '
                 '(a tuplet or duration was mis-encoded)');
+        if (checkState) {
+          expect(_stateSeq(back), wantState,
+              reason: 'seed $seed: mid-score clef/key sequence drifted '
+                  '(a change was dropped or a change back to the initial value '
+                  'was missed)');
+        }
       }
     });
   });
