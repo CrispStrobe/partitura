@@ -76,5 +76,50 @@ void main() {
       expect(back.parts, hasLength(3));
       expect(back.brackets, isEmpty);
     });
+
+    test('a fully-disconnected barline layout stays disconnected', () {
+      // Regression: every part its own barline (what fromStaffSystem produces
+      // for connectBarlines:false) has no connecting group to write, and an
+      // absent group-barline reads back as the connected default — so it used
+      // to flip to one systemic barline. The writer now marks it explicitly.
+      final doc = MultiPartScore(
+        [
+          Score.simple(notes: 'c5:w'),
+          Score.simple(notes: 'e4:w'),
+          Score.simple(clef: Clef.bass, notes: 'c3:w'),
+        ],
+        barlineGroups: const [
+          BarlineGroup(0, 0),
+          BarlineGroup(1, 1),
+          BarlineGroup(2, 2),
+        ],
+      );
+      final back = multiPartScoreFromMusicXml(multiPartToMusicXml(doc));
+      // No adjacent pair connects — the layout is preserved, not defaulted.
+      List<bool> connectivity(MultiPartScore s) => [
+            for (var i = 0; i + 1 < s.parts.length; i++)
+              s.effectiveBarlineGroups
+                  .any((g) => g.contains(i) && g.contains(i + 1)),
+          ];
+      expect(connectivity(back), everyElement(isFalse));
+      expect(back.brackets, isEmpty); // the marker draws no visible bracket
+    });
+
+    test('a partially-connected barline layout round-trips its connectivity',
+        () {
+      // Parts 0–1 connected, part 2 on its own.
+      final doc = MultiPartScore(
+        [
+          Score.simple(notes: 'c5:w'),
+          Score.simple(notes: 'e4:w'),
+          Score.simple(clef: Clef.bass, notes: 'c3:w'),
+        ],
+        barlineGroups: const [BarlineGroup(0, 1)],
+      );
+      final back = multiPartScoreFromMusicXml(multiPartToMusicXml(doc));
+      final groups = back.effectiveBarlineGroups;
+      expect(groups.any((g) => g.contains(0) && g.contains(1)), isTrue);
+      expect(groups.any((g) => g.contains(1) && g.contains(2)), isFalse);
+    });
   });
 }

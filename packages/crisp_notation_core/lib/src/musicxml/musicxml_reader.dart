@@ -253,9 +253,14 @@ List<StaffBracket> _partGroupBrackets(
 /// Reads `<part-group>` pairs whose `<group-barline>` is `yes` (or
 /// `Mensurstrich`) and maps each to a [BarlineGroup] over the staff range of
 /// the parts it wraps — the sections whose barlines connect. A group with
-/// `group-barline` absent or `no` contributes nothing (so a document with no
-/// group-barlines keeps its default single systemic barline). Mirrors
-/// [_partGroupBrackets]; `<score-part>` order matches `<part>` order.
+/// `group-barline` absent contributes nothing (a document with no group-barlines
+/// keeps its default single systemic barline). A *symbol-less* `group-barline`
+/// of `no`, when no group connects, is the explicit "disconnect" marker crisp
+/// writes for a fully-separated layout: each part gets its own barline (so
+/// `connectBarlines: false` round-trips instead of falling back to the connected
+/// default). A bracketed group with `group-barline=no` keeps the default, so its
+/// own behavior is untouched. Mirrors [_partGroupBrackets]; `<score-part>` order
+/// matches `<part>` order.
 List<BarlineGroup> _partGroupBarlines(
     XmlNode root, List<int> partStart, List<int> partSpan) {
   final list = root.child('part-list');
@@ -263,6 +268,7 @@ List<BarlineGroup> _partGroupBarlines(
   final result = <BarlineGroup>[];
   final openStart = <String, int>{}; // group number -> first staff index
   final openConnects = <String, bool>{};
+  var sawExplicitDisconnect = false;
   var ordinal = 0; // index of the next score-part to be seen
   for (final node in list.children) {
     if (node.name == 'score-part') {
@@ -273,8 +279,15 @@ List<BarlineGroup> _partGroupBarlines(
       if (type == 'start') {
         if (ordinal < partStart.length) {
           final barline = node.childText('group-barline');
+          final symbol = node.childText('group-symbol');
           openStart[number] = partStart[ordinal];
           openConnects[number] = barline == 'yes' || barline == 'Mensurstrich';
+          // A symbol-less group-barline=no is the explicit "disconnect" marker
+          // (a bracketed group with barline=no keeps the default so its own
+          // documented behavior is untouched).
+          if (barline == 'no' && (symbol == null || symbol == 'none')) {
+            sawExplicitDisconnect = true;
+          }
         }
       } else if (type == 'stop') {
         final first = openStart.remove(number);
@@ -291,6 +304,14 @@ List<BarlineGroup> _partGroupBarlines(
         result.add(BarlineGroup(first, last));
       }
     }
+  }
+  // A deliberate full disconnect: give every part its own barline group so the
+  // layout stays disconnected rather than defaulting to one systemic barline.
+  if (result.isEmpty && sawExplicitDisconnect) {
+    return [
+      for (var i = 0; i < partStart.length; i++)
+        BarlineGroup(partStart[i], partStart[i] + partSpan[i] - 1),
+    ];
   }
   return result;
 }

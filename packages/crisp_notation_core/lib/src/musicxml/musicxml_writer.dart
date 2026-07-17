@@ -38,7 +38,10 @@ String grandStaffToMusicXml(GrandStaff grandStaff) => _document(
 /// survives. `score.brackets` become `<part-group>`s with a `<group-symbol>`
 /// (brace/bracket), and each multi-part group in
 /// [MultiPartScore.effectiveBarlineGroups] adds a `<group-barline>yes</...>` so
-/// the connected barlines round-trip.
+/// the connected barlines round-trip. A fully-disconnected layout (every part
+/// its own barline) has no connecting group to write, so it is marked with a
+/// symbol-less `<group-barline>no</...>` over all parts to keep it from reading
+/// back as the connected default.
 String multiPartToMusicXml(MultiPartScore score, {List<String>? partNames}) {
   final parts = score.parts;
   final partXml = <String>[];
@@ -51,27 +54,41 @@ String multiPartToMusicXml(MultiPartScore score, {List<String>? partNames}) {
         : (parts[i].metadata.instrument ?? 'Part ${i + 1}');
     names.add((id, name));
   }
+  final connecting = [
+    for (final g in score.effectiveBarlineGroups)
+      if (g.last > g.first) g,
+  ];
   final groups = <_PartGroup>[
     for (final b in score.brackets)
       (
         first: b.first,
         last: b.last,
         symbol: b.kind == StaffBracketKind.brace ? 'brace' : 'bracket',
-        barline: false,
+        groupBarline: null,
       ),
     // Only multi-part groups connect barlines (a single-part group is a no-op).
-    for (final g in score.effectiveBarlineGroups)
-      if (g.last > g.first)
-        (first: g.first, last: g.last, symbol: null, barline: true),
+    for (final g in connecting)
+      (first: g.first, last: g.last, symbol: null, groupBarline: 'yes'),
+    // A fully-disconnected layout (every part its own barline) has no connecting
+    // group to emit, and an absent group-barline reads back as the connected
+    // default. Mark it explicitly with a symbol-less group-barline=no over all
+    // parts so the disconnection survives the round-trip.
+    if (connecting.isEmpty && parts.length > 1)
+      (first: 0, last: parts.length - 1, symbol: null, groupBarline: 'no'),
   ];
   return _document(partXml, names, const ScoreMetadata(), groups: groups);
 }
 
 /// A `<part-group>` to bracket/connect a run of score-parts [first]..[last]
 /// (0-based part indices): [symbol] draws a `<group-symbol>` (brace/bracket),
-/// [barline] emits `<group-barline>yes</group-barline>` so the parts' barlines
-/// connect.
-typedef _PartGroup = ({int first, int last, String? symbol, bool barline});
+/// [groupBarline] (`'yes'`/`'no'`/`null`) emits `<group-barline>` so the parts'
+/// barlines explicitly connect (`yes`) or explicitly stay separate (`no`).
+typedef _PartGroup = ({
+  int first,
+  int last,
+  String? symbol,
+  String? groupBarline
+});
 
 String _document(
     List<String> parts, List<(String, String)> names, ScoreMetadata meta,
@@ -114,8 +131,8 @@ String _document(
       buffer.write('    <part-group type="start" number="${g + 1}">');
       // `none` keeps a barline-only group from being read back as a bracket.
       buffer.write('<group-symbol>${group.symbol ?? 'none'}</group-symbol>');
-      if (group.barline) {
-        buffer.write('<group-barline>yes</group-barline>');
+      if (group.groupBarline != null) {
+        buffer.write('<group-barline>${group.groupBarline}</group-barline>');
       }
       buffer.writeln('</part-group>');
     }
