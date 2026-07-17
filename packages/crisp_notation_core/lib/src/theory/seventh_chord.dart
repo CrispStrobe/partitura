@@ -31,8 +31,7 @@ class SeventhChord {
         assert(isSeventhType(type), 'type must be a seventh chord');
 
   /// Whether [type] is one of the seventh-chord qualities this builds.
-  static bool isSeventhType(ChordType type) =>
-      _spelling.containsKey(type);
+  static bool isSeventhType(ChordType type) => _spelling.containsKey(type);
 
   /// Spelled (third, fifth, seventh) intervals above the root per seventh type.
   static const Map<ChordType, (Interval, Interval, Interval)> _spelling = {

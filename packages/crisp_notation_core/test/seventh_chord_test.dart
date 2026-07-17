@@ -55,8 +55,8 @@ void main() {
     final cMajor = Key.major(const Pitch(Step.c));
     String rn(SeventhChord c) => romanNumeralOf(c.pitches, cMajor)!.symbol;
 
-    expect(rn(SeventhChord(const Pitch(Step.g), ChordType.dominantSeventh)),
-        'V7');
+    expect(
+        rn(SeventhChord(const Pitch(Step.g), ChordType.dominantSeventh)), 'V7');
     expect(
         rn(SeventhChord(const Pitch(Step.d), ChordType.minorSeventh)), 'ii7');
     expect(

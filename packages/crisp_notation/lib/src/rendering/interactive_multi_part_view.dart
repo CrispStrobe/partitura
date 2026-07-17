@@ -267,8 +267,6 @@ class _MultiPartViewWithHooks extends MultiPartView {
   final ElementRegionController? controller;
   final EditorCaret? caret;
   final bool showMeasureNumbers;
-  final bool showNoteNames;
-  final NoteNameStyle noteNameStyle;
 
   const _MultiPartViewWithHooks({
     super.key,
@@ -290,8 +288,8 @@ class _MultiPartViewWithHooks extends MultiPartView {
     this.controller,
     this.caret,
     this.showMeasureNumbers = false,
-    this.showNoteNames = false,
-    this.noteNameStyle = NoteNameStyle.letter,
+    super.showNoteNames,
+    super.noteNameStyle,
   });
 
   void _apply(RenderMultiPartView r) {
