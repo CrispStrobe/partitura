@@ -10,40 +10,19 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'deflate.dart';
-import 'inflate.dart';
+import 'zip.dart';
 
 /// Extracts the `.mscx` XML from a `.mscz` archive's [bytes]. Handles both
-/// stored (method 0) and deflated (method 8) entries.
+/// stored (method 0) and deflated (method 8) entries via the shared,
+/// bounds-checked [readZipEntry] (a corrupt archive rejects with a
+/// FormatException rather than crashing).
 String readMscxFromMscz(Uint8List bytes) {
-  // Locate the End Of Central Directory record.
-  var eocd = bytes.length - 22;
-  while (eocd >= 0 && _u32(bytes, eocd) != 0x06054b50) {
-    eocd--;
+  final entry =
+      readZipEntry(bytes, (name) => name.toLowerCase().endsWith('.mscx'));
+  if (entry == null) {
+    throw const FormatException('no .mscx entry found in .mscz');
   }
-  if (eocd < 0) throw const FormatException('not a .mscz (zip) file');
-  final count = _u16(bytes, eocd + 10);
-  var p = _u32(bytes, eocd + 16); // central directory offset
-
-  for (var e = 0; e < count; e++) {
-    if (_u32(bytes, p) != 0x02014b50) break;
-    final method = _u16(bytes, p + 10);
-    final compSize = _u32(bytes, p + 20);
-    final nameLen = _u16(bytes, p + 28);
-    final extraLen = _u16(bytes, p + 30);
-    final commentLen = _u16(bytes, p + 32);
-    final localOffset = _u32(bytes, p + 42);
-    final name = utf8.decode(bytes.sublist(p + 46, p + 46 + nameLen));
-    if (name.toLowerCase().endsWith('.mscx')) {
-      final lNameLen = _u16(bytes, localOffset + 26);
-      final lExtraLen = _u16(bytes, localOffset + 28);
-      final dataStart = localOffset + 30 + lNameLen + lExtraLen;
-      final comp = bytes.sublist(dataStart, dataStart + compSize);
-      final raw = method == 0 ? comp : inflate(comp);
-      return utf8.decode(raw);
-    }
-    p += 46 + nameLen + extraLen + commentLen;
-  }
-  throw const FormatException('no .mscx entry found in .mscz');
+  return utf8.decode(entry);
 }
 
 /// Points MuseScore at the score entry inside the archive.
@@ -124,9 +103,6 @@ Uint8List _zip(List<(String, List<int>)> entries) {
   return out.toBytes();
 }
 
-int _u16(Uint8List b, int at) => b[at] | (b[at + 1] << 8);
-int _u32(Uint8List b, int at) =>
-    b[at] | (b[at + 1] << 8) | (b[at + 2] << 16) | (b[at + 3] << 24);
 List<int> _le16(int v) => [v & 0xFF, (v >> 8) & 0xFF];
 List<int> _le32(int v) =>
     [v & 0xFF, (v >> 8) & 0xFF, (v >> 16) & 0xFF, (v >> 24) & 0xFF];

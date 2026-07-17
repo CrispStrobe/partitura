@@ -113,4 +113,58 @@ void main() {
       }
     }
   });
+
+  // ZIP/DEFLATE container readers: a corrupt archive names offsets and lengths
+  // past the buffer. Mutating a valid archive (which keeps the end-of-directory
+  // magic, so the parser reaches those fields) once leaked RangeErrors out of
+  // the ZIP central-directory walk.
+  test('container readers reject malformed bytes cleanly ($seeds mutations)',
+      () {
+    final rng = Random(3);
+    final gp = writeGpFromGpif(scoreToGpif(_sample(rng)));
+    final mscz = writeMsczFromMscx(scoreToMscx(_sample(rng)));
+
+    Uint8List mutateBytes(Uint8List b) {
+      final l = b.toList();
+      switch (rng.nextInt(5)) {
+        case 0:
+          l.removeRange(rng.nextInt(l.length), l.length);
+        case 1:
+          final at = rng.nextInt(l.length);
+          l.removeRange(at, min(l.length, at + 1 + rng.nextInt(20)));
+        case 2:
+          for (var k = 0; k < 1 + rng.nextInt(10); k++) {
+            l[rng.nextInt(l.length)] = rng.nextInt(256);
+          }
+        case 3:
+          l.insert(rng.nextInt(l.length), rng.nextInt(256));
+        default:
+          l.removeRange(0, rng.nextInt(l.length));
+      }
+      return Uint8List.fromList(l);
+    }
+
+    final readers = <String, void Function(Uint8List)>{
+      'readMscxFromMscz': readMscxFromMscz,
+      'readGpifFromGp': readGpifFromGp,
+      'readMusicXmlFromMxl': (b) => readMusicXmlFromMxl(b),
+      'inflate': (b) => inflate(b),
+    };
+    for (var i = 0; i < seeds; i++) {
+      final gpMut = mutateBytes(gp);
+      final msczMut = mutateBytes(mscz);
+      readers.forEach((name, read) {
+        for (final input in [gpMut, msczMut]) {
+          try {
+            read(input);
+          } on FormatException {
+            // clean rejection — the contract
+          } catch (e) {
+            fail('$name crashed on malformed bytes with ${e.runtimeType} '
+                '(should be a FormatException).');
+          }
+        }
+      });
+    }
+  });
 }

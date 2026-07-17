@@ -314,6 +314,9 @@ List<_ZipEntry> _readZip(Uint8List bytes) {
     final extraLen = _u16le(bytes, cd + 30);
     final commentLen = _u16le(bytes, cd + 32);
     final localOffset = _u32le(bytes, cd + 42);
+    if (cd + 46 + nameLen > bytes.length) {
+      throw const FormatException('ZIP: entry name past end');
+    }
     final name = utf8.decode(bytes.sublist(cd + 46, cd + 46 + nameLen));
 
     entries
@@ -330,6 +333,9 @@ Uint8List _readLocal(Uint8List bytes, int offset, int method, int compSize) {
   final nameLen = _u16le(bytes, offset + 26);
   final extraLen = _u16le(bytes, offset + 28);
   final start = offset + 30 + nameLen + extraLen;
+  if (start < 0 || start + compSize > bytes.length) {
+    throw const FormatException('ZIP: entry data past end');
+  }
   final raw = Uint8List.sublistView(bytes, start, start + compSize);
   switch (method) {
     case 0:

@@ -95,12 +95,12 @@ Uint8List? readZipEntry(Uint8List bytes, bool Function(String name) match) {
     final extraLen = _u16(bytes, p + 30);
     final commentLen = _u16(bytes, p + 32);
     final localOffset = _u32(bytes, p + 42);
-    final name = utf8.decode(bytes.sublist(p + 46, p + 46 + nameLen));
+    final name = utf8.decode(_slice(bytes, p + 46, p + 46 + nameLen));
     if (match(name)) {
       final lNameLen = _u16(bytes, localOffset + 26);
       final lExtraLen = _u16(bytes, localOffset + 28);
       final dataStart = localOffset + 30 + lNameLen + lExtraLen;
-      final comp = bytes.sublist(dataStart, dataStart + compSize);
+      final comp = _slice(bytes, dataStart, dataStart + compSize);
       return method == 0 ? comp : inflate(comp);
     }
     p += 46 + nameLen + extraLen + commentLen;
@@ -108,9 +108,30 @@ Uint8List? readZipEntry(Uint8List bytes, bool Function(String name) match) {
   return null;
 }
 
-int _u16(Uint8List b, int at) => b[at] | (b[at + 1] << 8);
-int _u32(Uint8List b, int at) =>
-    b[at] | (b[at + 1] << 8) | (b[at + 2] << 16) | (b[at + 3] << 24);
+// Bounds-checked little-endian reads: a corrupt archive names offsets and
+// lengths past the buffer, so every read is guarded and rejects with a
+// FormatException rather than leaking a RangeError.
+int _u16(Uint8List b, int at) {
+  if (at < 0 || at + 2 > b.length) {
+    throw const FormatException('zip: read past end');
+  }
+  return b[at] | (b[at + 1] << 8);
+}
+
+int _u32(Uint8List b, int at) {
+  if (at < 0 || at + 4 > b.length) {
+    throw const FormatException('zip: read past end');
+  }
+  return b[at] | (b[at + 1] << 8) | (b[at + 2] << 16) | (b[at + 3] << 24);
+}
+
+Uint8List _slice(Uint8List b, int start, int end) {
+  if (start < 0 || end < start || end > b.length) {
+    throw const FormatException('zip: entry extends past end');
+  }
+  return Uint8List.sublistView(b, start, end);
+}
+
 List<int> _le16(int v) => [v & 0xFF, (v >> 8) & 0xFF];
 List<int> _le32(int v) =>
     [v & 0xFF, (v >> 8) & 0xFF, (v >> 16) & 0xFF, (v >> 24) & 0xFF];
