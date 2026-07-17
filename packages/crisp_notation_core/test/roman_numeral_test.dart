@@ -104,5 +104,27 @@ void main() {
             reason: '$notes → ${numeral.symbol}');
       }
     });
+
+    test('minor raised 6/7 and their secondary chords round-trip', () {
+      // Regression: a chord rooted on the raised 6/7 of a minor key is written
+      // without an accidental (vii°, not #vii°), but pitchClassesOf used to
+      // reconstruct it on the natural degree — a semitone off. It now carries
+      // the real alteration internally while the symbol stays bare.
+      final cMinor = Key.minor(note('c4'));
+      for (final (notes, key) in [
+        ('g#4 b4 d5', aMinor), // vii° on the raised 7 (leading tone)
+        ('f#4 a4 c5', aMinor), // vi° on the raised 6
+        ('f4 a4 c5', aMinor), // VI on the natural 6 (unchanged)
+        ('g4 b4 d5', aMinor), // VII on the natural 7 (unchanged)
+        ('e4 g#4 b4', cMinor), // V/VI — E major, dominant of the raised 6 (A)
+      ]) {
+        final numeral = romanNumeralOf(chord(notes), key)!;
+        final original = {for (final p in chord(notes)) p.midiNumber % 12};
+        expect(pitchClassesOf(numeral, key), original,
+            reason: '$notes → ${numeral.symbol}');
+      }
+      // The leading-tone chord still prints without an accidental.
+      expect(romanNumeralOf(chord('g#4 b4 d5'), aMinor)!.symbol, 'vii°');
+    });
   });
 }

@@ -45,9 +45,23 @@ class RomanNumeral {
   /// (e.g. `V` for `V7/V`, `vi` for `V7/vi`); null when [appliedTo] is null.
   final String? applied;
 
+  /// Whether this chord is rooted on the raised 6th or 7th of a minor key — a
+  /// conventionally unmarked alteration (`vii°`, not `#vii°`). [alteration]
+  /// still carries the real +1 so the root reconstructs, but [symbol] omits the
+  /// accidental.
+  final bool minorRaised;
+
+  /// Chromatic alteration of the tonicized target degree (for a secondary chord
+  /// whose target is the raised 6/7 of a minor key); 0 otherwise.
+  final int appliedAlteration;
+
   /// Creates a Roman-numeral reading.
   const RomanNumeral(this.degree, this.type, this.inversion,
-      {this.alteration = 0, this.appliedTo, this.applied});
+      {this.alteration = 0,
+      this.appliedTo,
+      this.applied,
+      this.minorRaised = false,
+      this.appliedAlteration = 0});
 
   static const _sevenths = {
     ChordType.dominantSeventh,
@@ -107,7 +121,7 @@ class RomanNumeral {
   /// its `sus` suffix.
   String get symbol {
     final buf = StringBuffer()
-      ..write(_prefix(alteration))
+      ..write(minorRaised ? '' : _prefix(alteration))
       ..write(_numeralText(degree, type))
       ..write(_mark);
     if (type == ChordType.majorSeventh || type == ChordType.minorMajorSeventh) {
@@ -142,31 +156,37 @@ class RomanNumeral {
 
 /// The scale degree (1–7) and chromatic alteration of pitch class [pc] relative
 /// to [key]'s tonic, using the root's letter [step] for the degree.
-(int degree, int alteration) _degreeOf(int pc, Step step, Key key) {
+(int degree, int alteration, bool minorRaised) _degreeOf(
+    int pc, Step step, Key key) {
   final tonicPc = key.tonic.midiNumber % 12;
   final degree = ((step.index - key.tonic.step.index) % 7 + 7) % 7 + 1;
   final actual = (pc - tonicPc + 12) % 12;
   final scale = key.isMajor ? _majorScale : _minorScale;
-  // A minor key also treats the raised 6/7 as diatonic (harmonic/melodic).
-  if (actual == scale[degree - 1] ||
-      (!key.isMajor && _minorAlso[degree] == actual)) {
-    return (degree, 0);
-  }
   var alteration = actual - scale[degree - 1];
   if (alteration > 6) alteration -= 12;
   if (alteration < -6) alteration += 12;
-  return (degree, alteration);
+  // In minor, a chord rooted on the raised 6/7 (harmonic/melodic) is
+  // conventionally written without an accidental (vii°, not #vii°). Keep the
+  // real [alteration] so pitchClassesOf reconstructs the raised root exactly,
+  // but flag it so the symbol suppresses the prefix and the secondary-chord
+  // detection still treats it as diatonic.
+  final minorRaised = !key.isMajor && _minorAlso[degree] == actual;
+  return (degree, alteration, minorRaised);
 }
 
 /// The diatonic degree (1–7) of pitch class [pc] in [key], or null if [pc] is
 /// chromatic (not in the key's scale, counting the minor raised 6/7).
-int? _diatonicDegree(int pc, Key key) {
+(int degree, int alteration)? _diatonicDegree(int pc, Key key) {
   final tonicPc = key.tonic.midiNumber % 12;
   final semis = (pc - tonicPc + 12) % 12;
   final scale = key.isMajor ? _majorScale : _minorScale;
   for (var d = 1; d <= 7; d++) {
-    if (scale[d - 1] == semis) return d;
-    if (!key.isMajor && _minorAlso[d] == semis) return d;
+    if (scale[d - 1] == semis) return (d, 0);
+    // The raised 6/7 of minor: the target's root is one semitone above the
+    // natural degree, which pitchClassesOf must apply when it tonicizes it.
+    if (!key.isMajor && _minorAlso[d] == semis) {
+      return (d, _minorAlso[d]! - scale[d - 1]);
+    }
   }
   return null;
 }
@@ -209,12 +229,14 @@ RomanNumeral romanNumeralFor(ChordAnalysis chord, Key key) {
     final ownDegree = _degreeOf(rootPc, chord.root.step, key);
     // A major triad / dominant 7th that is the diatonic chord of its own degree
     // (its degree's diatonic triad is already major) is not a secondary chord.
-    final isDiatonicHere =
-        ownDegree.$2 == 0 && _diatonicIsMajor(ownDegree.$1, key);
-    if (target != null && target != 1 && !isDiatonicHere) {
+    final isDiatonicHere = (ownDegree.$2 == 0 || ownDegree.$3) &&
+        _diatonicIsMajor(ownDegree.$1, key);
+    if (target != null && target.$1 != 1 && !isDiatonicHere) {
       // Degree 5 relative to the target.
       return RomanNumeral(5, chord.type, chord.inversion,
-          appliedTo: target, applied: _diatonicNumeralText(target, key));
+          appliedTo: target.$1,
+          appliedAlteration: target.$2,
+          applied: _diatonicNumeralText(target.$1, key));
     }
   }
 
@@ -226,15 +248,19 @@ RomanNumeral romanNumeralFor(ChordAnalysis chord, Key key) {
     final targetPc = (rootPc + 1) % 12;
     final target = _diatonicDegree(targetPc, key);
     final own = _degreeOf(rootPc, chord.root.step, key);
-    if (target != null && target != 1 && own.$2 != 0) {
+    // A genuinely chromatic root (not a raised minor 6/7) below the target.
+    if (target != null && target.$1 != 1 && own.$2 != 0 && !own.$3) {
       return RomanNumeral(7, chord.type, chord.inversion,
-          appliedTo: target, applied: _diatonicNumeralText(target, key));
+          appliedTo: target.$1,
+          appliedAlteration: target.$2,
+          applied: _diatonicNumeralText(target.$1, key));
     }
   }
 
-  final (degree, alteration) = _degreeOf(rootPc, chord.root.step, key);
+  final (degree, alteration, minorRaised) =
+      _degreeOf(rootPc, chord.root.step, key);
   return RomanNumeral(degree, chord.type, chord.inversion,
-      alteration: alteration);
+      alteration: alteration, minorRaised: minorRaised);
 }
 
 /// Identifies the chord [pitches] and reads it as a [RomanNumeral] in [key], or
@@ -254,8 +280,9 @@ Set<int> pitchClassesOf(RomanNumeral rn, Key key) {
 
   final int rootPc;
   if (rn.appliedTo != null) {
-    // Applied chord: degree `rn.degree` of the tonicized target's scale.
-    final targetRoot = degreeRoot(rn.appliedTo!);
+    // Applied chord: degree `rn.degree` of the tonicized target's scale. The
+    // target itself may be an altered degree (the raised 6/7 of a minor key).
+    final targetRoot = (degreeRoot(rn.appliedTo!) + rn.appliedAlteration) % 12;
     rootPc = (targetRoot + _majorScale[rn.degree - 1]) % 12;
   } else {
     rootPc = (degreeRoot(rn.degree) + rn.alteration + 12) % 12;
