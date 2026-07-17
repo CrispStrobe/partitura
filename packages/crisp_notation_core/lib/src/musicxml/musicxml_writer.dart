@@ -196,6 +196,30 @@ int _divisionsFor(Score score) {
 /// A whole-note fraction expressed in quarters.
 Fraction _quarters(Fraction wholeNotes) => wholeNotes * Fraction(4, 1);
 
+/// A `<clef>` element for [clef] (sign + line, plus an octave shift where the
+/// clef carries one). Shared by the leading measure attributes and the
+/// mid-measure inline clef changes.
+String _clefXml(Clef clef) {
+  final (sign, line, octave) = switch (clef) {
+    Clef.treble => ('G', 2, 0),
+    Clef.bass => ('F', 4, 0),
+    Clef.alto => ('C', 3, 0),
+    Clef.tenor => ('C', 4, 0),
+    Clef.treble8va => ('G', 2, 1),
+    Clef.treble8vb => ('G', 2, -1),
+    Clef.bass8vb => ('F', 4, -1),
+    Clef.frenchViolin => ('G', 1, 0),
+    Clef.soprano => ('C', 1, 0),
+    Clef.mezzoSoprano => ('C', 2, 0),
+    Clef.baritone => ('F', 3, 0),
+    Clef.subbass => ('F', 5, 0),
+    Clef.percussion => ('percussion', 2, 0),
+  };
+  return '<clef><sign>$sign</sign><line>$line</line>'
+      '${octave == 0 ? '' : '<clef-octave-change>$octave</clef-octave-change>'}'
+      '</clef>';
+}
+
 /// A duration's exact whole-note value as a [Fraction].
 Fraction _wholeNotes(NoteDuration duration) {
   final (numerator, denominator) = duration.fraction;
@@ -332,25 +356,7 @@ class _PartWriter {
       }
       final clef = index == 0 ? score.clef : measure.clefChange;
       if (clef != null) {
-        final (sign, line, octave) = switch (clef) {
-          Clef.treble => ('G', 2, 0),
-          Clef.bass => ('F', 4, 0),
-          Clef.alto => ('C', 3, 0),
-          Clef.tenor => ('C', 4, 0),
-          Clef.treble8va => ('G', 2, 1),
-          Clef.treble8vb => ('G', 2, -1),
-          Clef.bass8vb => ('F', 4, -1),
-          Clef.frenchViolin => ('G', 1, 0),
-          Clef.soprano => ('C', 1, 0),
-          Clef.mezzoSoprano => ('C', 2, 0),
-          Clef.baritone => ('F', 3, 0),
-          Clef.subbass => ('F', 5, 0),
-          Clef.percussion => ('percussion', 2, 0),
-        };
-        out.writeln('        <clef><sign>$sign</sign>'
-            '<line>$line</line>'
-            '${octave == 0 ? '' : '<clef-octave-change>$octave</clef-octave-change>'}'
-            '</clef>');
+        out.writeln('        ${_clefXml(clef)}');
       }
       final transposition = index == 0 ? score.transposition : null;
       if (transposition != null) {
@@ -401,7 +407,8 @@ class _PartWriter {
           '</direction-type></direction>');
     }
 
-    _writeVoice(measure, measure.elements, '1', measure.tuplets);
+    _writeVoice(measure, measure.elements, '1', measure.tuplets,
+        inlineClefs: measure.inlineClefs);
     // Each further voice: rewind (backup) by the just-written voice's total
     // duration to the measure start, then write it.
     var lastVoice = measure.elements;
@@ -476,14 +483,30 @@ class _PartWriter {
     Measure measure,
     List<MusicElement> elements,
     String voice,
-    List<TupletSpan> tuplets,
-  ) {
+    List<TupletSpan> tuplets, {
+    List<InlineClefChange> inlineClefs = const [],
+  }) {
+    // Onset of the current element as a fraction of a whole note from the bar
+    // start, used to place mid-measure clef changes right before their note.
+    var onset = Fraction.zero;
     for (var i = 0; i < elements.length; i++) {
       final element = elements[i];
       final id = element.id;
-      final quarters = voice == '1'
-          ? _quarters(measure.effectiveDurationAt(i))
-          : _quarters(_wholeNotes(element.duration));
+      // A mid-bar clef change at this onset opens its own `<attributes>` block
+      // before the note (onset 0 is a bar-start clef, handled in the leading
+      // attributes). The reader ties each `<clef>` to the position it reads it
+      // at, so this round-trips.
+      for (final ic in inlineClefs) {
+        if (ic.onset == onset && onset != Fraction.zero) {
+          out.writeln('      <attributes>${_clefXml(ic.clef)}</attributes>');
+        }
+      }
+      final wholeNotes = voice == '1'
+          ? measure.effectiveDurationAt(i)
+          : _wholeNotes(element.duration);
+      onset =
+          onset + wholeNotes; // advance past this element for the next onset
+      final quarters = _quarters(wholeNotes);
       final scaled = quarters * Fraction(divisions, 1);
       final durationDivisions = scaled.numerator ~/ scaled.denominator;
 
