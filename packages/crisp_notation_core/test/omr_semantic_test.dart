@@ -123,6 +123,14 @@ void main() {
           throwsA(isA<FormatException>()));
     });
 
+    test('a bare keySignature- token is ignored, not a crash', () {
+      // Regression: an empty key spec made _keyOf do ''.substring(0, -1) and
+      // throw a RangeError. It is now ignored like other empty/unknown tokens.
+      final score = scoreFromSemantic('clef-G2+keySignature-+note-C5_quarter');
+      expect(score.keySignature.fifths, 0); // defaulted, not crashed
+      expect(score.measures.single.elements, hasLength(1));
+    });
+
     test('major/minor keys across the circle of fifths', () {
       int fifths(String key) =>
           scoreFromSemantic('clef-G2+keySignature-$key+4c').keySignature.fifths;

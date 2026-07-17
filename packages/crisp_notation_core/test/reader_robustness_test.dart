@@ -199,4 +199,46 @@ void main() {
       }
     }
   });
+
+  // Text readers without a writer to seed from — mutate a valid sample of each.
+  // (A bare `keySignature-` token once made the OMR semantic reader overrun a
+  // substring with a RangeError.)
+  final textReaders = <String, (String, Score Function(String))>{
+    'asciiTab': (
+      'e|---0---2---3---|\nB|---1---3---5---|\nG|-0---2---4-----|\n'
+          'D|---------------|\nA|---------------|\nE|---------------|\n',
+      asciiTabToScore,
+    ),
+    'semantic': (
+      'clef-G2+keySignature-GM+timeSignature-2/4+note-C5_quarter+'
+          'rest-eighth+note-D5_eighth+barline+note-E5_half+barline',
+      scoreFromSemantic,
+    ),
+    'lilyNotes': (
+      "c'2 a''8 c''8 r4 c'1 e'8 cis'8 c'8 a''8 f'4 c'''4 c,,4 c'4.",
+      scoreFromLilyNotes,
+    ),
+    'bekern': (
+      '**kern <t> **kern <b> 4 C <t> 4 c <b> = <t> = <b> 4 c 4 e <t> 2 D '
+          '<b> *- <t> *-',
+      bekernToScore,
+    ),
+  };
+  textReaders.forEach((name, data) {
+    test('$name rejects malformed input cleanly ($seeds mutations)', () {
+      final rng = Random(4);
+      for (var i = 0; i < seeds; i++) {
+        final mutated = _mutate(data.$1, rng);
+        try {
+          data.$2(mutated);
+        } on FormatException {
+          // clean rejection — the contract
+        } catch (e) {
+          fail('$name crashed on malformed input with ${e.runtimeType} '
+              '(should be a FormatException).\nInput: '
+              '${mutated.replaceAll('\n', r'\n')}');
+        }
+      }
+    });
+  });
 }

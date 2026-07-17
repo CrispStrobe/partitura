@@ -129,7 +129,8 @@ class _SemanticReader {
     }
   }
 
-  void _applyKey(KeySignature key) {
+  void _applyKey(KeySignature? key) {
+    if (key == null) return;
     if (_atStart) {
       _leadingKey = _key = key;
     } else if (key != _key) {
@@ -258,8 +259,9 @@ class _SemanticReader {
     'Ab': -7,
   };
 
-  static KeySignature _keyOf(String spec) {
+  static KeySignature? _keyOf(String spec) {
     // `EbM`, `F#m`, `Cm`, `AM` …
+    if (spec.isEmpty) return null; // e.g. a bare `keySignature-` token
     final minor = spec.endsWith('m');
     final tonic = spec.substring(0, spec.length - 1);
     final fifths = (minor ? _fifthsMinor : _fifthsMajor)[tonic];
