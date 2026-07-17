@@ -33,6 +33,30 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('showNoteNames + noteNameStyle thread to the render object',
+      (tester) async {
+    await tester.pumpWidget(
+      wrap(
+        StaffView(
+          score: Score.simple(notes: 'b4:q'),
+          showNoteNames: true,
+          noteNameStyle: NoteNameStyle.german,
+        ),
+      ),
+    );
+    final render = tester.renderObject<RenderStaffView>(find.byType(StaffView));
+    expect(render.showNoteNames, isTrue);
+    expect(render.noteNameStyle, NoteNameStyle.german);
+
+    // Back-compat: callers that pass no style default to plain letters.
+    await tester.pumpWidget(
+      wrap(StaffView(score: Score.simple(notes: 'b4:q'))),
+    );
+    final def = tester.renderObject<RenderStaffView>(find.byType(StaffView));
+    expect(def.showNoteNames, isFalse);
+    expect(def.noteNameStyle, NoteNameStyle.letter);
+  });
+
   testWidgets('explicit staffSpace determines the pixel size', (tester) async {
     final score = Score.simple(notes: 'c4:q');
     await tester.pumpWidget(wrap(StaffView(score: score, staffSpace: 10)));

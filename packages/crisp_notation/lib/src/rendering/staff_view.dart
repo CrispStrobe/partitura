@@ -42,6 +42,9 @@ class StaffView extends LeafRenderObjectWidget {
   /// note) — for teaching/beginner views.
   final bool showNoteNames;
 
+  /// How [showNoteNames] spells each pitch (letter / German with H / solfège).
+  final NoteNameStyle noteNameStyle;
+
   /// Draws the educational rhythm-count overlay (the beat number / `+` above
   /// each note) — for teaching/beginner views.
   final bool showBeatNumbers;
@@ -69,6 +72,7 @@ class StaffView extends LeafRenderObjectWidget {
     this.highlightedIds = const {},
     this.elementColors = const {},
     this.showNoteNames = false,
+    this.noteNameStyle = NoteNameStyle.letter,
     this.showBeatNumbers = false,
     this.showMeasureNumbers = false,
     this.measureNumberInterval = 1,
@@ -84,6 +88,7 @@ class StaffView extends LeafRenderObjectWidget {
         highlightedIds: highlightedIds,
         elementColors: elementColors,
         showNoteNames: showNoteNames,
+        noteNameStyle: noteNameStyle,
         showBeatNumbers: showBeatNumbers,
         showMeasureNumbers: showMeasureNumbers,
         measureNumberInterval: measureNumberInterval,
@@ -99,6 +104,7 @@ class StaffView extends LeafRenderObjectWidget {
       ..highlightedIds = highlightedIds
       ..elementColors = elementColors
       ..showNoteNames = showNoteNames
+      ..noteNameStyle = noteNameStyle
       ..showBeatNumbers = showBeatNumbers
       ..showMeasureNumbers = showMeasureNumbers
       ..measureNumberInterval = measureNumberInterval
@@ -150,6 +156,7 @@ class RenderStaffView extends RenderBox {
     required Set<String> highlightedIds,
     Map<String, Color> elementColors = const {},
     bool showNoteNames = false,
+    NoteNameStyle noteNameStyle = NoteNameStyle.letter,
     bool showBeatNumbers = false,
     bool showMeasureNumbers = false,
     int measureNumberInterval = 1,
@@ -160,6 +167,7 @@ class RenderStaffView extends RenderBox {
         _highlightedIds = highlightedIds,
         _elementColors = elementColors,
         _showNoteNames = showNoteNames,
+        _noteNameStyle = noteNameStyle,
         _showBeatNumbers = showBeatNumbers,
         _showMeasureNumbers = showMeasureNumbers,
         _measureNumberInterval = measureNumberInterval,
@@ -264,6 +272,17 @@ class RenderStaffView extends RenderBox {
     markNeedsLayout();
   }
 
+  NoteNameStyle _noteNameStyle;
+
+  /// How [showNoteNames] spells each pitch. Changes the overlay text, so this
+  /// relayouts.
+  NoteNameStyle get noteNameStyle => _noteNameStyle;
+  set noteNameStyle(NoteNameStyle value) {
+    if (value == _noteNameStyle) return;
+    _noteNameStyle = value;
+    markNeedsLayout();
+  }
+
   NoteheadScheme _noteheadScheme;
 
   /// Notehead shape scheme (round or a shape-note scheme). Relayouts.
@@ -349,6 +368,7 @@ class RenderStaffView extends RenderBox {
     }
     final layout = _engine.layout(_score, _settingsFor(metadata),
         showNoteNames: _showNoteNames,
+        noteNameStyle: _noteNameStyle,
         showBeatNumbers: _showBeatNumbers,
         showMeasureNumbers: _showMeasureNumbers,
         measureNumberInterval: _measureNumberInterval);
