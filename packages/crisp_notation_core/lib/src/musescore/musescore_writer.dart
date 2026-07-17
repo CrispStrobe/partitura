@@ -68,6 +68,13 @@ const museScoreOrnament = {
   Ornament.shortTrill: 'ornamentShortTrill',
   Ornament.mordent: 'ornamentMordent',
   Ornament.turn: 'ornamentTurn',
+  Ornament.invertedTurn: 'ornamentTurnInverted',
+  // MuseScore renders an accidental trill as a trill plus a separate accidental
+  // symbol, not a single ornament, so the accidental degrades to a plain trill
+  // (as it does in the MEI/kern/ABC codecs) rather than dropping the ornament.
+  Ornament.trillSharp: 'ornamentTrill',
+  Ornament.trillFlat: 'ornamentTrill',
+  Ornament.trillNatural: 'ornamentTrill',
 };
 
 /// Serializes [score] as a single-part, single-staff MuseScore `.mscx`

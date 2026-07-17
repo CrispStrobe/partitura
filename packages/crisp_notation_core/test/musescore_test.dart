@@ -245,4 +245,37 @@ void main() {
     expect(back.slurs.single.startId, ids.first);
     expect(back.slurs.single.endId, ids.last);
   });
+
+  test('every ornament survives export (no silent drop)', () {
+    // Regression: the writer's ornament map covered only trill/shortTrill/
+    // mordent/turn, so invertedTurn and the accidental trills vanished on
+    // export. invertedTurn now round-trips exactly; an accidental trill degrades
+    // to a plain trill (MuseScore has no single-glyph accidental trill), like
+    // the other codecs — but is never dropped.
+    Ornament? roundTrip(Ornament o) {
+      final s = Score(
+        clef: Clef.treble,
+        timeSignature: TimeSignature.fourFour,
+        measures: [
+          Measure([
+            NoteElement(
+                pitches: [const Pitch(Step.c, octave: 4)],
+                duration: NoteDuration.whole,
+                id: 'a',
+                ornament: o),
+          ]),
+        ],
+      );
+      return (scoreFromMscx(scoreToMscx(s)).measures.single.elements.single
+              as NoteElement)
+          .ornament;
+    }
+
+    for (final o in Ornament.values) {
+      expect(roundTrip(o), isNotNull, reason: '$o was dropped on export');
+    }
+    expect(roundTrip(Ornament.invertedTurn), Ornament.invertedTurn);
+    expect(
+        roundTrip(Ornament.trillSharp), Ornament.trill); // documented degrade
+  });
 }

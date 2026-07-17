@@ -351,6 +351,8 @@ class _StaffReader {
     'mordent': Ornament.mordent,
     'ornamentTurn': Ornament.turn,
     'turn': Ornament.turn,
+    'ornamentTurnInverted': Ornament.invertedTurn,
+    'reverseturn': Ornament.invertedTurn,
   };
 
   static Ornament? _ornamentOf(XmlNode chord) {
