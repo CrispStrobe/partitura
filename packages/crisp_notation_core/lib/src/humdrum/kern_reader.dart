@@ -508,6 +508,7 @@ class _KernReader {
     if (token.contains('T')) return Ornament.trill;
     if (token.contains('m')) return Ornament.shortTrill;
     if (token.contains('M')) return Ornament.mordent;
+    if (token.contains(r'$')) return Ornament.invertedTurn;
     if (token.contains('S')) return Ornament.turn;
     return null;
   }

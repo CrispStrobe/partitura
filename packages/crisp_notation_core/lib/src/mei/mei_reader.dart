@@ -311,7 +311,9 @@ class _MeiReader {
         'mordent' => node.attributes['form'] == 'upper'
             ? Ornament.shortTrill
             : Ornament.mordent,
-        'turn' => Ornament.turn,
+        'turn' => node.attributes['form'] == 'lower'
+            ? Ornament.invertedTurn
+            : Ornament.turn,
         _ => null,
       };
       final startid = node.attributes['startid'];

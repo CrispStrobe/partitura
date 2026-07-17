@@ -42,4 +42,41 @@ void main() {
     expect(scoreFromMscx(scoreToMscx(both)), both);
     expect(scoreFromKern(scoreToKern(both)), both);
   });
+
+  test('the inverted turn round-trips (writer encoded it, reader dropped it)',
+      () {
+    // Regression: kern wrote `$` and MEI wrote <turn form="lower">, but the kern
+    // reader ignored `$` and the MEI reader read any <turn> back as a plain
+    // turn — so an inverted turn silently degraded on both round-trips.
+    final source = Score(
+      clef: Clef.treble,
+      timeSignature: TimeSignature.fourFour,
+      measures: [
+        Measure([
+          NoteElement(
+            pitches: [const Pitch(Step.c, octave: 5)],
+            duration: NoteDuration.whole,
+            id: 'e0',
+            ornament: Ornament.invertedTurn,
+          ),
+        ]),
+      ],
+    );
+    for (final codec
+        in <(String, String Function(Score), Score Function(String))>[
+      ('MusicXML', scoreToMusicXml, scoreFromMusicXml),
+      ('MEI', scoreToMei, scoreFromMei),
+      ('kern', scoreToKern, scoreFromKern),
+      ('ABC', scoreToAbc, scoreFromAbc),
+      ('MuseScore', scoreToMscx, scoreFromMscx),
+    ]) {
+      final back = codec.$3(codec.$2(source));
+      final ornament = back.measures
+          .expand((m) => m.elements)
+          .whereType<NoteElement>()
+          .single
+          .ornament;
+      expect(ornament, Ornament.invertedTurn, reason: '${codec.$1} dropped it');
+    }
+  });
 }
