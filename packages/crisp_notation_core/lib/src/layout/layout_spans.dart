@@ -11,10 +11,8 @@ extension _Spans on _LayoutBuilder {
   /// edge to the second note's left edge, at their notehead centers.
   void _layoutGlissandos() {
     for (final gliss in score.glissandos) {
-      final startIdx =
-          _tieInfos.indexWhere((i) => i.note != null && i.id == gliss.startId);
-      final endIdx =
-          _tieInfos.indexWhere((i) => i.note != null && i.id == gliss.endId);
+      final startIdx = _tieIndexOf(gliss.startId);
+      final endIdx = _tieIndexOf(gliss.endId);
       if (startIdx < 0 || endIdx < 0) {
         continue;
       }
@@ -37,10 +35,8 @@ extension _Spans on _LayoutBuilder {
   /// straight [Glissando] line), bowing gently between the noteheads.
   void _layoutPortamentos() {
     for (final port in score.portamentos) {
-      final startIdx =
-          _tieInfos.indexWhere((i) => i.note != null && i.id == port.startId);
-      final endIdx =
-          _tieInfos.indexWhere((i) => i.note != null && i.id == port.endId);
+      final startIdx = _tieIndexOf(port.startId);
+      final endIdx = _tieIndexOf(port.endId);
       if (startIdx < 0 || endIdx < 0) {
         continue;
       }
@@ -139,8 +135,7 @@ extension _Spans on _LayoutBuilder {
   /// forces a side.
   void _layoutLaissezVibrer() {
     for (final lv in score.laissezVibrer) {
-      final idx =
-          _tieInfos.indexWhere((i) => i.note != null && i.id == lv.noteId);
+      final idx = _tieIndexOf(lv.noteId);
       if (idx < 0) {
         continue;
       }
@@ -170,10 +165,8 @@ extension _Spans on _LayoutBuilder {
   /// between.
   void _layoutSlurs() {
     for (final slur in score.slurs) {
-      final startIndex =
-          _tieInfos.indexWhere((i) => i.note != null && i.id == slur.startId);
-      final endIndex =
-          _tieInfos.indexWhere((i) => i.note != null && i.id == slur.endId);
+      final startIndex = _tieIndexOf(slur.startId);
+      final endIndex = _tieIndexOf(slur.endId);
       if (startIndex < 0 || endIndex < 0) {
         continue;
       }
@@ -281,8 +274,7 @@ extension _Spans on _LayoutBuilder {
     }
 
     for (final marking in score.dynamics) {
-      final index = _tieInfos
-          .indexWhere((i) => i.note != null && i.id == marking.elementId);
+      final index = _tieIndexOf(marking.elementId);
       if (index < 0) continue; // skip a dynamic on a missing note
       final info = _tieInfos[index];
       final glyph = SmuflGlyph.dynamicGlyph(marking.level);
@@ -298,10 +290,8 @@ extension _Spans on _LayoutBuilder {
     }
 
     for (final hairpin in score.hairpins) {
-      final startIndex = _tieInfos
-          .indexWhere((i) => i.note != null && i.id == hairpin.startId);
-      final endIndex =
-          _tieInfos.indexWhere((i) => i.note != null && i.id == hairpin.endId);
+      final startIndex = _tieIndexOf(hairpin.startId);
+      final endIndex = _tieIndexOf(hairpin.endId);
       // Skip a degenerate (start == end) or dangling hairpin instead of
       // crashing: real imports carry them — most often a span whose other end
       // is in a part that was not imported. Render everything else.
@@ -324,10 +314,8 @@ extension _Spans on _LayoutBuilder {
   /// star under the end note, on a line below the staff and any dynamics.
   void _layoutPedals() {
     for (final pedal in score.pedals) {
-      final startIdx =
-          _tieInfos.indexWhere((i) => i.note != null && i.id == pedal.startId);
-      final endIdx =
-          _tieInfos.indexWhere((i) => i.note != null && i.id == pedal.endId);
+      final startIdx = _tieIndexOf(pedal.startId);
+      final endIdx = _tieIndexOf(pedal.endId);
       // Skip a dangling or backwards pedal rather than crash (see hairpins).
       if (startIdx < 0 || endIdx < 0 || endIdx < startIdx) continue;
       final start = _tieInfos[startIdx];

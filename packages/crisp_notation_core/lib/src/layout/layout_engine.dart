@@ -133,6 +133,22 @@ class _LayoutBuilder {
   final Map<String, _Bounds> _elementBounds = {};
   final List<MeasureRegion> _measureRegions = [];
   final List<_TieInfo> _tieInfos = [];
+
+  /// Index into [_tieInfos] of the note-carrying entry for each element id,
+  /// built once (lazily, after all measures are laid out). The span/mark
+  /// post-passes look their endpoints up here in O(1); without it each of the
+  /// dozen passes did a linear `indexWhere` per span, making a score with a
+  /// mark on every note O(n²). See [_tieIndexOf].
+  late final Map<String, int> _tieIndexById = {
+    for (var i = 0; i < _tieInfos.length; i++)
+      if (_tieInfos[i].note != null && _tieInfos[i].id != null)
+        _tieInfos[i].id!: i,
+  };
+
+  /// The [_tieInfos] index of the note with [id], or -1 — the O(1) replacement
+  /// for `_tieInfos.indexWhere((i) => i.note != null && i.id == id)`.
+  int _tieIndexOf(String? id) => id == null ? -1 : (_tieIndexById[id] ?? -1);
+
   final _Bounds _ink = _Bounds();
 
   // Cross-measure beaming: the note ids each cross-measure beam claims (excluded

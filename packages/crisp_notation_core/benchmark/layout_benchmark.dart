@@ -6,12 +6,15 @@
 //
 //   dart compile exe benchmark/layout_benchmark.dart -o /tmp/lb && /tmp/lb
 //
-// It prints a table and then checks two things, exiting non-zero on failure:
+// It prints a table and then checks three things, exiting non-zero on failure:
 //
 //  1. **Scaling stays linear.** The *per-bar* cost at 800 bars vs 200 bars must
 //     stay near 1.0 (an O(n^2) pass reads ~4.0). Per-bar is machine-independent,
 //     both sizes are large enough to avoid small-size cache skew, and each point
 //     is a min-of-reps, so the metric is stable even on a loaded machine.
+//  1b. **The span/mark passes stay linear too**, on a score with a dynamic on
+//     every note (the plain score above leaves those passes as no-ops, so it
+//     can't catch an O(n^2) hiding in mark placement — one did).
 //  2. **A generous absolute ceiling**, as a coarse backstop for a gross slowdown.
 //
 // Baseline (Apple silicon, AOT, 2026-07): ~130 us/bar, 800 bars ~= 93 ms,
@@ -52,6 +55,31 @@ Score _score(int bars) => Score.simple(
               .join(' | '),
     );
 
+/// Like [_score] but with a dynamic on every note — exercises the span/mark
+/// post-passes (which the plain score leaves as no-ops).
+Score _markedScore(int bars) {
+  final measures = <Measure>[];
+  final dynamics = <DynamicMarking>[];
+  var id = 0;
+  for (var b = 0; b < bars; b++) {
+    final els = <MusicElement>[];
+    for (var i = 0; i < 8; i++) {
+      final nid = 'e${id++}';
+      els.add(NoteElement(
+          pitches: [Pitch(Step.values[i % 7], octave: 5)],
+          duration: NoteDuration.eighth,
+          id: nid));
+      dynamics.add(DynamicMarking(nid, DynamicLevel.f));
+    }
+    measures.add(Measure(els));
+  }
+  return Score(
+      clef: Clef.treble,
+      timeSignature: TimeSignature.fourFour,
+      measures: measures,
+      dynamics: dynamics);
+}
+
 void main() {
   final metaJson = File('../crisp_notation/assets/smufl/bravura_metadata.json')
       .readAsStringSync();
@@ -91,12 +119,36 @@ void main() {
   stdout.writeln('\nscaling: per-bar 800 / per-bar 200 = '
       '${ratio.toStringAsFixed(2)}x (linear ~= 1.0, ceiling $maxRatio)');
 
+  // Gate 1b — linearity of the span/mark post-passes, with a dynamic on EVERY
+  // note. The plain-note score above never exercises them, so it missed an
+  // O(n^2) where each of the dozen passes did a linear `indexWhere` per span to
+  // find its endpoint note — 141 ms at 800 bars, now ~17 ms after a one-time
+  // id→index map. A mark-per-note score is where that regresses.
+  final markedTimings = <int, double>{};
+  for (final bars in [200, 800]) {
+    final score = _markedScore(bars);
+    final iters = bars >= 800 ? 20 : 60;
+    final ms = _bench(() => engine.layout(score, settings), iters: iters);
+    markedTimings[bars] = ms;
+    stdout.writeln('layout ${bars.toString().padLeft(3)} bars, dynamic/note '
+        '${ms.toStringAsFixed(2).padLeft(7)} ms');
+  }
+  final markedRatio = (markedTimings[800]! / 800) / (markedTimings[200]! / 200);
+  stdout.writeln('scaling (marked): per-bar 800 / per-bar 200 = '
+      '${markedRatio.toStringAsFixed(2)}x (linear ~= 1.0, ceiling $maxRatio)');
+
   // Gate 2 — coarse absolute backstop. Local AOT ~= 93 ms at 800 bars; a CI
   // runner is a few times slower, so 1500 ms leaves >10x headroom.
   const maxAbsMs = 1500.0;
   final abs800 = timings[800]!;
 
   var failed = false;
+  if (markedRatio > maxRatio) {
+    stderr.writeln('REGRESSION: marked-layout scaling is superlinear '
+        '(per-bar ratio ${markedRatio.toStringAsFixed(2)}x > $maxRatio) '
+        '— a span/mark pass is O(n^2) in the number of marks.');
+    failed = true;
+  }
   if (ratio > maxRatio) {
     stderr.writeln('REGRESSION: layout scaling is superlinear '
         '(per-bar ratio ${ratio.toStringAsFixed(2)}x > $maxRatio) '
