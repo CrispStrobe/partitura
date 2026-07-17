@@ -418,10 +418,14 @@ class _Rec {
   bool tie = false;
   final Set<Articulation> articulations;
   final List<Pitch> grace;
+  final GraceStyle graceStyle;
   final Ornament? ornament;
   final String id;
   _Rec(this.pitches, this.dur, this.id,
-      {Set<Articulation>? articulations, List<Pitch>? grace, this.ornament})
+      {Set<Articulation>? articulations,
+      List<Pitch>? grace,
+      this.graceStyle = GraceStyle.acciaccatura,
+      this.ornament})
       : articulations = articulations ?? {},
         grace = grace ?? [];
 }
@@ -465,6 +469,7 @@ class _AbcBody {
   String? _pendingChordSymbol;
   final Set<Articulation> _pendingArtic = {};
   final List<Pitch> _pendingGrace = [];
+  GraceStyle _pendingGraceStyle = GraceStyle.acciaccatura;
   Ornament? _pendingOrnament;
   DynamicLevel? _pendingDynamic;
   final List<DynamicMarking> dynamics = [];
@@ -708,7 +713,12 @@ class _AbcBody {
 
   void _readGrace() {
     _pos++; // '{'
-    if (_pos < src.length && src[_pos] == '/') _pos++; // acciaccatura "{/…}"
+    if (_pos < src.length && src[_pos] == '/') {
+      _pos++; // acciaccatura "{/…}"
+      _pendingGraceStyle = GraceStyle.acciaccatura;
+    } else {
+      _pendingGraceStyle = GraceStyle.appoggiatura; // plain "{…}"
+    }
     while (_pos < src.length && src[_pos] != '}') {
       if (_isNoteStart(src[_pos])) {
         final p = _readPitch();
@@ -809,6 +819,7 @@ class _AbcBody {
                 tieToNext: r.tie,
                 articulations: r.articulations,
                 graceNotes: r.grace,
+                graceStyle: r.graceStyle,
                 ornament: r.ornament,
                 id: r.id,
               ),
@@ -907,6 +918,7 @@ class _AbcBody {
     final rec = _Rec(pitches, dur, '$_idPfx${_id++}',
         articulations: _pendingArtic.isEmpty ? null : Set.of(_pendingArtic),
         grace: _pendingGrace.isEmpty ? null : List.of(_pendingGrace),
+        graceStyle: _pendingGraceStyle,
         ornament: _pendingOrnament);
     _pendingArtic.clear();
     _pendingGrace.clear();

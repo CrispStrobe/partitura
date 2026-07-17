@@ -519,4 +519,54 @@ w:Mar- y had a lit- tle lamb whose fleece was white as snow.
           isNot(contains('♩ = 100')));
     });
   });
+
+  group('grace-note round-trip', () {
+    NoteElement grace(List<Pitch> notes, GraceStyle style) {
+      final s = Score.simple(notes: 'c4:q');
+      final withGrace = Score(
+        clef: s.clef,
+        timeSignature: s.timeSignature,
+        measures: [
+          Measure([
+            NoteElement(
+                pitches: [const Pitch(Step.c, octave: 4)],
+                duration: NoteDuration.quarter,
+                id: 'a',
+                graceNotes: notes,
+                graceStyle: style),
+          ]),
+        ],
+      );
+      return scoreFromAbc(scoreToAbc(withGrace)).measures.single.elements.first
+          as NoteElement;
+    }
+
+    test('acciaccatura vs appoggiatura survives (writer emits {/…} vs {…})',
+        () {
+      // Regression: the writer always emitted `{…}` and the reader always read
+      // acciaccatura, so appoggiatura round-tripped as acciaccatura.
+      expect(
+          grace([const Pitch(Step.d, octave: 4)], GraceStyle.acciaccatura)
+              .graceStyle,
+          GraceStyle.acciaccatura);
+      expect(
+          grace([const Pitch(Step.d, octave: 4)], GraceStyle.appoggiatura)
+              .graceStyle,
+          GraceStyle.appoggiatura);
+    });
+
+    test('a natural grace note keeps its pitch after an altered one', () {
+      // Regression: `{E♭ E}` was written `{_E E}`, and ABC keeps an accidental
+      // in force for the rest of the measure, so the natural E read back as E♭.
+      // Grace notes now carry an explicit accidental (including `=`).
+      final back = grace(
+        [
+          const Pitch(Step.e, alter: -1, octave: 4),
+          const Pitch(Step.e, octave: 4)
+        ],
+        GraceStyle.acciaccatura,
+      );
+      expect(back.graceNotes.map((p) => p.midiNumber), [63, 64]); // E♭4, E4
+    });
+  });
 }

@@ -104,7 +104,10 @@ String scoreToAbc(
           body.write('"${chordSymbols[id]}"');
         }
         if (id != null && element.graceNotes.isNotEmpty) {
-          body.write('{${element.graceNotes.map(_bareNote).join()}}');
+          // `{/…}` is an acciaccatura (slashed), `{…}` an appoggiatura.
+          final slash =
+              element.graceStyle == GraceStyle.acciaccatura ? '/' : '';
+          body.write('{$slash${element.graceNotes.map(_bareNote).join()}}');
         }
         if (id != null && dynamicsById.containsKey(id)) {
           body.write('!${dynamicsById[id]!.name}!');
@@ -232,11 +235,15 @@ String _noteToken(Pitch pitch, Map<String, int> acc, KeySignature key) {
 
 /// The pitch as a bare octave letter with an always-explicit accidental
 /// (for grace notes, where measure state is not tracked).
+// Grace notes are written without measure accidental tracking, so each one
+// carries an **explicit** accidental — including a natural (`=`) — otherwise a
+// natural grace note inherits a preceding grace note's accidental (ABC keeps an
+// accidental in force for the rest of the measure).
 String _bareNote(Pitch pitch) {
   final prefix = switch (pitch.alter) {
     2 => '^^',
     1 => '^',
-    0 => '',
+    0 => '=',
     -1 => '_',
     _ => '__',
   };
