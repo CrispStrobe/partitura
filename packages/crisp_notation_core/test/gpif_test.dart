@@ -133,6 +133,81 @@ void main() {
     expect(back.tabNoteMarks, [const TabNoteMark('e4', TabNoteStyle.dead)]);
   });
 
+  // A one-bar score on reachable pitches, ids e0.., carrying tab-mark styles.
+  Score marked(List<TabNoteMark> marks) {
+    final base = Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'g4:q b4 d5 e5',
+    );
+    return Score(
+      clef: base.clef,
+      timeSignature: base.timeSignature,
+      measures: base.measures,
+      tabNoteMarks: marks,
+    );
+  }
+
+  test('every tab-note style survives export (dead/ghost/all harmonics)', () {
+    // Regression: ghost notes were silently dropped (the writer no-op'd them),
+    // and only the natural/artificial/pinch harmonics were covered.
+    for (final style in TabNoteStyle.values) {
+      final back =
+          scoreFromGpif(scoreToGpif(marked([TabNoteMark('e0', style)])));
+      expect(back.tabNoteMarks, [TabNoteMark('e0', style)],
+          reason: '$style did not round-trip');
+    }
+  });
+
+  test('wide (whammy) vibrato keeps its width', () {
+    // Regression: the writer always emitted the narrow <Vibrato>, so a wide
+    // vibrato came back as normal. It now emits <VibratoWTremBar>.
+    final base = Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'g4:q b4',
+    );
+    Score withVib(bool wide) => Score(
+          clef: base.clef,
+          timeSignature: base.timeSignature,
+          measures: base.measures,
+          vibratos: [Vibrato('e0', wide: wide)],
+        );
+    expect(scoreFromGpif(scoreToGpif(withVib(false))).vibratos,
+        [const Vibrato('e0', wide: false)]);
+    expect(scoreFromGpif(scoreToGpif(withVib(true))).vibratos,
+        [const Vibrato('e0', wide: true)]);
+  });
+
+  test('bend contours round-trip (prebend, bend-release, dive)', () {
+    // Regression: the writer only emitted a single BendDestinationValue, so any
+    // multi-point contour collapsed to a plain full bend. It now writes the
+    // GPIF origin/middle/destination points.
+    final base = Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'g4:w',
+    );
+    Score withBend(Bend b) => Score(
+          clef: base.clef,
+          timeSignature: base.timeSignature,
+          measures: base.measures,
+          bends: [b],
+        );
+    final contours = <List<BendPoint>>[
+      [const BendPoint(0, 0), const BendPoint(0.5, 1), const BendPoint(1, 0)],
+      [const BendPoint(0, 1), const BendPoint(1, 1)],
+      [const BendPoint(0, 1), const BendPoint(1, 0)],
+      [const BendPoint(0, 0), const BendPoint(0.5, -1), const BendPoint(1, 0)],
+    ];
+    for (final pts in contours) {
+      final back = scoreFromGpif(scoreToGpif(withBend(Bend.curve('e0', pts))));
+      expect(back.bends, [Bend.curve('e0', pts)], reason: 'contour $pts');
+    }
+    // A plain bend still comes back plain, not as a curve.
+    expect(
+        scoreFromGpif(scoreToGpif(withBend(const Bend('e0', steps: 0.5))))
+            .bends,
+        [const Bend('e0', steps: 0.5)]);
+  });
+
   test('selects a track by index from a multi-track GPIF', () {
     const gpif = '''
 <GPIF>

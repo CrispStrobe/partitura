@@ -7,11 +7,15 @@
 /// GPIF document structure — track tuning, master bars, bars → voices → beats →
 /// notes (string+fret), rhythms and the common playing techniques — into a
 /// crisp_notation [Score]. On **import**, hammer-on/pull-off (`HopoOrigin`) → a
-/// slur, slides (`Slide`) → a glissando, bends (`Bended`/`BendDestinationValue`,
-/// 100 = a whole step) → a `Bend`, whammy vibrato (`VibratoWTremBar`) →
-/// a `Vibrato`, dead (`Muted`) and harmonic (`Harmonic`, with `HarmonicType`
-/// natural/artificial/pinch) notes → `TabNoteMark`s; export writes the same
-/// properties back, so a round-trip keeps techniques.
+/// slur, slides (`Slide`) → a glissando, bends (`Bended`; a plain
+/// `BendDestinationValue` where 100 = a whole step, or an origin/middle/
+/// destination contour) → a `Bend`, normal (`Vibrato`) and whammy
+/// (`VibratoWTremBar`) vibrato → a `Vibrato` (`wide` for the latter), dead
+/// (`Muted`), ghost (`Ghost`) and harmonic (`Harmonic`, with `HarmonicType`
+/// natural/artificial/pinch/tap/semi/feedback) notes → `TabNoteMark`s; export
+/// writes the same properties back, so a round-trip keeps techniques. A bend
+/// contour keeps its endpoints and first interior point; contours with more
+/// than one interior point reduce to that first middle.
 /// Multi-track files import one track at a time (`trackIndex`; see
 /// [gpifTrackNames]). It reads real `.gp` (v7) files correctly — validated
 /// against the vendored `.gp` (v7) fixtures (pitches, chords, rhythm,
@@ -49,15 +53,16 @@ final _basesByName = {for (final e in _noteValues.entries) e.value: e.key};
 /// Serializes [score] to a `score.gpif` XML string, fretting its pitches on
 /// [tuning] (default standard guitar). Notes unreachable on the tuning are
 /// dropped. Voice 2 is ignored (single voice per bar). Tab techniques
-/// (bends, hammer-on/pull-off, slides, vibrato, dead/harmonic) are written as
-/// GPIF note properties, so a `.gp` round-trip keeps them.
+/// (bends and bend contours, hammer-on/pull-off, slides, normal/wide vibrato,
+/// dead/ghost/harmonic marks) are written as GPIF note properties, so a `.gp`
+/// round-trip keeps them.
 String scoreToGpif(Score score, {Tuning? tuning}) {
   final tune = tuning ?? Tuning.standardGuitar;
   // Per-note technique lookups (a span is written on its start note).
   final hopoFrom = {for (final s in score.slurs) s.startId};
   final slideFrom = {for (final g in score.glissandos) g.startId};
-  final bendBy = {for (final bend in score.bends) bend.noteId: bend.steps};
-  final vibratoIds = {for (final v in score.vibratos) v.noteId};
+  final bendBy = {for (final bend in score.bends) bend.noteId: bend};
+  final vibratoWideBy = {for (final v in score.vibratos) v.noteId: v.wide};
   final markBy = {for (final m in score.tabNoteMarks) m.noteId: m.style};
   final b = StringBuffer();
   b.writeln('<?xml version="1.0" encoding="UTF-8"?>');
@@ -124,14 +129,41 @@ String scoreToGpif(Score score, {Tuning? tuning}) {
             if (slideFrom.contains(eid)) {
               props.write('<Property name="Slide"><Flags>2</Flags></Property>');
             }
-            final steps = bendBy[eid];
-            if (steps != null) {
-              props.write('<Property name="Bended"><Enable/></Property>'
-                  '<Property name="BendDestinationValue"><Float>'
-                  '${(steps * 100).toStringAsFixed(6)}</Float></Property>');
+            final bend = bendBy[eid];
+            if (bend != null) {
+              props.write('<Property name="Bended"><Enable/></Property>');
+              if (bend.points.isEmpty) {
+                props.write('<Property name="BendDestinationValue"><Float>'
+                    '${(bend.steps * 100).toStringAsFixed(6)}</Float></Property>');
+              } else {
+                // A multi-point contour → GPIF's origin / (optional) middle /
+                // destination points, values in 1/100 whole-tone, offsets in
+                // 0..100 along the note. A single middle point is emitted with
+                // its offset repeated for both plateau edges; contours with
+                // more than one interior point reduce to their first middle.
+                _writeBendPoint(props, 'Origin', bend.points.first);
+                final middles = bend.points.sublist(1, bend.points.length - 1);
+                if (middles.isNotEmpty) {
+                  props.write('<Property name="BendMiddleValue"><Float>'
+                      '${(middles.first.steps * 100).toStringAsFixed(6)}'
+                      '</Float></Property>');
+                  final off = (middles.first.offset * 100).toStringAsFixed(6);
+                  props.write('<Property name="BendMiddleOffset1"><Float>$off'
+                      '</Float></Property>'
+                      '<Property name="BendMiddleOffset2"><Float>$off'
+                      '</Float></Property>');
+                }
+                _writeBendPoint(props, 'Destination', bend.points.last);
+              }
             }
-            if (vibratoIds.contains(eid)) {
-              props.write('<Property name="Vibrato"><Enable/></Property>');
+            final wide = vibratoWideBy[eid];
+            if (wide != null) {
+              props.write(wide
+                  ? '<Property name="VibratoWTremBar"><Enable/></Property>'
+                  : '<Property name="Vibrato"><Enable/></Property>');
+            }
+            if (markBy[eid] == TabNoteStyle.ghost) {
+              props.write('<Property name="Ghost"><Enable/></Property>');
             }
             switch (markBy[eid]) {
               case TabNoteStyle.dead:
@@ -204,6 +236,15 @@ String scoreToGpif(Score score, {Tuning? tuning}) {
   b.writeln('  </Rhythms>');
   b.writeln('</GPIF>');
   return b.toString();
+}
+
+/// Writes a GPIF bend [which] ('Origin' or 'Destination') point: value in
+/// 1/100 whole-tone, offset in 0..100 along the note's duration.
+void _writeBendPoint(StringBuffer props, String which, BendPoint point) {
+  props.write('<Property name="Bend${which}Value"><Float>'
+      '${(point.steps * 100).toStringAsFixed(6)}</Float></Property>'
+      '<Property name="Bend${which}Offset"><Float>'
+      '${(point.offset * 100).toStringAsFixed(6)}</Float></Property>');
 }
 
 /// The names of the tracks in a GPIF document, in order (for choosing a
@@ -324,8 +365,10 @@ Score scoreFromGpif(String gpif, {int trackIndex = 0}) {
         pendingSlide = null;
       }
       var dead = false, harmonic = false, vibrato = false, vibratoWide = false;
+      var ghost = false;
       var harmonicStyle = TabNoteStyle.harmonic;
       double? bendSteps;
+      List<BendPoint>? bendCurve;
       // Whammy-bar vibrato is a beat property.
       if (_propOn(beat, 'VibratoWTremBar')) {
         vibrato = true;
@@ -333,6 +376,7 @@ Score scoreFromGpif(String gpif, {int trackIndex = 0}) {
       }
       for (final note in nodes) {
         if (_propOn(note, 'Muted')) dead = true;
+        if (_propOn(note, 'Ghost')) ghost = true;
         if (_propOn(note, 'Harmonic')) {
           harmonic = true;
           harmonicStyle =
@@ -352,19 +396,47 @@ Score scoreFromGpif(String gpif, {int trackIndex = 0}) {
           vibrato = true;
           vibratoWide = true;
         }
-        final bv =
-            _findProperty(note, 'BendDestinationValue')?.childText('Float');
-        if (_propOn(note, 'Bended') && bv != null) {
-          final v = (double.tryParse(bv) ?? 0) / 100;
-          if (bendSteps == null || v > bendSteps) bendSteps = v;
+        if (_propOn(note, 'Bended')) {
+          final origin =
+              _findProperty(note, 'BendOriginValue')?.childText('Float');
+          if (origin != null) {
+            // A contour: origin, an optional middle, and the destination.
+            double read(String name, double fallback) =>
+                (double.tryParse(
+                        _findProperty(note, name)?.childText('Float') ?? '') ??
+                    fallback) /
+                100;
+            final points = <BendPoint>[
+              BendPoint(
+                  read('BendOriginOffset', 0), read('BendOriginValue', 0)),
+            ];
+            if (_findProperty(note, 'BendMiddleValue') != null) {
+              points.add(BendPoint(
+                  read('BendMiddleOffset1', 50), read('BendMiddleValue', 0)));
+            }
+            points.add(BendPoint(read('BendDestinationOffset', 100),
+                read('BendDestinationValue', 0)));
+            bendCurve ??= points;
+          } else {
+            final bv =
+                _findProperty(note, 'BendDestinationValue')?.childText('Float');
+            if (bv != null) {
+              final v = (double.tryParse(bv) ?? 0) / 100;
+              if (bendSteps == null || v > bendSteps) bendSteps = v;
+            }
+          }
         }
       }
       if (harmonic) {
         marks.add(TabNoteMark(noteId, harmonicStyle));
       } else if (dead) {
         marks.add(TabNoteMark(noteId, TabNoteStyle.dead));
+      } else if (ghost) {
+        marks.add(TabNoteMark(noteId, TabNoteStyle.ghost));
       }
-      if (bendSteps != null && bendSteps > 0) {
+      if (bendCurve != null) {
+        bends.add(Bend.curve(noteId, bendCurve));
+      } else if (bendSteps != null && bendSteps > 0) {
         bends.add(Bend(noteId, steps: bendSteps));
       }
       if (vibrato) vibratos.add(Vibrato(noteId, wide: vibratoWide));
