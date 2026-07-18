@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.4.8 (2026-07-18)
+
+### Codec fixes (found by audit)
+
+- **Braille: quarter- and half-note value signs were swapped** (and their 16×
+  partners, 64th/32nd). Per the Music Braille Code a quarter adds dot 6 and a
+  half adds dot 3; `_valueDots` had them reversed, so every exported quarter note
+  read as a half (and vice versa) on a braille display/embosser — e.g. a quarter
+  C emitted ⠝ (the half-C sign) instead of ⠹. The test that "pinned" it enshrined
+  the swap (with self-contradictory glyph comments); corrected to the standard.
+- **Guitar Pro (GPIF) import dropped every mid-score time-signature change.**
+  Only the first `<Time>` was captured, so a piece that changed meter reported
+  the initial meter throughout. Each `<MasterBar>` whose meter differs from the
+  running one now attaches a `timeChange` to its measure.
+
 ## 0.4.7 (2026-07-18)
 
 ### ABC round-trip fixes (found by audit)

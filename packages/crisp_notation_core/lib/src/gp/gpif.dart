@@ -298,12 +298,21 @@ Score scoreFromGpif(String gpif, {int trackIndex = 0}) {
   String? pendingSlide;
   var id = 0;
   TimeSignature? firstTime;
+  TimeSignature? runningTime; // the meter in force, for mid-score changes
 
   for (final masterBar
       in root.child('MasterBars')?.children ?? const <XmlNode>[]) {
     if (masterBar.name != 'MasterBar') continue;
     final time = masterBar.childText('Time');
-    if (time != null && firstTime == null) firstTime = _parseTime(time);
+    final barTime = time == null ? null : _parseTime(time);
+    firstTime ??= barTime;
+    // A bar whose meter differs from the running one carries a mid-score change
+    // (the writer emits <Time> on every MasterBar, so a change is a difference).
+    final TimeSignature? timeChange =
+        (barTime != null && runningTime != null && barTime != runningTime)
+            ? barTime
+            : null;
+    if (barTime != null) runningTime = barTime;
 
     // A MasterBar lists one bar id per track; pick this track's.
     final barIds = _ints(masterBar.childText('Bars'));
@@ -441,7 +450,7 @@ Score scoreFromGpif(String gpif, {int trackIndex = 0}) {
       }
       if (vibrato) vibratos.add(Vibrato(noteId, wide: vibratoWide));
     }
-    measures.add(Measure(elements));
+    measures.add(Measure(elements, timeChange: timeChange));
   }
 
   if (measures.isEmpty) {

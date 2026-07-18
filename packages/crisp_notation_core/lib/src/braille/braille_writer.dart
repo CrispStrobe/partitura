@@ -94,16 +94,17 @@ const _noteNameDots = <Step, List<int>>{
   Step.b: [2, 4, 5], // j
 };
 
-/// The value dots added to the note-name pattern: eighth adds nothing, quarter
-/// adds dot 3, half adds dot 6, whole adds dots 3 and 6. (16th/32nd/64th/128th
-/// reuse the same four cells — disambiguated by context, a follow-up.)
+/// The value dots added to the note-name pattern (Music Braille Code): eighth
+/// adds nothing, quarter adds dot 6, half adds dot 3, whole adds dots 3 and 6.
+/// (16th/32nd/64th/128th reuse the same four cells — 16th↔whole, 32nd↔half,
+/// 64th↔quarter, 128th↔eighth — disambiguated by context, a follow-up.)
 List<int> _valueDots(DurationBase base) => switch (base) {
       DurationBase.whole || DurationBase.breve || DurationBase.sixteenth => [
           3,
           6
         ],
-      DurationBase.half || DurationBase.thirtySecond => [6],
-      DurationBase.quarter || DurationBase.sixtyFourth => [3],
+      DurationBase.half || DurationBase.thirtySecond => [3],
+      DurationBase.quarter || DurationBase.sixtyFourth => [6],
       DurationBase.eighth => [],
     };
 

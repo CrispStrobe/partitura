@@ -248,4 +248,39 @@ void main() {
   test('rejects non-GPIF input', () {
     expect(() => scoreFromGpif('<Other></Other>'), throwsFormatException);
   });
+
+  test('a mid-score time-signature change round-trips', () {
+    // Regression: only the FIRST <Time> was captured, so a meter change was
+    // silently lost (the whole piece reported the initial meter).
+    final score = Score(
+      clef: Clef.treble,
+      timeSignature: TimeSignature.fourFour,
+      measures: [
+        Measure([
+          NoteElement(
+              pitches: [Pitch(Step.g, octave: 4)],
+              duration: NoteDuration(DurationBase.whole))
+        ]),
+        Measure(
+          [
+            NoteElement(
+                pitches: [Pitch(Step.a, octave: 4)],
+                duration: NoteDuration(DurationBase.half, dots: 1))
+          ],
+          timeChange: const TimeSignature(3, 4),
+        ),
+        Measure([
+          NoteElement(
+              pitches: [Pitch(Step.b, octave: 4)],
+              duration: NoteDuration(DurationBase.half, dots: 1))
+        ]),
+      ],
+    );
+    final back = scoreFromGpif(scoreToGpif(score));
+    expect(back.timeSignature, TimeSignature.fourFour, reason: 'initial meter');
+    expect(back.measures[1].timeChange, const TimeSignature(3, 4),
+        reason: 'the 3/4 change is kept on bar 2');
+    // No spurious change on the bar that stays in 3/4.
+    expect(back.measures[2].timeChange, isNull, reason: 'bar 3 stays 3/4');
+  });
 }
