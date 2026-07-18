@@ -230,5 +230,26 @@ void main() {
       final score = scoreFromMidi(Uint8List.fromList(bytes));
       expect(score.timeSignature, TimeSignature.fourFour);
     });
+
+    test('a note lasting a max-length delta rejects cleanly (no hang)', () {
+      // Regression (covfuzz): a ~40-byte file naming a single note whose
+      // note-off is a maximum 4-byte VLQ delta (0x0FFFFFFF = 268,435,455 ticks)
+      // away, under the smallest division (tpq = 1), made _buildScore emit one
+      // measure per grid unit — ~10^9 allocations, an effectively unbounded
+      // hang. The reader now rejects an out-of-range span with a FormatException.
+      final track = <int>[
+        0x00, 0x90, 60, 0x40, //                       note on C4
+        0xFF, 0xFF, 0xFF, 0x7F, 0x80, 60, 0x40, //     +268,435,455 ticks, off
+        0x00, 0xFF, 0x2F, 0x00, //                     end of track
+      ];
+      final bytes = <int>[
+        0x4D, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, 0x00, 0x01, // MThd tpq=1
+        0x4D, 0x54, 0x72, 0x6B, 0, 0, 0, track.length, ...track, //   MTrk
+      ];
+      final input = Uint8List.fromList(bytes);
+      expect(() => scoreFromMidi(input), throwsFormatException);
+      // And specifically not a raw RangeError / allocation blow-up.
+      expect(() => scoreFromMidi(input), throwsA(isNot(isA<RangeError>())));
+    });
   });
 }

@@ -156,6 +156,24 @@ Score _buildScore(List<_Note> notes, int tpq, TimeSignature ts) {
   final unitTicks = tpq / 4; // a sixteenth note, in ticks
   int toUnits(int ticks) => (ticks / unitTicks).round();
 
+  // GUARD:midibomb >>>
+  // A note whose grid position or duration is astronomically large — reachable
+  // from a *tiny* file via a max-length delta (a 4-byte VLQ is up to
+  // 268,435,455 ticks) divided by a small `division` — would make the packing
+  // loop below emit one measure per `cap` grid units, allocating and looping
+  // over tens of millions of objects (an effectively unbounded hang from a
+  // ~40-byte input). Reject such a file instead of building (or hanging on)
+  // it. The ceiling is generous: 1<<20 sixteenth-units is ~65k measures of
+  // 4/4, far beyond any real score. Bounding `toUnits(note.end)` bounds every
+  // onset, every duration, and thus the packing loop's total iterations.
+  const maxUnits = 1 << 20;
+  for (final note in notes) {
+    if (toUnits(note.end) > maxUnits) {
+      throw const FormatException('MIDI note extends beyond supported range');
+    }
+  }
+  // GUARD:midibomb <<<
+
   // Group notes that start on the same grid unit into a chord; the group's
   // duration is its longest member.
   final groupKeys = <int, List<int>>{};
