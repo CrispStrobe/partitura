@@ -12,6 +12,7 @@ library;
 import '../model/element.dart';
 import '../model/measure.dart';
 import '../model/score.dart';
+import '../theory/clef.dart';
 import '../theory/duration.dart';
 import '../theory/fraction.dart';
 import '../theory/key_signature.dart';
@@ -33,7 +34,12 @@ String scoreToAbc(
   // TimeSignature.toString() is C / C| / beats/beatUnit — exactly the ABC form.
   if (ts != null) b.writeln('M:$ts');
   b.writeln('L:${unit.numerator}/${unit.denominator}');
-  b.writeln('K:${_keyName(score.keySignature)}');
+  // The header carries the initial clef (ABC `clef=…`); omit it for treble so a
+  // plain treble tune's header is byte-unchanged. A non-treble clef was silently
+  // dropped before (the reader parses it — see _parseKey).
+  final headerClef =
+      score.clef == Clef.treble ? '' : ' clef=${_clefName(score.clef)}';
+  b.writeln('K:${_keyName(score.keySignature)}$headerClef');
 
   final chordSymbols = {for (final a in score.annotations) a.elementId: a.text};
   final dynamicsById = {for (final d in score.dynamics) d.elementId: d.level};
@@ -69,9 +75,17 @@ String scoreToAbc(
       });
     }
     // Mid-tune key / meter / unit changes, and multi-measure rests.
-    if (measure.keyChange != null) {
-      body.write('[K:${_keyName(measure.keyChange!)}]');
-      currentKey = measure.keyChange!;
+    // A mid-tune key and/or clef change share one `[K:…]` field. The key name
+    // is always written (the reader needs a tonic to anchor `clef=…`, else a
+    // bare `[K:clef=bass]` misreads "clef" as the tonic C); a clef-only change
+    // re-states the running key, which the reader treats as no key change.
+    if (measure.keyChange != null || measure.clefChange != null) {
+      final keyName = _keyName(measure.keyChange ?? currentKey);
+      final clef = measure.clefChange != null
+          ? ' clef=${_clefName(measure.clefChange!)}'
+          : '';
+      body.write('[K:$keyName$clef]');
+      if (measure.keyChange != null) currentKey = measure.keyChange!;
     }
     if (measure.timeChange != null) {
       body.write('[M:${measure.timeChange}]');
@@ -334,3 +348,19 @@ const _fifthsToKey = {
 };
 
 String _keyName(KeySignature key) => _fifthsToKey[key.fifths] ?? 'C';
+
+/// The ABC `clef=` token for [clef]. ABC — as this library's reader parses it —
+/// represents the five common clefs (treble/bass/alto/tenor/perc); the
+/// octave-displaced and rarer C/F clefs collapse to their nearest base clef on
+/// round-trip.
+String _clefName(Clef clef) => switch (clef) {
+      Clef.treble ||
+      Clef.treble8va ||
+      Clef.treble8vb ||
+      Clef.frenchViolin =>
+        'treble',
+      Clef.bass || Clef.bass8vb || Clef.subbass || Clef.baritone => 'bass',
+      Clef.alto || Clef.soprano || Clef.mezzoSoprano => 'alto',
+      Clef.tenor => 'tenor',
+      Clef.percussion => 'perc',
+    };

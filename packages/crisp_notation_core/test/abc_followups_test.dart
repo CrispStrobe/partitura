@@ -104,4 +104,63 @@ void main() {
       reason: 'the mid-piece final barline was written as plain |',
     );
   });
+
+  test('a mid-score clef change round-trips (writer emitted no clef at all)',
+      () {
+    // Regression: the ABC writer wrote key/meter changes but never a clef
+    // change, so a switch to bass mid-tune was silently lost (the reader could
+    // already parse `[K:… clef=…]`). Combine a clef+key change, then a bar that
+    // stays put, to catch a spurious change leaking onto the next bar.
+    final score = Score(
+      clef: Clef.treble,
+      keySignature: const KeySignature(0),
+      measures: [
+        Measure([_n(Step.g, _q)]),
+        Measure(
+          [_n(Step.c, _q, octave: 3)],
+          clefChange: Clef.bass,
+          keyChange: const KeySignature(2),
+        ),
+        Measure([_n(Step.d, _q, octave: 3)]),
+      ],
+    );
+    final back = scoreFromAbc(scoreToAbc(score));
+    expect(back.measures[1].clefChange, Clef.bass,
+        reason: 'bar 2 goes to bass');
+    expect(back.measures[1].keyChange, const KeySignature(2),
+        reason: 'bar 2 gains 2 sharps');
+    expect(back.measures[2].clefChange, isNull,
+        reason: 'bar 3 stays in bass — no spurious clef change');
+    expect(back.measures[2].keyChange, isNull,
+        reason: 'bar 3 keeps 2 sharps — no spurious key change');
+  });
+
+  test('a clef-only change carries no spurious key change, and treble returns',
+      () {
+    final score = Score(
+      clef: Clef.treble,
+      measures: [
+        Measure([_n(Step.g, _q)]),
+        Measure([_n(Step.c, _q, octave: 3)], clefChange: Clef.bass),
+        Measure([_n(Step.g, _q)], clefChange: Clef.treble),
+      ],
+    );
+    final back = scoreFromAbc(scoreToAbc(score));
+    expect(back.measures[1].clefChange, Clef.bass);
+    expect(back.measures[1].keyChange, isNull,
+        reason: 'the running key is re-stated, not changed');
+    expect(back.measures[2].clefChange, Clef.treble,
+        reason:
+            'a change back to treble is kept (reader now reads clef=treble)');
+  });
+
+  test('a non-treble initial clef round-trips through the ABC header', () {
+    final score = Score(
+      clef: Clef.bass,
+      measures: [
+        Measure([_n(Step.c, _q, octave: 3)]),
+      ],
+    );
+    expect(scoreFromAbc(scoreToAbc(score)).clef, Clef.bass);
+  });
 }

@@ -404,6 +404,9 @@ Fraction? _parseUnitLength(String value) {
   if (low.contains('alto')) clef = Clef.alto;
   if (low.contains('tenor')) clef = Clef.tenor;
   if (low.contains('perc')) clef = Clef.percussion;
+  // Also recognize an explicit treble (e.g. a mid-tune change *back* to treble
+  // after a bass section); without this the change would be silently dropped.
+  if (low.contains('treble')) clef = Clef.treble;
 
   // "none" and the bagpipe keys (Hp/HP) carry no standard signature.
   if (low.startsWith('none') || low.startsWith('hp')) {
@@ -618,8 +621,10 @@ class _AbcBody {
     switch (field) {
       case 'K':
         final parsed = _parseKey(value);
+        // Only a genuine key change counts: a clef-only `[K:<same key> clef=…]`
+        // re-states the running key and must not record a spurious key change.
+        if (parsed.$1 != key) _pendingKeyChange = parsed.$1;
         key = parsed.$1;
-        _pendingKeyChange = key;
         if (parsed.$2 != null) _pendingClefChange = parsed.$2;
       case 'M':
         final m = _parseMeter(value);
