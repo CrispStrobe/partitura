@@ -569,4 +569,34 @@ w:Mar- y had a lit- tle lamb whose fleece was white as snow.
       expect(back.graceNotes.map((p) => p.midiNumber), [63, 64]); // E♭4, E4
     });
   });
+
+  group('malformed input rejects cleanly (no RangeError/ArgumentError leak)',
+      () {
+    // Regression (coverage-guided fuzz): a zero denominator reached
+    // `Fraction(n, 0)`, which throws ArgumentError — a contract violation. A
+    // malformed `L:` now falls back to the default unit length; a zero
+    // denominator in a note's own length rejects with FormatException. Neither
+    // may leak an ArgumentError/RangeError.
+    test('L: with a zero denominator falls back, does not throw', () {
+      final s = scoreFromAbc('X:1\nL:1/0\nK:C\nC|\n');
+      // Parsed leniently with the default unit length (1/8).
+      expect(s.measures, isNotEmpty);
+    });
+
+    for (final body in ['C/0', 'C2/0', 'C//0']) {
+      test(
+          'note "$body" (zero denominator) throws FormatException, not '
+          'ArgumentError', () {
+        Object? err;
+        try {
+          scoreFromAbc('X:1\nL:1/8\nK:C\n$body|\n');
+        } catch (e) {
+          err = e;
+        }
+        expect(err, isA<FormatException>());
+        expect(err, isNot(isA<ArgumentError>()));
+        expect(err, isNot(isA<RangeError>()));
+      });
+    }
+  });
 }

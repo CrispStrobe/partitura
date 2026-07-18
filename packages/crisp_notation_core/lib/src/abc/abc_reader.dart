@@ -384,7 +384,14 @@ TimeSignature? _parseMeter(String value) {
 Fraction? _parseUnitLength(String value) {
   final m = RegExp(r'^(\d+)\s*/\s*(\d+)').firstMatch(value.trim());
   if (m == null) return null;
-  return Fraction(int.parse(m[1]!), int.parse(m[2]!));
+  // GUARD:abc_unitlen_zero >>>
+  // A malformed `L:` with a zero denominator (e.g. `L:1/0`) would throw an
+  // ArgumentError out of Fraction; treat it like any other unparseable value
+  // and fall back to the default unit length (lenient, contract-clean).
+  final den = int.parse(m[2]!);
+  if (den == 0) return null;
+  // GUARD:abc_unitlen_zero <<<
+  return Fraction(int.parse(m[1]!), den);
 }
 
 /// Parses a `K:` value (tonic + mode, e.g. `G`, `Em`, `Ador`, `Bb mix`) plus an
@@ -1078,6 +1085,14 @@ class _AbcBody {
       }
       den *= _pos > dStart ? int.parse(src.substring(dStart, _pos)) : 2;
     }
+    // GUARD:abc_dur_zero >>>
+    // An explicit zero denominator in a note length (e.g. `C/0`, `C2/0`) is
+    // malformed data — reject it cleanly rather than throw ArgumentError from
+    // Fraction's denominator check.
+    if (den == 0) {
+      throw const FormatException('ABC: zero denominator in note duration');
+    }
+    // GUARD:abc_dur_zero <<<
     return unit * Fraction(num, den);
   }
 
