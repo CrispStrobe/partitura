@@ -149,6 +149,17 @@ class _MscxWriter {
   late final Map<String, String> _dynamicsById = {
     for (final d in score.dynamics) d.elementId: d.level.name
   };
+  // A note's lyric syllables (verse-sorted) by note id.
+  late final Map<String, List<Lyric>> _lyricsById = () {
+    final map = <String, List<Lyric>>{};
+    for (final l in score.lyrics) {
+      (map[l.elementId] ??= []).add(l);
+    }
+    for (final list in map.values) {
+      list.sort((a, b) => a.verse.compareTo(b.verse));
+    }
+    return map;
+  }();
 
   _MscxWriter(this.score, this.out) {
     if (score.slurs.isEmpty) return;
@@ -296,6 +307,16 @@ class _MscxWriter {
           }
           out.write('<pitch>${pitch.midiNumber}</pitch>'
               '<tpc>${tpcOf(pitch)}</tpc></Note>');
+        }
+        // Lyrics are <Lyrics> children of the chord, one per verse; a syllable
+        // that continues its word is `syllabic=begin` (else `single`).
+        if (id != null) {
+          for (final l in _lyricsById[id] ?? const <Lyric>[]) {
+            final syllabic = l.hyphenToNext ? 'begin' : 'single';
+            out.write('<Lyrics><no>${l.verse - 1}</no>'
+                '<syllabic>$syllabic</syllabic>'
+                '<text>${_escape(l.text)}</text></Lyrics>');
+          }
         }
         out.writeln('</Chord>');
       }

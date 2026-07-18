@@ -177,6 +177,25 @@ class _StaffReader {
   final _slurStartIds = <String>[];
   final _slurEndIds = <String>[];
   final _dynamics = <DynamicMarking>[];
+  final _lyrics = <Lyric>[];
+
+  /// Reads a chord's `<Lyrics>` children into [_lyrics], anchored to [id].
+  /// `<no>` is the 0-based verse; `syllabic` begin/middle → hyphen to next.
+  void _collectLyrics(XmlNode chord, String? id) {
+    if (id == null) return;
+    for (final lyric in chord.childrenNamed('Lyrics')) {
+      final text = lyric.childText('text');
+      if (text == null || text.isEmpty) continue;
+      final no = int.tryParse(lyric.childText('no') ?? '0') ?? 0;
+      final syllabic = lyric.childText('syllabic');
+      _lyrics.add(Lyric(
+        id,
+        text,
+        verse: no + 1,
+        hyphenToNext: syllabic == 'begin' || syllabic == 'middle',
+      ));
+    }
+  }
 
   String _newId() => 'e${_nextId++}';
 
@@ -194,6 +213,7 @@ class _StaffReader {
           Slur(_slurStartIds[i], _slurEndIds[i]),
       ],
       dynamics: _dynamics,
+      lyrics: _lyrics,
       tempo: _tempo,
       metadata: metadata,
     );
@@ -275,6 +295,7 @@ class _StaffReader {
             pendingGraces = [];
             pendingGraceStyle = GraceStyle.acciaccatura;
             elements.add(chord);
+            _collectLyrics(node, chord.id);
             if (pendingDynamic != null && chord.id != null) {
               final level = _dynamicLevels[pendingDynamic];
               if (level != null) {
