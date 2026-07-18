@@ -215,6 +215,12 @@ void _writeMeasure(StringBuffer out, Score score, int index) {
           '</dynam>');
     }
   }
+  // A navigation mark (D.C., D.S., segno, coda, fine, …) is a measure-level
+  // <repeatMark>; @func carries the model's own name so every variant (incl.
+  // the compound al-fine/al-coda forms) round-trips exactly.
+  if (measure.navigation != null) {
+    controls.write('<repeatMark func="${measure.navigation!.name}"/>');
+  }
   if (controls.isNotEmpty) out.writeln('        $controls');
   out.writeln('      </measure>');
 }

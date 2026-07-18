@@ -47,6 +47,10 @@ const _accidAlters = {
 /// which the writer emits as the element's text).
 final _dynamicLevels = {for (final l in DynamicLevel.values) l.name: l};
 
+/// MEI `<repeatMark func="…">` value → the model navigation mark (the inverse
+/// of `NavigationMark.name`, which the writer emits as `@func`).
+final _navMarks = {for (final n in NavigationMark.values) n.name: n};
+
 /// Parses an MEI document into a single-staff [Score].
 ///
 /// Throws [FormatException] on documents this subset cannot represent.
@@ -299,6 +303,7 @@ class _MeiReader {
   Measure _readMeasure(XmlNode measureNode) {
     final pickup = measureNode.attributes['metcon'] == 'false';
     _ornaments = {};
+    NavigationMark? navigation;
     // <tupletSpan startid endid num numbase> — a tuplet expressed as a control
     // event (referencing its first/last note by id) rather than a wrapping
     // <tuplet>. Professionally-encoded MEI uses these heavily; without them the
@@ -346,6 +351,9 @@ class _MeiReader {
         if (level != null) {
           _dynamics.add(DynamicMarking(startid.replaceFirst('#', ''), level));
         }
+      }
+      if (node.name == 'repeatMark') {
+        navigation = _navMarks[node.attributes['func'] ?? ''] ?? navigation;
       }
     }
     // The `<staff>` for this reader's staff. When the `<staff>`s are `@n`-
@@ -485,6 +493,7 @@ class _MeiReader {
       pickup: pickup,
       startRepeat: measureNode.attributes['left'] == 'rptstart',
       endRepeat: measureNode.attributes['right'] == 'rptend',
+      navigation: navigation,
     );
   }
 
