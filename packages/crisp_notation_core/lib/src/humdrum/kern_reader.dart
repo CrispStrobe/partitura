@@ -199,6 +199,8 @@ class _KernReader {
 
   int _nextId = 0;
   bool _started = false;
+  // A `|:` on a barline marks the NEXT measure as a repeat start.
+  bool _pendingStartRepeat = false;
   Clef _clef = Clef.treble;
   KeySignature _key = const KeySignature(0);
   TimeSignature? _time;
@@ -244,7 +246,17 @@ class _KernReader {
       if (token == '*-') continue; // this staff's spine terminates
       if (token == '*^' || token == '*v') continue; // splits: handled by layout
       if (token.startsWith('=')) {
-        _finishMeasure();
+        // Repeat barlines: `:|` ends a repeat (on the measure just closed),
+        // `|:` starts one (on the measure about to begin). A leading start-
+        // repeat barline (no measure yet accumulated) only stages the flag.
+        final endRep = token.contains(':|');
+        if (_current.isNotEmpty || _extraVoices.any((v) => v.isNotEmpty)) {
+          _finishMeasure(endRepeat: endRep);
+        } else if (endRep && _measures.isNotEmpty) {
+          _measures[_measures.length - 1] =
+              _measures.last.copyWith(endRepeat: true);
+        }
+        _pendingStartRepeat = token.contains('|:');
       } else if (token.startsWith('*')) {
         _interpretation(token);
       } else if (token != '.') {
@@ -338,7 +350,7 @@ class _KernReader {
     }
   }
 
-  void _finishMeasure() {
+  void _finishMeasure({bool endRepeat = false}) {
     _measures.add(Measure(
       _current,
       voice2: _extraVoices[0],
@@ -348,7 +360,10 @@ class _KernReader {
       keyChange: _pendingKey,
       timeChange: _pendingTime,
       tuplets: _tupletSpansOf(_currentRatios),
+      startRepeat: _pendingStartRepeat,
+      endRepeat: endRepeat,
     ));
+    _pendingStartRepeat = false;
     _current = <MusicElement>[];
     _extraVoices = [<MusicElement>[], <MusicElement>[], <MusicElement>[]];
     _currentRatios = <({int actual, int normal})?>[];

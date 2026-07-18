@@ -104,7 +104,9 @@ String scoreToKern(Score score) {
     for (var m = 0; m < score.measures.length; m++) {
       final measure = score.measures[m];
       if (m > 0) {
-        lines.add('=\t=');
+        final bar =
+            _repeatBar(score.measures[m - 1].endRepeat, measure.startRepeat);
+        lines.add('$bar\t$bar');
         if (measure.clefChange != null) {
           final c = '*clef${_clefCodes[measure.clefChange!]}';
           lines.add('$c\t$c');
@@ -118,10 +120,13 @@ String scoreToKern(Score score) {
             lines.add('$l\t$l');
           }
         }
+      } else if (measure.startRepeat) {
+        lines.add('=!|:\t=!|:');
       }
       lines.addAll(_multiVoiceRows(measure, slurStarts, slurEnds));
     }
-    lines.add('==\t==');
+    final lastEnd = score.measures.isNotEmpty && score.measures.last.endRepeat;
+    lines.add(lastEnd ? '=:|!\t=:|!' : '==\t==');
     lines.add('*v\t*v'); // merge the sub-spines back
     lines.add('*-');
     return '${lines.join('\n')}\n';
@@ -132,7 +137,8 @@ String scoreToKern(Score score) {
   for (var m = 0; m < score.measures.length; m++) {
     final measure = score.measures[m];
     if (m > 0) {
-      lines.add('=');
+      lines.add(
+          _repeatBar(score.measures[m - 1].endRepeat, measure.startRepeat));
       if (measure.clefChange != null) {
         lines.add('*clef${_clefCodes[measure.clefChange!]}');
       }
@@ -142,6 +148,8 @@ String scoreToKern(Score score) {
       if (measure.timeChange != null) {
         lines.addAll(_meterLines(measure.timeChange!));
       }
+    } else if (measure.startRepeat) {
+      lines.add('=!|:'); // a repeat that starts at the very beginning
     }
     for (var i = 0; i < measure.elements.length; i++) {
       final element = measure.elements[i];
@@ -161,10 +169,23 @@ String scoreToKern(Score score) {
     }
   }
 
-  lines.add('==');
+  lines.add(score.measures.isNotEmpty && score.measures.last.endRepeat
+      ? '=:|!'
+      : '==');
   lines.add('*-');
   return '${lines.join('\n')}\n';
 }
+
+/// A kern barline token carrying repeat signs: `:|` ends a repeat, `|:` starts
+/// one. [endPrev] closes the measure before this barline, [startCur] opens the
+/// one after it.
+String _repeatBar(bool endPrev, bool startCur) => endPrev && startCur
+    ? '=:|!|:'
+    : endPrev
+        ? '=:|!'
+        : startCur
+            ? '=!|:'
+            : '=';
 
 /// Data rows for a two-voice [measure] as `voice1<TAB>voice2` lines, time-merged
 /// so a token appears in a sub-spine only where a note/rest starts, and a null
