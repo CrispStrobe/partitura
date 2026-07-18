@@ -1,5 +1,6 @@
-// Systematic feature round-trip regression tests across all four interchange
-// codecs (MusicXML, MEI, kern, ABC). Complements roundtrip_property_test.dart,
+// Systematic feature round-trip regression tests across five interchange
+// codecs (MusicXML, MEI, kern, ABC, MuseScore). Complements
+// roundtrip_property_test.dart,
 // which checks NOTE CONTENT over 150 random scores: this file pins the specific
 // musical MARKINGS a hand-authored score carries — meter/clef/key changes,
 // articulations, ornaments, grace notes, ties, slurs, dynamics, tuplets, chords,
@@ -10,7 +11,10 @@
 // on each feature). Each SUPPORTED cell is a regression lock. Each DROPPED cell
 // documents a known codec/format limitation with an explicit expectation, so if
 // support is ever added the test fails loudly — the message tells you to remove
-// that codec from `droppedBy`. The only gap left today:
+// that codec from `droppedBy`. Gaps today:
+//   • MuseScore  — grace, dynamics, repeats/voltas, navigation, lyrics, tremolo
+//     (the `.mscx` codec is a documented note-content subset — the format does
+//     support all of these, so these are extendable like MEI/kern were)
 //   • kern / ABC — tremolo (not part of standard kern or ABC; carried only in
 //     MusicXML via <tremolo> and MEI via @stem.mod)
 // MusicXML and MEI carry every marking here; ABC carries all but tremolo.
@@ -167,6 +171,7 @@ final _features = <_Feature>[
       ]),
     ]),
     (b) => _notes(b).first.graceNotes.length == 1,
+    droppedBy: const {'MuseScore'},
   ),
   _Feature(
     'tie to next',
@@ -195,6 +200,7 @@ final _features = <_Feature>[
       ],
     ),
     (b) => b.dynamics.any((d) => d.level == DynamicLevel.ff),
+    droppedBy: const {'MuseScore'},
   ),
   _Feature(
     'triplet',
@@ -239,7 +245,7 @@ final _features = <_Feature>[
     (b) => _notes(b).first.tremolo == 3,
     // Tremolo is not part of standard kern or ABC (this library emits it in
     // MusicXML via <tremolo> and MEI via @stem.mod only).
-    droppedBy: const {'kern', 'ABC'},
+    droppedBy: const {'kern', 'ABC', 'MuseScore'},
   ),
 
   // ---- Structural / layout markings ------------------------------------------
@@ -250,6 +256,7 @@ final _features = <_Feature>[
       Measure([_n(Step.d, d: _whole)], endRepeat: true),
     ]),
     (b) => b.measures[0].startRepeat && b.measures[1].endRepeat,
+    droppedBy: const {'MuseScore'},
   ),
   _Feature(
     'volta (1st ending)',
@@ -258,6 +265,7 @@ final _features = <_Feature>[
       Measure([_n(Step.d, d: _whole)]),
     ]),
     (b) => b.measures[0].volta == 1,
+    droppedBy: const {'MuseScore'},
   ),
   _Feature(
     'navigation (D.C.)',
@@ -266,6 +274,7 @@ final _features = <_Feature>[
       Measure([_n(Step.d, d: _whole)], navigation: NavigationMark.daCapo),
     ]),
     (b) => b.measures[1].navigation == NavigationMark.daCapo,
+    droppedBy: const {'MuseScore'},
   ),
   _Feature(
     'second voice',
@@ -284,6 +293,7 @@ final _features = <_Feature>[
       ],
     ),
     (b) => b.lyrics.length == 2,
+    droppedBy: const {'MuseScore'},
   ),
 ];
 
@@ -292,6 +302,7 @@ final _codecs = <String, Score Function(Score)>{
   'MEI': (s) => scoreFromMei(scoreToMei(s)),
   'kern': (s) => scoreFromKern(scoreToKern(s)),
   'ABC': (s) => scoreFromAbc(scoreToAbc(s)),
+  'MuseScore': (s) => scoreFromMscx(scoreToMscx(s)),
 };
 
 void main() {
