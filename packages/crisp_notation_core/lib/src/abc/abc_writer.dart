@@ -113,7 +113,10 @@ String scoreToAbc(
         if (id != null && chordSymbols.containsKey(id)) {
           body.write('"${chordSymbols[id]}"');
         }
-        if (id != null && element.graceNotes.isNotEmpty) {
+        // Grace notes live on the element itself (unlike the id-keyed chord
+        // symbols / dynamics above and below), so they must NOT be gated on the
+        // note having an id — that dropped grace notes from any id-less note.
+        if (element.graceNotes.isNotEmpty) {
           // `{/…}` is an acciaccatura (slashed), `{…}` an appoggiatura.
           final slash =
               element.graceStyle == GraceStyle.acciaccatura ? '/' : '';

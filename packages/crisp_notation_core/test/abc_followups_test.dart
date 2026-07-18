@@ -163,4 +163,37 @@ void main() {
     );
     expect(scoreFromAbc(scoreToAbc(score)).clef, Clef.bass);
   });
+
+  test('grace notes round-trip even on a note with no id', () {
+    // Regression: the ABC writer gated `{…}` grace-note output on `id != null`
+    // (copied from the id-keyed chord-symbol / dynamics branches), so an id-less
+    // note silently lost its grace notes — even though grace notes live on the
+    // element and the reader parses `{…}` positionally.
+    NoteElement graced(String? id, GraceStyle style) => NoteElement(
+          pitches: [Pitch(Step.g, octave: 4)],
+          duration: _q,
+          graceNotes: [Pitch(Step.f, octave: 4), Pitch(Step.e, octave: 4)],
+          graceStyle: style,
+          id: id,
+        );
+    for (final id in <String?>[null, 'x']) {
+      for (final style in GraceStyle.values) {
+        final score = Score(
+          clef: Clef.treble,
+          measures: [
+            Measure([
+              graced(id, style),
+              _n(Step.a, NoteDuration(DurationBase.half, dots: 1)),
+            ]),
+          ],
+        );
+        final back = scoreFromAbc(scoreToAbc(score));
+        final note =
+            back.measures.first.elements.whereType<NoteElement>().first;
+        expect(note.graceNotes, hasLength(2),
+            reason: 'grace notes kept (id=$id, $style)');
+        expect(note.graceStyle, style, reason: 'grace style kept (id=$id)');
+      }
+    }
+  });
 }
