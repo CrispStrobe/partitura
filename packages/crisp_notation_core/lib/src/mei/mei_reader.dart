@@ -513,10 +513,18 @@ class _MeiReader {
       tieToNext: _isTieStart(note.attributes['tie']),
       articulations: _articOf(note),
       ornament: _ornaments[note.attributes['xml:id']],
+      tremolo: _tremoloOf(note),
       graceNotes: graceNotes,
       graceStyle: graceStyle,
       id: id,
     );
+  }
+
+  /// The tremolo slash count from `@stem.mod="Nslash"`, or null.
+  static int? _tremoloOf(XmlNode node) {
+    final mod = node.attributes['stem.mod'];
+    if (mod == null || !mod.endsWith('slash')) return null;
+    return int.tryParse(mod.substring(0, mod.length - 'slash'.length));
   }
 
   /// Reads `<verse n="…"><syl con="…">text</syl></verse>` children of a note or
@@ -560,6 +568,7 @@ class _MeiReader {
       tieToNext: _isTieStart(chord.attributes['tie']),
       articulations: _articOf(chord),
       ornament: _ornaments[chord.attributes['xml:id']],
+      tremolo: _tremoloOf(chord),
       graceNotes: graceNotes,
       graceStyle: graceStyle,
       id: id,

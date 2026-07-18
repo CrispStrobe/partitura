@@ -8,8 +8,10 @@
 /// voices (layers), ties, pickup measures, articulations (`@artic`/`@fermata`)
 /// and ornaments (`<trill>`/`<mordent>`/`<turn>` control events). Pitch
 /// spelling round-trips via gestural accidentals (`accid.ges`). Slurs
-/// (`<slur>`), dynamics (`<dynam>`), tuplets (`<tuplet>`) and lyrics
-/// (`<verse>/<syl>`) round-trip. Pure Dart (web-safe).
+/// (`<slur>`), dynamics (`<dynam>`), tuplets (`<tuplet>`), lyrics
+/// (`<verse>/<syl>`), repeats/voltas (`@left/@right` + `<ending>`), navigation
+/// (`<repeatMark>`) and single-note tremolo (`@stem.mod`) round-trip. Pure Dart
+/// (web-safe).
 library;
 
 import '../model/element.dart';
@@ -312,16 +314,20 @@ void _writeLayer(
       }
       final tie = element.tieToNext ? ' tie="i"' : '';
       final artic = _articAttrs(element.articulations);
+      // A single-note tremolo is N slashes through the stem (MEI @stem.mod).
+      final trem =
+          element.tremolo == null ? '' : ' stem.mod="${element.tremolo}slash"';
       final anchorId = _meiIdFor(element, measureIndex, n, i);
       final xmlId = anchorId == null ? '' : ' xml:id="$anchorId"';
       final verses = element.id == null ? '' : _verses(lyricsById[element.id]);
       if (element.pitches.length == 1) {
         final head = '<note$xmlId ${_durAttrs(element.duration)} '
             '${_pitchAttrs(element.pitches.single, element.showAccidental)}'
-            '$tie$artic';
+            '$tie$artic$trem';
         out.write(verses.isEmpty ? '$head/>' : '$head>$verses</note>');
       } else {
-        out.write('<chord$xmlId ${_durAttrs(element.duration)}$tie$artic>');
+        out.write(
+            '<chord$xmlId ${_durAttrs(element.duration)}$tie$artic$trem>');
         for (final pitch in element.pitches) {
           out.write('<note ${_pitchAttrs(pitch, element.showAccidental)}/>');
         }

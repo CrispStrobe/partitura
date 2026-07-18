@@ -11,8 +11,9 @@
 // documents a known codec/format limitation with an explicit expectation, so if
 // support is ever added the test fails loudly — the message tells you to remove
 // that codec from `droppedBy`. The only gap left today:
-//   • ABC/MEI/kern — tremolo (this library does not emit it there)
-// MusicXML carries everything here; ABC carries everything except tremolo.
+//   • kern / ABC — tremolo (not part of standard kern or ABC; carried only in
+//     MusicXML via <tremolo> and MEI via @stem.mod)
+// MusicXML and MEI carry every marking here; ABC carries all but tremolo.
 // (kern voltas/navigation ride a `*>N` section label / `!!nav:` comment — a
 // crisp_notation round-trip convention, not interoperable Humdrum endings.)
 //
@@ -236,7 +237,9 @@ final _features = <_Feature>[
       Measure([_n(Step.c, d: _whole, tremolo: 3)]),
     ]),
     (b) => _notes(b).first.tremolo == 3,
-    droppedBy: const {'MEI', 'kern', 'ABC'},
+    // Tremolo is not part of standard kern or ABC (this library emits it in
+    // MusicXML via <tremolo> and MEI via @stem.mod only).
+    droppedBy: const {'kern', 'ABC'},
   ),
 
   // ---- Structural / layout markings ------------------------------------------
