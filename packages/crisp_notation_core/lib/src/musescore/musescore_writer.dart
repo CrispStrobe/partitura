@@ -11,6 +11,7 @@
 /// Dart (web-safe); the `.mscz` ZIP container is handled in `crisp_notation_cli`.
 library;
 
+import '../layout/multi_part.dart';
 import '../model/element.dart';
 import '../model/measure.dart';
 import '../model/score.dart';
@@ -111,6 +112,66 @@ String scoreToMscx(Score score, {String partName = 'Music'}) {
   _MscxWriter(score, out).write();
   out
     ..writeln('    </Staff>')
+    ..writeln('  </Score>')
+    ..writeln('</museScore>');
+  return out.toString();
+}
+
+/// A [multiPart] score → a multi-staff `.mscx`: one `<Part>` and one `<Staff>`
+/// music block per part, so an orchestral score keeps EVERY part (unlike
+/// [scoreToMscx], which writes one staff). Each staff reads back with
+/// `scoreFromMscx(mscx, staffIndex: i)`. mscx staves are independent measure
+/// lists (no cross-staff time-alignment) and this codec's slur/dynamic/lyric
+/// markup is per-`_MscxWriter` (positional/inline, not id-referenced), so no
+/// cross-part id handling is needed — each part is written self-contained.
+String multiPartToMscx(MultiPartScore multiPart, {List<String>? partNames}) {
+  final parts = multiPart.parts;
+  if (parts.isEmpty) {
+    return scoreToMscx(Score(clef: Clef.treble, measures: const []));
+  }
+  if (parts.length == 1) return scoreToMscx(parts.first);
+
+  final meta = parts.first.metadata;
+  final out = StringBuffer()
+    ..writeln('<?xml version="1.0" encoding="UTF-8"?>')
+    ..writeln('<museScore version="$_mscVersion">')
+    ..writeln('  <Score>');
+  for (final (name, value) in [
+    ('workTitle', meta.title),
+    ('composer', meta.composer),
+    ('lyricist', meta.lyricist),
+    ('copyright', meta.copyright),
+  ]) {
+    if (value != null) {
+      out.writeln('    <metaTag name="$name">${_escape(value)}</metaTag>');
+    }
+  }
+  out.writeln('    <Division>480</Division>');
+
+  String trackOf(int p) =>
+      (partNames != null && p < partNames.length ? partNames[p] : null) ??
+      parts[p].metadata.instrument ??
+      'Part ${p + 1}';
+
+  // One <Part> declaration per part …
+  for (var p = 0; p < parts.length; p++) {
+    final track = trackOf(p);
+    out
+      ..writeln('    <Part id="${p + 1}">')
+      ..writeln('      <Staff id="${p + 1}"><StaffType group="pitched">'
+          '<name>stdNormal</name></StaffType></Staff>')
+      ..writeln('      <trackName>${_escape(track)}</trackName>')
+      ..writeln('      <Instrument id=""><longName>${_escape(track)}</longName>'
+          '<instrumentId>keyboard.piano</instrumentId></Instrument>')
+      ..writeln('    </Part>');
+  }
+  // … then one <Staff> music block per part.
+  for (var p = 0; p < parts.length; p++) {
+    out.writeln('    <Staff id="${p + 1}">');
+    _MscxWriter(parts[p], out).write();
+    out.writeln('    </Staff>');
+  }
+  out
     ..writeln('  </Score>')
     ..writeln('</museScore>');
   return out.toString();

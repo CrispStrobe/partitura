@@ -315,4 +315,45 @@ void main() {
     expect(
         roundTrip(Ornament.trillSharp), Ornament.trill); // documented degrade
   });
+
+  test('multiPartToMscx keeps every part (not just the first)', () {
+    NoteElement note(Step s, int o, {String? id, Ornament? orn}) => NoteElement(
+          pitches: [Pitch(s, octave: o)],
+          duration: const NoteDuration(DurationBase.whole),
+          id: id,
+          ornament: orn,
+        );
+    final flute = Score(
+      clef: Clef.treble,
+      dynamics: [const DynamicMarking('f0', DynamicLevel.ff)],
+      measures: [
+        Measure([note(Step.g, 4, id: 'f0', orn: Ornament.trill)]),
+        Measure([note(Step.a, 4)]),
+      ],
+    );
+    final cello = Score(
+      clef: Clef.bass,
+      lyrics: const [Lyric('c0', 'la')],
+      measures: [
+        Measure([note(Step.c, 3, id: 'c0')]),
+        Measure([note(Step.d, 3)]),
+      ],
+    );
+    final mscx = multiPartToMscx(MultiPartScore([flute, cello]));
+    // No multi-part reader for mscx; read each staff back by index.
+    final p0 = scoreFromMscx(mscx, staffIndex: 0);
+    final p1 = scoreFromMscx(mscx, staffIndex: 1);
+    expect(p0.clef, Clef.treble);
+    expect(p1.clef, Clef.bass, reason: 'the second part is not dropped');
+    expect(p0.measures, hasLength(2));
+    expect(p1.measures, hasLength(2));
+    expect(
+      p0.measures
+          .expand((m) => m.elements.whereType<NoteElement>())
+          .any((n) => n.ornament == Ornament.trill),
+      isTrue,
+    );
+    expect(p0.dynamics, isNotEmpty);
+    expect(p1.lyrics, isNotEmpty);
+  });
 }
