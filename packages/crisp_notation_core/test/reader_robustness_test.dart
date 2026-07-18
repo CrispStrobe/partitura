@@ -80,6 +80,40 @@ void main() {
     });
   });
 
+  // The multi-part reader entry points (what the app actually calls on import)
+  // re-parse the whole document and add multi-staff logic — one <staffDef>/
+  // <staff>/**kern-spine per part — on top of the single-part path. Seed them
+  // from genuine TWO-part documents so a malformed multi-staff structure hits
+  // the multi-part-specific code, not just the shared parser.
+  final multiPartReaders = <String,
+      (String Function(MultiPartScore), MultiPartScore Function(String))>{
+    'multiPartScoreFromMei': (multiPartToMei, multiPartScoreFromMei),
+    'multiPartScoreFromKern': (multiPartToKern, multiPartScoreFromKern),
+    'multiPartScoreFromMscx': (multiPartToMscx, multiPartScoreFromMscx),
+    'multiPartScoreFromMusicXml': (
+      multiPartToMusicXml,
+      multiPartScoreFromMusicXml
+    ),
+  };
+  multiPartReaders.forEach((name, codec) {
+    test('$name rejects malformed input cleanly ($seeds mutations)', () {
+      final rng = Random(5);
+      for (var i = 0; i < seeds; i++) {
+        final doc = codec.$1(MultiPartScore([_sample(rng), _sample(rng)]));
+        final mutated = _mutate(doc, rng);
+        try {
+          codec.$2(mutated); // parsed leniently — acceptable
+        } on FormatException {
+          // clean rejection — the contract
+        } catch (e) {
+          fail('$name crashed on malformed input with ${e.runtimeType} '
+              '(should be a FormatException).\nInput: '
+              '${mutated.replaceAll('\n', r'\n')}');
+        }
+      }
+    });
+  });
+
   // Binary readers: a corrupt byte stream must also reject cleanly — and must
   // never hang. (A garbage time-signature meta once spun scoreFromMidi's
   // note-packing loop forever; if that regresses this test times out.)
