@@ -383,3 +383,65 @@ List<Cadence> _cadences(List<HarmonicSegment> segments) {
   }
   return out;
 }
+
+// ---- form detection ---------------------------------------------------------
+
+/// One section of a piece's form: a run of measures sharing melodic material,
+/// with a repeat-revealing [label] (`A`, `B`, `A` again when the tune returns).
+class FormSection {
+  /// Creates a form section spanning [startMeasure]..[endMeasure] (inclusive).
+  const FormSection(this.startMeasure, this.endMeasure, this.label);
+
+  /// First measure index of the section.
+  final int startMeasure;
+
+  /// Last measure index (inclusive).
+  final int endMeasure;
+
+  /// The section letter — same letter ⇒ the same melodic material.
+  final String label;
+}
+
+/// A transpose-invariant fingerprint of a measure's top-voice melody + rhythm,
+/// so a phrase that returns (at any pitch) matches its earlier appearance.
+String _measureFingerprint(Measure m) {
+  final tokens = <String>[];
+  int? first;
+  for (final e in m.elements) {
+    final f = e.duration.toFraction();
+    if (e is NoteElement && e.pitches.isNotEmpty) {
+      final top =
+          e.pitches.map((p) => p.midiNumber).reduce((a, b) => a > b ? a : b);
+      first ??= top;
+      tokens.add('${top - first}:${f.numerator}/${f.denominator}');
+    } else {
+      tokens.add('R:${f.numerator}/${f.denominator}');
+    }
+  }
+  return tokens.join(',');
+}
+
+/// Detect a piece's form by melodic repetition: each measure is fingerprinted
+/// (transpose-invariant), given a letter (`A`, `B`, … in first-appearance
+/// order), and consecutive equal measures are merged into one [FormSection].
+/// Same letter ⇒ the same tune came back. Bar-level (phrase grouping is a
+/// future refinement); an empty score yields no sections.
+List<FormSection> detectForm(Score score) {
+  final letters = <String, String>{};
+  var next = 0;
+  final out = <FormSection>[];
+  for (var i = 0; i < score.measures.length; i++) {
+    final fp = _measureFingerprint(score.measures[i]);
+    final letter = letters.putIfAbsent(fp, () {
+      final l = String.fromCharCode(65 + (next < 26 ? next : 25));
+      next++;
+      return l;
+    });
+    if (out.isNotEmpty && out.last.label == letter) {
+      out[out.length - 1] = FormSection(out.last.startMeasure, i, letter);
+    } else {
+      out.add(FormSection(i, i, letter));
+    }
+  }
+  return out;
+}

@@ -14,6 +14,18 @@ Pitch note(String s) {
 const _whole = NoteDuration(DurationBase.whole);
 const _quarter = NoteDuration(DurationBase.quarter);
 
+/// A score of a single-note melody per measure (quarters).
+Score melody(List<List<String>> bars) => Score(
+      clef: Clef.treble,
+      measures: [
+        for (final bar in bars)
+          Measure([
+            for (final n in bar)
+              NoteElement(pitches: [note(n)], duration: _quarter),
+          ]),
+      ],
+    );
+
 /// A score of one block chord per measure.
 Score chords(List<List<String>> perMeasure) => Score(
       clef: Clef.treble,
@@ -162,6 +174,40 @@ void main() {
       expect(a.segments.length, 2);
       expect(a.segments[0].roman!.symbol, 'I');
       expect(a.segments[1].roman!.symbol, 'V');
+    });
+  });
+
+  group('detectForm', () {
+    test('reads A–B–A from repeated bars', () {
+      final f = detectForm(melody([
+        ['c4', 'e4', 'g4', 'c5'],
+        ['g4', 'f4', 'e4', 'd4'],
+        ['c4', 'e4', 'g4', 'c5'],
+      ]));
+      expect(f.map((s) => s.label).toList(), ['A', 'B', 'A']);
+      expect(f[2].startMeasure, 2);
+    });
+
+    test('is transpose-invariant (a phrase returning higher is still A)', () {
+      final f = detectForm(melody([
+        ['c4', 'e4', 'g4', 'c5'], // A
+        ['g4', 'f4', 'e4', 'd4'], // B
+        ['d4', 'f#4', 'a4', 'd5'], // A up a step — same contour + rhythm
+      ]));
+      expect(f.map((s) => s.label).toList(), ['A', 'B', 'A']);
+    });
+
+    test('merges consecutive identical bars into one section', () {
+      final f = detectForm(melody([
+        ['c4', 'e4', 'g4', 'c5'],
+        ['c4', 'e4', 'g4', 'c5'],
+        ['g4', 'f4', 'e4', 'd4'],
+      ]));
+      expect(f.length, 2);
+      expect(f[0].label, 'A');
+      expect(f[0].startMeasure, 0);
+      expect(f[0].endMeasure, 1);
+      expect(f[1].label, 'B');
     });
   });
 }
