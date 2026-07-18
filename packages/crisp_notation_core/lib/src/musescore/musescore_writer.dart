@@ -274,7 +274,8 @@ class _MscxWriter {
         }
         out.write('          <Chord>${_durationXml(element.duration)}'
             '${_articXml(element.articulations)}'
-            '${_ornamentXml(element.ornament)}');
+            '${_ornamentXml(element.ornament)}'
+            '${_tremoloXml(element.tremolo)}');
         final id = element.id;
         if (id != null && _slurNext.containsKey(id)) {
           out.write('<Spanner type="Slur"><Slur/><next><location>'
@@ -303,6 +304,12 @@ class _MscxWriter {
       }
     }
   }
+
+  /// Single-note tremolo as `<Tremolo><subtype>rN</subtype></Tremolo>`: N slashes
+  /// map to r8/r16/r32/… (r-value 8·2^(N-1)).
+  static String _tremoloXml(int? tremolo) => tremolo == null || tremolo < 1
+      ? ''
+      : '<Tremolo><subtype>r${8 << (tremolo - 1)}</subtype></Tremolo>';
 
   static String _durationXml(NoteDuration duration) {
     final name = _durationNames[duration.base]!;

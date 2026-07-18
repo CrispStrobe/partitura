@@ -383,11 +383,27 @@ class _StaffReader {
       tieToNext: tie,
       articulations: _articOf(chord),
       ornament: _ornamentOf(chord),
+      tremolo: _tremoloOf(chord),
       notehead: notehead,
       graceNotes: graceNotes,
       graceStyle: graceStyle,
       id: _newId(),
     );
+  }
+
+  /// The tremolo slash count from `<Tremolo><subtype>rN</subtype>` (r8→1,
+  /// r16→2, r32→3…), or null.
+  static int? _tremoloOf(XmlNode chord) {
+    final sub = chord.child('Tremolo')?.childText('subtype');
+    if (sub == null || !sub.startsWith('r')) return null;
+    final r = int.tryParse(sub.substring(1));
+    if (r == null || r < 8) return null;
+    var n = 0, v = r;
+    while (v > 8) {
+      v ~/= 2;
+      n++;
+    }
+    return n + 1; // r8→1, r16→2, …
   }
 
   static final _dynamicLevels = {

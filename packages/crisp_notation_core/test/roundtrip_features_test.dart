@@ -243,7 +243,7 @@ final _features = <_Feature>[
     (b) => _notes(b).first.tremolo == 3,
     // Tremolo is not part of standard kern or ABC (this library emits it in
     // MusicXML via <tremolo> and MEI via @stem.mod only).
-    droppedBy: const {'kern', 'ABC', 'MuseScore'},
+    droppedBy: const {'kern', 'ABC'},
   ),
 
   // ---- Structural / layout markings ------------------------------------------
