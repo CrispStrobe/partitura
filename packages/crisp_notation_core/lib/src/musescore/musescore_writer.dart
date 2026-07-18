@@ -191,6 +191,9 @@ class _MscxWriter {
     final len =
         measure.pickup ? ' len="${_fraction(measure.totalDuration)}"' : '';
     out.writeln('      <Measure$len>');
+    // Repeats are Measure-level flags in mscx.
+    if (measure.startRepeat) out.writeln('        <startRepeat/>');
+    if (measure.endRepeat) out.writeln('        <endRepeat>2</endRepeat>');
     out.writeln('        <voice>');
 
     // Leading signatures (measure 0) and any mid-score changes open the voice.

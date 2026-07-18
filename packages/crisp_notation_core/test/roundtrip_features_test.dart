@@ -255,7 +255,6 @@ final _features = <_Feature>[
       Measure([_n(Step.d, d: _whole)], endRepeat: true),
     ]),
     (b) => b.measures[0].startRepeat && b.measures[1].endRepeat,
-    droppedBy: const {'MuseScore'},
   ),
   _Feature(
     'volta (1st ending)',

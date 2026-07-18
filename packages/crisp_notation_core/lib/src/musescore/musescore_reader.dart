@@ -315,6 +315,8 @@ class _StaffReader {
       timeChange: timeChange,
       tuplets: tuplets,
       pickup: pickup,
+      startRepeat: measureNode.child('startRepeat') != null,
+      endRepeat: measureNode.child('endRepeat') != null,
     ));
   }
 
