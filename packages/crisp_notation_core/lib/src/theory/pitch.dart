@@ -103,6 +103,18 @@ class Pitch {
     );
   }
 
+  /// Spells a MIDI note number as a [Pitch] using sharps (the common default;
+  /// C4 == 60, A4 == 69). The inverse of [midiNumber] for natural/sharp keys.
+  static Pitch fromMidi(int midi) {
+    const table = [
+      (Step.c, 0), (Step.c, 1), (Step.d, 0), (Step.d, 1), //
+      (Step.e, 0), (Step.f, 0), (Step.f, 1), (Step.g, 0),
+      (Step.g, 1), (Step.a, 0), (Step.a, 1), (Step.b, 0),
+    ];
+    final (step, alter) = table[midi % 12];
+    return Pitch(step, alter: alter, octave: midi ~/ 12 - 1);
+  }
+
   /// MIDI note number; C4 == 60, A4 == 69. A microtonal accidental does not
   /// change the (integer) MIDI number — see [centsOffset] for its tuning.
   int get midiNumber => (octave + 1) * 12 + step.semitonesFromC + alter;

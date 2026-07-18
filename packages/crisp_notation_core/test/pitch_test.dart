@@ -2,6 +2,20 @@ import 'package:crisp_notation_core/crisp_notation_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('Pitch.fromMidi', () {
+    test('round-trips natural + sharp keys through midiNumber', () {
+      for (final m in [60, 62, 64, 65, 67, 69, 71, 66, 61, 21, 108]) {
+        expect(Pitch.fromMidi(m).midiNumber, m);
+      }
+    });
+
+    test('spells with sharps', () {
+      expect(Pitch.fromMidi(60), const Pitch(Step.c)); // C4
+      expect(Pitch.fromMidi(61), const Pitch(Step.c, alter: 1)); // C#4
+      expect(Pitch.fromMidi(70), const Pitch(Step.a, alter: 1)); // A#4
+    });
+  });
+
   group('Pitch.midiNumber', () {
     test('middle C is 60, concert A is 69', () {
       expect(const Pitch(Step.c).midiNumber, 60);
