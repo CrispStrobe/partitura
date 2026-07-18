@@ -176,6 +176,7 @@ class _StaffReader {
   // marks a start, `<prev>` an end. Paired positionally (non-nested slurs).
   final _slurStartIds = <String>[];
   final _slurEndIds = <String>[];
+  final _dynamics = <DynamicMarking>[];
 
   String _newId() => 'e${_nextId++}';
 
@@ -192,6 +193,7 @@ class _StaffReader {
         for (var i = 0; i < _slurStartIds.length && i < _slurEndIds.length; i++)
           Slur(_slurStartIds[i], _slurEndIds[i]),
       ],
+      dynamics: _dynamics,
       tempo: _tempo,
       metadata: metadata,
     );
@@ -225,6 +227,8 @@ class _StaffReader {
       // Grace <Chord>s accumulate until the next principal chord adopts them.
       var pendingGraces = <Pitch>[];
       var pendingGraceStyle = GraceStyle.acciaccatura;
+      // A <Dynamic> applies to the next principal chord.
+      String? pendingDynamic;
       for (final node in voices[v].children) {
         switch (node.name) {
           case 'Clef':
@@ -271,6 +275,13 @@ class _StaffReader {
             pendingGraces = [];
             pendingGraceStyle = GraceStyle.acciaccatura;
             elements.add(chord);
+            if (pendingDynamic != null && chord.id != null) {
+              final level = _dynamicLevels[pendingDynamic];
+              if (level != null) {
+                _dynamics.add(DynamicMarking(chord.id!, level));
+              }
+              pendingDynamic = null;
+            }
             // Slurs are tracked in every voice (each <voice> is a contiguous
             // block, so positional pairing stays correct per voice) — a slur in
             // voice 2/3/4 used to be ignored and dropped.
@@ -297,8 +308,10 @@ class _StaffReader {
                   actual: tupActual, normal: tupNormal));
             }
             tupStart = null;
+          case 'Dynamic':
+            pendingDynamic = node.childText('subtype');
           default:
-            break; // Beam, Spanner, StaffText, Dynamic, …: ignored
+            break; // Beam, Spanner, StaffText, …: ignored
         }
       }
       byVoice.add(elements);
@@ -376,6 +389,10 @@ class _StaffReader {
       id: _newId(),
     );
   }
+
+  static final _dynamicLevels = {
+    for (final l in DynamicLevel.values) l.name: l
+  };
 
   static const _ornamentMap = {
     'ornamentTrill': Ornament.trill,

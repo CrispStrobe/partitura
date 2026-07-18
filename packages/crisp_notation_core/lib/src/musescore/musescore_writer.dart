@@ -145,6 +145,10 @@ class _MscxWriter {
   // between their onsets.
   final Map<String, String> _slurNext = {};
   final Map<String, String> _slurPrev = {};
+  // A note's dynamic word (pp…fff, sf…) by note id.
+  late final Map<String, String> _dynamicsById = {
+    for (final d in score.dynamics) d.elementId: d.level.name
+  };
 
   _MscxWriter(this.score, this.out) {
     if (score.slurs.isEmpty) return;
@@ -261,6 +265,12 @@ class _MscxWriter {
                 '<Note><pitch>${pitch.midiNumber}</pitch>'
                 '<tpc>${tpcOf(pitch)}</tpc></Note></Chord>');
           }
+        }
+        // A dynamic is a voice element placed just before its note.
+        final did = element.id;
+        if (did != null && _dynamicsById.containsKey(did)) {
+          out.writeln('          <Dynamic><subtype>${_dynamicsById[did]}'
+              '</subtype></Dynamic>');
         }
         out.write('          <Chord>${_durationXml(element.duration)}'
             '${_articXml(element.articulations)}'
