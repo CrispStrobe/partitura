@@ -254,12 +254,17 @@ Score _buildScore(List<_Note> notes, int tpq, TimeSignature ts) {
   return Score(clef: Clef.treble, timeSignature: ts, measures: measures);
 }
 
-/// Decomposes [units] sixteenth-note units into a descending list of
-/// power-of-two note-value sizes (16 = whole … 1 = sixteenth).
+/// Decomposes [units] sixteenth-note units into a descending list of writable
+/// note-value sizes, each a single note. Includes dotted (·1.5) and
+/// double-dotted (·1.75) values, largest first, so a 6-unit span reads as one
+/// dotted quarter rather than a quarter tied to an eighth. Any leftover that
+/// isn't a single value ties on (e.g. 5 → quarter + sixteenth).
 List<int> _decomposeUnits(int units) {
+  // whole·(1|1.5|1.75), half·(…), quarter·(…), eighth·(1|1.5), sixteenth.
+  const sizes = [24, 16, 14, 12, 8, 7, 6, 4, 3, 2, 1];
   final out = <int>[];
   var remaining = units;
-  for (final size in const [16, 8, 4, 2, 1]) {
+  for (final size in sizes) {
     while (remaining >= size) {
       out.add(size);
       remaining -= size;
@@ -269,9 +274,15 @@ List<int> _decomposeUnits(int units) {
 }
 
 NoteDuration _durationOfUnits(int units) => switch (units) {
+      24 => const NoteDuration(DurationBase.whole, dots: 1),
       16 => NoteDuration.whole,
+      14 => const NoteDuration(DurationBase.half, dots: 2),
+      12 => const NoteDuration(DurationBase.half, dots: 1),
       8 => NoteDuration.half,
+      7 => const NoteDuration(DurationBase.quarter, dots: 2),
+      6 => const NoteDuration(DurationBase.quarter, dots: 1),
       4 => NoteDuration.quarter,
+      3 => const NoteDuration(DurationBase.eighth, dots: 1),
       2 => NoteDuration.eighth,
       _ => NoteDuration.sixteenth,
     };

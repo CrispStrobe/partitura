@@ -243,7 +243,8 @@ void main() {
         0x00, 0xFF, 0x2F, 0x00, //                     end of track
       ];
       final bytes = <int>[
-        0x4D, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, 0x00, 0x01, // MThd tpq=1
+        0x4D, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, 0x00,
+        0x01, // MThd tpq=1
         0x4D, 0x54, 0x72, 0x6B, 0, 0, 0, track.length, ...track, //   MTrk
       ];
       final input = Uint8List.fromList(bytes);
@@ -251,5 +252,30 @@ void main() {
       // And specifically not a raw RangeError / allocation blow-up.
       expect(() => scoreFromMidi(input), throwsA(isNot(isA<RangeError>())));
     });
+  });
+
+  group('dotted durations round-trip (a whole note-value, not a tied split)',
+      () {
+    List<String> durs(Score s) => s.measures
+        .expand((m) => m.elements)
+        .map((e) => '${e.duration.base.name}${'.' * e.duration.dots}')
+        .toList();
+    // A dotted span used to import as a power-of-two note tied to its
+    // remainder (dotted quarter → quarter + eighth); the tick→value decoder now
+    // recognises dotted (·1.5) and double-dotted (·1.75) values directly.
+    for (final notes in const [
+      'c4:q. d4:e', // dotted quarter
+      'c4:h. d4:q', // dotted half
+      'c4:e. d4:s c4:q', // dotted eighth
+      'c4:q.. d4:s', // double-dotted quarter
+    ]) {
+      test('"$notes"', () {
+        final src =
+            Score.simple(notes: notes, timeSignature: TimeSignature.fourFour);
+        final back = scoreFromMidi(scoreToMidi(src));
+        expect(durs(back), durs(src),
+            reason: 'a dotted value must not split into tied notes');
+      });
+    }
   });
 }
