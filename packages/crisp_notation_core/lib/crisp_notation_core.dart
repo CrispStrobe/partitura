@@ -58,6 +58,7 @@ export 'src/svg/svg_export.dart';
 export 'src/tablature/ascii_tab_reader.dart';
 export 'src/tablature/chord_diagram.dart';
 export 'src/tablature/chord_presets.dart';
+export 'src/theory/analysis.dart';
 export 'src/theory/chord_analysis.dart';
 export 'src/theory/clef.dart';
 export 'src/theory/duration.dart';
