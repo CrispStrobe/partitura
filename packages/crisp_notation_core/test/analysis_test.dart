@@ -137,6 +137,19 @@ void main() {
       expect(a.segments.first.roman!.symbol, 'I');
     });
 
+    test('carries the note element ids of each segment', () {
+      final a = analyze(Score(clef: Clef.treble, measures: [
+        Measure([
+          NoteElement(
+            pitches: [note('c4'), note('e4'), note('g4')],
+            duration: _whole,
+            id: 'chord1',
+          ),
+        ]),
+      ]));
+      expect(a.segments.single.elementIds, contains('chord1'));
+    });
+
     test('merges a repeated chord into one segment', () {
       final a = analyze(
           chords([

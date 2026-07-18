@@ -54,6 +54,7 @@ class HarmonicSegment {
   const HarmonicSegment({
     required this.measureIndex,
     required this.pitches,
+    this.elementIds = const [],
     this.chord,
     this.roman,
     this.function,
@@ -65,6 +66,10 @@ class HarmonicSegment {
 
   /// The sounding sonority (chord tones and any non-chord tones).
   final List<Pitch> pitches;
+
+  /// Ids of the [NoteElement]s that contribute to this segment (those that set
+  /// an id). Lets a caller colour or highlight the notes belonging to a chord.
+  final List<String> elementIds;
 
   /// The chord read from these [pitches], or null if none was recognisable.
   final ChordAnalysis? chord;
@@ -168,7 +173,8 @@ ScoreAnalysis analyze(Score score, {Key? key}) {
     }
     // Melodic bar (an arpeggio, a broken chord): read one implied chord for it.
     if (!anyChord && slices.isNotEmpty) {
-      final distinct = _dedupe(slices.expand((s) => s).toList());
+      final distinct = _dedupe(slices.expand((s) => s.pitches).toList());
+      final ids = [for (final s in slices) ...s.ids];
       final implied = _identify(distinct);
       if (implied != null) {
         final rn = romanNumeralFor(implied.chord, k);
@@ -177,6 +183,7 @@ ScoreAnalysis analyze(Score score, {Key? key}) {
           ..add(HarmonicSegment(
             measureIndex: mi,
             pitches: distinct,
+            elementIds: ids,
             chord: implied.chord,
             roman: rn,
             function: functionOf(rn),
@@ -198,22 +205,30 @@ List<List<MusicElement>> _voicesOf(Measure m) =>
     [m.elements, m.voice2, m.voice3, m.voice4];
 
 class _Event {
-  _Event(this.start, this.end, this.pitches);
+  _Event(this.start, this.end, this.pitches, this.id);
   final double start;
   final double end;
   final List<Pitch> pitches;
+  final String? id;
 }
 
-/// The vertical sonorities of one measure: each entry is the pitches sounding
-/// over one onset-to-onset slice (in whole-note time), across all voices.
-List<List<Pitch>> _slicesOf(Measure m) {
+/// One onset-to-onset sonority: the sounding pitches and the ids of the note
+/// elements that produced them.
+class _Slice {
+  _Slice(this.pitches, this.ids);
+  final List<Pitch> pitches;
+  final List<String> ids;
+}
+
+/// The vertical sonorities of one measure (in whole-note time), across voices.
+List<_Slice> _slicesOf(Measure m) {
   final events = <_Event>[];
   var maxEnd = 0.0;
   for (final voice in _voicesOf(m)) {
     var t = 0.0;
     for (final e in voice) {
       final len = e.duration.toFraction().toDouble();
-      if (e is NoteElement) events.add(_Event(t, t + len, e.pitches));
+      if (e is NoteElement) events.add(_Event(t, t + len, e.pitches, e.id));
       t += len;
     }
     if (t > maxEnd) maxEnd = t;
@@ -222,24 +237,36 @@ List<List<Pitch>> _slicesOf(Measure m) {
   const eps = 1e-6;
   final bounds = <double>{for (final e in events) e.start, maxEnd}.toList()
     ..sort();
-  final slices = <List<Pitch>>[];
+  final slices = <_Slice>[];
   for (var i = 0; i < bounds.length - 1; i++) {
     final b = bounds[i];
     final pitches = <Pitch>[];
+    final ids = <String>[];
     for (final e in events) {
-      if (e.start <= b + eps && e.end > b + eps) pitches.addAll(e.pitches);
+      if (e.start <= b + eps && e.end > b + eps) {
+        pitches.addAll(e.pitches);
+        if (e.id != null) ids.add(e.id!);
+      }
     }
-    if (pitches.isNotEmpty) slices.add(pitches);
+    if (pitches.isNotEmpty) slices.add(_Slice(pitches, ids));
   }
   return slices;
 }
 
-HarmonicSegment _segmentFor(int mi, List<Pitch> pitches, Key key) {
+HarmonicSegment _segmentFor(int mi, _Slice slice, Key key) {
+  final pitches = slice.pitches;
   final res = _identify(pitches);
-  if (res == null) return HarmonicSegment(measureIndex: mi, pitches: pitches);
+  if (res == null) {
+    return HarmonicSegment(
+      measureIndex: mi,
+      pitches: pitches,
+      elementIds: slice.ids,
+    );
+  }
   final rn = romanNumeralFor(res.chord, key);
   return HarmonicSegment(
     measureIndex: mi,
+    elementIds: slice.ids,
     pitches: pitches,
     chord: res.chord,
     roman: rn,
@@ -312,6 +339,7 @@ List<HarmonicSegment> _merge(List<HarmonicSegment> raw) {
       out.add(HarmonicSegment(
         measureIndex: prev.measureIndex,
         pitches: [...prev.pitches, ...seg.pitches],
+        elementIds: [...prev.elementIds, ...seg.elementIds],
         chord: prev.chord,
         roman: prev.roman,
         function: prev.function,
