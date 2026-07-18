@@ -43,6 +43,10 @@ const _accidAlters = {
   'fff': -2,
 };
 
+/// MEI `<dynam>` text → the model level (the inverse of `DynamicLevel.name`,
+/// which the writer emits as the element's text).
+final _dynamicLevels = {for (final l in DynamicLevel.values) l.name: l};
+
 /// Parses an MEI document into a single-staff [Score].
 ///
 /// Throws [FormatException] on documents this subset cannot represent.
@@ -256,6 +260,10 @@ class _MeiReader {
           Slur(_xmlIdToId[s.startId] ?? s.startId,
               _xmlIdToId[s.endId] ?? s.endId),
       ],
+      dynamics: [
+        for (final d in _dynamics)
+          DynamicMarking(_xmlIdToId[d.elementId] ?? d.elementId, d.level),
+      ],
       tempo: tempo,
       metadata: ScoreMetadata(
         title: headMeta.title,
@@ -271,6 +279,8 @@ class _MeiReader {
   var _ornaments = <String, Ornament>{};
   // Slur control events (by source xml:id) accumulated across the document.
   final _slurs = <Slur>[];
+  // Dynamic control events (`<dynam>`, by source xml:id) across the document.
+  final _dynamics = <DynamicMarking>[];
   // Source xml:id → the regenerated element id, so slurs can be re-anchored.
   final _xmlIdToId = <String, String>{};
 
@@ -325,6 +335,12 @@ class _MeiReader {
         if (startid != null && endid != null) {
           _slurs.add(
               Slur(startid.replaceFirst('#', ''), endid.replaceFirst('#', '')));
+        }
+      }
+      if (node.name == 'dynam' && startid != null) {
+        final level = _dynamicLevels[node.text.trim()];
+        if (level != null) {
+          _dynamics.add(DynamicMarking(startid.replaceFirst('#', ''), level));
         }
       }
     }

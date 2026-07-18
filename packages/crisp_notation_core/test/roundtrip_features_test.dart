@@ -194,7 +194,7 @@ final _features = <_Feature>[
       ],
     ),
     (b) => b.dynamics.any((d) => d.level == DynamicLevel.ff),
-    droppedBy: const {'MEI', 'kern'},
+    droppedBy: const {'kern'},
   ),
   _Feature(
     'triplet',

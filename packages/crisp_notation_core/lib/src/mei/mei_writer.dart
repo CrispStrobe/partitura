@@ -8,8 +8,8 @@
 /// voices (layers), ties, pickup measures, articulations (`@artic`/`@fermata`)
 /// and ornaments (`<trill>`/`<mordent>`/`<turn>` control events). Pitch
 /// spelling round-trips via gestural accidentals (`accid.ges`). Slurs
-/// (`<slur>`) and tuplets (`<tuplet>`) round-trip; lyrics and dynamics are out
-/// of scope. Pure Dart (web-safe).
+/// (`<slur>`), dynamics (`<dynam>`) and tuplets (`<tuplet>`) round-trip; lyrics
+/// are out of scope. Pure Dart (web-safe).
 library;
 
 import '../model/element.dart';
@@ -198,6 +198,14 @@ void _writeMeasure(StringBuffer out, Score score, int index) {
     if (measureIds.contains(slur.startId)) {
       controls
           .write('<slur startid="#${slur.startId}" endid="#${slur.endId}"/>');
+    }
+  }
+  // Dynamics are `<dynam>` control events anchored to their note by id, the
+  // dynamic word (pp…fff, sf…) carried as the element's text.
+  for (final dyn in score.dynamics) {
+    if (measureIds.contains(dyn.elementId)) {
+      controls.write('<dynam startid="#${dyn.elementId}">${dyn.level.name}'
+          '</dynam>');
     }
   }
   if (controls.isNotEmpty) out.writeln('        $controls');
