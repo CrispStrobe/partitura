@@ -222,6 +222,9 @@ class _StaffReader {
     for (var v = 0; v < voices.length; v++) {
       final elements = <MusicElement>[];
       int? tupStart, tupActual, tupNormal;
+      // Grace <Chord>s accumulate until the next principal chord adopts them.
+      var pendingGraces = <Pitch>[];
+      var pendingGraceStyle = GraceStyle.acciaccatura;
       for (final node in voices[v].children) {
         switch (node.name) {
           case 'Clef':
@@ -256,7 +259,17 @@ class _StaffReader {
               _time = time; // advance the running meter (mirrors _clef)
             }
           case 'Chord':
-            final chord = _chordOf(node);
+            final graceStyle = _graceStyleOf(node);
+            if (graceStyle != null) {
+              // A grace chord: hold its pitches for the next principal note.
+              pendingGraces.addAll(_chordOf(node).pitches);
+              pendingGraceStyle = graceStyle;
+              break;
+            }
+            final chord = _chordOf(node,
+                graceNotes: pendingGraces, graceStyle: pendingGraceStyle);
+            pendingGraces = [];
+            pendingGraceStyle = GraceStyle.acciaccatura;
             elements.add(chord);
             // Slurs are tracked in every voice (each <voice> is a contiguous
             // block, so positional pairing stays correct per voice) — a slur in
@@ -305,7 +318,22 @@ class _StaffReader {
     ));
   }
 
-  NoteElement _chordOf(XmlNode chord) {
+  /// The grace style of a `<Chord>` (`<acciaccatura/>`/`<appoggiatura/>` or the
+  /// `<grace…>` family), or null if it is a principal (non-grace) chord.
+  static GraceStyle? _graceStyleOf(XmlNode chord) {
+    for (final child in chord.children) {
+      final n = child.name;
+      if (n == 'appoggiatura' || n.startsWith('grace') && !n.contains('acc')) {
+        return GraceStyle.appoggiatura;
+      }
+      if (n == 'acciaccatura') return GraceStyle.acciaccatura;
+    }
+    return null;
+  }
+
+  NoteElement _chordOf(XmlNode chord,
+      {List<Pitch> graceNotes = const [],
+      GraceStyle graceStyle = GraceStyle.acciaccatura}) {
     final duration = _durationOf(chord);
     var tie = false;
     final pitches = <Pitch>[];
@@ -341,6 +369,8 @@ class _StaffReader {
       articulations: _articOf(chord),
       ornament: _ornamentOf(chord),
       notehead: notehead,
+      graceNotes: graceNotes,
+      graceStyle: graceStyle,
       id: _newId(),
     );
   }

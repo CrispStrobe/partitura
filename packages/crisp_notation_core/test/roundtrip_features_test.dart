@@ -171,7 +171,6 @@ final _features = <_Feature>[
       ]),
     ]),
     (b) => _notes(b).first.graceNotes.length == 1,
-    droppedBy: const {'MuseScore'},
   ),
   _Feature(
     'tie to next',

@@ -246,6 +246,19 @@ class _MscxWriter {
       if (element is RestElement) {
         out.writeln('          <Rest>${_durationXml(element.duration)}</Rest>');
       } else if (element is NoteElement) {
+        // Grace notes are separate <Chord>s (tagged acciaccatura/appoggiatura)
+        // that precede their principal chord.
+        if (element.graceNotes.isNotEmpty) {
+          final tag = element.graceStyle == GraceStyle.appoggiatura
+              ? 'appoggiatura'
+              : 'acciaccatura';
+          for (final pitch in element.graceNotes) {
+            out.writeln('          <Chord><$tag/>'
+                '<durationType>eighth</durationType>'
+                '<Note><pitch>${pitch.midiNumber}</pitch>'
+                '<tpc>${tpcOf(pitch)}</tpc></Note></Chord>');
+          }
+        }
         out.write('          <Chord>${_durationXml(element.duration)}'
             '${_articXml(element.articulations)}'
             '${_ornamentXml(element.ornament)}');
