@@ -35,12 +35,8 @@ String scoreToAbc(
   b.writeln('L:${unit.numerator}/${unit.denominator}');
   b.writeln('K:${_keyName(score.keySignature)}');
 
-  final chordSymbols = {
-    for (final a in score.annotations) a.elementId: a.text,
-  };
-  final dynamicsById = {
-    for (final d in score.dynamics) d.elementId: d.level,
-  };
+  final chordSymbols = {for (final a in score.annotations) a.elementId: a.text};
+  final dynamicsById = {for (final d in score.dynamics) d.elementId: d.level};
   final slurStarts = <String, int>{};
   final slurEnds = <String, int>{};
   for (final s in score.slurs) {
@@ -144,7 +140,8 @@ String scoreToAbc(
         final len = _lengthOf(element.duration, unit);
         if (element.pitches.length == 1) {
           body.write(
-              '${_noteToken(element.pitches.single, acc, currentKey)}$len');
+            '${_noteToken(element.pitches.single, acc, currentKey)}$len',
+          );
         } else {
           final inner =
               element.pitches.map((p) => _noteToken(p, acc, currentKey)).join();
@@ -170,7 +167,10 @@ String scoreToAbc(
     } else {
       body.write(switch (measure.barline) {
         BarlineStyle.doubleBar => '||',
-        BarlineStyle.finalBar => m == score.measures.length - 1 ? '|]' : '|',
+        // `|]` (thin-thick) is valid at any position — a mid-piece final barline
+        // is a real section marker, and the reader reads `|]` → finalBar
+        // regardless of position, so writing plain `|` here lost the style.
+        BarlineStyle.finalBar => '|]',
         BarlineStyle.dotted => '.|',
         _ => '|',
       });
@@ -180,10 +180,31 @@ String scoreToAbc(
   }
   b.writeln(body.toString().trimRight());
 
-  final verse1 = score.lyrics.where((l) => l.verse == 1).toList();
-  if (verse1.isNotEmpty) {
-    b.writeln(
-        'w:${verse1.map((l) => l.text + (l.hyphenToNext ? '-' : '')).join(' ')}');
+  // Align w: syllables to the NOTES by id (rests carry none), emitting `*` for
+  // an unsung note. The previous positional join of only the present lyrics
+  // shifted every syllable after a gap onto the wrong note on reopen (a lyric on
+  // notes 1 and 3 wrote `w:la la`, which the reader aligned to notes 1 and 2).
+  final byId = {
+    for (final l in score.lyrics)
+      if (l.verse == 1) l.elementId: l,
+  };
+  if (byId.isNotEmpty) {
+    final tokens = <String>[];
+    for (final m in score.measures) {
+      for (final e in m.elements) {
+        if (e is! NoteElement) continue; // rests take no syllable
+        final l = e.id == null ? null : byId[e.id];
+        // A syllable with an internal space uses `~` (the reader maps it back).
+        final syllable = l == null
+            ? '*'
+            : l.text.replaceAll(' ', '~') + (l.hyphenToNext ? '-' : '');
+        tokens.add(syllable);
+      }
+    }
+    while (tokens.isNotEmpty && tokens.last == '*') {
+      tokens.removeLast(); // trailing skips are noise
+    }
+    if (tokens.isNotEmpty) b.writeln('w:${tokens.join(' ')}');
   }
   return b.toString();
 }
@@ -191,8 +212,12 @@ String scoreToAbc(
 /// Emits an overlay voice's notes/chords/rests (with durations and ties) into
 /// [body] — the part after an `&` in a bar. Overlay voices carry no tuplets,
 /// slurs, lyrics or chord symbols in the model, so this is deliberately compact.
-void _emitOverlayVoice(StringBuffer body, List<MusicElement> elements,
-    Fraction unit, KeySignature key) {
+void _emitOverlayVoice(
+  StringBuffer body,
+  List<MusicElement> elements,
+  Fraction unit,
+  KeySignature key,
+) {
   final acc = <String, int>{}; // fresh accidental state for this overlay voice
   for (final element in elements) {
     if (element is RestElement) {
@@ -213,12 +238,16 @@ void _emitOverlayVoice(StringBuffer body, List<MusicElement> elements,
 }
 
 /// The ABC token for [pitch] — octave letter with an explicit accidental only
-/// when it differs from the running accidental ([acc], by letter) or the [key].
+/// when it differs from the running accidental ([acc], keyed per pitch+octave to
+/// match the reader) or the [key].
 String _noteToken(Pitch pitch, Map<String, int> acc, KeySignature key) {
   final letter = _letter(pitch.step);
   final keyAlter =
       key.alteredSteps.contains(pitch.step) ? (key.fifths >= 0 ? 1 : -1) : 0;
-  final effective = acc[letter] ?? keyAlter;
+  // The running accidental carries only to the same pitch in the same octave
+  // (ABC 2.1); the key signature still applies per letter.
+  final accKey = '$letter${pitch.octave}';
+  final effective = acc[accKey] ?? keyAlter;
   var prefix = '';
   if (pitch.alter != effective) {
     prefix = switch (pitch.alter) {
@@ -228,7 +257,7 @@ String _noteToken(Pitch pitch, Map<String, int> acc, KeySignature key) {
       -1 => '_',
       _ => '__',
     };
-    acc[letter] = pitch.alter;
+    acc[accKey] = pitch.alter;
   }
   return '$prefix${_octaveLetter(pitch)}';
 }

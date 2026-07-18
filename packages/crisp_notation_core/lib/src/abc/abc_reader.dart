@@ -114,8 +114,18 @@ class _Tune {
   /// Per-voice `s:` symbol lines (decorations / chord symbols aligned to notes).
   final Map<String, List<String>> symbols;
 
-  _Tune(this.meter, this.unit, this.key, this.headerClef, this.tempo,
-      this.order, this.clefs, this.bodies, this.lyrics, this.symbols);
+  _Tune(
+    this.meter,
+    this.unit,
+    this.key,
+    this.headerClef,
+    this.tempo,
+    this.order,
+    this.clefs,
+    this.bodies,
+    this.lyrics,
+    this.symbols,
+  );
 
   /// Builds the [Score] for one voice [id].
   Score buildScore(String id) {
@@ -126,7 +136,7 @@ class _Tune {
       ..parse();
     final measures = parser.measures.isEmpty
         ? [
-            Measure([RestElement(NoteDuration.whole, id: '${prefix}0')])
+            Measure([RestElement(NoteDuration.whole, id: '${prefix}0')]),
           ]
         : withDetectedPickup(parser.measures, meter);
     final voiceLyrics = _alignLyrics(lyrics[id] ?? const [], parser.noteOrder);
@@ -134,8 +144,10 @@ class _Tune {
     // The header tempo sits above the first note of the top staff.
     var annotations = parser.annotations;
     if (tempo != null && id == order.first) {
-      final firstNote =
-          parser.noteOrder.firstWhere((s) => s != '|', orElse: () => '');
+      final firstNote = parser.noteOrder.firstWhere(
+        (s) => s != '|',
+        orElse: () => '',
+      );
       if (firstNote.isNotEmpty) {
         annotations = [Annotation(firstNote, tempo!), ...annotations];
       }
@@ -274,8 +286,18 @@ _Tune _collectTune(String abc) {
           ? Fraction(1, 16)
           : Fraction(1, 8));
 
-  return _Tune(meter, unit, key, headerClef, tempo, order, clefs, bodies,
-      lyrics, symbols);
+  return _Tune(
+    meter,
+    unit,
+    key,
+    headerClef,
+    tempo,
+    order,
+    clefs,
+    bodies,
+    lyrics,
+    symbols,
+  );
 }
 
 /// Parses a `Q:` value into readable tempo text — an optional quoted label and
@@ -347,8 +369,9 @@ TimeSignature? _parseMeter(String value) {
   if (v == 'C') return TimeSignature.commonTime;
   if (v == 'C|') return TimeSignature.cutTime;
   // Additive meter: "3+2/8" or "(3+2)/8".
-  final add =
-      RegExp(r'^\(?\s*(\d+(?:\s*\+\s*\d+)+)\s*\)?\s*/\s*(\d+)').firstMatch(v);
+  final add = RegExp(
+    r'^\(?\s*(\d+(?:\s*\+\s*\d+)+)\s*\)?\s*/\s*(\d+)',
+  ).firstMatch(v);
   if (add != null) {
     final groups = add[1]!.split('+').map((g) => int.parse(g.trim())).toList();
     return TimeSignature.additive(groups, int.parse(add[2]!));
@@ -421,12 +444,15 @@ class _Rec {
   final GraceStyle graceStyle;
   final Ornament? ornament;
   final String id;
-  _Rec(this.pitches, this.dur, this.id,
-      {Set<Articulation>? articulations,
-      List<Pitch>? grace,
-      this.graceStyle = GraceStyle.acciaccatura,
-      this.ornament})
-      : articulations = articulations ?? {},
+  _Rec(
+    this.pitches,
+    this.dur,
+    this.id, {
+    Set<Articulation>? articulations,
+    List<Pitch>? grace,
+    this.graceStyle = GraceStyle.acciaccatura,
+    this.ornament,
+  })  : articulations = articulations ?? {},
         grace = grace ?? [];
 }
 
@@ -623,8 +649,10 @@ class _AbcBody {
     if (text.isNotEmpty && '^_<>@'.contains(text[0])) {
       text = text.substring(1);
       if (text.startsWith(RegExp(r'-?\d'))) {
-        text =
-            text.replaceFirst(RegExp(r'^-?\d+(\.\d+)?,-?\d+(\.\d+)?\s*'), '');
+        text = text.replaceFirst(
+          RegExp(r'^-?\d+(\.\d+)?,-?\d+(\.\d+)?\s*'),
+          '',
+        );
       }
     }
     if (text.isNotEmpty) _pendingChordSymbol = text;
@@ -794,10 +822,13 @@ class _AbcBody {
     if (_pendingMultiRest != null && _recs.isEmpty) {
       final count = _pendingMultiRest!;
       _pendingMultiRest = null;
-      measures.add(count >= 2
-          ? Measure(const [], multiRest: count, barline: style)
-          : Measure([RestElement(NoteDuration.whole, id: '$_idPfx${_id++}')],
-              barline: style));
+      measures.add(
+        count >= 2
+            ? Measure(const [], multiRest: count, barline: style)
+            : Measure([
+                RestElement(NoteDuration.whole, id: '$_idPfx${_id++}'),
+              ], barline: style),
+      );
       _nextStartRepeat = false;
       _nextVolta = null;
       return;
@@ -824,21 +855,23 @@ class _AbcBody {
                 id: r.id,
               ),
         ];
-    measures.add(Measure(
-      build(voices[0]),
-      voice2: voices.length > 1 ? build(voices[1]) : const [],
-      voice3: voices.length > 2 ? build(voices[2]) : const [],
-      voice4: voices.length > 3 ? build(voices[3]) : const [],
-      tuplets: List.of(_tuplets),
-      clefChange: _pendingClefChange,
-      keyChange: _pendingKeyChange,
-      timeChange: _pendingTimeChange,
-      startRepeat: _nextStartRepeat,
-      endRepeat: endRepeat,
-      volta: _nextVolta,
-      navigation: _pendingNavigation,
-      barline: style,
-    ));
+    measures.add(
+      Measure(
+        build(voices[0]),
+        voice2: voices.length > 1 ? build(voices[1]) : const [],
+        voice3: voices.length > 2 ? build(voices[2]) : const [],
+        voice4: voices.length > 3 ? build(voices[3]) : const [],
+        tuplets: List.of(_tuplets),
+        clefChange: _pendingClefChange,
+        keyChange: _pendingKeyChange,
+        timeChange: _pendingTimeChange,
+        startRepeat: _nextStartRepeat,
+        endRepeat: endRepeat,
+        volta: _nextVolta,
+        navigation: _pendingNavigation,
+        barline: style,
+      ),
+    );
     _recs = [];
     _overlayRecs.clear();
     _tuplets.clear();
@@ -857,7 +890,14 @@ class _AbcBody {
       _pos++;
     }
     final p = int.parse(src.substring(numStart, _pos));
-    var q = switch (p) { 2 => 3, 3 => 2, 4 => 3, 6 => 2, 8 => 3, _ => 2 };
+    var q = switch (p) {
+      2 => 3,
+      3 => 2,
+      4 => 3,
+      6 => 2,
+      8 => 3,
+      _ => 2,
+    };
     var r = p;
     // Optional :q:r.
     if (_pos < src.length && src[_pos] == ':') {
@@ -915,11 +955,15 @@ class _AbcBody {
   }
 
   _Rec _makeRec(List<Pitch> pitches, Fraction dur) {
-    final rec = _Rec(pitches, dur, '$_idPfx${_id++}',
-        articulations: _pendingArtic.isEmpty ? null : Set.of(_pendingArtic),
-        grace: _pendingGrace.isEmpty ? null : List.of(_pendingGrace),
-        graceStyle: _pendingGraceStyle,
-        ornament: _pendingOrnament);
+    final rec = _Rec(
+      pitches,
+      dur,
+      '$_idPfx${_id++}',
+      articulations: _pendingArtic.isEmpty ? null : Set.of(_pendingArtic),
+      grace: _pendingGrace.isEmpty ? null : List.of(_pendingGrace),
+      graceStyle: _pendingGraceStyle,
+      ornament: _pendingOrnament,
+    );
     _pendingArtic.clear();
     _pendingGrace.clear();
     _pendingOrnament = null;
@@ -945,12 +989,14 @@ class _AbcBody {
     if (_tupletLeft > 0) {
       _tupletLeft--;
       if (_tupletLeft == 0) {
-        _tuplets.add(TupletSpan(
-          _tupletStart,
-          _recs.length - 1,
-          actual: _tupletActual,
-          normal: _tupletNormal,
-        ));
+        _tuplets.add(
+          TupletSpan(
+            _tupletStart,
+            _recs.length - 1,
+            actual: _tupletActual,
+            normal: _tupletNormal,
+          ),
+        );
       }
     }
   }
@@ -975,7 +1021,11 @@ class _AbcBody {
     var explicit = false;
     while (_pos < src.length && '^_='.contains(src[_pos])) {
       explicit = true;
-      alter += switch (src[_pos]) { '^' => 1, '_' => -1, _ => -alter };
+      alter += switch (src[_pos]) {
+        '^' => 1,
+        '_' => -1,
+        _ => -alter,
+      };
       _pos++;
     }
     if (_pos >= src.length) return null;
@@ -993,10 +1043,14 @@ class _AbcBody {
     }
     final step = _stepOf(letter.toUpperCase());
     final upper = letter.toUpperCase();
+    // An accidental carries within the bar to the same pitch in the SAME octave
+    // (ABC 2.1 / abcm2ps / abcjs), not to every octave of the letter — so `^c`
+    // does not sharpen a later `c,`.
+    final accKey = '$upper$octave';
     if (explicit) {
-      _measureAccidentals[upper] = alter;
-    } else if (_measureAccidentals.containsKey(upper)) {
-      alter = _measureAccidentals[upper]!;
+      _measureAccidentals[accKey] = alter;
+    } else if (_measureAccidentals.containsKey(accKey)) {
+      alter = _measureAccidentals[accKey]!;
     } else {
       alter = _keyAlter(step);
     }
@@ -1044,7 +1098,10 @@ class _AbcBody {
   List<Annotation> annotations,
   List<DynamicMarking> dynamics,
 }) _applySymbols(
-    List<String> sLines, List<String> noteOrder, List<Measure> measures) {
+  List<String> sLines,
+  List<String> noteOrder,
+  List<Measure> measures,
+) {
   final tokens = <String>[];
   for (final line in sLines) {
     tokens.addAll(_splitSymbolTokens(line));
@@ -1131,8 +1188,10 @@ List<String> _splitSymbolTokens(String line) {
   if (tok.isEmpty) return null;
   // "…" chord symbol / text (drop a leading position marker ^_<>@).
   if (tok.startsWith('"')) {
-    var text =
-        tok.substring(1, tok.endsWith('"') ? tok.length - 1 : tok.length);
+    var text = tok.substring(
+      1,
+      tok.endsWith('"') ? tok.length - 1 : tok.length,
+    );
     if (text.isNotEmpty && '^_<>@'.contains(text[0])) {
       text = text.substring(1);
     }
@@ -1182,8 +1241,10 @@ Ornament? _symbolOrnament(String s) => switch (s) {
 
 /// Rebuilds the notes named in [byId] with their `s:` articulations / ornament
 /// merged in (other elements and measure fields are untouched).
-List<Measure> _mergeDecorations(List<Measure> measures,
-    Map<String, ({Set<Articulation> artic, Ornament? ornament})> byId) {
+List<Measure> _mergeDecorations(
+  List<Measure> measures,
+  Map<String, ({Set<Articulation> artic, Ornament? ornament})> byId,
+) {
   MusicElement rebuild(MusicElement e) {
     if (e is! NoteElement || e.id == null) return e;
     final deco = byId[e.id];

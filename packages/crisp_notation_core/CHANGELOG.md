@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.4.7 (2026-07-18)
+
+### ABC round-trip fixes (found by audit)
+
+- **Accidentals carry within a bar only to the same pitch in the same octave**
+  (ABC 2.1 / abcm2ps / abcjs), not to every octave of the letter. Both the
+  reader and writer keyed the running accidental by letter alone, so `^c c,`
+  imported the lower `c,` as C♯ instead of natural — a semitone off when
+  importing third-party ABC.
+- **Sparse lyric lines stay on their own notes.** The writer joined only the
+  present syllables positionally, so a lyric on notes 1 and 3 wrote `w:la la`,
+  which the reader aligned to notes 1 **and 2**. It now emits one token per note
+  (aligned by id), with `*` for an unsung note.
+- **A final barline (`|]`) mid-piece keeps its style.** The writer only wrote
+  `|]` on the last measure and a plain `|` elsewhere, losing a mid-piece
+  section-ending barline on round-trip.
+
 ## 0.4.6 (2026-07-18)
 
 ### MusicXML round-trip fixes (found by audit)
