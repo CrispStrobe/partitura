@@ -7,8 +7,8 @@
 /// key/time signatures (incl. common/cut and additive), measures,
 /// notes/chords, rests, durations (breve…64th with dots), ties, articulations
 /// and ornaments, and tuplets (as reciprocal durations). Repeats ride the
-/// barline signs (`:|`/`|:`); single-voice lyrics ride parallel `**text`
-/// spines. Pure Dart.
+/// barline signs (`:|`/`|:`); single-voice dynamics and lyrics ride parallel
+/// `**dynam` / `**text` spines. Pure Dart.
 library;
 
 import '../model/element.dart';
@@ -80,13 +80,16 @@ String scoreToKern(Score score) {
   }
 
   final multiVoice = score.measures.any((m) => m.voice2.isNotEmpty);
-  // Lyrics ride parallel `**text` spines (one per verse). Only the single-voice
-  // path is paired; a multi-voice score keeps lyrics out of scope. Emitting the
-  // extra spine ONLY when lyrics exist keeps every other score byte-identical.
+  // Dynamics ride a `**dynam` spine, lyrics parallel `**text` spines (one per
+  // verse). Only the single-voice path is paired; a multi-voice score keeps
+  // both out of scope. Emitting the extra spines ONLY when a marking exists
+  // keeps every other score byte-identical.
   final verseCount =
       score.lyrics.fold<int>(0, (mx, l) => l.verse > mx ? l.verse : mx);
-  if (verseCount > 0 && !multiVoice) {
-    return _kernWithLyrics(lines, score, verseCount, slurStarts, slurEnds);
+  final hasDyn = score.dynamics.isNotEmpty;
+  if ((verseCount > 0 || hasDyn) && !multiVoice) {
+    return _kernWithExtraSpines(
+        lines, score, verseCount, hasDyn, slurStarts, slurEnds);
   }
 
   lines.add('**kern');
@@ -197,31 +200,40 @@ String _repeatBar(bool endPrev, bool startCur) => endPrev && startCur
             ? '=!|:'
             : '=';
 
-/// Single-voice `**kern` paired with [verseCount] parallel `**text` spines for
-/// lyrics. [lines] already holds the leading `!!!` reference records. A
-/// syllable that continues its word (hyphenToNext) is written with a trailing
-/// `-`; a note with no syllable in a verse gets a null token (`.`).
-String _kernWithLyrics(List<String> lines, Score score, int verseCount,
-    Set<String> slurStarts, Set<String> slurEnds) {
+/// Single-voice `**kern` paired with optional parallel spines: a `**dynam`
+/// spine when [hasDyn], then [verseCount] `**text` spines for lyric verses.
+/// [lines] already holds the leading `!!!` reference records. A syllable that
+/// continues its word (hyphenToNext) is written with a trailing `-`; a note
+/// with no marking in a spine gets a null token (`.`).
+String _kernWithExtraSpines(List<String> lines, Score score, int verseCount,
+    bool hasDyn, Set<String> slurStarts, Set<String> slurEnds) {
   final meta = score.metadata;
-  // (noteId, verse) → the `**text` token for that syllable.
-  final syl = <String, String>{};
+  final dynById = {for (final d in score.dynamics) d.elementId: d.level.name};
+  final syl = <String, String>{}; // (noteId, verse) → the `**text` token
   for (final l in score.lyrics) {
     syl['${l.elementId}#${l.verse}'] = l.hyphenToNext ? '${l.text}-' : l.text;
   }
-  // Repeat a spine token across the kern column + every text column.
-  String across(String kern, String text) => '$kern${'\t$text' * verseCount}';
-  // The text columns for a note (its syllable per verse, or `.`), or all `.`
-  // for a note-less row (grace/rest).
-  String textOf(String? id) {
-    final b = StringBuffer();
-    for (var v = 1; v <= verseCount; v++) {
-      b.write('\t${id == null ? '.' : syl['$id#$v'] ?? '.'}');
-    }
-    return b.toString();
+  final extraCount = (hasDyn ? 1 : 0) + verseCount;
+  // A row whose extra spines all carry the same filler (interps `*`, a shared
+  // barline token, terminators `*-`).
+  String across(String kern, String filler) =>
+      '$kern${'\t$filler' * extraCount}';
+  // A note row: its dynamic (if any) then its syllable per verse, else `.`.
+  String dataRow(String kern, String? id) {
+    final cols = [
+      kern,
+      if (hasDyn) (id == null ? '.' : dynById[id] ?? '.'),
+      for (var v = 1; v <= verseCount; v++)
+        (id == null ? '.' : syl['$id#$v'] ?? '.'),
+    ];
+    return cols.join('\t');
   }
 
-  lines.add(across('**kern', '**text'));
+  lines.add([
+    '**kern',
+    if (hasDyn) '**dynam',
+    for (var v = 0; v < verseCount; v++) '**text',
+  ].join('\t'));
   lines.add(across('*clef${_clefCodes[score.clef]}', '*'));
   if (meta.instrument != null) lines.add(across('*I"${meta.instrument}', '*'));
   lines.add(across('*k[${kernKeyContent(score.keySignature)}]', '*'));
@@ -266,13 +278,13 @@ String _kernWithLyrics(List<String> lines, Score score, int verseCount,
       if (element is NoteElement && element.graceNotes.isNotEmpty) {
         final mark = element.graceStyle == GraceStyle.appoggiatura ? 'qq' : 'q';
         for (final pitch in element.graceNotes) {
-          lines.add('8${_kernPitch(pitch, null)}$mark${textOf(null)}');
+          lines.add(dataRow('8${_kernPitch(pitch, null)}$mark', null));
         }
       }
       final tok = _token(element, prevTie, _tupletRatioAt(measure, i),
           slurStart: element.id != null && slurStarts.contains(element.id),
           slurEnd: element.id != null && slurEnds.contains(element.id));
-      lines.add('$tok${textOf(element is NoteElement ? element.id : null)}');
+      lines.add(dataRow(tok, element is NoteElement ? element.id : null));
       prevTie = element is NoteElement && element.tieToNext;
     }
   }

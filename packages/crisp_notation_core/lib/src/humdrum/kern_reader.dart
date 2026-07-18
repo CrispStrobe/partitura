@@ -23,6 +23,9 @@ import '../theory/pitch.dart';
 import '../theory/tempo.dart';
 import '../theory/time_signature.dart';
 
+/// `**dynam` token → the model dynamic level (the inverse of `level.name`).
+final _dynamLevels = {for (final l in DynamicLevel.values) l.name: l};
+
 const _recipBases = {
   '0': DurationBase.breve,
   '1': DurationBase.whole,
@@ -203,13 +206,17 @@ class _KernReader {
   bool _pendingStartRepeat = false;
   // Column indices of parallel `**text` lyric spines, in verse order.
   final _textCols = <int>[];
+  // Column index of a parallel `**dynam` spine, if any.
+  int? _dynamCol;
   // Lyrics gathered from the `**text` spines, anchored to their note's id.
   final _lyrics = <Lyric>[];
+  // Dynamics gathered from the `**dynam` spine.
+  final _dynamics = <DynamicMarking>[];
 
-  /// Reads this row's `**text` columns as [note]'s syllables (one per verse).
-  /// A trailing `-` marks a word that continues onto the next note; leading/
-  /// trailing hyphens are stripped from the stored text.
-  void _readLyrics(List<String> cols, MusicElement note) {
+  /// Reads this row's parallel `**text`/`**dynam` columns as [note]'s syllables
+  /// (one per verse) and its dynamic. A trailing `-` on a syllable marks a word
+  /// that continues onto the next note; leading/trailing hyphens are stripped.
+  void _readMarkings(List<String> cols, MusicElement note) {
     if (note is! NoteElement || note.id == null) return;
     for (var v = 0; v < _textCols.length; v++) {
       final c = _textCols[v];
@@ -223,6 +230,11 @@ class _KernReader {
       if (text.isNotEmpty) {
         _lyrics.add(Lyric(note.id!, text, verse: v + 1, hyphenToNext: hyphen));
       }
+    }
+    final dc = _dynamCol;
+    if (dc != null && dc < cols.length) {
+      final level = _dynamLevels[cols[dc].trim()];
+      if (level != null) _dynamics.add(DynamicMarking(note.id!, level));
     }
   }
 
@@ -256,12 +268,15 @@ class _KernReader {
         continue; // reference records handled; other comments skipped
       }
       final cols = line.split('\t');
-      // Detect parallel `**text` lyric spines once, at the exclusive-interp
-      // header (the single-voice+lyrics writer keeps their columns fixed).
+      // Detect parallel `**text` (lyric) and `**dynam` spines once, at the
+      // exclusive-interp header (the paired writer keeps their columns fixed).
       if (_textCols.isEmpty && cols.contains('**text')) {
         for (var c = 0; c < cols.length; c++) {
           if (cols[c] == '**text') _textCols.add(c);
         }
+      }
+      if (_dynamCol == null && cols.contains('**dynam')) {
+        _dynamCol = cols.indexOf('**dynam');
       }
       // This staff's columns on this line — first is voice 1, a second (from a
       // `*^` split) is voice 2. Spine splits in *other* staves shift columns;
@@ -309,7 +324,7 @@ class _KernReader {
           _current.add(el);
           _currentRatios.add(_tupletRatioOf(token.split(' ').first));
           _trackSlur(token, el.id);
-          _readLyrics(cols, el);
+          _readMarkings(cols, el);
           _pendingGraces = [];
           _pendingGraceStyle = GraceStyle.acciaccatura;
         }
@@ -336,6 +351,7 @@ class _KernReader {
       measures: withDetectedPickup(_measures, _leadingTime),
       slurs: _slurs,
       lyrics: _lyrics,
+      dynamics: _dynamics,
       tempo: _tempo,
       metadata: ScoreMetadata(
         title: _title,
