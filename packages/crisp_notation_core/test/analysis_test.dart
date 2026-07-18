@@ -209,5 +209,20 @@ void main() {
       expect(f[0].endMeasure, 1);
       expect(f[1].label, 'B');
     });
+
+    test('groups repeated multi-bar phrases into sections (2-bar A–B–A)', () {
+      final f = detectForm(melody([
+        ['c4', 'e4', 'g4', 'c5'], // ┐ phrase A
+        ['g4', 'f4', 'e4', 'd4'], // ┘
+        ['e4', 'g4', 'c5', 'e5'], // ┐ phrase B
+        ['d4', 'e4', 'f4', 'g4'], // ┘
+        ['c4', 'e4', 'g4', 'c5'], // ┐ phrase A again
+        ['g4', 'f4', 'e4', 'd4'], // ┘
+      ]));
+      expect(f.map((s) => s.label).toList(), ['A', 'B', 'A']);
+      expect(f[0].startMeasure, 0);
+      expect(f[0].endMeasure, 1); // a 2-bar phrase, not a single bar
+      expect(f[2].startMeasure, 4);
+    });
   });
 }

@@ -421,26 +421,56 @@ String _measureFingerprint(Measure m) {
   return tokens.join(',');
 }
 
-/// Detect a piece's form by melodic repetition: each measure is fingerprinted
-/// (transpose-invariant), given a letter (`A`, `B`, … in first-appearance
-/// order), and consecutive equal measures are merged into one [FormSection].
-/// Same letter ⇒ the same tune came back. Bar-level (phrase grouping is a
-/// future refinement); an empty score yields no sections.
+/// Detect a piece's form by melodic repetition. Each measure is fingerprinted
+/// (transpose-invariant); measures are then grouped into **phrases** — the
+/// algorithm tries phrase lengths and picks the one that reveals the most
+/// repetition, so a recurring 4-bar phrase reads as one section, not four. Each
+/// phrase gets a letter (`A`, `B`, … in first-appearance order), and consecutive
+/// equal phrases are merged. Same letter ⇒ the same material came back. An empty
+/// score yields no sections.
 List<FormSection> detectForm(Score score) {
+  final n = score.measures.length;
+  if (n == 0) return const [];
+  final fps = [for (final m in score.measures) _measureFingerprint(m)];
+
+  // Pick the phrase length L that best exposes repetition (an even division of
+  // the piece with the most repeated phrases); fall back to bar-level (L=1).
+  var bestL = 1;
+  var bestScore = -1.0;
+  for (var L = 1; L <= (n ~/ 2).clamp(1, 8); L++) {
+    if (n % L != 0) continue;
+    final groups = [
+      for (var i = 0; i < n; i += L) fps.sublist(i, i + L).join('|'),
+    ];
+    final distinct = groups.toSet().length;
+    if (distinct >= groups.length) continue; // no repetition at this length
+    // Reward repetition; nudge toward longer phrases to prefer A-B-A over
+    // A-B-C-D-A-B when both repeat.
+    final score = (groups.length - distinct) / groups.length + L * 0.01;
+    if (score > bestScore) {
+      bestScore = score;
+      bestL = L;
+    }
+  }
+
+  final groups = [
+    for (var i = 0; i < n; i += bestL) fps.sublist(i, i + bestL).join('|'),
+  ];
   final letters = <String, String>{};
   var next = 0;
   final out = <FormSection>[];
-  for (var i = 0; i < score.measures.length; i++) {
-    final fp = _measureFingerprint(score.measures[i]);
-    final letter = letters.putIfAbsent(fp, () {
+  for (var g = 0; g < groups.length; g++) {
+    final letter = letters.putIfAbsent(groups[g], () {
       final l = String.fromCharCode(65 + (next < 26 ? next : 25));
       next++;
       return l;
     });
+    final start = g * bestL;
+    final end = start + bestL - 1;
     if (out.isNotEmpty && out.last.label == letter) {
-      out[out.length - 1] = FormSection(out.last.startMeasure, i, letter);
+      out[out.length - 1] = FormSection(out.last.startMeasure, end, letter);
     } else {
-      out.add(FormSection(i, i, letter));
+      out.add(FormSection(start, end, letter));
     }
   }
   return out;
