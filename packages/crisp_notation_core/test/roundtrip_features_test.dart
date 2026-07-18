@@ -11,7 +11,7 @@
 // documents a known codec/format limitation with an explicit expectation, so if
 // support is ever added the test fails loudly — the message tells you to remove
 // that codec from `droppedBy`. Known gaps today:
-//   • MEI          — ornaments, dynamics, repeats/voltas, navigation, lyrics
+//   • MEI          — dynamics, repeats/voltas, navigation, lyrics
 //   • kern         — dynamics, repeats/voltas, navigation, lyrics
 //   • ABC/MEI/kern — tremolo (this library does not emit it there)
 // MusicXML carries everything here; ABC carries everything except tremolo.
@@ -148,13 +148,12 @@ final _features = <_Feature>[
       (b) => _notes(b).first.articulations.contains(a),
     ),
 
-  // ---- Ornaments (MEI does not emit them yet) --------------------------------
+  // ---- Ornaments (all four codecs carry these) -------------------------------
   for (final o in const [Ornament.trill, Ornament.mordent, Ornament.turn])
     _Feature(
       'ornament ${o.name}',
       () => _ornScore(o),
       (b) => _notes(b).first.ornament == o,
-      droppedBy: const {'MEI'},
     ),
 
   // ---- Note-level markings ---------------------------------------------------

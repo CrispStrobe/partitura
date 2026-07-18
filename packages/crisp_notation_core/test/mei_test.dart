@@ -440,4 +440,31 @@ void main() {
         const Pitch(Step.c, octave: 3));
     expect(bass.measures[1].elements.whereType<NoteElement>(), isEmpty);
   });
+
+  test('an ornament on a note with no id still round-trips', () {
+    // Regression: the ornament control event needs a startid, so the writer
+    // skipped it when the note had no xml:id — silently dropping the ornament.
+    // The writer now gives an ornamented, id-less note a deterministic
+    // position-derived id and anchors the control event to it.
+    NoteElement orn(Step s, Ornament o) => NoteElement(
+          pitches: [Pitch(s, octave: 4)],
+          duration: const NoteDuration(DurationBase.half),
+          ornament: o,
+        );
+    final score = Score(
+      clef: Clef.treble,
+      measures: [
+        Measure([orn(Step.c, Ornament.trill), orn(Step.d, Ornament.mordent)]),
+      ],
+    );
+    final notes = scoreFromMei(scoreToMei(score))
+        .measures
+        .first
+        .elements
+        .whereType<NoteElement>()
+        .toList();
+    // Both ornaments survive AND land on the right note (distinct anchors).
+    expect(notes[0].ornament, Ornament.trill);
+    expect(notes[1].ornament, Ornament.mordent);
+  });
 }

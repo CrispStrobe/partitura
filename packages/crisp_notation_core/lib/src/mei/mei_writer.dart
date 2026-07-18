@@ -155,23 +155,33 @@ void _writeMeasure(StringBuffer out, Score score, int index) {
   }
 
   _writeLayer(out, 1, measure.elements, changes.toString(),
-      tuplets: measure.tuplets);
+      measureIndex: index, tuplets: measure.tuplets);
   for (final (n, voice) in [
     (2, measure.voice2),
     (3, measure.voice3),
     (4, measure.voice4),
   ]) {
-    if (voice.isNotEmpty) _writeLayer(out, n, voice, '');
+    if (voice.isNotEmpty) _writeLayer(out, n, voice, '', measureIndex: index);
   }
   out.writeln('        </staff>');
 
   // Ornaments and slurs are control events anchored to a note by its xml:id.
+  // A note that carries an ornament but no id of its own gets a deterministic
+  // position-derived id (see _meiIdFor) — the same one _writeLayer stamps on
+  // the <note> — so the ornament keeps its anchor instead of being dropped.
   final controls = StringBuffer();
-  for (final element in [...measure.elements, ...measure.voice2]) {
-    if (element is NoteElement &&
-        element.ornament != null &&
-        element.id != null) {
-      controls.write(_ornamentEvent(element.ornament!, element.id!));
+  for (final (voiceNum, voice) in [
+    (1, measure.elements),
+    (2, measure.voice2),
+    (3, measure.voice3),
+    (4, measure.voice4),
+  ]) {
+    for (var i = 0; i < voice.length; i++) {
+      final element = voice[i];
+      if (element is NoteElement && element.ornament != null) {
+        final id = _meiIdFor(element, index, voiceNum, i);
+        if (id != null) controls.write(_ornamentEvent(element.ornament!, id));
+      }
     }
   }
   // A slur is emitted in the measure that holds its start note.
@@ -194,6 +204,17 @@ void _writeMeasure(StringBuffer out, Score score, int index) {
   out.writeln('      </measure>');
 }
 
+/// The xml:id used to anchor a note's control events (its ornament). A note
+/// keeps its own [NoteElement.id]; an ornamented note that lacks one is given a
+/// deterministic, position-derived id (`o<measure>_<voice>_<index>`) so the
+/// ornament still has a `startid` to point at — previously such notes silently
+/// lost their ornament. Position is unique within a document, so these never
+/// collide, and only ornamented notes get one (unornamented id-less notes stay
+/// id-free, keeping the output minimal). Returns null when there is nothing to
+/// anchor.
+String? _meiIdFor(NoteElement e, int measure, int voice, int index) =>
+    e.id ?? (e.ornament != null ? 'o${measure}_${voice}_$index' : null);
+
 /// A `<trill>`/`<mordent>`/`<turn>` control event anchored to note [id].
 String _ornamentEvent(Ornament ornament, String id) => switch (ornament) {
       Ornament.trill => '<trill startid="#$id"/>',
@@ -210,7 +231,7 @@ String _ornamentEvent(Ornament ornament, String id) => switch (ornament) {
 
 void _writeLayer(
     StringBuffer out, int n, List<MusicElement> elements, String prefix,
-    {List<TupletSpan> tuplets = const []}) {
+    {required int measureIndex, List<TupletSpan> tuplets = const []}) {
   out.write('          <layer n="$n">$prefix');
   for (var i = 0; i < elements.length; i++) {
     final element = elements[i];
@@ -234,7 +255,8 @@ void _writeLayer(
       }
       final tie = element.tieToNext ? ' tie="i"' : '';
       final artic = _articAttrs(element.articulations);
-      final xmlId = element.id == null ? '' : ' xml:id="${element.id}"';
+      final anchorId = _meiIdFor(element, measureIndex, n, i);
+      final xmlId = anchorId == null ? '' : ' xml:id="$anchorId"';
       if (element.pitches.length == 1) {
         out.write('<note$xmlId ${_durAttrs(element.duration)} '
             '${_pitchAttrs(element.pitches.single, element.showAccidental)}'
