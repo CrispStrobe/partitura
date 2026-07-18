@@ -11,6 +11,7 @@
 /// `**dynam` / `**text` spines. Pure Dart.
 library;
 
+import '../layout/multi_part.dart';
 import '../model/element.dart';
 import '../model/measure.dart';
 import '../model/score.dart';
@@ -376,6 +377,153 @@ List<String> _multiVoiceRows(
     rows.add('${a.tok}\t${b.tok}');
   }
   return rows;
+}
+
+/// A part's voice-1 events for one [measure] as `(onset, token)` pairs plus the
+/// tie state to carry into the next measure. Onsets are tuplet-scaled so a
+/// triplet stays aligned across the merged spines.
+(List<({Fraction at, String tok})>, bool) _kernEvents(Measure measure,
+    bool tiedFromPrev, Set<String> slurStarts, Set<String> slurEnds) {
+  var t = Fraction(0, 1);
+  var prevTie = tiedFromPrev;
+  final out = <({Fraction at, String tok})>[];
+  for (var i = 0; i < measure.elements.length; i++) {
+    final e = measure.elements[i];
+    out.add((
+      at: t,
+      tok: _token(e, prevTie, _tupletRatioAt(measure, i),
+          slurStart: e.id != null && slurStarts.contains(e.id),
+          slurEnd: e.id != null && slurEnds.contains(e.id)),
+    ));
+    t = t + measure.effectiveDurationAt(i);
+    prevTie = e is NoteElement && e.tieToNext;
+  }
+  return (out, prevTie);
+}
+
+/// A [multiPart] score → a multi-spine `**kern` document: one `**kern` spine per
+/// part, the parts' events **time-merged** row by row (a spine sustaining across
+/// another's onset gets a null token `.`), so an orchestral score keeps EVERY
+/// part (unlike [scoreToKern]'s single spine). Round-trips through
+/// `staffSystemFromKern`. Each part keeps its own clef/key; meter, tempo and
+/// repeats follow the lead part (they are document-global in this subset).
+String multiPartToKern(MultiPartScore multiPart, {List<String>? partNames}) {
+  final parts = multiPart.parts;
+  if (parts.isEmpty) {
+    return scoreToKern(Score(clef: Clef.treble, measures: const []));
+  }
+  if (parts.length == 1) return scoreToKern(parts.first);
+
+  final n = parts.length;
+  final slurStarts = [
+    for (final p in parts) {for (final s in p.slurs) s.startId}
+  ];
+  final slurEnds = [
+    for (final p in parts) {for (final s in p.slurs) s.endId}
+  ];
+  final lead = parts.first;
+  final meta = lead.metadata;
+  final lines = <String>[];
+  for (final (key, value) in [
+    ('OTL', meta.title),
+    ('COM', meta.composer),
+    ('LYR', meta.lyricist),
+    ('YEC', meta.copyright),
+  ]) {
+    if (value != null) lines.add('!!!$key: $value');
+  }
+  String row(String Function(int p) cell) =>
+      [for (var p = 0; p < n; p++) cell(p)].join('\t');
+  String nameOf(int p) =>
+      (partNames != null && p < partNames.length ? partNames[p] : null) ??
+      parts[p].metadata.instrument ??
+      'Part ${p + 1}';
+
+  lines.add(row((_) => '**kern'));
+  lines.add(row((p) => '*clef${_clefCodes[parts[p].clef]}'));
+  if (partNames != null || parts.any((p) => p.metadata.instrument != null)) {
+    lines.add(row((p) => '*I"${nameOf(p)}'));
+  }
+  lines.add(row((p) => '*k[${kernKeyContent(parts[p].keySignature)}]'));
+  if (lead.timeSignature != null) {
+    for (final l in _meterLines(lead.timeSignature!)) {
+      lines.add(row((_) => l));
+    }
+  }
+  final t = lead.tempo;
+  if (t != null) {
+    final f = NoteDuration(t.beatUnit, dots: t.dots).toFraction();
+    final quarters = t.bpm * f.numerator * 4 / f.denominator;
+    final s = quarters == quarters.roundToDouble()
+        ? quarters.round().toString()
+        : quarters.toString();
+    lines.add(row((_) => '*MM$s'));
+  }
+
+  Measure? measureOf(int p, int m) =>
+      m < parts[p].measures.length ? parts[p].measures[m] : null;
+  final measureCount =
+      parts.map((p) => p.measures.length).reduce((a, b) => a > b ? a : b);
+  final endTie = List<bool>.filled(n, false);
+
+  for (var m = 0; m < measureCount; m++) {
+    if (m > 0) {
+      final bar = _repeatBar(measureOf(0, m - 1)?.endRepeat ?? false,
+          measureOf(0, m)?.startRepeat ?? false);
+      lines.add(row((_) => bar));
+      if (parts
+          .any((p) => measureOf(parts.indexOf(p), m)?.clefChange != null)) {
+        lines.add(row((p) {
+          final c = measureOf(p, m)?.clefChange;
+          return c == null ? '*' : '*clef${_clefCodes[c]}';
+        }));
+      }
+      if (parts.any((p) => measureOf(parts.indexOf(p), m)?.keyChange != null)) {
+        lines.add(row((p) {
+          final k = measureOf(p, m)?.keyChange;
+          return k == null ? '*' : '*k[${kernKeyContent(k)}]';
+        }));
+      }
+      final timeChange = measureOf(0, m)?.timeChange;
+      if (timeChange != null) {
+        for (final l in _meterLines(timeChange)) {
+          lines.add(row((_) => l));
+        }
+      }
+    } else if (measureOf(0, 0)?.startRepeat ?? false) {
+      lines.add(row((_) => '=!|:'));
+    }
+
+    final perPart = <List<({Fraction at, String tok})>>[];
+    for (var p = 0; p < n; p++) {
+      final measure = measureOf(p, m);
+      if (measure == null) {
+        perPart.add([(at: Fraction(0, 1), tok: '1r')]);
+        endTie[p] = false;
+      } else {
+        final (evs, tie) =
+            _kernEvents(measure, endTie[p], slurStarts[p], slurEnds[p]);
+        perPart.add(evs);
+        endTie[p] = tie;
+      }
+    }
+    final onsets = <Fraction>{
+      for (final evs in perPart)
+        for (final e in evs) e.at
+    }.toList()
+      ..sort((a, b) => (a - b).numerator.sign);
+    for (final onset in onsets) {
+      lines.add(row((p) => perPart[p]
+          .firstWhere((e) => e.at == onset, orElse: () => (at: onset, tok: '.'))
+          .tok));
+    }
+  }
+
+  final lastEnd = lead.measures.isNotEmpty && lead.measures.last.endRepeat;
+  final fbar = lastEnd ? '=:|!' : '==';
+  lines.add(row((_) => fbar));
+  lines.add(row((_) => '*-'));
+  return '${lines.join('\n')}\n';
 }
 
 List<String> _meterLines(TimeSignature time) {

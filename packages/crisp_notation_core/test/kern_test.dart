@@ -293,4 +293,46 @@ void main() {
       expect(notes.last.graceStyle, GraceStyle.appoggiatura);
     });
   });
+
+  test('multiPartToKern keeps every part, time-merging differing rhythms', () {
+    NoteElement note(Step s, int o, DurationBase d) =>
+        NoteElement(pitches: [Pitch(s, octave: o)], duration: NoteDuration(d));
+    // Flute: q q h | w   —   Cello: w | h h  (deliberately different rhythms so
+    // the spines must be time-merged, not just concatenated).
+    final flute = Score(
+      clef: Clef.treble,
+      timeSignature: TimeSignature.fourFour,
+      measures: [
+        Measure([
+          note(Step.g, 5, DurationBase.quarter),
+          note(Step.a, 5, DurationBase.quarter),
+          note(Step.b, 5, DurationBase.half),
+        ]),
+        Measure([note(Step.c, 6, DurationBase.whole)]),
+      ],
+    );
+    final cello = Score(
+      clef: Clef.bass,
+      timeSignature: TimeSignature.fourFour,
+      measures: [
+        Measure([note(Step.c, 3, DurationBase.whole)]),
+        Measure([
+          note(Step.g, 2, DurationBase.half),
+          note(Step.c, 3, DurationBase.half),
+        ]),
+      ],
+    );
+    final sys =
+        staffSystemFromKern(multiPartToKern(MultiPartScore([flute, cello])));
+    expect(sys.staves, hasLength(2), reason: 'both parts survive');
+    final treble = sys.staves.firstWhere((s) => s.clef == Clef.treble);
+    final bass = sys.staves.firstWhere((s) => s.clef == Clef.bass);
+    List<String> pitches(Score s) => s.measures
+        .expand((m) => m.elements.whereType<NoteElement>())
+        .map((e) => e.pitches.single.toString())
+        .toList();
+    // Each part's own rhythm survives the merge (sustains read as one note).
+    expect(pitches(treble), ['G5', 'A5', 'B5', 'C6']);
+    expect(pitches(bass), ['C3', 'G2', 'C3']);
+  });
 }
