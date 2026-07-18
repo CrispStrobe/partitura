@@ -136,6 +136,7 @@ String scoreToKern(Score score) {
       } else if (measure.startRepeat) {
         lines.add('=!|:\t=!|:');
       }
+      lines.addAll(_marksFor(measure, 1));
       lines.addAll(_multiVoiceRows(measure, slurStarts, slurEnds));
     }
     final lastEnd = score.measures.isNotEmpty && score.measures.last.endRepeat;
@@ -164,6 +165,7 @@ String scoreToKern(Score score) {
     } else if (measure.startRepeat) {
       lines.add('=!|:'); // a repeat that starts at the very beginning
     }
+    lines.addAll(_marksFor(measure, 0));
     for (var i = 0; i < measure.elements.length; i++) {
       final element = measure.elements[i];
       // Grace notes precede the principal, one record each, marked `q`
@@ -188,6 +190,16 @@ String scoreToKern(Score score) {
   lines.add('*-');
   return '${lines.join('\n')}\n';
 }
+
+/// Volta / navigation records for [measure], to emit just after its opening
+/// barline. A volta is a `*>N` section label (spanning the kern column + its
+/// [extraSpines] parallel spines); navigation — which has no standard kern
+/// token — rides a `!!nav:` global comment (a single line, all spines).
+List<String> _marksFor(Measure measure, int extraSpines) => [
+      if (measure.volta != null)
+        '*>${measure.volta}${'\t*>${measure.volta}' * extraSpines}',
+      if (measure.navigation != null) '!!nav:${measure.navigation!.name}',
+    ];
 
 /// A kern barline token carrying repeat signs: `:|` ends a repeat, `|:` starts
 /// one. [endPrev] closes the measure before this barline, [startCur] opens the
@@ -273,6 +285,7 @@ String _kernWithExtraSpines(List<String> lines, Score score, int verseCount,
     } else if (measure.startRepeat) {
       lines.add(across('=!|:', '=!|:'));
     }
+    lines.addAll(_marksFor(measure, extraCount));
     for (var i = 0; i < measure.elements.length; i++) {
       final element = measure.elements[i];
       if (element is NoteElement && element.graceNotes.isNotEmpty) {

@@ -10,11 +10,11 @@
 // on each feature). Each SUPPORTED cell is a regression lock. Each DROPPED cell
 // documents a known codec/format limitation with an explicit expectation, so if
 // support is ever added the test fails loudly — the message tells you to remove
-// that codec from `droppedBy`. Known gaps today:
-//   • MEI          — dynamics, repeats/voltas, navigation, lyrics
-//   • kern         — dynamics, repeats/voltas, navigation, lyrics
+// that codec from `droppedBy`. The only gap left today:
 //   • ABC/MEI/kern — tremolo (this library does not emit it there)
 // MusicXML carries everything here; ABC carries everything except tremolo.
+// (kern voltas/navigation ride a `*>N` section label / `!!nav:` comment — a
+// crisp_notation round-trip convention, not interoperable Humdrum endings.)
 //
 // Two recently-fixed ABC drops are locked here as regressions: the mid-score
 // clef change and grace notes on an id-less note. The focused versions live in
@@ -255,7 +255,6 @@ final _features = <_Feature>[
       Measure([_n(Step.d, d: _whole)]),
     ]),
     (b) => b.measures[0].volta == 1,
-    droppedBy: const {'kern'},
   ),
   _Feature(
     'navigation (D.C.)',
@@ -264,7 +263,6 @@ final _features = <_Feature>[
       Measure([_n(Step.d, d: _whole)], navigation: NavigationMark.daCapo),
     ]),
     (b) => b.measures[1].navigation == NavigationMark.daCapo,
-    droppedBy: const {'kern'},
   ),
   _Feature(
     'second voice',

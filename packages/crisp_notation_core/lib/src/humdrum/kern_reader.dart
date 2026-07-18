@@ -26,6 +26,9 @@ import '../theory/time_signature.dart';
 /// `**dynam` token → the model dynamic level (the inverse of `level.name`).
 final _dynamLevels = {for (final l in DynamicLevel.values) l.name: l};
 
+/// `!!nav:` comment value → the model navigation mark (inverse of `.name`).
+final _navMarks = {for (final n in NavigationMark.values) n.name: n};
+
 const _recipBases = {
   '0': DurationBase.breve,
   '1': DurationBase.whole,
@@ -204,6 +207,9 @@ class _KernReader {
   bool _started = false;
   // A `|:` on a barline marks the NEXT measure as a repeat start.
   bool _pendingStartRepeat = false;
+  // A `*>N` section label / `!!nav:` comment marks the measure it precedes.
+  int? _pendingVolta;
+  NavigationMark? _pendingNav;
   // Column indices of parallel `**text` lyric spines, in verse order.
   final _textCols = <int>[];
   // Column index of a parallel `**dynam` spine, if any.
@@ -264,7 +270,12 @@ class _KernReader {
       final line = lines[li].trimRight();
       if (line.isEmpty) continue;
       if (line.startsWith('!')) {
-        if (line.startsWith('!!!')) _reference(line);
+        if (line.startsWith('!!!')) {
+          _reference(line);
+        } else if (line.startsWith('!!nav:')) {
+          // Navigation has no standard kern token; carried as a local comment.
+          _pendingNav = _navMarks[line.substring(6).trim()];
+        }
         continue; // reference records handled; other comments skipped
       }
       final cols = line.split('\t');
@@ -304,6 +315,9 @@ class _KernReader {
               _measures.last.copyWith(endRepeat: true);
         }
         _pendingStartRepeat = token.contains('|:');
+      } else if (token.startsWith('*>')) {
+        // A `*>N` section label marks the coming measure as volta N.
+        _pendingVolta = int.tryParse(token.substring(2).trim());
       } else if (token.startsWith('*')) {
         _interpretation(token);
       } else if (token != '.') {
@@ -412,8 +426,12 @@ class _KernReader {
       tuplets: _tupletSpansOf(_currentRatios),
       startRepeat: _pendingStartRepeat,
       endRepeat: endRepeat,
+      volta: _pendingVolta,
+      navigation: _pendingNav,
     ));
     _pendingStartRepeat = false;
+    _pendingVolta = null;
+    _pendingNav = null;
     _current = <MusicElement>[];
     _extraVoices = [<MusicElement>[], <MusicElement>[], <MusicElement>[]];
     _currentRatios = <({int actual, int normal})?>[];
