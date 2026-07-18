@@ -14,6 +14,7 @@
 /// (web-safe).
 library;
 
+import '../layout/multi_part.dart';
 import '../model/element.dart';
 import '../model/measure.dart';
 import '../model/score.dart';
@@ -137,6 +138,210 @@ String scoreToMei(Score score, {String title = 'Music'}) {
   return out.toString();
 }
 
+/// A [multiPart] score → a multi-staff MEI document: one `<staffDef>` and one
+/// `<staff>` per part per measure, so an orchestral score keeps EVERY part
+/// (unlike [scoreToMei], which writes a single staff). Round-trips through
+/// `multiPartScoreFromMei`. Key/meter come from the first part; each part keeps
+/// its own clef, and its element ids are part-prefixed so control events
+/// (ornaments/slurs/dynamics) stay unique across staves. Repeats/voltas and
+/// navigation are document-global in MEI, so they follow the first part.
+String multiPartToMei(MultiPartScore multiPart,
+    {String title = 'Music', List<String>? partNames}) {
+  final parts = multiPart.parts;
+  if (parts.isEmpty) {
+    return scoreToMei(Score(clef: Clef.treble, measures: const []),
+        title: title);
+  }
+  if (parts.length == 1) return scoreToMei(parts.first, title: title);
+
+  final lead = parts.first;
+  final meta = lead.metadata;
+  final resp = StringBuffer();
+  if (meta.composer != null) {
+    resp.write('<persName role="composer">${_escape(meta.composer!)}'
+        '</persName>');
+  }
+  if (meta.lyricist != null) {
+    resp.write('<persName role="lyricist">${_escape(meta.lyricist!)}'
+        '</persName>');
+  }
+  final titleStmt = '<title>${_escape(meta.title ?? title)}</title>'
+      '${resp.isEmpty ? '' : '<respStmt>$resp</respStmt>'}';
+  final pubStmt = meta.copyright == null
+      ? '<pubStmt/>'
+      : '<pubStmt><availability>${_escape(meta.copyright!)}</availability>'
+          '</pubStmt>';
+  final out = StringBuffer()
+    ..writeln('<?xml version="1.0" encoding="UTF-8"?>')
+    ..writeln('<mei xmlns="$_meiNs" meiversion="5.0">')
+    ..writeln('  <meiHead><fileDesc><titleStmt>$titleStmt</titleStmt>'
+        '$pubStmt</fileDesc></meiHead>')
+    ..writeln('  <music><body><mdiv><score>');
+
+  final meterAttrs = lead.timeSignature == null
+      ? ''
+      : ' ${_meterAttrs(lead.timeSignature!, dotted: true)}';
+  final t = lead.tempo;
+  final mm = t == null
+      ? ''
+      : ' mm="${_bpm(t.bpm)}" mm.unit="${_durValues[t.beatUnit]}"'
+          '${t.dots == 0 ? '' : ' mm.dots="${t.dots}"'}';
+  out.writeln('    <scoreDef keysig="${meiKeySig(lead.keySignature)}"'
+      '$meterAttrs$mm>');
+  out.writeln('      <staffGrp>');
+  for (var p = 0; p < parts.length; p++) {
+    final (shape, line, dis, disPlace) = _clefParts(parts[p].clef);
+    final name = (partNames != null && p < partNames.length)
+        ? partNames[p]
+        : parts[p].metadata.instrument;
+    final label = name == null ? '' : ' label="${_escape(name)}"';
+    out.writeln('        <staffDef n="${p + 1}"$label lines="5" '
+        'clef.shape="$shape" clef.line="$line"'
+        '${dis == null ? '' : ' clef.dis="$dis" clef.dis.place="$disPlace"'}/>');
+  }
+  out
+    ..writeln('      </staffGrp>')
+    ..writeln('    </scoreDef>')
+    ..writeln('    <section>');
+
+  final lyricMaps = [for (final part in parts) _lyricsByIdOf(part)];
+  final measureCount =
+      parts.map((p) => p.measures.length).reduce((a, b) => a > b ? a : b);
+
+  for (var m = 0; m < measureCount; m++) {
+    final master = m < lead.measures.length ? lead.measures[m] : null;
+    final volta = master?.volta;
+    if (volta != null) out.writeln('      <ending n="$volta">');
+    final metcon = (master?.pickup ?? false) ? ' metcon="false"' : '';
+    final number = lead.barNumberAt(m) ?? 0;
+    final left = (master?.startRepeat ?? false) ? ' left="rptstart"' : '';
+    final right = (master?.endRepeat ?? false) ? ' right="rptend"' : '';
+    out.writeln('      <measure n="$number"$metcon$left$right>');
+
+    for (var p = 0; p < parts.length; p++) {
+      final measure =
+          m < parts[p].measures.length ? parts[p].measures[m] : null;
+      out.writeln('        <staff n="${p + 1}">');
+      if (measure != null) {
+        _writeLayer(out, 1, measure.elements, _midChanges(measure),
+            measureIndex: m,
+            tuplets: measure.tuplets,
+            lyricsById: lyricMaps[p],
+            idPrefix: 'p${p}_');
+        for (final (n, voice) in [
+          (2, measure.voice2),
+          (3, measure.voice3),
+          (4, measure.voice4),
+        ]) {
+          if (voice.isNotEmpty) {
+            _writeLayer(out, n, voice, '',
+                measureIndex: m, lyricsById: lyricMaps[p], idPrefix: 'p${p}_');
+          }
+        }
+      } else {
+        out.writeln('          <layer n="1"/>'); // a shorter part rests here
+      }
+      out.writeln('        </staff>');
+    }
+
+    final controls = StringBuffer();
+    for (var p = 0; p < parts.length; p++) {
+      final measure =
+          m < parts[p].measures.length ? parts[p].measures[m] : null;
+      if (measure != null) {
+        controls.write(_measureControls(parts[p], measure, m, 'p${p}_'));
+      }
+    }
+    if (master?.navigation != null) {
+      controls.write('<repeatMark func="${master!.navigation!.name}"/>');
+    }
+    if (controls.isNotEmpty) out.writeln('        $controls');
+    out.writeln('      </measure>');
+    if (volta != null) out.writeln('      </ending>');
+  }
+
+  out
+    ..writeln('    </section>')
+    ..writeln('  </score></mdiv></body></music>')
+    ..writeln('</mei>');
+  return out.toString();
+}
+
+/// Verse-sorted lyric syllables of [score] keyed by note id.
+Map<String, List<Lyric>> _lyricsByIdOf(Score score) {
+  final map = <String, List<Lyric>>{};
+  for (final lyric in score.lyrics) {
+    (map[lyric.elementId] ??= []).add(lyric);
+  }
+  for (final list in map.values) {
+    list.sort((a, b) => a.verse.compareTo(b.verse));
+  }
+  return map;
+}
+
+/// The inline `<clef>/<keySig>/<meterSig>` prefix for a measure's mid-score
+/// changes (opens layer 1).
+String _midChanges(Measure measure) {
+  final changes = StringBuffer();
+  if (measure.clefChange != null) {
+    final (shape, line, dis, disPlace) = _clefParts(measure.clefChange!);
+    changes.write('<clef shape="$shape" line="$line"'
+        '${dis == null ? '' : ' dis="$dis" dis.place="$disPlace"'}/>');
+  }
+  if (measure.keyChange != null) {
+    changes.write('<keySig sig="${meiKeySig(measure.keyChange!)}"/>');
+  }
+  if (measure.timeChange != null) {
+    changes.write(
+        '<meterSig ${_meterAttrs(measure.timeChange!, dotted: false)}/>');
+  }
+  return changes.toString();
+}
+
+/// The ornament/slur/dynamic control events for one part's [measure] (navigation
+/// is handled once at the document level). Note ids are [prefix]-qualified to
+/// stay unique across staves.
+String _measureControls(
+    Score score, Measure measure, int index, String prefix) {
+  final controls = StringBuffer();
+  for (final (voiceNum, voice) in [
+    (1, measure.elements),
+    (2, measure.voice2),
+    (3, measure.voice3),
+    (4, measure.voice4),
+  ]) {
+    for (var i = 0; i < voice.length; i++) {
+      final element = voice[i];
+      if (element is NoteElement && element.ornament != null) {
+        final id = _meiIdFor(element, index, voiceNum, i, prefix: prefix);
+        if (id != null) controls.write(_ornamentEvent(element.ornament!, id));
+      }
+    }
+  }
+  final measureIds = {
+    for (final e in [
+      ...measure.elements,
+      ...measure.voice2,
+      ...measure.voice3,
+      ...measure.voice4,
+    ])
+      if (e.id != null) e.id!,
+  };
+  for (final slur in score.slurs) {
+    if (measureIds.contains(slur.startId)) {
+      controls.write('<slur startid="#$prefix${slur.startId}" '
+          'endid="#$prefix${slur.endId}"/>');
+    }
+  }
+  for (final dyn in score.dynamics) {
+    if (measureIds.contains(dyn.elementId)) {
+      controls.write('<dynam startid="#$prefix${dyn.elementId}">'
+          '${dyn.level.name}</dynam>');
+    }
+  }
+  return controls.toString();
+}
+
 String _meterAttrs(TimeSignature time, {required bool dotted}) {
   final count = time.components?.join('+') ?? '${time.beats}';
   final p = dotted ? 'meter.' : '';
@@ -249,8 +454,12 @@ void _writeMeasure(StringBuffer out, Score score, int index,
 /// collide, and only ornamented notes get one (unornamented id-less notes stay
 /// id-free, keeping the output minimal). Returns null when there is nothing to
 /// anchor.
-String? _meiIdFor(NoteElement e, int measure, int voice, int index) =>
-    e.id ?? (e.ornament != null ? 'o${measure}_${voice}_$index' : null);
+String? _meiIdFor(NoteElement e, int measure, int voice, int index,
+    {String prefix = ''}) {
+  final base =
+      e.id ?? (e.ornament != null ? 'o${measure}_${voice}_$index' : null);
+  return base == null ? null : '$prefix$base';
+}
 
 /// The `<verse>/<syl>` children for a note's [lyrics] (already verse-sorted).
 /// `@con` carries the continuation to the next syllable: `d`=hyphen (word
@@ -290,7 +499,8 @@ void _writeLayer(
     StringBuffer out, int n, List<MusicElement> elements, String prefix,
     {required int measureIndex,
     Map<String, List<Lyric>> lyricsById = const {},
-    List<TupletSpan> tuplets = const []}) {
+    List<TupletSpan> tuplets = const [],
+    String idPrefix = ''}) {
   out.write('          <layer n="$n">$prefix');
   for (var i = 0; i < elements.length; i++) {
     final element = elements[i];
@@ -317,7 +527,7 @@ void _writeLayer(
       // A single-note tremolo is N slashes through the stem (MEI @stem.mod).
       final trem =
           element.tremolo == null ? '' : ' stem.mod="${element.tremolo}slash"';
-      final anchorId = _meiIdFor(element, measureIndex, n, i);
+      final anchorId = _meiIdFor(element, measureIndex, n, i, prefix: idPrefix);
       final xmlId = anchorId == null ? '' : ' xml:id="$anchorId"';
       final verses = element.id == null ? '' : _verses(lyricsById[element.id]);
       if (element.pitches.length == 1) {

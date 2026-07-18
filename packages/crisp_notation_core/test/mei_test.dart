@@ -467,4 +467,43 @@ void main() {
     expect(notes[0].ornament, Ornament.trill);
     expect(notes[1].ornament, Ornament.mordent);
   });
+
+  test('multiPartToMei keeps every part (not just the first)', () {
+    NoteElement note(Step s, int o, {String? id, Ornament? orn}) => NoteElement(
+          pitches: [Pitch(s, octave: o)],
+          duration: const NoteDuration(DurationBase.whole),
+          id: id,
+          ornament: orn,
+        );
+    final flute = Score(
+      clef: Clef.treble,
+      dynamics: [const DynamicMarking('f0', DynamicLevel.ff)],
+      measures: [
+        Measure([note(Step.g, 4, id: 'f0', orn: Ornament.trill)]),
+        Measure([note(Step.a, 4)]),
+      ],
+    );
+    final cello = Score(
+      clef: Clef.bass,
+      lyrics: const [Lyric('c0', 'la')],
+      measures: [
+        Measure([note(Step.c, 3, id: 'c0')]),
+        Measure([note(Step.d, 3)]),
+      ],
+    );
+    final back =
+        multiPartScoreFromMei(multiPartToMei(MultiPartScore([flute, cello])));
+    expect(back.parts, hasLength(2), reason: 'both parts survive');
+    expect(back.parts.map((p) => p.clef).toSet(), {Clef.treble, Clef.bass},
+        reason: 'each part keeps its own clef');
+    final notes = back.parts
+        .expand((p) => p.measures.expand((m) => m.elements))
+        .whereType<NoteElement>()
+        .toList();
+    expect(notes, hasLength(4), reason: 'all four notes across both parts');
+    // Per-part markings survive with part-prefixed ids (no cross-part clash).
+    expect(notes.any((n) => n.ornament == Ornament.trill), isTrue);
+    expect(back.parts.any((p) => p.dynamics.isNotEmpty), isTrue);
+    expect(back.parts.any((p) => p.lyrics.isNotEmpty), isTrue);
+  });
 }
