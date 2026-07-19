@@ -25,7 +25,8 @@ class _Note {
   final int start;
   final int end;
   final int key;
-  _Note(this.start, this.end, this.key);
+  final int velocity;
+  _Note(this.start, this.end, this.key, this.velocity);
 }
 
 /// One reconstructed event: a chord (or rest) of a whole number of
@@ -34,7 +35,8 @@ class _Ev {
   final bool isRest;
   final int units;
   final List<int> keys; // sorted MIDI keys (empty for a rest)
-  _Ev(this.isRest, this.units, this.keys);
+  final int velocity; // note-on velocity for the group (0 for a rest)
+  _Ev(this.isRest, this.units, this.keys, [this.velocity = 0]);
 }
 
 /// Parses Standard MIDI File [bytes] into a [Score].
@@ -70,13 +72,16 @@ Score scoreFromMidi(Uint8List bytes) {
     var tick = 0;
     int? status;
     // (channel << 8 | key) -> queue of note-on start ticks (FIFO).
-    final pending = <int, List<int>>{};
+    final pending =
+        <int, List<(int, int)>>{}; // key → queue of (startTick, vel)
 
     void noteOn(int channel, int key, int velocity) {
       if (velocity == 0) {
         _noteOff(pending, notes, channel, key, tick);
       } else {
-        pending.putIfAbsent(channel << 8 | key, () => <int>[]).add(tick);
+        pending
+            .putIfAbsent(channel << 8 | key, () => <(int, int)>[])
+            .add((tick, velocity));
       }
     }
 
@@ -144,12 +149,12 @@ Score scoreFromMidi(Uint8List bytes) {
 }
 
 /// Resolves a note-off against the earliest matching pending note-on.
-void _noteOff(Map<int, List<int>> pending, List<_Note> notes, int channel,
-    int key, int tick) {
+void _noteOff(Map<int, List<(int, int)>> pending, List<_Note> notes,
+    int channel, int key, int tick) {
   final queue = pending[channel << 8 | key];
   if (queue == null || queue.isEmpty) return;
-  final start = queue.removeAt(0);
-  if (tick > start) notes.add(_Note(start, tick, key));
+  final (start, velocity) = queue.removeAt(0);
+  if (tick > start) notes.add(_Note(start, tick, key, velocity));
 }
 
 Score _buildScore(List<_Note> notes, int tpq, TimeSignature ts) {
@@ -178,6 +183,7 @@ Score _buildScore(List<_Note> notes, int tpq, TimeSignature ts) {
   // duration is its longest member.
   final groupKeys = <int, List<int>>{};
   final groupDur = <int, int>{};
+  final groupVel = <int, int>{}; // loudest note-on velocity in the group
   for (final note in notes) {
     final startUnit = toUnits(note.start);
     final dur = toUnits(note.end) - startUnit;
@@ -185,6 +191,10 @@ Score _buildScore(List<_Note> notes, int tpq, TimeSignature ts) {
     (groupKeys[startUnit] ??= <int>[]).add(note.key);
     final existing = groupDur[startUnit];
     groupDur[startUnit] = existing == null || d > existing ? d : existing;
+    final vExisting = groupVel[startUnit];
+    groupVel[startUnit] = vExisting == null || note.velocity > vExisting
+        ? note.velocity
+        : vExisting;
   }
 
   final onsets = groupKeys.keys.toList()..sort();
@@ -200,7 +210,7 @@ Score _buildScore(List<_Note> notes, int tpq, TimeSignature ts) {
     var dur = groupDur[u]!;
     if (dur > next - u) dur = next - u;
     if (dur < 1) dur = 1;
-    events.add(_Ev(false, dur, groupKeys[u]!..sort()));
+    events.add(_Ev(false, dur, groupKeys[u]!..sort(), groupVel[u]!));
     cursor = u + dur;
   }
 
@@ -235,6 +245,7 @@ Score _buildScore(List<_Note> notes, int tpq, TimeSignature ts) {
           pitches: [for (final key in ev.keys) _pitchFromMidi(key)],
           duration: duration,
           tieToNext: k != fragments.length - 1,
+          velocity: ev.velocity,
           id: id,
         ));
       }

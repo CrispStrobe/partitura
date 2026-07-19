@@ -173,6 +173,12 @@ class NoteElement extends MusicElement {
   /// The notehead shape for this element (default [NoteheadShape.normal]).
   final NoteheadShape notehead;
 
+  /// The performed note-on velocity (0..127), when the source captures it (e.g.
+  /// a MIDI import). Null for notated scores that express loudness through
+  /// [DynamicMarking]s instead. A player can voice this as a per-note gain, and
+  /// `scoreToMidi` writes it back when present.
+  final int? velocity;
+
   /// Creates a note or chord from [pitches] and a [duration].
   ///
   /// [pitches] must be non-empty. (Not asserted: list lengths cannot be
@@ -190,6 +196,7 @@ class NoteElement extends MusicElement {
     this.arpeggio,
     this.tremolo,
     this.notehead = NoteheadShape.normal,
+    this.velocity,
     super.id,
   });
 
@@ -207,6 +214,7 @@ class NoteElement extends MusicElement {
     Arpeggio? arpeggio,
     int? tremolo,
     NoteheadShape notehead = NoteheadShape.normal,
+    int? velocity,
     String? id,
   }) : this(
           pitches: [pitch],
@@ -221,6 +229,7 @@ class NoteElement extends MusicElement {
           arpeggio: arpeggio,
           tremolo: tremolo,
           notehead: notehead,
+          velocity: velocity,
           id: id,
         );
 
@@ -235,6 +244,7 @@ class NoteElement extends MusicElement {
       other.arpeggio == arpeggio &&
       other.tremolo == tremolo &&
       other.notehead == notehead &&
+      other.velocity == velocity &&
       other.graceStyle == graceStyle &&
       listEquals(other.pitches, pitches) &&
       setEquals(other.articulations, articulations) &&
@@ -252,6 +262,7 @@ class NoteElement extends MusicElement {
       notehead,
       id,
       graceStyle,
+      velocity,
       Object.hashAll(pitches),
       Object.hashAllUnordered(articulations),
       Object.hashAll(graceNotes),

@@ -162,7 +162,9 @@ Uint8List scoreToMidi(
     } else if (element.articulations.contains(Articulation.accent)) {
       baseVelocity += 15;
     }
-    final velocity = baseVelocity.clamp(1, 127);
+    // An explicit performed velocity (e.g. from a MIDI import) wins over the
+    // notation-derived one, so a MIDI's per-note dynamics round-trip.
+    final velocity = (element.velocity ?? baseVelocity).clamp(1, 127);
 
     final channel = note.voice == 1 ? 1 : 0;
     final onTick = _ticks(note.start, ticksPerQuarter);
