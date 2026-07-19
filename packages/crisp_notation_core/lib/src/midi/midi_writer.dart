@@ -54,17 +54,21 @@ const Set<DynamicLevel> _momentary = {
 
 /// Serializes [score] to Standard MIDI File (format 0) bytes.
 ///
-/// [quarterBpm] sets the single tempo (quarter-note beats per minute);
-/// [ticksPerQuarter] is the file's timing resolution (480 divides the common
-/// tuplets cleanly). Voice 1 is written on MIDI channel 0, voice 2 on channel
-/// 1. Chords emit one note per pitch. The timeline is unfolded
-/// ([playbackTimeline]), so a two-bar repeat exports as four bars of notes.
-/// Grace notes carry no time and are omitted. Deterministic.
+/// [quarterBpm] sets the single tempo (quarter-note beats per minute). When
+/// omitted it falls back to the score's own [Score.tempo] (normalized to
+/// quarter-notes-per-minute), then to 120 — so an exported file plays at the
+/// notated tempo instead of a fixed default. [ticksPerQuarter] is the file's
+/// timing resolution (480 divides the common tuplets cleanly). Voice 1 is
+/// written on MIDI channel 0, voice 2 on channel 1. Chords emit one note per
+/// pitch. The timeline is unfolded ([playbackTimeline]), so a two-bar repeat
+/// exports as four bars of notes. Grace notes carry no time and are omitted.
+/// Deterministic.
 Uint8List scoreToMidi(
   Score score, {
-  double quarterBpm = 120,
+  double? quarterBpm,
   int ticksPerQuarter = 480,
 }) {
+  final bpm = quarterBpm ?? score.tempo?.quarterBpm ?? 120;
   final byId = <String, NoteElement>{};
   for (final measure in score.measures) {
     for (final element in [...measure.elements, ...measure.voice2]) {
@@ -83,7 +87,7 @@ Uint8List scoreToMidi(
   }
 
   // Tempo meta: microseconds per quarter note.
-  final usPerQuarter = (60000000 / quarterBpm).round();
+  final usPerQuarter = (60000000 / bpm).round();
   add(0, 0, [
     0xFF, 0x51, 0x03, //
     (usPerQuarter >> 16) & 0xFF,

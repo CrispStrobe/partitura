@@ -59,6 +59,40 @@ void main() {
       expect(_contains(slow, [0xFF, 0x51, 0x03, 0x0F, 0x42, 0x40]), isTrue);
     });
 
+    test('falls back to the score tempo when no quarterBpm is given', () {
+      // ♩ = 60 → 1_000_000 µs = 0x0F4240, without the caller passing a bpm.
+      final midi = scoreToMidi(
+        Score.simple(notes: 'c4:q', tempo: const Tempo(60)),
+      );
+      expect(_contains(midi, [0xFF, 0x51, 0x03, 0x0F, 0x42, 0x40]), isTrue);
+    });
+
+    test('an explicit quarterBpm overrides the score tempo', () {
+      // Score says ♩ = 60 but the caller asks for 120 → 500_000 µs = 0x07A120.
+      final midi = scoreToMidi(
+        Score.simple(notes: 'c4:q', tempo: const Tempo(60)),
+        quarterBpm: 120,
+      );
+      expect(_contains(midi, [0xFF, 0x51, 0x03, 0x07, 0xA1, 0x20]), isTrue);
+    });
+
+    test('a non-quarter beat unit is normalized to quarter-BPM', () {
+      // A half note at 60 == ♩ = 120 → 500_000 µs = 0x07A120.
+      final midi = scoreToMidi(
+        Score.simple(
+          notes: 'c4:q',
+          tempo: const Tempo(60, beatUnit: DurationBase.half),
+        ),
+      );
+      expect(_contains(midi, [0xFF, 0x51, 0x03, 0x07, 0xA1, 0x20]), isTrue);
+    });
+
+    test('no tempo and no quarterBpm defaults to 120', () {
+      // 120 bpm → 500_000 µs = 0x07A120 (unchanged default).
+      final midi = scoreToMidi(Score.simple(notes: 'c4:q'));
+      expect(_contains(midi, [0xFF, 0x51, 0x03, 0x07, 0xA1, 0x20]), isTrue);
+    });
+
     test('time-signature meta reflects the score meter', () {
       final midi = scoreToMidi(
         Score.simple(timeSignature: const TimeSignature(6, 8), notes: 'c4:q'),
