@@ -278,4 +278,79 @@ void main() {
       });
     }
   });
+
+  group('velocity from dynamics + articulations', () {
+    NoteElement note(String id, Step step,
+            {Set<Articulation> arts = const {}}) =>
+        NoteElement(
+          pitches: [Pitch(step, octave: 4)],
+          duration: NoteDuration.quarter,
+          id: id,
+          articulations: arts,
+        );
+    Score score(List<MusicElement> els,
+            {List<DynamicMarking> dyn = const []}) =>
+        Score(clef: Clef.treble, measures: [Measure(els)], dynamics: dyn);
+
+    test('no dynamic keeps the mezzo-forte default (80) — byte-compatible', () {
+      final midi = scoreToMidi(score([note('n', Step.c)]));
+      expect(_contains(midi, [0x90, 60, 80]), isTrue);
+    });
+
+    test('forte is louder, pianissimo is softer', () {
+      final f = scoreToMidi(
+        score([note('n', Step.c)],
+            dyn: const [DynamicMarking('n', DynamicLevel.f)]),
+      );
+      expect(_contains(f, [0x90, 60, 96]), isTrue);
+      final pp = scoreToMidi(
+        score([note('n', Step.c)],
+            dyn: const [DynamicMarking('n', DynamicLevel.pp)]),
+      );
+      expect(_contains(pp, [0x90, 60, 33]), isTrue);
+    });
+
+    test('a graduated mark carries forward; an accent mark does not', () {
+      final midi = scoreToMidi(
+        score(
+          [
+            note('n0', Step.c), // f
+            note('n1', Step.d), // still f (carried)
+            note('n2', Step.e), // sf accent
+            note('n3', Step.f), // back to f (accent did not stick)
+          ],
+          dyn: const [
+            DynamicMarking('n0', DynamicLevel.f),
+            DynamicMarking('n2', DynamicLevel.sf),
+          ],
+        ),
+      );
+      expect(_contains(midi, [0x90, 60, 96]), isTrue); // n0 f
+      expect(_contains(midi, [0x90, 62, 96]), isTrue); // n1 carried f
+      expect(_contains(midi, [0x90, 64, 112]), isTrue); // n2 sf
+      expect(_contains(midi, [0x90, 65, 96]), isTrue); // n3 f again
+    });
+
+    test('accent articulation bumps the attack (+15)', () {
+      final midi = scoreToMidi(
+        score([
+          note('a', Step.c, arts: const {Articulation.accent}),
+        ]),
+      );
+      expect(_contains(midi, [0x90, 60, 95]), isTrue); // 80 + 15
+    });
+
+    test('staccato shortens the note without changing its velocity', () {
+      final plain = scoreToMidi(score([note('p', Step.c)]));
+      final stac = scoreToMidi(
+        score([
+          note('s', Step.c, arts: const {Articulation.staccato})
+        ]),
+      );
+      // Same attack velocity …
+      expect(_contains(stac, [0x90, 60, 80]), isTrue);
+      // … but a different (shorter) note, so the byte streams differ.
+      expect(stac, isNot(equals(plain)));
+    });
+  });
 }

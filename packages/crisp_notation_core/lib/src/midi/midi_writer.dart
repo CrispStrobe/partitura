@@ -14,8 +14,43 @@ import '../model/score.dart';
 import '../playback/playback_timeline.dart';
 import '../theory/fraction.dart';
 
-/// Note-on velocity used for every exported note.
+/// Default note-on velocity — used for a note with no dynamic in force. Equal
+/// to mezzo-forte, so a score that carries no dynamics exports byte-for-byte as
+/// before.
 const int _velocity = 80;
+
+/// Note-on velocity per graduated dynamic level. `mf` == [_velocity] so an
+/// unmarked score is unchanged. Levels absent here fall back to [_velocity].
+const Map<DynamicLevel, int> _dynamicVelocity = {
+  DynamicLevel.pppp: 8,
+  DynamicLevel.ppp: 20,
+  DynamicLevel.pp: 33,
+  DynamicLevel.p: 49,
+  DynamicLevel.mp: 64,
+  DynamicLevel.mf: 80,
+  DynamicLevel.f: 96,
+  DynamicLevel.ff: 112,
+  DynamicLevel.fff: 122,
+  DynamicLevel.ffff: 127,
+  // Accent-type marks — a strong attack on that one note (see [_momentary]).
+  DynamicLevel.sf: 112,
+  DynamicLevel.sfz: 118,
+  DynamicLevel.sffz: 124,
+  DynamicLevel.fz: 112,
+  DynamicLevel.rf: 100,
+  DynamicLevel.fp: 96, // forte attack; the piano tail isn't modeled
+};
+
+/// Dynamics that accent a single note rather than setting a lasting level — so
+/// they do NOT carry forward to following notes the way p/f/… do.
+const Set<DynamicLevel> _momentary = {
+  DynamicLevel.sf,
+  DynamicLevel.sfz,
+  DynamicLevel.sffz,
+  DynamicLevel.fz,
+  DynamicLevel.rf,
+  DynamicLevel.fp,
+};
 
 /// Serializes [score] to Standard MIDI File (format 0) bytes.
 ///
@@ -68,19 +103,50 @@ Uint8List scoreToMidi(
     ]);
   }
 
+  // Dynamics reach velocity: a graduated mark (p/f/…) sets a level that lasts
+  // until the next one (tracked in timeline order below); an accent mark
+  // (sf/sfz/fp/…) hits only its own note. Accent/marcato articulations bump the
+  // attack; staccato shortens the note-off. A score with neither is unchanged.
+  final dynAt = <String, DynamicLevel>{
+    for (final d in score.dynamics) d.elementId: d.level,
+  };
+  var level = DynamicLevel.mf; // the default → _velocity
+
   var maxTick = 0;
   for (final note in playbackTimeline(score)) {
     if (note.isRest) continue;
     final element = byId[note.elementId];
     if (element == null) continue;
+
+    final mark = dynAt[element.id];
+    int baseVelocity;
+    if (mark == null) {
+      baseVelocity = _dynamicVelocity[level] ?? _velocity;
+    } else if (_momentary.contains(mark)) {
+      baseVelocity = _dynamicVelocity[mark] ?? _velocity; // one-note accent
+    } else {
+      level = mark; // lasting change
+      baseVelocity = _dynamicVelocity[mark] ?? _velocity;
+    }
+    if (element.articulations.contains(Articulation.marcato)) {
+      baseVelocity += 20;
+    } else if (element.articulations.contains(Articulation.accent)) {
+      baseVelocity += 15;
+    }
+    final velocity = baseVelocity.clamp(1, 127);
+
     final channel = note.voice == 1 ? 1 : 0;
     final onTick = _ticks(note.start, ticksPerQuarter);
-    final durTicks = _ticks(note.duration, ticksPerQuarter);
+    var durTicks = _ticks(note.duration, ticksPerQuarter);
+    // Staccato: detach the note by cutting its sounding length ~in half.
+    if (element.articulations.contains(Articulation.staccato)) {
+      durTicks = (durTicks * 0.5).round();
+    }
     final offTick = onTick + (durTicks < 1 ? 1 : durTicks);
     if (offTick > maxTick) maxTick = offTick;
     for (final pitch in element.pitches) {
       final key = pitch.midiNumber.clamp(0, 127);
-      add(onTick, 2, [0x90 | channel, key, _velocity]);
+      add(onTick, 2, [0x90 | channel, key, velocity]);
       add(offTick, 1, [0x80 | channel, key, 0x40]);
     }
   }
