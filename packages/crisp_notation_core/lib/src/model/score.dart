@@ -978,13 +978,24 @@ class ScoreMetadata {
   /// The part's instrument or voice name (e.g. `Piano`, `Flute`).
   final String? instrument;
 
-  /// Creates score metadata; every field defaults to null (absent).
+  /// The part's General-MIDI program (0..127, 0 = Acoustic Grand Piano), when
+  /// the source declares one (e.g. MusicXML `<midi-program>`). Null if unknown.
+  /// Lets a renderer voice each part with its own GM instrument.
+  final int? midiProgram;
+
+  /// Whether the part is on the GM percussion channel (channel 10) — its notes
+  /// are drum keys, not pitches, so a renderer should use a drum kit.
+  final bool isPercussion;
+
+  /// Creates score metadata; every field defaults to null/false (absent).
   const ScoreMetadata({
     this.title,
     this.composer,
     this.lyricist,
     this.copyright,
     this.instrument,
+    this.midiProgram,
+    this.isPercussion = false,
   });
 
   /// Whether every field is absent (the default) — no header to emit.
@@ -993,7 +1004,9 @@ class ScoreMetadata {
       composer == null &&
       lyricist == null &&
       copyright == null &&
-      instrument == null;
+      instrument == null &&
+      midiProgram == null &&
+      !isPercussion;
 
   @override
   bool operator ==(Object other) =>
@@ -1002,11 +1015,13 @@ class ScoreMetadata {
       other.composer == composer &&
       other.lyricist == lyricist &&
       other.copyright == copyright &&
-      other.instrument == instrument;
+      other.instrument == instrument &&
+      other.midiProgram == midiProgram &&
+      other.isPercussion == isPercussion;
 
   @override
-  int get hashCode =>
-      Object.hash(title, composer, lyricist, copyright, instrument);
+  int get hashCode => Object.hash(title, composer, lyricist, copyright,
+      instrument, midiProgram, isPercussion);
 
   @override
   String toString() {
@@ -1016,6 +1031,8 @@ class ScoreMetadata {
       if (lyricist != null) 'lyricist: "$lyricist"',
       if (copyright != null) 'copyright: "$copyright"',
       if (instrument != null) 'instrument: "$instrument"',
+      if (midiProgram != null) 'midiProgram: $midiProgram',
+      if (isPercussion) 'isPercussion: true',
     ];
     return 'ScoreMetadata(${parts.join(', ')})';
   }

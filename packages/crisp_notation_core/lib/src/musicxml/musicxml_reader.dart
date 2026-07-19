@@ -68,12 +68,25 @@ ScoreMetadata _metadataOf(XmlNode root, XmlNode part) {
   }
   composer ??= _creditText(root, justify: 'right');
   final copyright = identification?.childText('rights');
-  // Part name: match the score-part with this part's id, null out the default.
+  // Part name + GM voice: match the score-part with this part's id. Read its
+  // `<midi-instrument>` for a General-MIDI program (`<midi-program>` is 1-based
+  // in MusicXML → 0-based here) and percussion (`<midi-channel>10`).
   final partId = part.attributes['id'];
   String? partName;
+  int? midiProgram;
+  var isPercussion = false;
   for (final sp in root.child('part-list')?.childrenNamed('score-part') ??
       const <XmlNode>[]) {
-    if (sp.attributes['id'] == partId) partName = sp.childText('part-name');
+    if (sp.attributes['id'] != partId) continue;
+    partName = sp.childText('part-name');
+    final mi = sp.child('midi-instrument');
+    if (mi != null) {
+      final prog = int.tryParse(mi.childText('midi-program') ?? '');
+      if (prog != null) midiProgram = (prog - 1).clamp(0, 127);
+      if (int.tryParse(mi.childText('midi-channel') ?? '') == 10) {
+        isPercussion = true;
+      }
+    }
   }
   final instrument =
       partName == _defaultPartName || partName == '' ? null : partName;
@@ -83,6 +96,8 @@ ScoreMetadata _metadataOf(XmlNode root, XmlNode part) {
     lyricist: lyricist == '' ? null : lyricist,
     copyright: copyright == '' ? null : copyright,
     instrument: instrument,
+    midiProgram: midiProgram,
+    isPercussion: isPercussion,
   );
 }
 
