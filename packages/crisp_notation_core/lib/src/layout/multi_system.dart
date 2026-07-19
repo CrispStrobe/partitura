@@ -163,6 +163,12 @@ MultiSystemLayout layoutSystems(
     throw ArgumentError.value(maxWidth, 'maxWidth', 'must be positive');
   }
 
+  // A score with no measures lays out to no systems (an empty page) — the width
+  // maths below reads measureRegions.last / .first, which an empty score lacks.
+  if (score.measures.isEmpty) {
+    return MultiSystemLayout(systems: const [], maxWidth: maxWidth);
+  }
+
   // Natural widths of every measure, plus the running clef/key/time state
   // at each measure start.
   final natural = engine.layout(score, settings);

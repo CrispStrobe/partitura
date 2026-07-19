@@ -455,6 +455,156 @@ void main() {
     });
   });
 
+  group('pagination robustness', () {
+    // The paginating entry points (layoutPages / layoutMultiPartPages /
+    // layoutStaffSystemSystems) must never crash *internally* on a degenerate
+    // but well-formed score — they either lay it out or return nothing. The
+    // only permitted throw is the documented ArgumentError contract below.
+    const metrics = PageMetrics(
+      width: 100,
+      height: 60,
+      marginTop: 4,
+      marginBottom: 4,
+      marginLeft: 4,
+      marginRight: 4,
+    );
+
+    test('an empty score paginates to nothing, never a StateError', () {
+      // Regression: layoutSystems read measureRegions.last on a 0-measure
+      // score and threw "Bad state: No element". Now it short-circuits.
+      const empty = Score(clef: Clef.treble, measures: []);
+      expect(layoutPages(empty, settings, metrics: metrics).pages, isEmpty);
+      final mp = layoutMultiPartPages(
+        MultiPartScore(const [empty]),
+        settings,
+        metrics: metrics,
+      );
+      expect(mp.pages, isEmpty);
+      expect(
+        layoutStaffSystemSystems(
+          MultiPartScore(const [empty]).toStaffSystem(),
+          settings,
+          maxWidth: 90,
+        ).systems,
+        isEmpty,
+      );
+    });
+
+    test('no internal crash over a fuzz of valid scores + tight metrics', () {
+      final rng = Random(20260719);
+      final durs = DurationBase.values;
+      final meters = [
+        TimeSignature.fourFour,
+        const TimeSignature(3, 4),
+        const TimeSignature(7, 8),
+        TimeSignature.additive([3, 2], 8),
+        const TimeSignature(2, 2),
+      ];
+      final metricsList = [
+        metrics,
+        const PageMetrics(
+          width: 8,
+          height: 6,
+          marginTop: 1,
+          marginBottom: 1,
+          marginLeft: 1,
+          marginRight: 1,
+        ),
+        const PageMetrics(width: 10000, height: 10000),
+        const PageMetrics(
+          width: 6,
+          height: 5,
+          marginTop: 2,
+          marginBottom: 2,
+          marginLeft: 2,
+          marginRight: 2,
+        ),
+      ];
+      NoteElement note() => NoteElement(
+            pitches: [
+              for (var i = 0; i < 1 + rng.nextInt(3); i++)
+                Pitch(Step.values[rng.nextInt(7)], octave: 2 + rng.nextInt(5)),
+            ],
+            duration: NoteDuration(
+              durs[rng.nextInt(durs.length)],
+              dots: rng.nextInt(3),
+            ),
+            tieToNext: rng.nextInt(4) == 0,
+          );
+      Measure measure() => Measure(
+            [for (var i = 0; i < rng.nextInt(8); i++) note()],
+            voice2: rng.nextInt(3) == 0 ? [note()] : const <MusicElement>[],
+          );
+
+      final crashes = <String>[];
+      void guard(String label, void Function() body) {
+        try {
+          body();
+        } on ArgumentError {
+          // The documented precondition (equal measure counts / non-empty) —
+          // exercised separately below; not an internal crash.
+        } catch (e) {
+          crashes.add('$label: ${e.runtimeType}: '
+              '${e.toString().split('\n').first}');
+        }
+      }
+
+      for (var iter = 0; iter < 150; iter++) {
+        final bars = rng.nextInt(6); // includes 0 → empty
+        final m = metricsList[rng.nextInt(metricsList.length)];
+        final score = Score(
+          clef: Clef.values[rng.nextInt(Clef.values.length)],
+          timeSignature: meters[rng.nextInt(meters.length)],
+          measures: [for (var b = 0; b < bars; b++) measure()],
+        );
+        guard('layoutPages', () => layoutPages(score, settings, metrics: m));
+        // Multi-part with the documented equal-measure-count precondition.
+        final parts = [
+          for (var p = 0; p < 1 + rng.nextInt(4); p++)
+            Score(
+              clef: Clef.values[rng.nextInt(Clef.values.length)],
+              measures: [for (var b = 0; b < bars; b++) measure()],
+            ),
+        ];
+        guard(
+          'layoutMultiPartPages',
+          () =>
+              layoutMultiPartPages(MultiPartScore(parts), settings, metrics: m),
+        );
+      }
+      expect(crashes, isEmpty, reason: crashes.take(10).join('\n'));
+    });
+
+    test('differing measure counts throw the documented ArgumentError', () {
+      final short = Score(
+        clef: Clef.treble,
+        measures: [
+          Measure([NoteElement.note(const Pitch(Step.c), NoteDuration.whole)]),
+        ],
+      );
+      final long = Score(
+        clef: Clef.bass,
+        measures: [
+          for (var b = 0; b < 2; b++)
+            Measure(
+              [
+                NoteElement.note(
+                    const Pitch(Step.c, octave: 3), NoteDuration.whole)
+              ],
+            ),
+        ],
+      );
+      expect(
+        () => layoutMultiPartPages(
+          MultiPartScore([short, long]),
+          settings,
+          metrics: metrics,
+        ),
+        throwsArgumentError,
+      );
+    });
+  });
+
   group('errors', () {
     test('a NoteElement without pitches fails layout loudly', () {
       final score = Score(clef: Clef.treble, measures: [
