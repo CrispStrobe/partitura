@@ -125,10 +125,27 @@ ScoreMetadata _staffMetadata(
     XmlNode scoreNode, XmlNode staffNode, ScoreMetadata base) {
   final id = staffNode.attributes['id'];
   String? track;
+  int? midiProgram;
+  var isPercussion = false;
   if (id != null) {
     for (final part in scoreNode.childrenNamed('Part')) {
       if (part.childrenNamed('Staff').any((s) => s.attributes['id'] == id)) {
         track = part.childText('trackName');
+        // The GM voice: `<Instrument>`'s `<Channel><program value="N"/>` (0-based
+        // GM in MuseScore) and `<useDrumset>1` → percussion.
+        final inst = part.child('Instrument');
+        if (inst != null) {
+          // Percussion: an explicit `<useDrumset>1`, or a `<Drum>` map (older
+          // files omit useDrumset but list drums — matching `_drumsetFor`).
+          if (inst.childText('useDrumset') == '1' ||
+              inst.childrenNamed('Drum').isNotEmpty) {
+            isPercussion = true;
+          }
+          final value =
+              inst.child('Channel')?.child('program')?.attributes['value'];
+          final p = int.tryParse(value ?? '');
+          if (p != null) midiProgram = p.clamp(0, 127);
+        }
         break;
       }
     }
@@ -141,6 +158,8 @@ ScoreMetadata _staffMetadata(
     lyricist: base.lyricist,
     copyright: base.copyright,
     instrument: instrument,
+    midiProgram: midiProgram,
+    isPercussion: isPercussion,
   );
 }
 
