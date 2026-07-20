@@ -62,7 +62,8 @@ typedef GpFretPlan = Map<String, Map<int, int>>;
 
 /// Serializes [score] to a `score.gpif` XML string, fretting its pitches on
 /// [tuning] (default standard guitar). Notes unreachable on the tuning are
-/// dropped. Voice 2 is ignored (single voice per bar). Tab techniques
+/// dropped. A bar's **voice 2** is written as a second GPIF voice (and read back
+/// into `Measure.voice2`), so a two-voice staff round-trips. Tab techniques
 /// (bends and bend contours, hammer-on/pull-off, slides, normal/wide vibrato,
 /// dead/ghost/harmonic marks) are written as GPIF note properties, so a `.gp`
 /// round-trip keeps them.
@@ -191,15 +192,11 @@ String _writeGpif(List<Score> parts, List<Tuning> tunings, List<String> names,
     final vibratoWideBy = {for (final v in score.vibratos) v.noteId: v.wide};
     final markBy = {for (final m in score.tabNoteMarks) m.noteId: m.style};
 
-    for (var m = 0; m < measureCount; m++) {
-      final measure = m < score.measures.length ? score.measures[m] : null;
-      final bid = barId++;
-      final vid = voiceId++;
-      barIdsPerMeasure[m].add(bid);
-      bars.writeln('    <Bar id="$bid"><Voices>$vid -1 -1 -1</Voices></Bar>');
-
+    // Emit one GPIF voice from [els] (a bar's voice-1 or voice-2 stream) into
+    // the shared beat/note buffers; returns the beat ids to reference.
+    List<int> emitVoice(Iterable<MusicElement> els) {
       final beatRefs = <int>[];
-      for (final element in measure?.elements ?? const <MusicElement>[]) {
+      for (final element in els) {
         final rid = rhythmFor(element.duration);
         if (rid < 0) continue;
         final noteRefs = <int>[];
@@ -332,8 +329,30 @@ String _writeGpif(List<Score> parts, List<Tuning> tunings, List<String> names,
         beats.writeln('</Beat>');
         beatRefs.add(beatId++);
       }
-      voices.writeln('    <Voice id="$vid"><Beats>${beatRefs.join(' ')}</Beats>'
-          '</Voice>');
+      return beatRefs;
+    }
+
+    for (var m = 0; m < measureCount; m++) {
+      final measure = m < score.measures.length ? score.measures[m] : null;
+      final bid = barId++;
+      barIdsPerMeasure[m].add(bid);
+
+      final vid1 = voiceId++;
+      final v1Refs = emitVoice(measure?.elements ?? const <MusicElement>[]);
+      voices.writeln(
+          '    <Voice id="$vid1"><Beats>${v1Refs.join(' ')}</Beats></Voice>');
+
+      // A second GPIF voice when the part carries voice 2 (polyphonic staff).
+      var vid2 = -1;
+      final v2 = measure?.voice2 ?? const <MusicElement>[];
+      if (v2.isNotEmpty) {
+        vid2 = voiceId++;
+        final v2Refs = emitVoice(v2);
+        voices.writeln(
+            '    <Voice id="$vid2"><Beats>${v2Refs.join(' ')}</Beats></Voice>');
+      }
+      bars.writeln(
+          '    <Bar id="$bid"><Voices>$vid1 $vid2 -1 -1</Voices></Bar>');
     }
   }
 
@@ -467,8 +486,10 @@ Score scoreFromGpif(String gpif, {int trackIndex = 0}) {
   final marks = <TabNoteMark>[];
   final slurs = <Slur>[]; // hammer-on / pull-off
   final glissandos = <Glissando>[]; // slides
-  String? pendingHopo; // a HO/PO note waiting for its destination
-  String? pendingSlide;
+  // HO/PO + slide spans waiting for their destination note, one pair per voice
+  // lane ([0] = hopo id, [1] = slide id) so voice 1 and voice 2 don't cross.
+  final pend1 = <String?>[null, null];
+  final pend2 = <String?>[null, null];
   var id = 0;
   TimeSignature? firstTime;
   TimeSignature? runningTime; // the meter in force, for mid-score changes
@@ -493,137 +514,151 @@ Score scoreFromGpif(String gpif, {int trackIndex = 0}) {
     final barRef = trackIndex < barIds.length ? barIds[trackIndex] : barIds[0];
     final bar = barById[barRef];
     final voiceIds = _ints(bar?.childText('Voices'));
-    final voiceRef = voiceIds.firstWhere((v) => v >= 0, orElse: () => -1);
-    final voice = voiceRef < 0 ? null : voiceById[voiceRef];
+    // Read the bar's voices (lane 0 → this measure's elements, lane 1 → voice 2).
+    final positive = voiceIds.where((v) => v >= 0).toList();
+    final laneElements = <List<MusicElement>>[];
+    for (var lane = 0; lane < positive.length && lane < 2; lane++) {
+      final voice = voiceById[positive[lane]];
+      final pend = lane == 0 ? pend1 : pend2;
+      final elements = <MusicElement>[];
+      for (final beatRef in _ints(voice?.childText('Beats'))) {
+        final beat = beatById[beatRef];
+        if (beat == null) continue;
+        final rhythmRef =
+            int.tryParse(beat.child('Rhythm')?.attributes['ref'] ?? '');
+        final duration = _durationOf(rhythmById[rhythmRef]);
+        if (duration == null) continue;
 
-    final elements = <MusicElement>[];
-    for (final beatRef in _ints(voice?.childText('Beats'))) {
-      final beat = beatById[beatRef];
-      if (beat == null) continue;
-      final rhythmRef =
-          int.tryParse(beat.child('Rhythm')?.attributes['ref'] ?? '');
-      final duration = _durationOf(rhythmById[rhythmRef]);
-      if (duration == null) continue;
-
-      final noteRefs = _ints(beat.childText('Notes'));
-      if (noteRefs.isEmpty) {
-        elements.add(RestElement(duration, id: 'e${id++}'));
-        continue;
-      }
-      final pitches = <Pitch>[];
-      final nodes = <XmlNode>[];
-      for (final noteRef in noteRefs) {
-        final note = noteById[noteRef];
-        if (note == null) continue;
-        final string = int.tryParse(
-            _findProperty(note, 'String')?.childText('String') ?? '');
-        final fret =
-            int.tryParse(_findProperty(note, 'Fret')?.childText('Fret') ?? '');
-        if (string == null || fret == null || string >= tuningMidi.length) {
+        final noteRefs = _ints(beat.childText('Notes'));
+        if (noteRefs.isEmpty) {
+          elements.add(RestElement(duration, id: 'e${id++}'));
           continue;
         }
-        pitches.add(_pitchFromMidi(tuningMidi[string] + fret));
-        nodes.add(note);
-      }
-      if (pitches.isEmpty) {
-        elements.add(RestElement(duration, id: 'e${id++}'));
-        continue;
-      }
-      pitches.sort((a, b) => a.midiNumber.compareTo(b.midiNumber));
-      final noteId = 'e${id++}';
-      elements
-          .add(NoteElement(pitches: pitches, duration: duration, id: noteId));
-
-      // Playing techniques → crisp_notation's tab marks. Spans (HO/PO, slide)
-      // connect this note to the previous one that opened them.
-      final hopoFrom = pendingHopo;
-      if (hopoFrom != null) {
-        slurs.add(Slur(hopoFrom, noteId));
-        pendingHopo = null;
-      }
-      final slideFrom = pendingSlide;
-      if (slideFrom != null) {
-        glissandos.add(Glissando(slideFrom, noteId));
-        pendingSlide = null;
-      }
-      var dead = false, harmonic = false, vibrato = false, vibratoWide = false;
-      var ghost = false;
-      var harmonicStyle = TabNoteStyle.harmonic;
-      double? bendSteps;
-      List<BendPoint>? bendCurve;
-      // Whammy-bar vibrato is a beat property.
-      if (_propOn(beat, 'VibratoWTremBar')) {
-        vibrato = true;
-        vibratoWide = true;
-      }
-      for (final note in nodes) {
-        if (_propOn(note, 'Muted')) dead = true;
-        if (_propOn(note, 'Ghost')) ghost = true;
-        if (_propOn(note, 'Harmonic')) {
-          harmonic = true;
-          harmonicStyle =
-              switch (_findProperty(note, 'HarmonicType')?.childText('HType')) {
-            'Artificial' => TabNoteStyle.artificialHarmonic,
-            'Pinch' => TabNoteStyle.pinchHarmonic,
-            'Tap' => TabNoteStyle.tappedHarmonic,
-            'Semi' => TabNoteStyle.semiHarmonic,
-            'Feedback' => TabNoteStyle.feedbackHarmonic,
-            _ => TabNoteStyle.harmonic,
-          };
+        final pitches = <Pitch>[];
+        final nodes = <XmlNode>[];
+        for (final noteRef in noteRefs) {
+          final note = noteById[noteRef];
+          if (note == null) continue;
+          final string = int.tryParse(
+              _findProperty(note, 'String')?.childText('String') ?? '');
+          final fret = int.tryParse(
+              _findProperty(note, 'Fret')?.childText('Fret') ?? '');
+          if (string == null || fret == null || string >= tuningMidi.length) {
+            continue;
+          }
+          pitches.add(_pitchFromMidi(tuningMidi[string] + fret));
+          nodes.add(note);
         }
-        if (_propOn(note, 'HopoOrigin')) pendingHopo = noteId;
-        if (_propOn(note, 'Slide')) pendingSlide = noteId;
-        if (_propOn(note, 'Vibrato')) vibrato = true;
-        if (_propOn(note, 'VibratoWTremBar')) {
+        if (pitches.isEmpty) {
+          elements.add(RestElement(duration, id: 'e${id++}'));
+          continue;
+        }
+        pitches.sort((a, b) => a.midiNumber.compareTo(b.midiNumber));
+        final noteId = 'e${id++}';
+        elements
+            .add(NoteElement(pitches: pitches, duration: duration, id: noteId));
+
+        // Playing techniques → crisp_notation's tab marks. Spans (HO/PO, slide)
+        // connect this note to the previous one that opened them.
+        final hopoFrom = pend[0];
+        if (hopoFrom != null) {
+          slurs.add(Slur(hopoFrom, noteId));
+          pend[0] = null;
+        }
+        final slideFrom = pend[1];
+        if (slideFrom != null) {
+          glissandos.add(Glissando(slideFrom, noteId));
+          pend[1] = null;
+        }
+        var dead = false,
+            harmonic = false,
+            vibrato = false,
+            vibratoWide = false;
+        var ghost = false;
+        var harmonicStyle = TabNoteStyle.harmonic;
+        double? bendSteps;
+        List<BendPoint>? bendCurve;
+        // Whammy-bar vibrato is a beat property.
+        if (_propOn(beat, 'VibratoWTremBar')) {
           vibrato = true;
           vibratoWide = true;
         }
-        if (_propOn(note, 'Bended')) {
-          final origin =
-              _findProperty(note, 'BendOriginValue')?.childText('Float');
-          if (origin != null) {
-            // A contour: origin, an optional middle, and the destination.
-            double read(String name, double fallback) =>
-                (double.tryParse(
-                        _findProperty(note, name)?.childText('Float') ?? '') ??
-                    fallback) /
-                100;
-            final points = <BendPoint>[
-              BendPoint(
-                  read('BendOriginOffset', 0), read('BendOriginValue', 0)),
-            ];
-            if (_findProperty(note, 'BendMiddleValue') != null) {
-              points.add(BendPoint(
-                  read('BendMiddleOffset1', 50), read('BendMiddleValue', 0)));
-            }
-            points.add(BendPoint(read('BendDestinationOffset', 100),
-                read('BendDestinationValue', 0)));
-            bendCurve ??= points;
-          } else {
-            final bv =
-                _findProperty(note, 'BendDestinationValue')?.childText('Float');
-            if (bv != null) {
-              final v = (double.tryParse(bv) ?? 0) / 100;
-              if (bendSteps == null || v > bendSteps) bendSteps = v;
+        for (final note in nodes) {
+          if (_propOn(note, 'Muted')) dead = true;
+          if (_propOn(note, 'Ghost')) ghost = true;
+          if (_propOn(note, 'Harmonic')) {
+            harmonic = true;
+            harmonicStyle = switch (
+                _findProperty(note, 'HarmonicType')?.childText('HType')) {
+              'Artificial' => TabNoteStyle.artificialHarmonic,
+              'Pinch' => TabNoteStyle.pinchHarmonic,
+              'Tap' => TabNoteStyle.tappedHarmonic,
+              'Semi' => TabNoteStyle.semiHarmonic,
+              'Feedback' => TabNoteStyle.feedbackHarmonic,
+              _ => TabNoteStyle.harmonic,
+            };
+          }
+          if (_propOn(note, 'HopoOrigin')) pend[0] = noteId;
+          if (_propOn(note, 'Slide')) pend[1] = noteId;
+          if (_propOn(note, 'Vibrato')) vibrato = true;
+          if (_propOn(note, 'VibratoWTremBar')) {
+            vibrato = true;
+            vibratoWide = true;
+          }
+          if (_propOn(note, 'Bended')) {
+            final origin =
+                _findProperty(note, 'BendOriginValue')?.childText('Float');
+            if (origin != null) {
+              // A contour: origin, an optional middle, and the destination.
+              double read(String name, double fallback) =>
+                  (double.tryParse(
+                          _findProperty(note, name)?.childText('Float') ??
+                              '') ??
+                      fallback) /
+                  100;
+              final points = <BendPoint>[
+                BendPoint(
+                    read('BendOriginOffset', 0), read('BendOriginValue', 0)),
+              ];
+              if (_findProperty(note, 'BendMiddleValue') != null) {
+                points.add(BendPoint(
+                    read('BendMiddleOffset1', 50), read('BendMiddleValue', 0)));
+              }
+              points.add(BendPoint(read('BendDestinationOffset', 100),
+                  read('BendDestinationValue', 0)));
+              bendCurve ??= points;
+            } else {
+              final bv = _findProperty(note, 'BendDestinationValue')
+                  ?.childText('Float');
+              if (bv != null) {
+                final v = (double.tryParse(bv) ?? 0) / 100;
+                if (bendSteps == null || v > bendSteps) bendSteps = v;
+              }
             }
           }
         }
+        if (harmonic) {
+          marks.add(TabNoteMark(noteId, harmonicStyle));
+        } else if (dead) {
+          marks.add(TabNoteMark(noteId, TabNoteStyle.dead));
+        } else if (ghost) {
+          marks.add(TabNoteMark(noteId, TabNoteStyle.ghost));
+        }
+        if (bendCurve != null) {
+          bends.add(Bend.curve(noteId, bendCurve));
+        } else if (bendSteps != null && bendSteps > 0) {
+          bends.add(Bend(noteId, steps: bendSteps));
+        }
+        if (vibrato) vibratos.add(Vibrato(noteId, wide: vibratoWide));
       }
-      if (harmonic) {
-        marks.add(TabNoteMark(noteId, harmonicStyle));
-      } else if (dead) {
-        marks.add(TabNoteMark(noteId, TabNoteStyle.dead));
-      } else if (ghost) {
-        marks.add(TabNoteMark(noteId, TabNoteStyle.ghost));
-      }
-      if (bendCurve != null) {
-        bends.add(Bend.curve(noteId, bendCurve));
-      } else if (bendSteps != null && bendSteps > 0) {
-        bends.add(Bend(noteId, steps: bendSteps));
-      }
-      if (vibrato) vibratos.add(Vibrato(noteId, wide: vibratoWide));
+      laneElements.add(elements);
     }
-    measures.add(Measure(elements, timeChange: timeChange));
+    measures.add(Measure(
+      laneElements.isNotEmpty ? laneElements[0] : const <MusicElement>[],
+      voice2:
+          laneElements.length > 1 ? laneElements[1] : const <MusicElement>[],
+      timeChange: timeChange,
+    ));
   }
 
   if (measures.isEmpty) {

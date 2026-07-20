@@ -481,6 +481,40 @@ void main() {
           '<Property name="Fret"><Fret>0</Fret></Property>'),
     );
   });
+
+  test('voice 2 survives a round-trip', () {
+    // Two independent voices in one bar; both must come back.
+    final v1 = Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'g4:q b4 d5 e5',
+    );
+    final v2 = Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'g3:q a3 b3 c4',
+    );
+    final src = Score(
+      clef: v1.clef,
+      timeSignature: v1.timeSignature,
+      measures: [
+        Measure(
+          v1.measures.first.elements,
+          voice2: v2.measures.first.elements,
+        ),
+      ],
+    );
+    final back = scoreFromGpif(scoreToGpif(src));
+    final m = back.measures.single;
+    expect(
+      m.elements
+          .whereType<NoteElement>()
+          .map((n) => n.pitches.single.midiNumber),
+      [67, 71, 74, 76], // voice 1: g4 b4 d5 e5
+    );
+    expect(
+      m.voice2.whereType<NoteElement>().map((n) => n.pitches.single.midiNumber),
+      [55, 57, 59, 60], // voice 2: g3 a3 b3 c4
+    );
+  });
 }
 
 const _singleTrackGolden = '''
