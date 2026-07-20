@@ -4,11 +4,13 @@
 /// Covers the single-staff first voice of a [Score]: note signs (name + value),
 /// rests, accidentals, octave marks (by the standard interval rule), key and
 /// time signatures (a leading header, with mid-score changes), chords (top note
-/// + interval signs read downward) and measure separation. Genuinely remaining
+/// + interval signs read downward) and measure separation. [multiPartToBraille]
+/// renders several parts section-by-section (each labelled). Genuinely remaining
 /// (each a Braille-music-code detail): in-accord voices (voice 2+), dynamics,
-/// slurs, print-line formatting, and multi-staff/multi-part layout.
+/// slurs, print-line formatting, and full bar-over-bar multi-staff layout.
 library;
 
+import '../layout/multi_part.dart';
 import '../model/element.dart';
 import '../model/score.dart';
 import '../theory/duration.dart';
@@ -71,6 +73,30 @@ String scoreToBraille(Score score) {
           buffer.write(_augmentationDots(element.duration.dots));
       }
     }
+  }
+  return buffer.toString();
+}
+
+/// Renders a multi-part [score] section-by-section: each part's braille in turn,
+/// preceded by its name as a print heading line, parts separated by a blank
+/// line. A pragmatic sequential layout — every part is preserved, where the
+/// single-Score [scoreToBraille] kept only the first. [partNames] override the
+/// per-part heading (falls back to the part's instrument name, then `Part N`).
+String multiPartToBraille(MultiPartScore score, {List<String>? partNames}) {
+  final parts = score.parts;
+  if (parts.length <= 1) {
+    return parts.isEmpty ? '' : scoreToBraille(parts.first);
+  }
+  final buffer = StringBuffer();
+  for (var i = 0; i < parts.length; i++) {
+    if (i > 0) buffer.write('\n\n');
+    final named =
+        partNames != null && i < partNames.length && partNames[i].isNotEmpty;
+    final heading = named
+        ? partNames[i]
+        : (parts[i].metadata.instrument ?? 'Part ${i + 1}');
+    buffer.writeln(heading); // print line identifying the part
+    buffer.write(scoreToBraille(parts[i]));
   }
   return buffer.toString();
 }

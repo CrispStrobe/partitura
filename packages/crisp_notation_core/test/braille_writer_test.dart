@@ -271,4 +271,25 @@ void main() {
           ])); // octave-4 + C "half" cell
     });
   });
+
+  group('multiPartToBraille', () {
+    test('renders every part (labelled), not just the first', () {
+      final mp = MultiPartScore([
+        Score.simple(notes: 'c4:q'),
+        Score.simple(notes: 'g4:q'),
+      ]);
+      final out = multiPartToBraille(mp, partNames: const ['Soprano', 'Bass']);
+      expect(out, contains('Soprano'));
+      expect(out, contains('Bass'));
+      // Both parts' braille is present — the old first-part-only path dropped
+      // the second.
+      expect(out, contains(scoreToBraille(Score.simple(notes: 'c4:q'))));
+      expect(out, contains(scoreToBraille(Score.simple(notes: 'g4:q'))));
+    });
+
+    test('a single-part score matches scoreToBraille exactly', () {
+      final s = Score.simple(notes: 'c4:q d4 e4');
+      expect(multiPartToBraille(MultiPartScore([s])), scoreToBraille(s));
+    });
+  });
 }
