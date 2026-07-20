@@ -80,7 +80,17 @@ String scoreToKern(Score score) {
     if (value != null) lines.add('!!!$key: $value');
   }
 
-  final multiVoice = score.measures.any((m) => m.voice2.isNotEmpty);
+  // The number of voices to write (1–4) = the highest voice used anywhere.
+  var voiceCount = 1;
+  for (final m in score.measures) {
+    if (m.voice2.isNotEmpty && voiceCount < 2) voiceCount = 2;
+    if (m.voice3.isNotEmpty && voiceCount < 3) voiceCount = 3;
+    if (m.voice4.isNotEmpty) {
+      voiceCount = 4;
+      break;
+    }
+  }
+  final multiVoice = voiceCount > 1;
   // Dynamics ride a `**dynam` spine, lyrics parallel `**text` spines (one per
   // verse). Only the single-voice path is paired; a multi-voice score keeps
   // both out of scope. Emitting the extra spines ONLY when a marking exists
@@ -111,38 +121,43 @@ String scoreToKern(Score score) {
     lines.add('*MM$s');
   }
 
-  // If any measure carries a second voice, emit two sub-spines (`*^` … `*v *v`)
-  // with the voices time-merged; otherwise the plain single-spine path.
+  // Multi-voice: split the spine into `voiceCount` sub-spines (one per voice,
+  // time-merged), then merge them back. Control lines are copied across every
+  // sub-spine; `dup` builds the tab-joined columns.
   if (multiVoice) {
-    lines.add('*^'); // split the spine into two sub-spines (voice 1 / voice 2)
+    String dup(String x) => List.filled(voiceCount, x).join('\t');
+    // Split 1 → voiceCount, one voice per line (splitting the last sub-spine),
+    // so the columns stay in voice order (v1, v2, …).
+    lines.add('*^'); // 1 → 2
+    for (var k = 3; k <= voiceCount; k++) {
+      lines.add([...List.filled(k - 2, '*'), '*^'].join('\t'));
+    }
     for (var m = 0; m < score.measures.length; m++) {
       final measure = score.measures[m];
       if (m > 0) {
         final bar =
             _repeatBar(score.measures[m - 1].endRepeat, measure.startRepeat);
-        lines.add('$bar\t$bar');
+        lines.add(dup(bar));
         if (measure.clefChange != null) {
-          final c = '*clef${_clefCodes[measure.clefChange!]}';
-          lines.add('$c\t$c');
+          lines.add(dup('*clef${_clefCodes[measure.clefChange!]}'));
         }
         if (measure.keyChange != null) {
-          final k = '*k[${kernKeyContent(measure.keyChange!)}]';
-          lines.add('$k\t$k');
+          lines.add(dup('*k[${kernKeyContent(measure.keyChange!)}]'));
         }
         if (measure.timeChange != null) {
           for (final l in _meterLines(measure.timeChange!)) {
-            lines.add('$l\t$l');
+            lines.add(dup(l));
           }
         }
       } else if (measure.startRepeat) {
-        lines.add('=!|:\t=!|:');
+        lines.add(dup('=!|:'));
       }
-      lines.addAll(_marksFor(measure, 1));
-      lines.addAll(_multiVoiceRows(measure, slurStarts, slurEnds));
+      lines.addAll(_marksFor(measure, voiceCount - 1));
+      lines.addAll(_multiVoiceRows(measure, voiceCount, slurStarts, slurEnds));
     }
     final lastEnd = score.measures.isNotEmpty && score.measures.last.endRepeat;
-    lines.add(lastEnd ? '=:|!\t=:|!' : '==\t==');
-    lines.add('*v\t*v'); // merge the sub-spines back
+    lines.add(dup(lastEnd ? '=:|!' : '=='));
+    lines.add(dup('*v')); // merge the sub-spines back into one
     lines.add('*-');
     return '${lines.join('\n')}\n';
   }
@@ -314,8 +329,8 @@ String _kernWithExtraSpines(List<String> lines, Score score, int verseCount,
 /// token (`.`) marks where that voice is sustaining across the other's event.
 /// A measure with no voice 2 fills the second sub-spine with rests aligned to
 /// voice 1 (valid for any meter). Voices 3–4, if present, are not yet emitted.
-List<String> _multiVoiceRows(
-    Measure measure, Set<String> slurStarts, Set<String> slurEnds) {
+List<String> _multiVoiceRows(Measure measure, int voiceCount,
+    Set<String> slurStarts, Set<String> slurEnds) {
   // The tuplet ratio covering element [i] of [voiceIndex], or null.
   ({int actual, int normal})? ratioAt(int voiceIndex, int i) {
     for (final t in measure.tupletsForVoice(voiceIndex)) {
@@ -346,37 +361,43 @@ List<String> _multiVoiceRows(
     return out;
   }
 
-  final v1 = events(0);
-
-  final List<({Fraction at, String tok})> v2;
-  if (measure.voice2.isEmpty) {
-    // Fill the second spine with rests aligned to voice 1's rhythm, matching
-    // its (tuplet-scaled) reciprocals so the sub-spines stay consistent.
+  // Fill an absent sub-spine with rests aligned to voice 1's rhythm, matching
+  // its (tuplet-scaled) reciprocals so the sub-spines stay consistent.
+  List<({Fraction at, String tok})> restFill() {
     var t = Fraction(0, 1);
     final filled = <({Fraction at, String tok})>[];
     for (var i = 0; i < measure.elements.length; i++) {
       filled.add((
         at: t,
-        tok: '${_durString(measure.elements[i].duration, ratioAt(0, i))}r'
+        tok: '${_durString(measure.elements[i].duration, ratioAt(0, i))}r',
       ));
       t = t + measure.effectiveDurationAt(i);
     }
-    v2 = filled;
-  } else {
-    v2 = events(1);
+    return filled;
   }
 
-  // Merged, sorted set of onsets across both voices.
-  final onsets = <Fraction>{...v1.map((e) => e.at), ...v2.map((e) => e.at)}
-      .toList()
-    ..sort((a, b) => (a - b).numerator.sign);
-  final rows = <String>[];
-  for (final t in onsets) {
-    final a = v1.firstWhere((e) => e.at == t, orElse: () => (at: t, tok: '.'));
-    final b = v2.firstWhere((e) => e.at == t, orElse: () => (at: t, tok: '.'));
-    rows.add('${a.tok}\t${b.tok}');
+  // One event list per sub-spine (voice), rest-filling voices absent here.
+  final voices = <List<({Fraction at, String tok})>>[];
+  for (var vi = 0; vi < voiceCount; vi++) {
+    final v = measure.voiceAt(vi);
+    voices.add(vi > 0 && v.isEmpty ? restFill() : events(vi));
   }
-  return rows;
+
+  // Merged, sorted set of onsets across every voice; each row is one token per
+  // sub-spine (`.` where a voice has no event at that onset).
+  final onsets = <Fraction>{
+    for (final v in voices)
+      for (final e in v) e.at,
+  }.toList()
+    ..sort((a, b) => (a - b).numerator.sign);
+  return [
+    for (final t in onsets)
+      voices
+          .map((v) => v
+              .firstWhere((e) => e.at == t, orElse: () => (at: t, tok: '.'))
+              .tok)
+          .join('\t'),
+  ];
 }
 
 /// A part's voice-1 events for one [measure] as `(onset, token)` pairs plus the

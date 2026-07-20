@@ -236,6 +236,21 @@ void main() {
       expect(back.measures.last.voice2.whereType<NoteElement>().length, 2);
     });
 
+    test('four voices round-trip through nested split sub-spines', () {
+      final source = Score.simple(
+        timeSignature: TimeSignature.fourFour,
+        notes: 'c5:q d5 e5 f5 ; a4:q b4 c5 d5 '
+            '; e4:q f4 g4 a4 ; c4:q d4 e4 f4',
+      );
+      final back = scoreFromKern(scoreToKern(source));
+      final m = back.measures.first;
+      int n(List<MusicElement> v) => v.whereType<NoteElement>().length;
+      expect(n(m.elements), 4); // voice 1
+      expect(n(m.voice2), 4);
+      expect(n(m.voice3), 4); // was dropped before
+      expect(n(m.voice4), 4); // was dropped before
+    });
+
     test('a single-voice score stays a single spine (no *^)', () {
       final kern = scoreToKern(Score.simple(notes: 'c4:q d4 e4 f4'));
       expect(kern, isNot(contains('*^')));
