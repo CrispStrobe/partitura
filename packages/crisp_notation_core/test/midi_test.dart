@@ -50,6 +50,16 @@ void main() {
       }
     });
 
+    test('all four voices sound, each on its own channel', () {
+      // Four simultaneous voices: C4(v1) E4(v2) G4(v3) B4(v4).
+      final midi =
+          scoreToMidi(Score.simple(notes: 'c4:q ; e4:q ; g4:q ; b4:q'));
+      expect(_contains(midi, [0x90, 60, 80]), isTrue, reason: 'voice 1 → ch0');
+      expect(_contains(midi, [0x91, 64, 80]), isTrue, reason: 'voice 2 → ch1');
+      expect(_contains(midi, [0x92, 67, 80]), isTrue, reason: 'voice 3 → ch2');
+      expect(_contains(midi, [0x93, 71, 80]), isTrue, reason: 'voice 4 → ch3');
+    });
+
     test('tempo meta encodes microseconds per quarter', () {
       // 120 bpm → 500000 µs = 0x07A120.
       final midi = scoreToMidi(Score.simple(notes: 'c4:q'), quarterBpm: 120);

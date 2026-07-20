@@ -58,8 +58,8 @@ const Set<DynamicLevel> _momentary = {
 /// omitted it falls back to the score's own [Score.tempo] (normalized to
 /// quarter-notes-per-minute), then to 120 — so an exported file plays at the
 /// notated tempo instead of a fixed default. [ticksPerQuarter] is the file's
-/// timing resolution (480 divides the common tuplets cleanly). Voice 1 is
-/// written on MIDI channel 0, voice 2 on channel 1. Chords emit one note per
+/// timing resolution (480 divides the common tuplets cleanly). Each voice is
+/// written on its own channel (voice 1→0 … voice 4→3). Chords emit one note per
 /// pitch. The timeline is unfolded ([playbackTimeline]), so a two-bar repeat
 /// exports as four bars of notes. Grace notes carry no time and are omitted.
 /// Deterministic.
@@ -71,7 +71,12 @@ Uint8List scoreToMidi(
   final bpm = quarterBpm ?? score.tempo?.quarterBpm ?? 120;
   final byId = <String, NoteElement>{};
   for (final measure in score.measures) {
-    for (final element in [...measure.elements, ...measure.voice2]) {
+    for (final element in [
+      ...measure.elements,
+      ...measure.voice2,
+      ...measure.voice3,
+      ...measure.voice4,
+    ]) {
       if (element is NoteElement && element.id != null) {
         byId[element.id!] = element;
       }
@@ -166,7 +171,9 @@ Uint8List scoreToMidi(
     // notation-derived one, so a MIDI's per-note dynamics round-trip.
     final velocity = (element.velocity ?? baseVelocity).clamp(1, 127);
 
-    final channel = note.voice == 1 ? 1 : 0;
+    // Each voice on its own channel (voice 1→ch0, 2→ch1, 3→ch2, 4→ch3), so all
+    // four voices sound and stay separable. PlaybackNote.voice is 0-based.
+    final channel = note.voice.clamp(0, 15);
     final onTick = _ticks(note.start, ticksPerQuarter);
     var durTicks = _ticks(note.duration, ticksPerQuarter);
     // Staccato: detach the note by cutting its sounding length ~in half.
