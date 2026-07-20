@@ -418,6 +418,69 @@ void main() {
       expect(pitchNames(scoreFromGpif(gpif)), ['E4', 'G4']);
     });
   });
+
+  test('an explicit fretting plan overrides fretFor', () {
+    final score = Score.simple(notes: 'e4:q');
+    // fretFor opens the high-E string (String 0, Fret 0).
+    expect(
+      scoreToGpif(score),
+      contains('<String>0</String></Property>'
+          '<Property name="Fret"><Fret>0</Fret></Property>'),
+    );
+    // Pin e0 to the B string (index 1) at fret 5 — same sounding pitch, chosen
+    // position. The arranger's choice must reach the .gp.
+    final gpif = scoreToGpif(score, frettings: const {
+      'e0': {1: 5},
+    });
+    expect(
+      gpif,
+      contains('<String>1</String></Property>'
+          '<Property name="Fret"><Fret>5</Fret></Property>'),
+    );
+    expect(pitchNames(scoreFromGpif(gpif)), ['E4']); // pitch still round-trips
+  });
+
+  test('a TabVoicing pins the export string (arranged frets survive)', () {
+    // Regression: the writer re-fretted every pitch with fretFor, discarding a
+    // tab editor's string choice on .gp export. A TabVoicing now wins.
+    final base =
+        Score.simple(timeSignature: TimeSignature.fourFour, notes: 'e4:q');
+    final score = Score(
+      clef: base.clef,
+      timeSignature: base.timeSignature,
+      measures: base.measures,
+      tabVoicings: const [
+        TabVoicing('e0', [1])
+      ], // the B string
+    );
+    final gpif = scoreToGpif(score);
+    expect(
+      gpif,
+      contains('<String>1</String></Property>'
+          '<Property name="Fret"><Fret>5</Fret></Property>'),
+    );
+    expect(pitchNames(scoreFromGpif(gpif)), ['E4']);
+  });
+
+  test('a voicing that does not fit the tuning falls back to fretFor', () {
+    // E2 pinned to the high-E string is impossible (negative fret) → fretFor
+    // still places it on the low-E string (index 5, fret 0).
+    final base =
+        Score.simple(timeSignature: TimeSignature.fourFour, notes: 'e2:q');
+    final score = Score(
+      clef: base.clef,
+      timeSignature: base.timeSignature,
+      measures: base.measures,
+      tabVoicings: const [
+        TabVoicing('e0', [0])
+      ],
+    );
+    expect(
+      scoreToGpif(score),
+      contains('<String>5</String></Property>'
+          '<Property name="Fret"><Fret>0</Fret></Property>'),
+    );
+  });
 }
 
 const _singleTrackGolden = '''

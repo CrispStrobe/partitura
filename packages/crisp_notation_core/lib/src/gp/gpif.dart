@@ -52,14 +52,27 @@ const _noteValues = {
 };
 final _basesByName = {for (final e in _noteValues.entries) e.value: e.key};
 
+/// An explicit fretboard placement for one part: `element id → {string index:
+/// fret}` (string 0 = the top tab line, matching a [Tuning]'s string order; an
+/// empty inner map is a silent element). Pass it to [scoreToGpif] /
+/// [multiPartToGpif] to honour a real tab arranger's per-note choices; any
+/// [NoteElement] whose `id` is absent from the map falls back to the greedy
+/// per-pitch [Tuning.fretFor].
+typedef GpFretPlan = Map<String, Map<int, int>>;
+
 /// Serializes [score] to a `score.gpif` XML string, fretting its pitches on
 /// [tuning] (default standard guitar). Notes unreachable on the tuning are
 /// dropped. Voice 2 is ignored (single voice per bar). Tab techniques
 /// (bends and bend contours, hammer-on/pull-off, slides, normal/wide vibrato,
 /// dead/ghost/harmonic marks) are written as GPIF note properties, so a `.gp`
 /// round-trip keeps them.
-String scoreToGpif(Score score, {Tuning? tuning}) =>
-    _writeGpif([score], [tuning ?? Tuning.standardGuitar], const ['Guitar']);
+///
+/// [frettings] optionally supplies an explicit arrangement (see [GpFretPlan]):
+/// its `{string: fret}` per element wins over [Tuning.fretFor], so an external
+/// arranger's fret choices reach the `.gp` instead of being re-derived.
+String scoreToGpif(Score score, {Tuning? tuning, GpFretPlan? frettings}) =>
+    _writeGpif([score], [tuning ?? Tuning.standardGuitar], const ['Guitar'],
+        frettings: [frettings]);
 
 /// Serializes an N-part [score] to a `score.gpif` XML string with **one GPIF
 /// track per part**, so a whole band (guitar + bass + …) survives an export.
@@ -78,8 +91,13 @@ String scoreToGpif(Score score, {Tuning? tuning}) =>
 /// [scoreFromGpif] at any `trackIndex`. The meter comes from the first part;
 /// parts shorter than the longest one are padded with empty bars so the
 /// per-track bar lists stay aligned.
+/// [frettings] optionally supplies one [GpFretPlan] per part (index-aligned to
+/// [MultiPartScore.parts]; a null or missing entry frets that part via
+/// [Tuning.fretFor]).
 String multiPartToGpif(MultiPartScore score,
-    {List<Tuning>? tunings, List<String>? names}) {
+    {List<Tuning>? tunings,
+    List<String>? names,
+    List<GpFretPlan?>? frettings}) {
   final parts = score.parts;
   return _writeGpif(
     parts,
@@ -95,12 +113,14 @@ String multiPartToGpif(MultiPartScore score,
             ? names[i]
             : (parts[i].metadata.instrument ?? 'Track ${i + 1}'),
     ],
+    frettings: frettings,
   );
 }
 
 /// The shared writer core: one `<Track>` per entry of [parts], fretted on the
 /// matching [tunings] entry and labelled with the matching [names] entry.
-String _writeGpif(List<Score> parts, List<Tuning> tunings, List<String> names) {
+String _writeGpif(List<Score> parts, List<Tuning> tunings, List<String> names,
+    {List<GpFretPlan?>? frettings}) {
   final b = StringBuffer();
   b.writeln('<?xml version="1.0" encoding="UTF-8"?>');
   b.writeln('<GPIF>');
@@ -158,6 +178,12 @@ String _writeGpif(List<Score> parts, List<Tuning> tunings, List<String> names) {
   for (var t = 0; t < parts.length; t++) {
     final score = parts[t];
     final tune = tunings[t];
+    final plan =
+        (frettings != null && t < frettings.length) ? frettings[t] : null;
+    // A note's pinned string placement, if the score carries one (a tab editor
+    // records the arranger's per-pitch string choice as a TabVoicing). Used to
+    // honour those strings on export instead of re-deriving with fretFor.
+    final voicingBy = {for (final v in score.tabVoicings) v.noteId: v.strings};
     // Per-note technique lookups (a span is written on its start note).
     final hopoFrom = {for (final s in score.slurs) s.startId};
     final slideFrom = {for (final g in score.glissandos) g.startId};
@@ -178,15 +204,42 @@ String _writeGpif(List<Score> parts, List<Tuning> tunings, List<String> names) {
         if (rid < 0) continue;
         final noteRefs = <int>[];
         if (element is NoteElement) {
+          final eid = element.id;
+          // An explicit arrangement (id-keyed `{string: fret}`) wins; otherwise
+          // fret each pitch greedily on the tuning. Emitting the lowest string
+          // first keeps the note order deterministic (and byte-identical to the
+          // fret-from-pitch path when no plan is supplied).
+          final planned = eid == null ? null : plan?[eid];
+          final voicing = eid == null ? null : voicingBy[eid];
+          final placements = <(int, int)>[];
+          if (planned != null) {
+            for (final s in planned.keys.toList()..sort()) {
+              placements.add((s, planned[s]!));
+            }
+          } else {
+            // The score may pin each pitch to a string (a tab arranger's
+            // choice); recover the fret from the open-string pitch. A null
+            // result (voicing absent, wrong length, or not fitting this tuning)
+            // falls back to the greedy fretFor.
+            final derived =
+                (voicing != null && voicing.length == element.pitches.length)
+                    ? _fretsFromVoicing(element.pitches, voicing, tune)
+                    : null;
+            if (derived != null) {
+              placements.addAll(derived);
+            } else {
+              for (final pitch in element.pitches) {
+                final place = tune.fretFor(pitch);
+                if (place != null) placements.add(place);
+              }
+            }
+          }
           var first = true;
-          for (final pitch in element.pitches) {
-            final place = tune.fretFor(pitch);
-            if (place == null) continue;
+          for (final place in placements) {
             final props = StringBuffer(
                 '<Property name="String"><String>${place.$1}</String></Property>'
                 '<Property name="Fret"><Fret>${place.$2}</Fret></Property>');
             // Element-level techniques go on the first sounding note.
-            final eid = element.id;
             if (first && eid != null) {
               if (hopoFrom.contains(eid)) {
                 props.write('<Property name="HopoOrigin"><Enable/></Property>');
@@ -323,6 +376,23 @@ String _writeGpif(List<Score> parts, List<Tuning> tunings, List<String> names) {
   b.writeln('  </Rhythms>');
   b.writeln('</GPIF>');
   return b.toString();
+}
+
+/// Recovers `(string, fret)` placements from a [TabVoicing]'s per-pitch string
+/// choices: `fret = pitch − open-string`. Returns null if any pitch doesn't sit
+/// on its pinned string within `[0, 24]` (a voicing inconsistent with [tune]),
+/// so the caller falls back to [Tuning.fretFor].
+List<(int, int)>? _fretsFromVoicing(
+    List<Pitch> pitches, List<int> strings, Tuning tune) {
+  final out = <(int, int)>[];
+  for (var i = 0; i < pitches.length; i++) {
+    final s = strings[i];
+    if (s < 0 || s >= tune.strings.length) return null;
+    final fret = pitches[i].midiNumber - tune.strings[s].midiNumber;
+    if (fret < 0 || fret > 24) return null;
+    out.add((s, fret));
+  }
+  return out;
 }
 
 /// Escapes the XML text characters that can appear in a track name.
