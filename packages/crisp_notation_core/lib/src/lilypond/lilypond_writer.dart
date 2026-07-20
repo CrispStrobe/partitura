@@ -120,13 +120,21 @@ String _staffBlock(Score score, {String? nameOverride}) {
       final dur = _durationOf(measure.totalDuration);
       if (dur != null) body.write('\\partial $dur ');
     }
-    if (measure.voice2.isEmpty) {
+    // Voices 2–4 (any non-empty) become parallel `<< {v1} \\ {v2} \\ … >>`
+    // voices; the extra voices carry no tuplets (a known limitation).
+    final extra = [measure.voice2, measure.voice3, measure.voice4]
+        .where((v) => v.isNotEmpty)
+        .toList();
+    if (extra.isEmpty) {
       body.write(
           '${_elements(measure.elements, slurStarts, slurEnds, measure.tuplets)} ');
     } else {
-      body.write(
-          '<< { ${_elements(measure.elements, slurStarts, slurEnds, measure.tuplets)} } '
-          '\\\\ { ${_elements(measure.voice2, slurStarts, slurEnds, const [])} } >> ');
+      final voices = <String>[
+        '{ ${_elements(measure.elements, slurStarts, slurEnds, measure.tuplets)} }',
+        for (final v in extra)
+          '{ ${_elements(v, slurStarts, slurEnds, const [])} }',
+      ];
+      body.write('<< ${voices.join(' \\\\ ')} >> ');
     }
   }
 

@@ -185,4 +185,16 @@ void main() {
       expect('{'.allMatches(ly).length, '}'.allMatches(ly).length);
     });
   });
+
+  test('three voices become parallel << … \\\\ … \\\\ … >> voices', () {
+    // C5 (v1) / E4 (v2) / C4 (v3) stacked in one measure.
+    final ly = scoreToLilyPond(Score.simple(notes: 'c5:q ; e4:q ; c4:q'));
+    expect(ly, contains('<<'));
+    expect(ly, contains('>>'));
+    // Two `\\` voice separators for three voices (was capped at one before).
+    expect('\\\\'.allMatches(ly).length, greaterThanOrEqualTo(2));
+    expect(ly, contains("c''4")); // voice 1: C5
+    expect(ly, contains("e'4")); // voice 2: E4
+    expect(ly, contains("c'4")); // voice 3: C4
+  });
 }
