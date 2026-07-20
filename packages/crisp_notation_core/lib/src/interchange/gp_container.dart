@@ -5,7 +5,7 @@
 /// [deflate], so no `dart:io` — reads and writes work in the browser / WASM too.
 ///
 /// The `.gpx` codec here is a clean-room implementation written from the
-/// *public, community-reverse-engineered* description of the Guitar Pro 6
+/// *public, community-reverse-engineered* description of the GPIF v6
 /// container — the BCFZ bit-compression wrapper and the BCFS sector filesystem,
 /// as documented by independent projects (TuxGuitar, DGuitar, the standalone
 /// "gpx reader" format notes) — then cross-checked byte-for-byte against the
@@ -22,7 +22,7 @@ import 'inflate.dart';
 
 /// Extracts the `score.gpif` XML from a `.gp` archive's [bytes].
 ///
-/// `.gp` (Guitar Pro 7/8) is an ordinary ZIP; the score lives at
+/// `.gp` (GPIF v7/8) is an ordinary ZIP; the score lives at
 /// `Content/score.gpif` (some writers omit the folder). Throws a
 /// [FormatException] if [bytes] is not a ZIP or carries no `.gpif` member.
 String readGpifFromGp(Uint8List bytes) {
@@ -95,7 +95,7 @@ Uint8List writeGpFromGpif(String gpif) {
 
 /// Extracts the `score.gpif` XML from a `.gpx` container's [bytes].
 ///
-/// A `.gpx` (Guitar Pro 6) begins with a 4-byte ASCII magic: `BCFZ` for the
+/// A `.gpx` (GPIF v6) begins with a 4-byte ASCII magic: `BCFZ` for the
 /// bit-compressed form or `BCFS` for a raw sector filesystem. `BCFZ` is
 /// decompressed to a `BCFS` image, whose file entries are then scanned for the
 /// one whose name ends in `.gpif`. Throws a [FormatException] on any other

@@ -6,7 +6,7 @@
 /// **fixed** Huffman code tables (one BTYPE=01 block). That skips emitting
 /// per-block Huffman trees — simpler than zlib's dynamic Huffman and a little
 /// larger, but the output is standard DEFLATE any inflater reads (this one,
-/// `dart:io`, browsers, MuseScore, Guitar Pro).
+/// `dart:io`, browsers, MuseScore, GPIF).
 library;
 
 import 'dart:typed_data';

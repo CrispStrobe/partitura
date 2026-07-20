@@ -1,6 +1,6 @@
 /// crisp_notation_cli — the `crisp_notation` command-line tool for the
 /// crisp_notation music-notation libraries: inspect scores; convert between
-/// MusicXML, MEI, Humdrum **kern, MIDI, MuseScore, Guitar Pro and ABC (with
+/// MusicXML, MEI, Humdrum **kern, MIDI, MuseScore, GPIF and ABC (with
 /// LilyPond and braille export); render to SVG/PNG; and run optical music
 /// recognition (OMR).
 ///

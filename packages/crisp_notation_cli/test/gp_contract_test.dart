@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:crisp_notation_core/crisp_notation_core.dart';
 import 'package:test/test.dart';
 
-/// Detailed **contract** snapshots of the Guitar Pro readers against the real
+/// Detailed **contract** snapshots of the GPIF readers against the real
 /// vendored binaries (alphaTab corpus, MPL-2.0 — see test/data/gp/README.md).
 ///
 /// Unlike [gp_fixtures_test] (which locks element *counts*), these pin the

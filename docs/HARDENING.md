@@ -1,7 +1,7 @@
 # Hardening — real-input gap log
 
 Systematic robustness pass: feed crisp_notation complicated real-world scores from
-many sources (Guitar Pro, MusicXML, MIDI, …), parse + render them, and record
+many sources (GPIF, MusicXML, MIDI, …), parse + render them, and record
 every gap found so they can be closed one at a time.
 
 The guiding principle: **the renderer must never crash on real input** — an
@@ -11,7 +11,7 @@ unrecognized or malformed element should be skipped (ideally logged), not throw.
 
 | Source | Files | Result |
 |---|---|---|
-| Guitar Pro (`.gp3/4/5/.gp/.gpx`, in-repo) | 25 | all parse + render (notation & tab) ✅ |
+| GPIF (`.gp3/4/5/.gp/.gpx`, in-repo) | 25 | all parse + render (notation & tab) ✅ |
 | MusicXML real scores (OSMD corpus: Bach, Beethoven, Mozart quartet/quintet, Brahms, Debussy, Clementi, 1.2 MB orchestral, `.mxl`) | 12 | 9 render ✅, 1 parse-fail, 2 render-crash |
 | MIDI (round-trip of the above) | 3 | all parse + render ✅ |
 | MEI real scores (Aguado guitar, Altenburg concerto 431 KB, Bach **Brandenburg** 1.2 MB, fughette) | 4 | all parse + render ✅ (single-part path) |

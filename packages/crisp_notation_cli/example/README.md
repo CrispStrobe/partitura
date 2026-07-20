@@ -19,7 +19,7 @@ crisp_notation info song.musicxml
 
 ```sh
 crisp_notation convert song.musicxml song.mid    # MusicXML -> MIDI
-crisp_notation convert song.gp   song.musicxml    # Guitar Pro (.gp3/4/5/gp) -> MusicXML
+crisp_notation convert song.gp   song.musicxml    # GPIF (.gp3/4/5/gp) -> MusicXML
 crisp_notation convert song.mscz song.musicxml    # MuseScore -> MusicXML
 crisp_notation convert song.mei  song.musicxml    # MEI -> MusicXML
 crisp_notation convert song.krn  song.musicxml    # Humdrum **kern -> MusicXML

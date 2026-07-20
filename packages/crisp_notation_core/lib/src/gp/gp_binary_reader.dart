@@ -1,7 +1,7 @@
-/// Reader for the legacy Guitar Pro binary formats `.gp3`, `.gp4` and `.gp5`.
+/// Reader for the legacy GPIF binary formats `.gp3`, `.gp4` and `.gp5`.
 ///
 /// This is an independent, clean-room implementation written from the
-/// **publicly documented** byte layout of the Guitar Pro container — the
+/// **publicly documented** byte layout of the GPIF container — the
 /// community reverse-engineering references (dGuitar's *GP4 File Format
 /// Description*, the editor-on-fire *GP5.10 format* notes, TadaoYamaoka's
 /// Kaitai `gp5_file_format` spec and the TuxGuitar file-format
@@ -47,7 +47,7 @@ Score gp4ToScore(Uint8List bytes, {int trackIndex = 0}) =>
 Score gp3ToScore(Uint8List bytes, {int trackIndex = 0}) =>
     _GpReader(bytes, trackIndex).read();
 
-/// Parses a Guitar Pro `.gp3`/`.gp4`/`.gp5` file into a [MultiPartScore] — one
+/// Parses a GPIF `.gp3`/`.gp4`/`.gp5` file into a [MultiPartScore] — one
 /// part per track (the `gpNToScore` helpers read a single [trackIndex]). The
 /// version is auto-detected, so this covers all three. Track 0 is parsed first
 /// to learn the track count, then each remaining track is read.
@@ -60,7 +60,7 @@ MultiPartScore gpToMultiPart(Uint8List bytes) {
   return MultiPartScore(parts);
 }
 
-/// Sequential little-endian cursor over a Guitar Pro byte buffer. Reading past
+/// Sequential little-endian cursor over a GPIF byte buffer. Reading past
 /// the end throws a [FormatException] rather than returning zeros or looping.
 class _Cursor {
   final Uint8List _b;
@@ -73,7 +73,7 @@ class _Cursor {
   int _need(int n) {
     if (_p + n > _b.length) {
       throw FormatException(
-          'Guitar Pro data ends mid-record (need $n byte(s) at offset $_p)');
+          'GPIF data ends mid-record (need $n byte(s) at offset $_p)');
     }
     return _p;
   }
@@ -152,7 +152,7 @@ Pitch _pitchFromMidi(int key) {
   return Pitch(step, alter: alter, octave: key ~/ 12 - 1);
 }
 
-/// The rhythmic base for a Guitar Pro duration code (whole = −2 … 64th = 4).
+/// The rhythmic base for a GPIF duration code (whole = −2 … 64th = 4).
 DurationBase _durationBase(int code) {
   switch (code) {
     case -2:
@@ -200,7 +200,7 @@ class _BeatFx {
   const _BeatFx(this.vibrato, this.harmonic);
 }
 
-/// A single-pass decoder for one Guitar Pro binary file.
+/// A single-pass decoder for one GPIF binary file.
 class _GpReader {
   final _Cursor c;
   final int trackIndex;
@@ -280,7 +280,7 @@ class _GpReader {
     v5 = version.contains('v5.');
     v510 = version.contains('v5.1');
     if (!v3 && !v4 && !v5) {
-      throw FormatException('not a Guitar Pro file: "$version"');
+      throw FormatException('not a GPIF file: "$version"');
     }
 
     // Score information: title, subtitle, artist, album, (words, music) or

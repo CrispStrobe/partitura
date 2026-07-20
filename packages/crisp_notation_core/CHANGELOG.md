@@ -10,7 +10,7 @@
   read as a half (and vice versa) on a braille display/embosser — e.g. a quarter
   C emitted ⠝ (the half-C sign) instead of ⠹. The test that "pinned" it enshrined
   the swap (with self-contradictory glyph comments); corrected to the standard.
-- **Guitar Pro (GPIF) import dropped every mid-score time-signature change.**
+- **GPIF import dropped every mid-score time-signature change.**
   Only the first `<Time>` was captured, so a piece that changed meter reported
   the initial meter throughout. Each `<MasterBar>` whose meter differs from the
   running one now attaches a `timeChange` to its measure.
@@ -77,7 +77,7 @@
   `invertedTurn` rather than a plain turn.
 - **ABC** — grace-note style (acciaccatura vs appoggiatura) and accidental bleed
   across a round-trip are fixed.
-- **Guitar Pro (GPIF)** — three silently-dropped tab techniques now round-trip:
+- **GPIF** — three silently-dropped tab techniques now round-trip:
   ghost notes, wide (whammy) vibrato, and multi-point bend contours.
 
 ### Robustness — importers never crash or hang on malformed input
@@ -882,7 +882,7 @@ First tagged release. Everything below shipped during the 0.4.0 cycle.
   (`gp_fixtures_test.dart`). The reader now lives in `gp_binary_reader.dart`.
 - **`.gp5` import** (Phase 7.3): `gp5ToScore(bytes, {trackIndex})`
   — a from-scratch byte/bit-exact reader for the `.gp5` *binary* format (ported
-  from PyGuitarPro's layout): measures, time signatures, per-track tunings,
+  from a community `.gp` reader's layout): measures, time signatures, per-track tunings,
   notes as string+fret → pitch, and the note techniques (HO/PO, slides, bends,
   dead, harmonic). Pure Dart. Validated against the alphaTab `.gp5` corpus —
   `chords.gp5` renders identically to `chords.gp` (v7). Wired into the CLI.

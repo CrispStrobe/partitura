@@ -202,7 +202,7 @@ void main() {
     }
   });
 
-  // The .gpx container (Guitar Pro 6, a BCFZ/BCFS bit-and-sector codec) has no
+  // The .gpx container (GPIF v6, a BCFZ/BCFS bit-and-sector codec) has no
   // writer to seed valid samples from, so fuzz it with short headers and
   // magic-prefixed garbage. A short BCFZ (just the 4-byte magic, no length
   // field) once overran the little-endian reader with a RangeError.
