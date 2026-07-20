@@ -144,17 +144,21 @@ String _writeGpif(List<Score> parts, List<Tuning> tunings, List<String> names,
   final notes = StringBuffer();
   final rhythms = StringBuffer();
 
-  // Rhythms are de-duplicated by (base, dots) across every track.
+  // Rhythms are de-duplicated by (base, dots, tuplet) across every track.
   final rhythmId = <String, int>{};
-  int rhythmFor(NoteDuration d) {
+  int rhythmFor(NoteDuration d, {int? tupActual, int? tupNormal}) {
     final name = _noteValues[d.base];
     if (name == null) return -1;
-    final key = '$name.${d.dots}';
+    final key = '$name.${d.dots}.${tupActual ?? 0}:${tupNormal ?? 0}';
     return rhythmId.putIfAbsent(key, () {
       final id = rhythmId.length;
       rhythms.write('    <Rhythm id="$id"><NoteValue>$name</NoteValue>');
       for (var i = 0; i < d.dots; i++) {
         rhythms.write('<AugmentationDot/>');
+      }
+      if (tupActual != null && tupNormal != null) {
+        rhythms.write('<PrimaryTuplet><Num>$tupActual</Num>'
+            '<Den>$tupNormal</Den></PrimaryTuplet>');
       }
       rhythms.writeln('</Rhythm>');
       return id;
@@ -194,10 +198,16 @@ String _writeGpif(List<Score> parts, List<Tuning> tunings, List<String> names,
 
     // Emit one GPIF voice from [els] (a bar's voice-1 or voice-2 stream) into
     // the shared beat/note buffers; returns the beat ids to reference.
-    List<int> emitVoice(Iterable<MusicElement> els) {
+    List<int> emitVoice(Iterable<MusicElement> els, List<TupletSpan> tuplets) {
       final beatRefs = <int>[];
-      for (final element in els) {
-        final rid = rhythmFor(element.duration);
+      final list = els is List<MusicElement> ? els : els.toList();
+      for (var idx = 0; idx < list.length; idx++) {
+        final element = list[idx];
+        final span = tuplets.where((t) => t.contains(idx));
+        final rid = span.isEmpty
+            ? rhythmFor(element.duration)
+            : rhythmFor(element.duration,
+                tupActual: span.first.actual, tupNormal: span.first.normal);
         if (rid < 0) continue;
         final noteRefs = <int>[];
         if (element is NoteElement) {
@@ -338,7 +348,8 @@ String _writeGpif(List<Score> parts, List<Tuning> tunings, List<String> names,
       barIdsPerMeasure[m].add(bid);
 
       final vid1 = voiceId++;
-      final v1Refs = emitVoice(measure?.elements ?? const <MusicElement>[]);
+      final v1Refs = emitVoice(measure?.elements ?? const <MusicElement>[],
+          measure?.tupletsForVoice(0) ?? const <TupletSpan>[]);
       voices.writeln(
           '    <Voice id="$vid1"><Beats>${v1Refs.join(' ')}</Beats></Voice>');
 
@@ -347,7 +358,8 @@ String _writeGpif(List<Score> parts, List<Tuning> tunings, List<String> names,
       final v2 = measure?.voice2 ?? const <MusicElement>[];
       if (v2.isNotEmpty) {
         vid2 = voiceId++;
-        final v2Refs = emitVoice(v2);
+        final v2Refs =
+            emitVoice(v2, measure?.tupletsForVoice(1) ?? const <TupletSpan>[]);
         voices.writeln(
             '    <Voice id="$vid2"><Beats>${v2Refs.join(' ')}</Beats></Voice>');
       }
@@ -517,10 +529,14 @@ Score scoreFromGpif(String gpif, {int trackIndex = 0}) {
     // Read the bar's voices (lane 0 → this measure's elements, lane 1 → voice 2).
     final positive = voiceIds.where((v) => v >= 0).toList();
     final laneElements = <List<MusicElement>>[];
+    final measureTuplets = <TupletSpan>[];
     for (var lane = 0; lane < positive.length && lane < 2; lane++) {
       final voice = voiceById[positive[lane]];
       final pend = lane == 0 ? pend1 : pend2;
       final elements = <MusicElement>[];
+      // One entry per element: its tuplet ratio (num, den) or null. Consecutive
+      // same-ratio beats are grouped into a TupletSpan after the loop.
+      final tupRatios = <(int, int)?>[];
       for (final beatRef in _ints(voice?.childText('Beats'))) {
         final beat = beatById[beatRef];
         if (beat == null) continue;
@@ -528,6 +544,7 @@ Score scoreFromGpif(String gpif, {int trackIndex = 0}) {
             int.tryParse(beat.child('Rhythm')?.attributes['ref'] ?? '');
         final duration = _durationOf(rhythmById[rhythmRef]);
         if (duration == null) continue;
+        tupRatios.add(_tupletOf(rhythmById[rhythmRef]));
 
         final noteRefs = _ints(beat.childText('Notes'));
         if (noteRefs.isEmpty) {
@@ -652,11 +669,13 @@ Score scoreFromGpif(String gpif, {int trackIndex = 0}) {
         if (vibrato) vibratos.add(Vibrato(noteId, wide: vibratoWide));
       }
       laneElements.add(elements);
+      measureTuplets.addAll(_groupTuplets(tupRatios, lane));
     }
     measures.add(Measure(
       laneElements.isNotEmpty ? laneElements[0] : const <MusicElement>[],
       voice2:
           laneElements.length > 1 ? laneElements[1] : const <MusicElement>[],
+      tuplets: measureTuplets,
       timeChange: timeChange,
     ));
   }
@@ -708,6 +727,51 @@ NoteDuration? _durationOf(XmlNode? rhythm) {
   if (base == null) return null;
   final dots = rhythm.childrenNamed('AugmentationDot').length.clamp(0, 2);
   return NoteDuration(base, dots: dots);
+}
+
+/// The `(actual, normal)` ratio of a rhythm's `<PrimaryTuplet>`, or null.
+(int, int)? _tupletOf(XmlNode? rhythm) {
+  final t = rhythm?.child('PrimaryTuplet');
+  if (t == null) return null;
+  final actual = int.tryParse(t.childText('Num') ?? '');
+  final normal = int.tryParse(t.childText('Den') ?? '');
+  if (actual == null || normal == null || actual < 2 || normal < 1) return null;
+  return (actual, normal);
+}
+
+/// Groups a per-element list of tuplet [ratios] into [TupletSpan]s — one per
+/// maximal run of consecutive same-ratio elements, addressing [voice]. Timing is
+/// preserved for any grouping; back-to-back tuplets of the same ratio merge into
+/// one span (a visual-only difference, not a timing one).
+List<TupletSpan> _groupTuplets(List<(int, int)?> ratios, int voice) {
+  final spans = <TupletSpan>[];
+  var start = -1;
+  (int, int)? cur;
+  void close(int end) {
+    final c = cur;
+    if (start >= 0 && c != null && end >= start) {
+      spans.add(
+          TupletSpan(start, end, actual: c.$1, normal: c.$2, voice: voice));
+    }
+    start = -1;
+    cur = null;
+  }
+
+  for (var i = 0; i < ratios.length; i++) {
+    final r = ratios[i];
+    if (r == null) {
+      close(i - 1);
+    } else if (cur == null) {
+      start = i;
+      cur = r;
+    } else if (r != cur) {
+      close(i - 1);
+      start = i;
+      cur = r;
+    }
+  }
+  close(ratios.length - 1);
+  return spans;
 }
 
 TimeSignature _parseTime(String text) {

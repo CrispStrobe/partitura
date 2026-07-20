@@ -515,6 +515,56 @@ void main() {
       [55, 57, 59, 60], // voice 2: g3 a3 b3 c4
     );
   });
+
+  test('a tuplet round-trips (timing preserved, not inflated)', () {
+    // Regression: without tuplet support a triplet's notes were read at full
+    // value, so an eighth-triplet(=1 beat)+half(=2 beats) bar came back 3.5 beats.
+    final src = Score(
+      clef: Clef.treble,
+      timeSignature: TimeSignature.fourFour,
+      measures: [
+        Measure(
+          [
+            for (final id in ['e0', 'e1', 'e2'])
+              NoteElement(
+                pitches: [Pitch.parse('g4')],
+                duration: NoteDuration.eighth,
+                id: id,
+              ),
+            NoteElement(
+              pitches: [Pitch.parse('c4')],
+              duration: NoteDuration.half,
+              id: 'e3',
+            ),
+          ],
+          tuplets: const [TupletSpan(0, 2, actual: 3, normal: 2)],
+        ),
+      ],
+    );
+    final m = scoreFromGpif(scoreToGpif(src)).measures.single;
+    expect(m.tuplets, hasLength(1));
+    expect(m.tuplets.first.actual, 3);
+    expect(m.tuplets.first.normal, 2);
+    expect((m.tuplets.first.startIndex, m.tuplets.first.endIndex), (0, 2));
+
+    double beats(Measure mm) {
+      var b = 0.0;
+      for (var i = 0; i < mm.elements.length; i++) {
+        final (n, d) = mm.elements[i].duration.fraction;
+        var v = n / d * 4;
+        for (final t in mm.tuplets) {
+          if (t.contains(i)) {
+            v = v * t.normal / t.actual;
+            break;
+          }
+        }
+        b += v;
+      }
+      return b;
+    }
+
+    expect(beats(m), closeTo(3.0, 1e-9)); // not 3.5
+  });
 }
 
 const _singleTrackGolden = '''
