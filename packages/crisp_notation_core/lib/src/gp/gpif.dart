@@ -341,6 +341,15 @@ String _writeGpif(List<Score> parts, List<Tuning> tunings, List<String> names,
                   break;
               }
             }
+            // Articulations (element-level) go on the first sounding note.
+            if (first) {
+              if (element.articulations.contains(Articulation.staccato)) {
+                props.write('<Property name="Staccato"><Enable/></Property>');
+              }
+              if (element.articulations.contains(Articulation.accent)) {
+                props.write('<Property name="Accent"><Enable/></Property>');
+              }
+            }
             notes.writeln('    <Note id="$noteId"><Properties>$props'
                 '</Properties></Note>');
             noteRefs.add(noteId++);
@@ -616,8 +625,18 @@ Score scoreFromGpif(String gpif, {int trackIndex = 0}) {
         }
         pitches.sort((a, b) => a.midiNumber.compareTo(b.midiNumber));
         final noteId = 'e${id++}';
-        elements
-            .add(NoteElement(pitches: pitches, duration: duration, id: noteId));
+        final arts = <Articulation>{};
+        if (_propOn(beat, 'Staccato')) arts.add(Articulation.staccato);
+        for (final note in nodes) {
+          if (_propOn(note, 'Staccato')) arts.add(Articulation.staccato);
+          if (_propOn(note, 'Accent')) arts.add(Articulation.accent);
+        }
+        elements.add(NoteElement(
+          pitches: pitches,
+          duration: duration,
+          id: noteId,
+          articulations: arts,
+        ));
 
         final dyn = _dynamicFromGp[beat.childText('Dynamic')];
         if (dyn != null) dynamics.add(DynamicMarking(noteId, dyn));

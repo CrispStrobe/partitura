@@ -604,6 +604,38 @@ void main() {
     expect(byId['e0'], DynamicLevel.pp);
     expect(byId['e2'], DynamicLevel.ff);
   });
+
+  test('staccato + accent articulations round-trip', () {
+    NoteElement note(String p, String id,
+            [Set<Articulation> arts = const {}]) =>
+        NoteElement(
+          pitches: [Pitch.parse(p)],
+          duration: NoteDuration.quarter,
+          id: id,
+          articulations: arts,
+        );
+    final src = Score(
+      clef: Clef.treble,
+      timeSignature: TimeSignature.fourFour,
+      measures: [
+        Measure([
+          note('g4', 'e0', const {Articulation.staccato}),
+          note('b4', 'e1'),
+          note('d5', 'e2', const {Articulation.accent}),
+          note('e5', 'e3'),
+        ]),
+      ],
+    );
+    final back = scoreFromGpif(scoreToGpif(src))
+        .measures
+        .single
+        .elements
+        .whereType<NoteElement>()
+        .toList();
+    expect(back[0].articulations, {Articulation.staccato});
+    expect(back[1].articulations, isEmpty);
+    expect(back[2].articulations, {Articulation.accent});
+  });
 }
 
 const _singleTrackGolden = '''
