@@ -565,6 +565,45 @@ void main() {
 
     expect(beats(m), closeTo(3.0, 1e-9)); // not 3.5
   });
+
+  test('key signature round-trips, including a mid-score change', () {
+    final base = Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'g4:q b4 d5 e5 | d5:q e5 g5 a5',
+    );
+    final src = Score(
+      clef: base.clef,
+      keySignature: const KeySignature(1), // G major (one sharp)
+      timeSignature: base.timeSignature,
+      measures: [
+        base.measures[0],
+        base.measures[1].copyWith(keyChange: const KeySignature(-2)), // 2 flats
+      ],
+    );
+    final back = scoreFromGpif(scoreToGpif(src));
+    expect(back.keySignature.fifths, 1);
+    expect(back.measures[1].keyChange?.fifths, -2);
+  });
+
+  test('dynamics round-trip (PPP…FFF)', () {
+    final base = Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'g4:q b4 d5 e5',
+    );
+    final src = Score(
+      clef: base.clef,
+      timeSignature: base.timeSignature,
+      measures: base.measures,
+      dynamics: const [
+        DynamicMarking('e0', DynamicLevel.pp),
+        DynamicMarking('e2', DynamicLevel.ff),
+      ],
+    );
+    final back = scoreFromGpif(scoreToGpif(src));
+    final byId = {for (final d in back.dynamics) d.elementId: d.level};
+    expect(byId['e0'], DynamicLevel.pp);
+    expect(byId['e2'], DynamicLevel.ff);
+  });
 }
 
 const _singleTrackGolden = '''

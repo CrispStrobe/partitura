@@ -37,6 +37,7 @@ import '../model/score.dart';
 import '../musicxml/xml_reader.dart';
 import '../theory/clef.dart';
 import '../theory/duration.dart';
+import '../theory/key_signature.dart';
 import '../theory/pitch.dart';
 import '../theory/time_signature.dart';
 import '../theory/tuning.dart';
@@ -52,6 +53,20 @@ const _noteValues = {
 };
 final _basesByName = {for (final e in _noteValues.entries) e.value: e.key};
 
+// GPIF's `<Dynamic>` vocabulary (PPP…FFF); exotic levels (sf, fp, …) have no
+// GPIF equivalent and are simply not written.
+const _gpDynamics = <DynamicLevel, String>{
+  DynamicLevel.ppp: 'PPP',
+  DynamicLevel.pp: 'PP',
+  DynamicLevel.p: 'P',
+  DynamicLevel.mp: 'MP',
+  DynamicLevel.mf: 'MF',
+  DynamicLevel.f: 'F',
+  DynamicLevel.ff: 'FF',
+  DynamicLevel.fff: 'FFF',
+};
+final _dynamicFromGp = {for (final e in _gpDynamics.entries) e.value: e.key};
+
 /// An explicit fretboard placement for one part: `element id → {string index:
 /// fret}` (string 0 = the top tab line, matching a [Tuning]'s string order; an
 /// empty inner map is a silent element). Pass it to [scoreToGpif] /
@@ -63,10 +78,11 @@ typedef GpFretPlan = Map<String, Map<int, int>>;
 /// Serializes [score] to a `score.gpif` XML string, fretting its pitches on
 /// [tuning] (default standard guitar). Notes unreachable on the tuning are
 /// dropped. A bar's **voice 2** is written as a second GPIF voice (and read back
-/// into `Measure.voice2`), so a two-voice staff round-trips. Tab techniques
-/// (bends and bend contours, hammer-on/pull-off, slides, normal/wide vibrato,
-/// dead/ghost/harmonic marks) are written as GPIF note properties, so a `.gp`
-/// round-trip keeps them.
+/// into `Measure.voice2`), so a two-voice staff round-trips. **Tuplets**
+/// (`<PrimaryTuplet>`), the **key signature** (incl. mid-score changes) and
+/// **dynamics** (PPP…FFF) round-trip too. Tab techniques (bends and bend
+/// contours, hammer-on/pull-off, slides, normal/wide vibrato, dead/ghost/harmonic
+/// marks) are written as GPIF note properties, so a `.gp` round-trip keeps them.
 ///
 /// [frettings] optionally supplies an explicit arrangement (see [GpFretPlan]):
 /// its `{string: fret}` per element wins over [Tuning.fretFor], so an external
@@ -195,6 +211,7 @@ String _writeGpif(List<Score> parts, List<Tuning> tunings, List<String> names,
     final bendBy = {for (final bend in score.bends) bend.noteId: bend};
     final vibratoWideBy = {for (final v in score.vibratos) v.noteId: v.wide};
     final markBy = {for (final m in score.tabNoteMarks) m.noteId: m.style};
+    final dynamicBy = {for (final d in score.dynamics) d.elementId: d.level};
 
     // Emit one GPIF voice from [els] (a bar's voice-1 or voice-2 stream) into
     // the shared beat/note buffers; returns the beat ids to reference.
@@ -331,6 +348,9 @@ String _writeGpif(List<Score> parts, List<Tuning> tunings, List<String> names,
           }
         }
         beats.write('    <Beat id="$beatId"><Rhythm ref="$rid"/>');
+        final dyn = element.id == null ? null : dynamicBy[element.id];
+        final dynGp = dyn == null ? null : _gpDynamics[dyn];
+        if (dynGp != null) beats.write('<Dynamic>$dynGp</Dynamic>');
         if (noteRefs.isNotEmpty) {
           beats.write('<Notes>${noteRefs.join(' ')}</Notes>');
         } else {
@@ -378,12 +398,23 @@ String _writeGpif(List<Score> parts, List<Tuning> tunings, List<String> names,
   // running meter equals the initial meter on every bar, so the emitted bytes
   // are identical (the golden test is unaffected).
   TimeSignature? running;
+  // The key signature is emitted only when it changes from the previous bar
+  // (GPIF's default is no accidentals), so a C-major score emits none and the
+  // golden bytes are unaffected. `<AccidentalCount>` is the signed fifths count.
+  var prevFifths = 0;
+  KeySignature? runKey;
   for (var m = 0; m < measureCount; m++) {
     final measure = m < lead.measures.length ? lead.measures[m] : null;
     final ts = measure?.timeChange ?? running ?? lead.timeSignature;
     if (ts != null) running = ts;
+    final key = measure?.keyChange ?? runKey ?? lead.keySignature;
+    runKey = key;
+    final keyXml = key.fifths != prevFifths
+        ? '<Key><AccidentalCount>${key.fifths}</AccidentalCount></Key>'
+        : '';
+    prevFifths = key.fifths;
     masterBars.writeln('    <MasterBar>${ts == null ? '' : '<Time>'
-            '${ts.beats}/${ts.beatUnit}</Time>'}'
+            '${ts.beats}/${ts.beatUnit}</Time>'}$keyXml'
         '<Bars>${barIdsPerMeasure[m].join(' ')}</Bars></MasterBar>');
   }
 
@@ -496,6 +527,7 @@ Score scoreFromGpif(String gpif, {int trackIndex = 0}) {
   final bends = <Bend>[];
   final vibratos = <Vibrato>[];
   final marks = <TabNoteMark>[];
+  final dynamics = <DynamicMarking>[];
   final slurs = <Slur>[]; // hammer-on / pull-off
   final glissandos = <Glissando>[]; // slides
   // HO/PO + slide spans waiting for their destination note, one pair per voice
@@ -505,6 +537,8 @@ Score scoreFromGpif(String gpif, {int trackIndex = 0}) {
   var id = 0;
   TimeSignature? firstTime;
   TimeSignature? runningTime; // the meter in force, for mid-score changes
+  int? firstFifths;
+  var runningFifths = 0; // the key in force (signed fifths), for changes
 
   for (final masterBar
       in root.child('MasterBars')?.children ?? const <XmlNode>[]) {
@@ -512,6 +546,16 @@ Score scoreFromGpif(String gpif, {int trackIndex = 0}) {
     final time = masterBar.childText('Time');
     final barTime = time == null ? null : _parseTime(time);
     firstTime ??= barTime;
+    // The key signature (signed fifths); a bar carrying a different one is a
+    // mid-score key change.
+    final barFifths = int.tryParse(
+        masterBar.child('Key')?.childText('AccidentalCount') ?? '');
+    firstFifths ??= barFifths;
+    final KeySignature? keyChange =
+        (barFifths != null && barFifths != runningFifths)
+            ? KeySignature(barFifths)
+            : null;
+    if (barFifths != null) runningFifths = barFifths;
     // A bar whose meter differs from the running one carries a mid-score change
     // (the writer emits <Time> on every MasterBar, so a change is a difference).
     final TimeSignature? timeChange =
@@ -574,6 +618,9 @@ Score scoreFromGpif(String gpif, {int trackIndex = 0}) {
         final noteId = 'e${id++}';
         elements
             .add(NoteElement(pitches: pitches, duration: duration, id: noteId));
+
+        final dyn = _dynamicFromGp[beat.childText('Dynamic')];
+        if (dyn != null) dynamics.add(DynamicMarking(noteId, dyn));
 
         // Playing techniques → crisp_notation's tab marks. Spans (HO/PO, slide)
         // connect this note to the previous one that opened them.
@@ -677,6 +724,7 @@ Score scoreFromGpif(String gpif, {int trackIndex = 0}) {
           laneElements.length > 1 ? laneElements[1] : const <MusicElement>[],
       tuplets: measureTuplets,
       timeChange: timeChange,
+      keyChange: keyChange,
     ));
   }
 
@@ -686,12 +734,14 @@ Score scoreFromGpif(String gpif, {int trackIndex = 0}) {
   return Score(
     clef: Clef.treble,
     timeSignature: firstTime,
+    keySignature: KeySignature(firstFifths ?? 0),
     measures: measures,
     slurs: slurs,
     glissandos: glissandos,
     bends: bends,
     vibratos: vibratos,
     tabNoteMarks: marks,
+    dynamics: dynamics,
   );
 }
 
