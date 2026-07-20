@@ -25,6 +25,7 @@ library;
 
 import 'dart:typed_data';
 
+import '../layout/multi_part.dart';
 import '../model/element.dart';
 import '../model/measure.dart';
 import '../model/score.dart';
@@ -45,6 +46,19 @@ Score gp4ToScore(Uint8List bytes, {int trackIndex = 0}) =>
 /// Parses a `.gp3` file (version tag `v3.x`) into a [Score].
 Score gp3ToScore(Uint8List bytes, {int trackIndex = 0}) =>
     _GpReader(bytes, trackIndex).read();
+
+/// Parses a Guitar Pro `.gp3`/`.gp4`/`.gp5` file into a [MultiPartScore] — one
+/// part per track (the `gpNToScore` helpers read a single [trackIndex]). The
+/// version is auto-detected, so this covers all three. Track 0 is parsed first
+/// to learn the track count, then each remaining track is read.
+MultiPartScore gpToMultiPart(Uint8List bytes) {
+  final probe = _GpReader(bytes, 0);
+  final parts = <Score>[probe.read()]; // reading sets probe.trackCount
+  for (var t = 1; t < probe.trackCount; t++) {
+    parts.add(_GpReader(bytes, t).read());
+  }
+  return MultiPartScore(parts);
+}
 
 /// Sequential little-endian cursor over a Guitar Pro byte buffer. Reading past
 /// the end throws a [FormatException] rather than returning zeros or looping.

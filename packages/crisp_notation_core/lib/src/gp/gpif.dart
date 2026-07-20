@@ -351,6 +351,16 @@ List<String> gpifTrackNames(String gpif) {
   ];
 }
 
+/// Parses a `.gpif` document into a [MultiPartScore] — every `<Track>` as its
+/// own part (the single-track `scoreFromGpif` read one [trackIndex]).
+MultiPartScore multiPartScoreFromGpif(String gpif) {
+  final n = gpifTrackNames(gpif).length;
+  return MultiPartScore([
+    for (var t = 0; t < (n == 0 ? 1 : n); t++)
+      scoreFromGpif(gpif, trackIndex: t),
+  ]);
+}
+
 /// Parses a `score.gpif` XML string into a [Score] — the [trackIndex]-th track
 /// (default 0), voice 0.
 ///

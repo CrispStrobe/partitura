@@ -329,6 +329,20 @@ void main() {
       expect(gpifTrackNames(gpif), ['Lead', 'Bass']);
     });
 
+    test('multiPartScoreFromGpif reads every track back (all parts)', () {
+      final gpif = multiPartToGpif(band(),
+          tunings: [Tuning.standardGuitar, Tuning.standardBass]);
+      final back = multiPartScoreFromGpif(gpif);
+      expect(back.parts, hasLength(2)); // both tracks, not just track 0
+      List<String> steps(Score s) => [
+            for (final m in s.measures)
+              for (final e in m.elements)
+                if (e is NoteElement) e.pitches.first.step.name,
+          ];
+      expect(steps(back.parts[0]), ['e', 'g', 'b', 'e']); // guitar line
+      expect(steps(back.parts[1]), ['e', 'a']); // bass line
+    });
+
     test('both parts round-trip through scoreFromGpif with their tunings', () {
       final source = band();
       final gpif = multiPartToGpif(source,
