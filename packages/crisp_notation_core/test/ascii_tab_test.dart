@@ -550,4 +550,30 @@ tuning - D A D G B E
     // Drop-D: the open 6th string sounds D2, not E2.
     expect(pitches(score).single.toString(), 'D2');
   });
+
+  test('a labelled scordatura (DGDGBE) is matched, but noise is not', () {
+    // Labels spelling a known-if-unnamed scordatura (top-to-bottom E B G D G D
+    // = D G D G B E) are read at pitch: the open 6th string is D2.
+    final scordatura = asciiTabToScore('''
+E|-------|
+B|-------|
+G|-------|
+D|-------|
+G|-------|
+D|-0-----|
+''');
+    expect(pitches(scordatura).single.toString(), 'D2');
+
+    // A typo'd / mis-extracted label run that matches no curated tuning must
+    // NOT be built into a bogus tuning — it falls back to standard (low E2).
+    final noise = asciiTabToScore('''
+E|-------|
+A|-------|
+G|-------|
+D|-------|
+A|-------|
+E|-0-----|
+''');
+    expect(pitches(noise).single.toString(), 'E2');
+  });
 }

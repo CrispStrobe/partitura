@@ -362,6 +362,15 @@ final _knownTunings = <Tuning>[
   Tuning.banjoOpenG,
   Tuning.ukulele,
   Tuning.mandolin,
+  // Common guitar scordaturas that no named Tuning covers, matched by their
+  // exact label sequence. Building a tuning from ANY unrecognised label run was
+  // too eager — a single-line block or a typo'd label ("E A G D A E") produced
+  // a bogus tuning and scrambled the pitches — so only these curated, exact
+  // spellings qualify; anything else falls through to the standard default.
+  // (A lute tuning `E A D F# B E` was tried too, but it falsely matched lute
+  // tablature whose real tuning is uncertain, so it was dropped.)
+  _buildTuning(['D', 'G', 'D', 'G', 'B', 'E'])!, // barrios: E B G D G D
+  _buildTuning(['C', 'G', 'D', 'G', 'B', 'E'])!, // williams: E B G D G C
 ];
 
 /// A tuning-string's note letter + accidental, no octave (`E`, `A#`, `Eb`) —
