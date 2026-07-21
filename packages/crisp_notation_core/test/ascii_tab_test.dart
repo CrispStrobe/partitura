@@ -416,4 +416,44 @@ E|-------|
     // The 3rd string is F#3, not G3 — built from the note names.
     expect(pitches(scordatura).single.toString(), 'F#3');
   });
+
+  test('splitTabVersions separates packed arrangements; single stays one', () {
+    // A ClassTab habit: two arrangements in one file, each restarting its own
+    // header. Reading the whole thing mixes them; split gives one clean score
+    // per version. Boundary here = the "time:" header reappearing after tab.
+    const twoVersions = '''
+version 1 - in C
+
+e|-0-2-3-|
+B|-------|
+G|-------|
+D|-------|
+A|-------|
+E|-------|
+
+version 2 - in E
+
+e|-4-5-7-|
+B|-------|
+G|-------|
+D|-------|
+A|-------|
+E|-------|
+''';
+    final versions = asciiTabVersions(twoVersions);
+    expect(versions, hasLength(2));
+    expect(pitches(versions[0]).map((p) => p.toString()), ['E4', 'F#4', 'G4']);
+    expect(pitches(versions[1]).map((p) => p.toString()), ['G#4', 'A4', 'B4']);
+
+    // An ordinary single-version tab is one segment (no false split).
+    const single = '''
+e|-0-2-3-|
+B|-------|
+G|-------|
+D|-------|
+A|-------|
+E|-------|
+''';
+    expect(splitTabVersions(single), hasLength(1));
+  });
 }

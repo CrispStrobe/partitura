@@ -47,16 +47,90 @@ class _Event {
   _Event(this.col);
 }
 
-/// Parses plain-text tablature [text] into a [Score] for [tuning]
-/// (default [Tuning.standardGuitar]).
-///
-/// By default every event takes [duration] (default an eighth). With
-/// [inferRhythm] the durations are instead *interpreted from the horizontal
-/// spacing* — the smallest gap between successive events is taken as an eighth
-/// and wider gaps scale up (2× → quarter, 3× → dotted quarter, 4× → half, …).
-/// This is a heuristic reading of well-spaced tabs; badly spaced tabs give
-/// arbitrary rhythm. See the library doc for the techniques and lossiness.
-/// Returns a single-measure whole-rest score if no tab lines are found.
+/// Whether [line] is a version-restart header: an explicit `version` marker, or
+/// a full preamble carrying two or more distinct metadata fields (`Time: 6/8
+/// Standard Tuning …`). A single field on its own (a mid-piece `Time: 3/4`
+/// change) is NOT a version boundary.
+bool _isVersionHeader(String line) {
+  final low = line.toLowerCase();
+  if (RegExp(r'\bversion\b').hasMatch(low)) return true;
+  var markers = 0;
+  for (final k in ['tuning', 'time', 'key', 'tempo', 'capo']) {
+    if (RegExp('\\b$k\\b').hasMatch(low)) markers++;
+  }
+  return markers >= 2;
+}
+
+/// Splits a plain-text tab that packs several ARRANGEMENTS of the same piece
+/// (a ClassTab habit — "1st version … in C", "2nd version … in E") into one text
+/// per version, so each parses to one clean [Score] instead of mixing keys and
+/// tunings into garbage. A boundary is a [_isVersionHeader] restart after tab
+/// has begun, or a string-label-format change (`E|` vs `E |`, a different
+/// tabber). An ordinary single-version tab returns one element (so callers can
+/// always take the first); a runaway split (>6) is treated as single.
+List<String> splitTabVersions(String text) {
+  final lines = text.split(RegExp(r'\r?\n'));
+  final segs = <List<String>>[];
+  var cur = <String>[];
+  var sawTab = false;
+  String? fmt; // 'sp' (E |) or 'ns' (E|), the established label format
+
+  for (final line in lines) {
+    final isTab = _isTabLine(line);
+    String? lf;
+    if (isTab) {
+      final m = RegExp(r'^[ \t]*[A-Ga-g][#b]?([ \t]*)\|').firstMatch(line);
+      lf = (m?.group(1)?.isNotEmpty ?? false) ? 'sp' : 'ns';
+    }
+    final restart = sawTab && !isTab && _isVersionHeader(line);
+    final formatChange =
+        isTab && sawTab && fmt != null && lf != null && lf != fmt;
+    if (restart || formatChange) {
+      segs.add(cur);
+      cur = <String>[];
+      sawTab = false;
+      fmt = null;
+    }
+    cur.add(line);
+    if (isTab) {
+      sawTab = true;
+      fmt ??= lf;
+    }
+  }
+  if (cur.isNotEmpty) segs.add(cur);
+
+  final out = [
+    for (final s in segs)
+      if (s.any(_isTabLine)) s.join('\n'),
+  ];
+  // A genuine multi-version file has a handful of arrangements. A large count
+  // means the label format merely alternates block-to-block within one
+  // arrangement (a cascade of false boundaries) — treat the file as single.
+  if (out.isEmpty || out.length > 6) return [text];
+  return out;
+}
+
+/// Parses every arrangement in a multi-version tab to its own [Score] (see
+/// [splitTabVersions]). A single-version tab yields a one-element list.
+List<Score> asciiTabVersions(
+  String text, {
+  Tuning? tuning,
+  NoteDuration duration = NoteDuration.eighth,
+  bool inferRhythm = false,
+  bool applyStatedCapo = false,
+}) =>
+    [
+      for (final seg in splitTabVersions(text))
+        asciiTabToScore(seg,
+            tuning: tuning,
+            duration: duration,
+            inferRhythm: inferRhythm,
+            applyStatedCapo: applyStatedCapo),
+    ];
+
+/// Parses plain-text tablature [text] into a single [Score] — see the top-level
+/// doc for [tuning] inference, techniques, rhythm and lossiness. For a file that
+/// packs several arrangements, split first with [splitTabVersions].
 Score asciiTabToScore(
   String text, {
   Tuning? tuning,
