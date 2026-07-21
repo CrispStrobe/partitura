@@ -298,4 +298,27 @@ E|--------------------|
     expect(midis, everyElement(lessThanOrEqualTo(88)));
     expect(pitches(score).map((p) => p.toString()), ['E4', 'F#4', 'G4']);
   });
+
+  test('a mostly-sustained string line keeps the block (guitar, not bass)', () {
+    // Regression from ClassTab: the A line is one open note held with `=`, so it
+    // has a single dash. The old >=2-dash rule rejected it, splitting the six
+    // strings into four and mis-inferring BASS tuning -> every pitch an octave
+    // low (low E read as E1=28, not E2=40). `=` is sustain fill like `-`.
+    final score = asciiTabToScore('''
+e|-0------------------|
+B|--------------------|
+G|--------------------|
+D|--------------------|
+A|-0==================|
+E|--------------------|
+''');
+    final midis = score.measures
+        .expand((m) => m.elements)
+        .whereType<NoteElement>()
+        .expand((e) => e.pitches)
+        .map((p) => p.midiNumber);
+    // Open A on a guitar is A2 = 45, not A1 = 33 (which a bass mis-read gives).
+    expect(midis, everyElement(greaterThanOrEqualTo(40)));
+    expect(midis, contains(45)); // A2 present
+  });
 }

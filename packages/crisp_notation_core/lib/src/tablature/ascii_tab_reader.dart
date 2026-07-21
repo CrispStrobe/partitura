@@ -348,8 +348,13 @@ Tuning? _defaultForCount(int count) => switch (count) {
 /// least two dashes — enough to reject ordinary prose.
 bool _isTabLine(String line) {
   final body = _stripLabel(line);
-  final dashes = '-'.allMatches(body).length;
-  if (dashes < 2) return false;
+  // `=` is a held-note sustain line — horizontal fill just like `-`. Count them
+  // together, or a string line that is mostly one sustained note (`-0=====…`,
+  // a single dash) is wrongly rejected, which breaks the block: the six strings
+  // split into four, and the tuning is then mis-inferred (a guitar read as a
+  // bass, an octave low).
+  final fill = RegExp('[-=]').allMatches(body).length;
+  if (fill < 2) return false;
   // A bar-number / rhythm-reference row (`25 |-3-| |-3-|`, `0 |----|----|`)
   // is dash-dominated and so would pass as a tab line, then get grouped in with
   // the six string lines — throwing off the block alignment and reading the bar
@@ -368,7 +373,7 @@ bool _isTabLine(String line) {
   // line, without admitting a letter-heavy prose line as tab.
   final foreign =
       body.replaceAll(RegExp(r'''[-0-9hpbxXsHP~/\\|()=*<>: \t.]'''), '').length;
-  return foreign <= 1 + dashes ~/ 6;
+  return foreign <= 1 + fill ~/ 6;
 }
 
 /// Strips a leading string label like `e|`, `B|`, `E |` or `g` from a line.
