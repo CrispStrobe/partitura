@@ -26,5 +26,6 @@ dependencies:
   image: ^4.2.0
 
 dev_dependencies:
+  covfuzz: ^0.1.0
   lints: ^5.0.0
   test: ^1.25.0

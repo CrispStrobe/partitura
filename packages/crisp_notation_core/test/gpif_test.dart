@@ -703,6 +703,19 @@ void main() {
     expect([at('e0', 2).text, at('e1', 2).text, at('e2', 2).text],
         ['Up', 'a', 'bove']);
   });
+
+  test('a malformed <Time> is rejected cleanly (covfuzz: gpif-time-sig)', () {
+    // covfuzz found <Time>4</Time> (no denominator) → RangeError on parts[1].
+    const bad = '<GPIF><Tracks><Track><Staves><Staff><Properties>'
+        '</Properties></Staff></Staves></Track></Tracks><MasterBars>'
+        '<MasterBar><Time>4</Time></MasterBar></MasterBars></GPIF>';
+    expect(() => scoreFromGpif(bad), throwsFormatException);
+    // a denominator that isn't a power of two trips TimeSignature's assertion.
+    expect(
+      () => scoreFromGpif(bad.replaceAll('<Time>4</Time>', '<Time>4/3</Time>')),
+      throwsFormatException,
+    );
+  });
 }
 
 const _singleTrackGolden = '''

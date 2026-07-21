@@ -23,3 +23,7 @@ build
 
 # Claude Code local working notes (not tracked)
 CLAUDE.md
+
+# covfuzz artifacts
+.corpus/
+.crashes/

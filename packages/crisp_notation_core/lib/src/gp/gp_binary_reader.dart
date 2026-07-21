@@ -377,7 +377,22 @@ class _GpReader {
       if (v5 && (flags & 0x03) != 0) c.skip(4); // beam-group bytes
       if (v5) c.skip(2); // alt-ending/pad byte + triplet-feel byte
 
-      _measureTime.add(timeChanged ? TimeSignature(num, den) : null);
+      if (!timeChanged) {
+        _measureTime.add(null);
+      } else {
+        // GUARD:gp-time-sig >>> malformed bytes can hand us a garbage
+        // denominator (not a power of two in 1..16) that trips TimeSignature's
+        // assertion with an uncatchable _AssertionError — reject cleanly instead.
+        if (num < 1 ||
+            num > 32 ||
+            den < 1 ||
+            den > 16 ||
+            (den & (den - 1)) != 0) {
+          throw FormatException('invalid GP time signature $num/$den');
+        }
+        // GUARD:gp-time-sig <<<
+        _measureTime.add(TimeSignature(num, den));
+      }
     }
   }
 

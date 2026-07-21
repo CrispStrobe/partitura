@@ -954,8 +954,23 @@ List<TupletSpan> _groupTuplets(List<(int, int)?> ratios, int voice) {
 }
 
 TimeSignature _parseTime(String text) {
+  // GUARD:gpif-time-sig >>> a malformed <Time> (no '/', non-numeric, or a
+  // denominator that isn't a power of two in 1..16) would RangeError on parts[1]
+  // or trip TimeSignature's assertion with an uncatchable _AssertionError.
   final parts = text.split('/');
-  return TimeSignature(int.parse(parts[0]), int.parse(parts[1]));
+  final beats = parts.length == 2 ? int.tryParse(parts[0]) : null;
+  final unit = parts.length == 2 ? int.tryParse(parts[1]) : null;
+  if (beats == null ||
+      unit == null ||
+      beats < 1 ||
+      beats > 32 ||
+      unit < 1 ||
+      unit > 16 ||
+      (unit & (unit - 1)) != 0) {
+    throw FormatException('invalid GPIF time signature "$text"');
+  }
+  // GUARD:gpif-time-sig <<<
+  return TimeSignature(beats, unit);
 }
 
 Pitch _pitchFromMidi(int key) {
