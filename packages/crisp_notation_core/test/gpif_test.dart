@@ -671,6 +671,38 @@ void main() {
     );
     expect(els[1].graceNotes, isEmpty);
   });
+
+  test('lyrics round-trip (syllables, hyphens, two verses)', () {
+    final base = Score.simple(
+      timeSignature: TimeSignature.fourFour,
+      notes: 'c4:q c4 g4 g4',
+    );
+    final src = Score(
+      clef: base.clef,
+      timeSignature: base.timeSignature,
+      measures: base.measures,
+      lyrics: const [
+        Lyric('e0', 'Twin', hyphenToNext: true),
+        Lyric('e1', 'kle'),
+        Lyric('e2', 'twin', hyphenToNext: true),
+        Lyric('e3', 'kle'),
+        Lyric('e0', 'Up', verse: 2),
+        Lyric('e1', 'a', verse: 2),
+        Lyric('e2', 'bove', verse: 2),
+      ],
+    );
+    final back = scoreFromGpif(scoreToGpif(src));
+    Lyric at(String id, int v) =>
+        back.lyrics.firstWhere((l) => l.elementId == id && l.verse == v,
+            orElse: () => const Lyric('', ''));
+    expect(at('e0', 1).text, 'Twin');
+    expect(at('e0', 1).hyphenToNext, isTrue);
+    expect([at('e1', 1).text, at('e2', 1).text, at('e3', 1).text],
+        ['kle', 'twin', 'kle']);
+    expect(at('e2', 1).hyphenToNext, isTrue);
+    expect([at('e0', 2).text, at('e1', 2).text, at('e2', 2).text],
+        ['Up', 'a', 'bove']);
+  });
 }
 
 const _singleTrackGolden = '''

@@ -79,8 +79,10 @@ typedef GpFretPlan = Map<String, Map<int, int>>;
 /// [tuning] (default standard guitar). Notes unreachable on the tuning are
 /// dropped. A bar's **voice 2** is written as a second GPIF voice (and read back
 /// into `Measure.voice2`), so a two-voice staff round-trips. **Tuplets**
-/// (`<PrimaryTuplet>`), the **key signature** (incl. mid-score changes) and
-/// **dynamics** (PPP…FFF) round-trip too. Tab techniques (bends and bend
+/// (`<PrimaryTuplet>`), the **key signature** (incl. mid-score changes),
+/// **dynamics** (PPP…FFF), **grace notes** (as `BeforeBeat` grace beats),
+/// **staccato/accent** and **lyrics** (per verse) round-trip too. Tab techniques
+/// (bends and bend
 /// contours, hammer-on/pull-off, slides, normal/wide vibrato, dead/ghost/harmonic
 /// marks) are written as GPIF note properties, so a `.gp` round-trip keeps them.
 ///
@@ -146,6 +148,7 @@ String _writeGpif(List<Score> parts, List<Tuning> tunings, List<String> names,
   final tracks = StringBuffer();
   for (var t = 0; t < parts.length; t++) {
     tracks.write('<Track id="$t"><Name>${_escape(names[t])}</Name>'
+        '${_lyricsXml(parts[t])}'
         '<Staves><Staff>'
         '<Properties><Property name="Tuning"><Pitches>'
         '${tunings[t].strings.map((p) => p.midiNumber).join(' ')}'
@@ -484,6 +487,45 @@ List<(int, int)>? _fretsFromVoicing(
   return out;
 }
 
+/// A track's `<Lyrics>` — one `<Line>` per verse, syllables in note order joined
+/// by `-` (word continues) or a space (word ends), with an `<Offset>` for the
+/// first lyric-bearing note. Empty when the part has no lyrics. Assumes each
+/// verse's lyrics sit on a contiguous run of notes (the common case); a mid-run
+/// gap can misalign on re-read.
+String _lyricsXml(Score score) {
+  if (score.lyrics.isEmpty) return '';
+  final noteIndex = <String, int>{};
+  var i = 0;
+  for (final m in score.measures) {
+    for (final e in m.elements) {
+      if (e is NoteElement && e.id != null) noteIndex[e.id!] = i++;
+    }
+  }
+  final byVerse = <int, List<Lyric>>{};
+  for (final l in score.lyrics) {
+    (byVerse[l.verse] ??= []).add(l);
+  }
+  final buf = StringBuffer('<Lyrics>');
+  var any = false;
+  for (final verse in byVerse.keys.toList()..sort()) {
+    final placed = [
+      for (final l in byVerse[verse]!)
+        if (noteIndex.containsKey(l.elementId)) (noteIndex[l.elementId]!, l),
+    ]..sort((a, b) => a.$1.compareTo(b.$1));
+    if (placed.isEmpty) continue;
+    any = true;
+    final text = StringBuffer();
+    for (final (_, l) in placed) {
+      text.write(_escape(l.text));
+      text.write(l.hyphenToNext ? '-' : ' ');
+    }
+    buf.write('<Line><Text>${text.toString().trimRight()}</Text>'
+        '<Offset>${placed.first.$1}</Offset></Line>');
+  }
+  buf.write('</Lyrics>');
+  return any ? buf.toString() : '';
+}
+
 /// Escapes the XML text characters that can appear in a track name.
 String _escape(String text) => text
     .replaceAll('&', '&amp;')
@@ -555,6 +597,7 @@ Score scoreFromGpif(String gpif, {int trackIndex = 0}) {
   final vibratos = <Vibrato>[];
   final marks = <TabNoteMark>[];
   final dynamics = <DynamicMarking>[];
+  final lyrics = <Lyric>[];
   final slurs = <Slur>[]; // hammer-on / pull-off
   final glissandos = <Glissando>[]; // slides
   // HO/PO + slide spans waiting for their destination note, one pair per voice
@@ -784,6 +827,35 @@ Score scoreFromGpif(String gpif, {int trackIndex = 0}) {
     ));
   }
 
+  // Lyrics are track-level: each <Line> is a verse whose syllables map, in note
+  // order, onto the timed notes starting at its <Offset>.
+  final lyricNoteIds = [
+    for (final m in measures)
+      for (final e in m.elements)
+        if (e is NoteElement) e.id!,
+  ];
+  final lyricLines =
+      track?.child('Lyrics')?.childrenNamed('Line') ?? const <XmlNode>[];
+  var verse = 0;
+  for (final line in lyricLines) {
+    verse++;
+    final text = line.childText('Text')?.trim();
+    if (text == null || text.isEmpty) continue;
+    final offset = int.tryParse(line.childText('Offset') ?? '') ?? 0;
+    var n = offset;
+    for (final word in text.split(RegExp(r'\s+'))) {
+      final syllables = word.split('-');
+      for (var s = 0; s < syllables.length; s++) {
+        if (syllables[s].isEmpty) continue;
+        if (n >= 0 && n < lyricNoteIds.length) {
+          lyrics.add(Lyric(lyricNoteIds[n], syllables[s],
+              hyphenToNext: s < syllables.length - 1, verse: verse));
+        }
+        n++;
+      }
+    }
+  }
+
   if (measures.isEmpty) {
     measures.add(Measure([RestElement(NoteDuration.whole, id: 'e0')]));
   }
@@ -798,6 +870,7 @@ Score scoreFromGpif(String gpif, {int trackIndex = 0}) {
     vibratos: vibratos,
     tabNoteMarks: marks,
     dynamics: dynamics,
+    lyrics: lyrics,
   );
 }
 
