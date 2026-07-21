@@ -1,5 +1,41 @@
 # Changelog
 
+## Unreleased
+
+### GPIF (`.gp`) round-trip fidelity
+
+The GPIF export/import is now a high-fidelity tablature round-trip. On top of the
+pitches, chords, rhythm, per-track tunings and tab techniques it already carried,
+these now survive a `scoreToGpif`/`scoreFromGpif` (or `multiPartToGpif`) round-trip
+— each symmetric writer+reader with a test, and each emitted only when present so a
+plain single-voice C-major score stays byte-identical:
+
+- **Voice 2** — a bar's second voice writes as a second GPIF `<Voice>` and reads
+  back into `Measure.voice2` (was collapsed to one voice).
+- **Tuplets** — `<PrimaryTuplet>` per beat, regrouped on import. Previously a
+  triplet's notes were read at full value, so an eighth-triplet + half bar came
+  back 3.5 beats instead of 3.0 (silent timing corruption).
+- **Key signature** — `<Key><AccidentalCount>` incl. mid-score changes.
+- **Dynamics** — `<Dynamic>` over PPP…FFF.
+- **Grace notes** — `BeforeBeat` grace beats (order preserved, not timed).
+- **Articulations** — staccato / accent.
+- **Lyrics** — track-level `<Lyrics>`, one `<Line>` per verse (syllables + hyphens).
+
+### Robustness (fuzzed)
+
+- **gp5 note reader misplaced the time-independent duration.** In GP5 a note's
+  optional duration is an 8-byte double written *after* the fingering; the reader
+  read it in the gp3/4 slot, so a note carrying that flag took its fret from the
+  middle of the double and came back at a garbage octave (e.g. `effects.gp5`
+  decoded notes at MIDI 122/108 where gp4 read 78). Fixed; gp5 now decodes
+  byte-identical pitches to gp4.
+- **Malformed time signatures crashed instead of rejecting.** A garbage
+  denominator (not a power of two) tripped an uncatchable `_AssertionError`, and a
+  GPIF `<Time>` without `/` raised a `RangeError`. Both the binary reader and the
+  GPIF `_parseTime` now validate and throw a `FormatException`. Found by
+  [covfuzz](https://pub.dev/packages/covfuzz) (blind + coverage-guided), each fix
+  proven load-bearing with `covfuzz_mutverify`.
+
 ## 0.4.8 (2026-07-18)
 
 ### Codec fixes (found by audit)

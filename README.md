@@ -106,7 +106,14 @@ drives an app-owned `ScrollController`. One-call `exportScoreToPng` /
 MIDI, MuseScore (`.mscx`/`.mscz`), the `.gp3`–`.gp5`/`.gpx`/`.gp` tablature
 family (with GPIF), and ABC — all importing and (where applicable) exporting
 through the one `Score` model, so any pair round-trips for shared data; plus
-LilyPond `.ly` and braille-music (`.brl`) export.
+LilyPond `.ly` and braille-music (`.brl`) export. The GPIF export/import is a
+high-fidelity round-trip: on top of pitches, chords, rhythm, per-track tunings
+and the tab techniques (bends & contours, hammer-ons, slides, vibrato, dead/
+ghost/harmonics), it preserves **voice 2, tuplets, key signature (incl. mid-score
+changes), dynamics, grace notes, articulations and lyrics** — verified across 25
+real Guitar-Pro files. The binary readers are **fuzz-hardened** (blind +
+coverage-guided [covfuzz](https://pub.dev/packages/covfuzz)): malformed input is
+rejected with a `FormatException`, never a crash or hang.
 
 **Optical music recognition.** A staff-notation image imports to a score via
 [CrispEmbed](https://github.com/CrispStrobe/CrispEmbed), auto-routing three
