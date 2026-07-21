@@ -567,12 +567,17 @@ class _GpReader {
     final flags = c.u8();
     var type = 1;
     if (flags & 0x20 != 0) type = c.u8();
-    if (flags & 0x01 != 0) c.skip(v5 ? 8 : 2); // time-independent duration
+    // gp3/4 place the time-independent duration (2 bytes) here, before the
+    // dynamic; gp5 places it (an 8-byte double) AFTER the fingering — reading it
+    // here fed the fret from the middle of that double, so a note with the flag
+    // came back at a garbage pitch.
+    if (!v5 && flags & 0x01 != 0) c.skip(2);
     if (flags & 0x10 != 0) c.u8(); // dynamic
     var fret = 0;
     if (flags & 0x20 != 0) fret = c.u8();
     if (flags & 0x80 != 0) c.skip(2); // left/right fingering
-    if (v5) c.u8(); // per-note padding
+    if (v5 && flags & 0x01 != 0) c.skip(8); // gp5 time-independent duration
+    if (v5) c.u8(); // gp5 second note-flags byte
 
     final note = _Note(string, fret, type);
     if (flags & 0x08 != 0) _readNoteEffects(note);

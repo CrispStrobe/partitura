@@ -101,4 +101,19 @@ void main() {
         'time=4/4 measures=2\nm0: a1/3:half  a1/3:half\nm1: f0/4:whole');
     expect(gp5('bends.gp5').bends, hasLength(3));
   });
+
+  // The same song exported in different GP versions must decode to the same
+  // pitches. Regression: the gp5 note reader placed the time-independent
+  // duration (an 8-byte double) in the gp3/4 slot, so a note carrying that flag
+  // read its fret out of the middle of the double → a garbage octave.
+  List<int> midis(Score s) => s.measures
+      .expand((m) => m.elements)
+      .whereType<NoteElement>()
+      .expand((n) => n.pitches.map((p) => p.midiNumber))
+      .toList();
+  for (final stem in ['effects', 'bends', 'vibrato']) {
+    test('$stem: gp5 pitches match gp4', () {
+      expect(midis(gp5('$stem.gp5')), midis(gp4('$stem.gp4')));
+    });
+  }
 }
