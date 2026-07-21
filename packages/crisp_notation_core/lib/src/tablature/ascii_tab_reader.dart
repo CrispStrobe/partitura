@@ -608,10 +608,16 @@ bool _isTabLine(String line) {
   // block to nothing — count only the "foreign" characters and tolerate a few.
   // The tab glyphs (digits, `-`, techniques, `=` sustain, `*` repeat, `<>`
   // slides, `:` repeat/separator, barlines, parens, spacing) are free; anything
-  // else is foreign. This is the robustness of grepping digits from any labelled
-  // line, without admitting a letter-heavy prose line as tab.
-  final foreign =
-      body.replaceAll(RegExp(r'''[-0-9hpbxXsHP~/\\|()=*<>: \t.]'''), '').length;
+  // else is foreign. A `t` that PREFIXES a fret is a tremolo/tap marker (`t12
+  // t12 t12`, El Último Trémolo) — free it first, or a whole tremolo string line
+  // is rejected and every tremolo note dropped; but a bare `t` (an annotation
+  // word) stays foreign, so prose lines are still rejected. This is the
+  // robustness of grepping digits from any labelled line, without admitting a
+  // letter-heavy prose line as tab.
+  final foreign = body
+      .replaceAll(RegExp(r't(?=\d)'), '')
+      .replaceAll(RegExp(r'''[-0-9hpbxXsHP~/\\|()=*<>: \t.]'''), '')
+      .length;
   return foreign <= 1 + fill ~/ 6;
 }
 

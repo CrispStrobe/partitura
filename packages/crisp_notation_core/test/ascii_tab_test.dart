@@ -576,4 +576,22 @@ E|-0-----|
 ''');
     expect(pitches(noise).single.toString(), 'E2');
   });
+
+  test('a tremolo line with t-prefixed frets (t12) is read, not rejected', () {
+    // El Último Trémolo notates each tremolo stroke "t12". Those t's made the
+    // string line too letter-heavy and it was rejected wholesale, dropping
+    // every tremolo note. A t before a fret is a marker; read the fret.
+    final score = asciiTabToScore('''
+e|---t12-t12-t12-t12-|
+B|------------------|
+G|------------------|
+D|------------------|
+A|------------------|
+E|-0----------------|
+''');
+    final frets = pitches(score).map((p) => p.toString()).toList();
+    // Four tremolo E5s (fret 12 on the high e string) plus the open low E.
+    expect(frets.where((p) => p == 'E5'), hasLength(4));
+    expect(frets, contains('E2'));
+  });
 }
