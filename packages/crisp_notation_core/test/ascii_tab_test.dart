@@ -216,4 +216,60 @@ E|---|
     expect(place, isNotNull);
     expect(place!.$2, 3); // recovered fret 3 on the top string
   });
+
+  test('infers Drop-D tuning from the string labels', () {
+    // The low string is labelled D, so the low note is D2 (fret 0), not E2 —
+    // reading it as standard would be two semitones sharp.
+    final score = asciiTabToScore('''
+e|-------|
+B|-------|
+G|-------|
+D|-------|
+A|-------|
+D|-0-----|
+''');
+    expect(pitches(score).single.toString(), 'D2');
+  });
+
+  test('a held-note = and repeat * no longer disqualify a tab line', () {
+    // A single = used to reject the whole line, dropping the block to nothing.
+    final score = asciiTabToScore('''
+e|--------------|
+B|--------------|
+G|*---0=======0-|
+D|--------------|
+A|--------------|
+E|--3=======----|
+''');
+    // The fretted attacks survive (E-string fret 3, G-string fret 0 twice).
+    expect(pitches(score).length, 3);
+  });
+
+  test('a 4-line bass tab is detected, not forced to 6 strings', () {
+    final score = asciiTabToScore('''
+G|-------|
+D|-------|
+A|-------|
+E|-0-----|
+''');
+    expect(pitches(score).single.toString(), 'E1'); // low E of a bass
+  });
+
+  test('a runaway digit run does not overflow (fret capped at two digits)', () {
+    // Regression: two real ClassTab files crashed int.parse on a long digit run.
+    final score = asciiTabToScore('e|-0000000000000000000-|');
+    expect(score.measures, isNotEmpty); // parsed, did not throw
+  });
+
+  test('an explicit tuning argument still overrides label inference', () {
+    final score = asciiTabToScore('''
+D|-0-----|
+A|-------|
+D|-------|
+G|-------|
+B|-------|
+E|-------|
+''', tuning: Tuning.standardGuitar);
+    expect(pitches(score).single.toString(), 'E4'); // forced standard: top = E4
+  });
 }

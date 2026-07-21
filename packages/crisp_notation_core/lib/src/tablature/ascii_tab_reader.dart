@@ -63,9 +63,19 @@ Score asciiTabToScore(
   NoteDuration duration = NoteDuration.eighth,
   bool inferRhythm = false,
 }) {
-  final tune = tuning ?? Tuning.standardGuitar;
+  final lines = text.split(RegExp(r'\r?\n'));
+  // When the caller doesn't force a tuning, read it from the tab itself instead
+  // of blindly assuming 6-string standard. The string LABELS (`e B G D A E`)
+  // name the tuning — matching them against a known tuning fixes silent pitch
+  // corruption (a Drop-D tab read as standard is two semitones flat on the low
+  // string). Falling back on the string COUNT stops a 4-line bass tab parsing
+  // to nothing, or a 7-string tab dropping its 7th string.
+  final tune = tuning ??
+      _tuningFromLabels(_labelLetters(lines)) ??
+      _defaultForCount(_firstBlockCount(lines)) ??
+      Tuning.standardGuitar;
   final n = tune.stringCount;
-  final blocks = _blocks(text.split(RegExp(r'\r?\n')), n);
+  final blocks = _blocks(lines, n);
 
   // Flatten the stacked blocks into one left-to-right event stream, keeping a
   // global column so spacing (and barlines) read continuously across wraps.
@@ -253,13 +263,104 @@ List<List<String>> _blocks(List<String> lines, int n) {
   return result;
 }
 
+/// Known tunings to match ASCII-tab string labels against. Their letter
+/// sequences are distinct, so a match is unambiguous — and using the matched
+/// tuning supplies the octaves that bare labels omit.
+final _knownTunings = <Tuning>[
+  Tuning.standardGuitar,
+  Tuning.dropDGuitar,
+  Tuning.dadgadGuitar,
+  Tuning.openGGuitar,
+  Tuning.sevenStringGuitar,
+  Tuning.eightStringGuitar,
+  Tuning.standardBass,
+  Tuning.fiveStringBass,
+  Tuning.banjoOpenG,
+  Tuning.ukulele,
+  Tuning.mandolin,
+];
+
+/// A tuning-string's note letter + accidental, no octave (`E`, `A#`, `Eb`) —
+/// the form an ASCII-tab label is written in.
+String _pitchLetter(Pitch p) {
+  final acc = p.alter > 0 ? '#' : (p.alter < 0 ? 'b' : '');
+  return '${p.step.name.toUpperCase()}$acc';
+}
+
+/// The leading note letters of the first block of tab lines, top string first
+/// (`['E','B','G','D','A','E']`), or empty if the lines carry no letter labels.
+List<String> _labelLetters(List<String> lines) {
+  final labels = <String>[];
+  for (final line in lines) {
+    if (!_isTabLine(line)) {
+      if (labels.isNotEmpty) break; // past the first block
+      continue;
+    }
+    final m = RegExp(r'^[ \t]*([A-Ga-g])([#b]?)').firstMatch(line);
+    if (m == null) return const []; // an unlabelled tab line — can't infer
+    labels.add('${m.group(1)!.toUpperCase()}${m.group(2)}');
+  }
+  return labels;
+}
+
+/// The known tuning whose string letters match [labels] exactly, or null.
+Tuning? _tuningFromLabels(List<String> labels) {
+  if (labels.isEmpty) return null;
+  for (final t in _knownTunings) {
+    if (t.strings.length != labels.length) continue;
+    var match = true;
+    for (var i = 0; i < labels.length; i++) {
+      if (_pitchLetter(t.strings[i]) != labels[i]) {
+        match = false;
+        break;
+      }
+    }
+    if (match) return t;
+  }
+  return null;
+}
+
+/// The count of tab lines in the first contiguous block.
+int _firstBlockCount(List<String> lines) {
+  var count = 0;
+  for (final line in lines) {
+    if (_isTabLine(line)) {
+      count++;
+    } else if (count > 0) {
+      break;
+    }
+  }
+  return count;
+}
+
+/// A default tuning for a bare string [count] when the labels named no known
+/// tuning — so an unlabelled 4/7/8-line tab still parses at the right width.
+Tuning? _defaultForCount(int count) => switch (count) {
+      4 => Tuning.standardBass,
+      6 => Tuning.standardGuitar,
+      7 => Tuning.sevenStringGuitar,
+      8 => Tuning.eightStringGuitar,
+      _ => null,
+    };
+
 /// Whether [line] looks like a tab string line: after its label, it is made
 /// only of tab characters (dashes, frets, techniques, barlines) and has at
 /// least two dashes — enough to reject ordinary prose.
 bool _isTabLine(String line) {
   final body = _stripLabel(line);
-  if ('-'.allMatches(body).length < 2) return false;
-  return RegExp(r'''^[-0-9hpbxXsHP~/\\|() \t.]+$''').hasMatch(body);
+  final dashes = '-'.allMatches(body).length;
+  if (dashes < 2) return false;
+  // A real tab line is DASH-DOMINATED; prose is letter-dominated. Rather than
+  // demand every character be on an allowlist — which let a single stray marker
+  // (a let-ring `L`, an inline annotation) reject the whole line and drop the
+  // block to nothing — count only the "foreign" characters and tolerate a few.
+  // The tab glyphs (digits, `-`, techniques, `=` sustain, `*` repeat, `<>`
+  // slides, `:` repeat/separator, barlines, parens, spacing) are free; anything
+  // else is foreign. This is the robustness of grepping digits from any labelled
+  // line, without admitting a letter-heavy prose line as tab.
+  final foreign =
+      body.replaceAll(RegExp(r'''[-0-9hpbxXsHP~/\\|()=*<>: \t.]'''), '').length;
+  return foreign <= 1 + dashes ~/ 6;
 }
 
 /// Strips a leading string label like `e|`, `B|`, `E |` or `g` from a line.
@@ -280,8 +381,11 @@ List<_Event> _events(List<String> block, int n) {
     while (c < line.length) {
       final ch = line[c];
       if (_isDigit(ch)) {
+        // A fret is at most two digits (0..24-ish). Capping the run both keeps
+        // the reading correct and avoids an integer overflow on a long garbage
+        // digit run — two real ClassTab files crash `int.parse` otherwise.
         var end = c;
-        while (end < line.length && _isDigit(line[end])) {
+        while (end < line.length && _isDigit(line[end]) && end - c < 2) {
           end++;
         }
         final fret = int.parse(line.substring(c, end));
