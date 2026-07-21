@@ -43,6 +43,7 @@ export 'src/model/measure.dart';
 export 'src/model/score.dart';
 export 'src/musescore/musescore_reader.dart';
 export 'src/musescore/musescore_writer.dart';
+export 'src/musescore/musicrender_reader.dart';
 export 'src/musicxml/musicxml_reader.dart';
 export 'src/musicxml/musicxml_writer.dart';
 export 'src/omr/bekern.dart';
