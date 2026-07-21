@@ -272,4 +272,30 @@ E|-------|
 ''', tuning: Tuning.standardGuitar);
     expect(pitches(score).single.toString(), 'E4'); // forced standard: top = E4
   });
+
+  test('a bar-number / rhythm-reference row is not read as a string', () {
+    // Regression from ClassTab: a counting row like "25 |-3-| |-3-|" is
+    // dash-dominated, so it used to pass as a tab line, get grouped with the
+    // six strings, and read the bar number 55 as fret 55 (MIDI 119, impossible
+    // on a guitar). It must be rejected — a string line never starts with a
+    // number followed by whitespace.
+    final score = asciiTabToScore('''
+25 |-3-| |-3-| |-3-|
+e|-0-2-3--------------|
+B|--------------------|
+G|--------------------|
+D|--------------------|
+A|--------------------|
+E|--------------------|
+''');
+    final midis = score.measures
+        .expand((m) => m.elements)
+        .whereType<NoteElement>()
+        .expand((e) => e.pitches)
+        .map((p) => p.midiNumber)
+        .toList();
+    // Only the three real high-E notes; no fret-55 garbage.
+    expect(midis, everyElement(lessThanOrEqualTo(88)));
+    expect(pitches(score).map((p) => p.toString()), ['E4', 'F#4', 'G4']);
+  });
 }

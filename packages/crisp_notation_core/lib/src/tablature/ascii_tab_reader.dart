@@ -350,6 +350,14 @@ bool _isTabLine(String line) {
   final body = _stripLabel(line);
   final dashes = '-'.allMatches(body).length;
   if (dashes < 2) return false;
+  // A bar-number / rhythm-reference row (`25 |-3-| |-3-|`, `0 |----|----|`)
+  // is dash-dominated and so would pass as a tab line, then get grouped in with
+  // the six string lines — throwing off the block alignment and reading the bar
+  // number "55" as fret 55 (an impossible pitch). A genuine string line begins
+  // with a dash, a `|`, or a fret digit run followed by more tab content; it
+  // never begins with a number followed by WHITESPACE. That leading
+  // "number then space" is the reliable tell of a counting row.
+  if (RegExp(r'^\s*\d+[ \t]').hasMatch(body)) return false;
   // A real tab line is DASH-DOMINATED; prose is letter-dominated. Rather than
   // demand every character be on an allowlist — which let a single stray marker
   // (a let-ring `L`, an inline annotation) reject the whole line and drop the
