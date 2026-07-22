@@ -31,6 +31,11 @@ final _navMarks = {for (final n in NavigationMark.values) n.name: n};
 
 const _recipBases = {
   '0': DurationBase.breve,
+  // Humdrum `00` = long, `000` = maxima (Renaissance polyphony). The model's
+  // longest value is `breve`, so these are approximated to it — a slightly short
+  // long/maxima beats rejecting the whole score (they appear in early-music kern).
+  '00': DurationBase.breve,
+  '000': DurationBase.breve,
   '1': DurationBase.whole,
   '2': DurationBase.half,
   '4': DurationBase.quarter,

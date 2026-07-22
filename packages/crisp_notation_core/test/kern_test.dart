@@ -350,4 +350,17 @@ void main() {
     expect(pitches(treble), ['G5', 'A5', 'B5', 'C6']);
     expect(pitches(bass), ['C3', 'G2', 'C3']);
   });
+
+  test('breve/long/maxima durations (0, 00, 000) parse — early-music kern', () {
+    // `0` = breve, `00` = long, `000` = maxima in Humdrum. The model tops out at
+    // breve, so 00/000 approximate to it — but must not crash the parse (they
+    // appear across the NIFC Polish early-music corpus: anonymous masses etc.).
+    const kern = '**kern\n*M4/4\n0c\n00d\n000e\n0r\n00.r\n=\n*-\n';
+    final score = scoreFromKern(kern);
+    final notes =
+        score.measures.expand((m) => m.elements).whereType<NoteElement>();
+    expect(notes.map((e) => e.pitches.single.step),
+        [Step.c, Step.d, Step.e], reason: 'all three long notes kept');
+    expect(notes.every((e) => e.duration.base == DurationBase.breve), isTrue);
+  });
 }
