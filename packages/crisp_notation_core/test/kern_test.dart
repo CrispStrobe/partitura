@@ -359,8 +359,8 @@ void main() {
     final score = scoreFromKern(kern);
     final notes =
         score.measures.expand((m) => m.elements).whereType<NoteElement>();
-    expect(notes.map((e) => e.pitches.single.step),
-        [Step.c, Step.d, Step.e], reason: 'all three long notes kept');
+    expect(notes.map((e) => e.pitches.single.step), [Step.c, Step.d, Step.e],
+        reason: 'all three long notes kept');
     expect(notes.every((e) => e.duration.base == DurationBase.breve), isTrue);
   });
 }
