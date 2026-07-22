@@ -56,10 +56,11 @@ omr options:
                                        and recognize each, concatenated
 
 Common:
-  --from <musicxml|mxl|mei|kern|midi|abc|asciitab|mscx|mscz|gp|gpx|gp5|gp4|gp3|gpif>
+  --from <musicxml|mxl|mei|kern|midi|abc|gabc|asciitab|mscx|mscz|gp|gpx|gp5|gp4|gp3|gpif>
                                        Force the input format (.mxl = zipped
                                        MusicXML; .mei = MEI; .krn = Humdrum
-                                       kern; .abc = ABC; .tab/.crd/.txt are
+                                       kern; .abc = ABC; .gabc = GABC (Gregorio
+                                       chant); .tab/.crd/.txt are
                                        plain-text tab; .mscx/.mscz = MuseScore
                                        XML / zip; .gp = v7/8, .gpx = v6,
                                        .gp5/.gp4/.gp3 = binary tab)
@@ -509,6 +510,8 @@ Score _loadScore(String path, Map<String, String> options) {
       return scoreFromMidi(file.readAsBytesSync());
     case 'abc':
       return scoreFromAbc(_readText(file));
+    case 'gabc':
+      return scoreFromGabc(_readText(file));
     case 'mscx':
       return scoreFromMscx(_readText(file));
     case 'mscz':
@@ -590,6 +593,7 @@ String _formatOf(String path) {
   if (lower.endsWith('.svg')) return 'svg';
   if (lower.endsWith('.png')) return 'png';
   if (lower.endsWith('.abc')) return 'abc';
+  if (lower.endsWith('.gabc')) return 'gabc';
   if (lower.endsWith('.brl')) return 'brl';
   if (lower.endsWith('.mscz')) return 'mscz';
   if (lower.endsWith('.mscx')) return 'mscx';
