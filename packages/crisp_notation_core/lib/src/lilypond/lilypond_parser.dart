@@ -45,6 +45,7 @@ class LilyPondParser {
         case 'partial': argsCount = 1; break;
         case 'tempo': argsCount = 1; break; // \tempo 4 = 120 (simplified)
         case 'tuplet': argsCount = 1; break; // \tuplet 3/2 { ... }
+        case 'times': argsCount = 1; break; // \times 2/3 { ... }
         // Many commands like \major, \minor take 0 args.
       }
       
@@ -59,8 +60,8 @@ class LilyPondParser {
       // it's fine if the block is a sibling, OR we can peek if there is a { next.
       // For a generalized AST, we can let `{` be an expression of its own, 
       // but Lilypond evaluates commands like functions. Let's just consume one more if it's `{` or `<<` 
-      // for specific commands that act as wrappers: `\new`, `\relative`, `\score`, `\tuplet`, `\with`.
-      if (['new', 'with', 'relative', 'tuplet'].contains(token.value)) {
+      // for specific commands that act as wrappers: `\new`, `\relative`, `\score`, `\tuplet`, `\times`, `\with`.
+      if (['new', 'with', 'relative', 'tuplet', 'times'].contains(token.value)) {
         final next = _peek();
         if (next.kind == TokenKind.symbol && (next.value == '{' || next.value == '<<')) {
            final body = _parseNode();

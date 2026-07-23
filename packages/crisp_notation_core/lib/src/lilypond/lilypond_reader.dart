@@ -35,6 +35,8 @@ class _LilyPondReader {
   
   final List<Measure> _measures = [];
   List<MusicElement> _currentElements = [];
+  List<TupletSpan> _currentTuplets = [];
+  Fraction _tupletRatio = Fraction(1, 1);
   Fraction _measureTime = Fraction.zero;
   int _elementId = 0;
   
@@ -137,6 +139,49 @@ class _LilyPondReader {
            }
         }
         break;
+      case 'tuplet':
+      case 'times':
+        Fraction ratio = Fraction(1, 1);
+        int actual = 3;
+        int normal = 2;
+        if (cmd.args.isNotEmpty && cmd.args.first is LyWord) {
+           final parts = (cmd.args.first as LyWord).value.split('/');
+           if (parts.length == 2) {
+              final n = int.tryParse(parts[0]);
+              final d = int.tryParse(parts[1]);
+              if (n != null && d != null) {
+                 if (cmd.name == 'tuplet') {
+                    ratio = Fraction(d, n);
+                    actual = n;
+                    normal = d;
+                 } else {
+                    ratio = Fraction(n, d);
+                    actual = d;
+                    normal = n;
+                 }
+              }
+           }
+        }
+        
+        LyNode? block;
+        if (cmd.args.length > 1) {
+           block = cmd.args[1];
+        }
+        if (block != null) {
+           final oldRatio = _tupletRatio;
+           _tupletRatio = ratio;
+           final startIndex = _currentElements.length;
+           
+           _processNodes([block]);
+           
+           final endIndex = _currentElements.length - 1;
+           if (endIndex >= startIndex) {
+               _currentTuplets.add(TupletSpan(startIndex, endIndex, actual: actual, normal: normal));
+           }
+           
+           _tupletRatio = oldRatio;
+        }
+        break;
       case 'new':
       case 'with':
         // pass through inner blocks
@@ -154,13 +199,13 @@ class _LilyPondReader {
     final pitch = _parsePitch(note.pitch);
     final p = _applyRelative(pitch);
     
-    _checkMeasureBoundary(_currentDur.toFraction());
+    _checkMeasureBoundary(_currentDur.toFraction() * _tupletRatio);
     _currentElements.add(NoteElement(
       pitches: [p],
       duration: _currentDur,
       id: 'e${_elementId++}',
     ));
-    _measureTime = _measureTime + _currentDur.toFraction();
+    _measureTime = _measureTime + (_currentDur.toFraction() * _tupletRatio);
   }
 
   void _processChord(LyChord chord) {
@@ -169,13 +214,13 @@ class _LilyPondReader {
     }
     final pitches = chord.pitches.map((pStr) => _applyRelative(_parsePitch(pStr))).toList();
     if (pitches.isNotEmpty) {
-       _checkMeasureBoundary(_currentDur.toFraction());
+       _checkMeasureBoundary(_currentDur.toFraction() * _tupletRatio);
        _currentElements.add(NoteElement(
          pitches: pitches,
          duration: _currentDur,
          id: 'e${_elementId++}',
        ));
-       _measureTime = _measureTime + _currentDur.toFraction();
+       _measureTime = _measureTime + (_currentDur.toFraction() * _tupletRatio);
     }
   }
 
@@ -183,9 +228,9 @@ class _LilyPondReader {
     if (rest.duration != null) {
        _currentDur = _parseDuration(rest.duration!);
     }
-    _checkMeasureBoundary(_currentDur.toFraction());
+    _checkMeasureBoundary(_currentDur.toFraction() * _tupletRatio);
     _currentElements.add(RestElement(_currentDur, id: 'e${_elementId++}'));
-    _measureTime = _measureTime + _currentDur.toFraction();
+    _measureTime = _measureTime + (_currentDur.toFraction() * _tupletRatio);
   }
 
   void _checkMeasureBoundary(Fraction nextDur) {
@@ -197,8 +242,12 @@ class _LilyPondReader {
 
   void _closeMeasure() {
     if (_currentElements.isEmpty) return;
-    _measures.add(Measure(List.from(_currentElements)));
+    _measures.add(Measure(
+      List.from(_currentElements),
+      tuplets: List.from(_currentTuplets),
+    ));
     _currentElements.clear();
+    _currentTuplets.clear();
     _measureTime = Fraction.zero;
   }
 
