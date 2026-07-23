@@ -175,6 +175,10 @@ class LilyPondLexer {
       _advance(2);
       return '$char$peek';
     }
+    if (char == '_' && peek == '_') {
+      _advance(2);
+      return '__';
+    }
     _advance(1);
     return char;
   }

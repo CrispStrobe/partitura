@@ -36,6 +36,10 @@ class _LilyPondReader {
   final List<Measure> _measures = [];
   List<MusicElement> _currentElements = [];
   List<TupletSpan> _currentTuplets = [];
+  final List<Lyric> _lyrics = [];
+  final Map<String, LyNode> _variables = {};
+  int _currentVerse = 1;
+  
   Fraction _tupletRatio = Fraction(1, 1);
   Fraction _measureTime = Fraction.zero;
   int _elementId = 0;
@@ -53,7 +57,83 @@ class _LilyPondReader {
       keySignature: _key,
       timeSignature: _time,
       measures: _measures,
+      lyrics: _lyrics,
     );
+  }
+
+  List<String> _extractLyricsSyllables(LyNode node) {
+    if (node is LyWord) {
+      if (RegExp(r'^[\d\.]+$').hasMatch(node.value)) return [];
+      return [node.value];
+    }
+    if (node is LyString) return [node.value];
+    if (node is LyNote) return [node.pitch];
+    if (node is LyRest) return ['_'];
+    if (node is LyBlock) return node.children.expand(_extractLyricsSyllables).toList();
+    if (node is LySimultaneous) return node.children.expand(_extractLyricsSyllables).toList();
+    if (node is LyCommand) {
+      if (_variables.containsKey(node.name)) return _extractLyricsSyllables(_variables[node.name]!);
+      return node.args.expand(_extractLyricsSyllables).toList();
+    }
+    return [];
+  }
+
+  void _alignLyrics(List<String> syllables) {
+    final noteIds = <String>[];
+    for (final m in _measures) {
+      for (final e in m.elements) {
+        if (e is NoteElement && e.id != null) noteIds.add(e.id!);
+      }
+    }
+    for (final e in _currentElements) {
+      if (e is NoteElement && e.id != null) noteIds.add(e.id!);
+    }
+
+    int noteIndex = 0;
+    int syllableIndex = 0;
+
+    while (syllableIndex < syllables.length && noteIndex < noteIds.length) {
+      final syl = syllables[syllableIndex];
+      if (['|', '{', '}', '<<', '>>', '\\\\'].contains(syl)) {
+        syllableIndex++; continue;
+      }
+      if (syl == '--' || syl == '__') {
+        syllableIndex++; continue;
+      }
+      if (syl == '_') {
+        noteIndex++;
+        syllableIndex++;
+        continue;
+      }
+
+      String text = syl;
+      bool hyphen = false;
+      bool extender = false;
+
+      int lookahead = syllableIndex + 1;
+      while (lookahead < syllables.length) {
+        final nextSyl = syllables[lookahead];
+        if (nextSyl == '--') {
+          hyphen = true;
+          lookahead++;
+        } else if (nextSyl == '__') {
+          extender = true;
+          lookahead++;
+        } else if (['|', '{', '}'].contains(nextSyl)) {
+          lookahead++;
+        } else if (RegExp(r'^[\d\.]+$').hasMatch(nextSyl)) {
+          lookahead++;
+        } else {
+          break;
+        }
+      }
+
+      _lyrics.add(Lyric(noteIds[noteIndex], text, hyphenToNext: hyphen, extender: extender, verse: _currentVerse));
+
+      noteIndex++;
+      syllableIndex = lookahead;
+    }
+    _currentVerse++;
   }
 
   void _processNodes(List<LyNode> nodes) {
@@ -74,6 +154,8 @@ class _LilyPondReader {
         if (node.value == '|') {
           _closeMeasure();
         }
+      } else if (node is LyAssignment) {
+        _variables[node.key] = node.value;
       } else if (node is LySimultaneous) {
         // Simplified polyphony: just process sequentially for now or 
         // handle voice2. A full implementation would merge parallel streams.
@@ -139,6 +221,17 @@ class _LilyPondReader {
            }
         }
         break;
+      case 'addlyrics':
+      case 'lyricsto':
+      case 'lyricmode':
+        final syllables = <String>[];
+        for (final arg in cmd.args) {
+          syllables.addAll(_extractLyricsSyllables(arg));
+        }
+        if (syllables.isNotEmpty) {
+          _alignLyrics(syllables);
+        }
+        break;
       case 'tuplet':
       case 'times':
         Fraction ratio = Fraction(1, 1);
@@ -187,6 +280,11 @@ class _LilyPondReader {
         // pass through inner blocks
         for (final arg in cmd.args) {
           if (arg is LyBlock) _processNodes([arg]);
+        }
+        break;
+      default:
+        if (cmd.args.isEmpty && _variables.containsKey(cmd.name)) {
+          _processNodes([_variables[cmd.name]!]);
         }
         break;
     }
