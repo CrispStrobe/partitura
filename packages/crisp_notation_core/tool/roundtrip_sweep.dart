@@ -32,6 +32,7 @@ final _formats = <Fmt>[
   Fmt('kern', scoreToKern, scoreFromKern),
   Fmt('ABC', scoreToAbc, scoreFromAbc),
   Fmt('MuseScore', scoreToMscx, scoreFromMscx),
+  Fmt('LilyPond', scoreToLilyPond, scoreFromLilyPond),
   Fmt('MIDI', (s) => String.fromCharCodes(scoreToMidi(s)),
       (s) => scoreFromMidi(Uint8List.fromList(s.codeUnits))),
 ];
@@ -79,6 +80,8 @@ Score? _import(File f) {
       return scoreFromKern(f.readAsStringSync());
     } else if (path.endsWith('.abc')) {
       return scoreFromAbc(f.readAsStringSync());
+    } else if (path.endsWith('.ly')) {
+      return scoreFromLilyPond(f.readAsStringSync());
     } else if (path.endsWith('.mid') || path.endsWith('.midi')) {
       return scoreFromMidi(f.readAsBytesSync());
     }

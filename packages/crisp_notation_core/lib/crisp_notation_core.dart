@@ -33,6 +33,7 @@ export 'src/layout/page_layout.dart';
 export 'src/layout/score_layout.dart';
 export 'src/layout/staff_system.dart';
 export 'src/layout/tab_layout.dart';
+export 'src/lilypond/lilypond_reader.dart';
 export 'src/lilypond/lilypond_writer.dart';
 export 'src/mei/mei_reader.dart';
 export 'src/mei/mei_writer.dart';
