@@ -104,9 +104,9 @@ drives an app-owned `ScrollController`. One-call `exportScoreToPng` /
 
 **Interchange.** MusicXML (plain and compressed `.mxl`), MEI, Humdrum `**kern`,
 MIDI, MuseScore (`.mscx`/`.mscz`), the `.gp3`–`.gp5`/`.gpx`/`.gp` tablature
-family (with GPIF), and ABC — all importing and (where applicable) exporting
+family (with GPIF), ABC, and LilyPond (`.ly`) — all importing and (where applicable) exporting
 through the one `Score` model, so any pair round-trips for shared data; plus
-LilyPond `.ly` and braille-music (`.brl`) export. The GPIF export/import is a
+braille-music (`.brl`) export. The GPIF export/import is a
 high-fidelity round-trip: on top of pitches, chords, rhythm, per-track tunings
 and the tab techniques (bends & contours, hammer-ons, slides, vibrato, dead/
 ghost/harmonics), it preserves **voice 2, tuplets, key signature (incl. mid-score

@@ -320,9 +320,9 @@ own goldens):**
     "tablature out" clause lifted.
   - **Phase 7.3/7.4 (interchange):** MusicXML (+ compressed `.mxl`), MEI,
     Humdrum `**kern`, MIDI, MuseScore (`.mscx`/`.mscz`), GPIF and the full
-    `.gp3`–`.gp` binary line (`.gp3`/`.gp4`/`.gp5`) + `.gpx` (v6) + `.gp` (v7/8)
-    all import (MusicXML/`.mxl`/MEI/kern/MuseScore/GPIF also export; LilyPond
-    `.ly` export-only), with the common techniques; nested repeats now expand
+    .gp3–.gp binary line (.gp3/.gp4/.gp5) + .gpx (v6) + .gp (v7/8) all import
+    (MusicXML/.mxl/MEI/kern/MuseScore/GPIF/LilyPond import and export), with the common
+    techniques; nested repeats now expand
     in `playbackTimeline`. The container codecs (ZIP + BCFS) and DEFLATE are
     pure Dart, so the whole surface is web-safe / WASM-compilable.
 - **Test counts:** 1445 core + 301 widget/golden + ~75 CLI; 135 golden PNGs.
@@ -1142,7 +1142,7 @@ reference).
 ### Layer 1 — codec coverage (feature is in the model; is it round-tripped?)
 
 MusicXML is the most complete reader/writer. MEI, MuseScore, Humdrum `**kern`
-and LilyPond (export-only) started as a base subset (clef/key/meter + changes,
+and LilyPond started as a base subset (clef/key/meter + changes,
 notes/chords/rests, durations+dots, ties, two voices, pickup) and are being
 enriched toward it, one feature-group per commit.
 
