@@ -157,11 +157,26 @@ class _LilyPondReader {
       } else if (node is LyAssignment) {
         _variables[node.key] = node.value;
       } else if (node is LySimultaneous) {
-        // Simplified polyphony: just process sequentially for now or 
-        // handle voice2. A full implementation would merge parallel streams.
-        // For now, process first block.
         if (node.children.isNotEmpty) {
            _processNodes([node.children.first]);
+           
+           void runLyricsCommands(LyNode n) {
+              if (n is LyCommand) {
+                 if (['addlyrics', 'lyricsto', 'lyricmode'].contains(n.name)) {
+                    final syllables = <String>[];
+                    for (final arg in n.args) syllables.addAll(_extractLyricsSyllables(arg));
+                    if (syllables.isNotEmpty) _alignLyrics(syllables);
+                 } else if (n.name == 'new' || n.name == 'with') {
+                    for (final arg in n.args) runLyricsCommands(arg);
+                 }
+              } else if (n is LyBlock) {
+                 for (final child in n.children) runLyricsCommands(child);
+              }
+           }
+           
+           for (int i = 1; i < node.children.length; i++) {
+              runLyricsCommands(node.children[i]);
+           }
         }
       }
     }

@@ -57,5 +57,55 @@ void main() {
       expect(score.timeSignature?.beats, 3);
       expect(score.timeSignature?.beatUnit, 4);
     });
+
+    test('parses tuplets and correctly assigns TupletSpans', () {
+      final score = scoreFromLilyPond(r"{ \tuplet 3/2 { c4 d e } \times 4/5 { f8 g a b c } }");
+      expect(score.measures.length, 1);
+      final m = score.measures.first;
+      
+      expect(m.tuplets.length, 2);
+      expect(m.tuplets[0].actual, 3);
+      expect(m.tuplets[0].normal, 2);
+      expect(m.tuplets[0].startIndex, 0);
+      expect(m.tuplets[0].endIndex, 2);
+
+      expect(m.tuplets[1].actual, 5);
+      expect(m.tuplets[1].normal, 4);
+      expect(m.tuplets[1].startIndex, 3);
+      expect(m.tuplets[1].endIndex, 7);
+    });
+
+    test('parses lyrics with hyphens, melismas, skips, and variables', () {
+      final score = scoreFromLilyPond(r"""
+        myLyrics = \lyricmode { Al -- le _ Jah -- re __ }
+        \score {
+          <<
+            \new Staff { c'4 d'4 e'4 f'4 g'4 a'4 }
+            \addlyrics { \myLyrics }
+          >>
+        }
+      """);
+      
+      expect(score.lyrics.length, 4); // "Al", "le", "Jah", "re"
+
+      expect(score.lyrics[0].text, 'Al');
+      expect(score.lyrics[0].hyphenToNext, true);
+      expect(score.lyrics[0].extender, false);
+      expect(score.lyrics[0].verse, 1);
+      
+      expect(score.lyrics[1].text, 'le');
+      expect(score.lyrics[1].hyphenToNext, false);
+      
+      // The '_' skipped the third note (e'4). So 'Jah' aligns to the fourth note.
+      final note3 = score.measures.first.elements[2] as NoteElement;
+      final note4 = score.measures.first.elements[3] as NoteElement;
+      expect(score.lyrics[2].elementId, note4.id);
+      expect(score.lyrics[2].text, 'Jah');
+      expect(score.lyrics[2].hyphenToNext, true);
+
+      expect(score.lyrics[3].text, 're');
+      expect(score.lyrics[3].hyphenToNext, false);
+      expect(score.lyrics[3].extender, true);
+    });
   });
 }
